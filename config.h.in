@@ -1,0 +1,3 @@
+#pragma once
+
+#define SDLTEST_VERSION @PROJECT_VERSION@
