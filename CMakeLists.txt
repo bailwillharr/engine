@@ -84,6 +84,8 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
 # libraries:
 
+set(BUILD_SHARED_LIBS ON)
+
 # MinGW library if using it
 if (MINGW)
 	target_link_libraries(${PROJECT_NAME} PUBLIC mingw32)
@@ -124,7 +126,11 @@ target_link_libraries(${PROJECT_NAME} PUBLIC spdlog)
 target_include_directories(${PROJECT_NAME} PUBLIC dependencies/spdlog/include)
 
 # freetype
-set(BUILD_SHARED_LIBS ON)
+set(FT_DISABLE_ZLIB TRUE)
+set(FT_DISABLE_BZIP2 TRUE)
+set(FT_DISABLE_PNG TRUE)
+set(FT_DISABLE_HARFBUZZ TRUE)
+set(FT_DISABLE_BROTLI TRUE)
 add_subdirectory(dependencies/freetype)
 target_link_libraries(${PROJECT_NAME} PRIVATE freetype)
 target_include_directories(${PROJECT_NAME} PRIVATE dependencies/freetype/include)
