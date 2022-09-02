@@ -1,5 +1,7 @@
 #pragma once
 
+#include "export.h"
+
 #include <glm/mat4x4.hpp>
 
 #include <list>
@@ -31,7 +33,7 @@ struct GameIO {
 
 // This object lives until it is deleted by its parent(s) or finally when the "Scene" is destroyed.
 // Therefore it is safe to return raw pointers
-class Object {
+class DECLSPEC Object {
 
 public:
 	Object(std::string name, Object* parent, SceneRoot& root, struct GameIO things);

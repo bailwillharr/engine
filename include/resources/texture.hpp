@@ -1,12 +1,14 @@
 #pragma once
 
+#include "export.h"
+
 #include "resource.hpp"
 
 #include <glad/glad.h>
 
 namespace resources {
 
-class Texture : public Resource {
+class DECLSPEC Texture : public Resource {
 
 private:
 

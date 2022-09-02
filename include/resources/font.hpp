@@ -1,5 +1,7 @@
 #pragma once
 
+#include "export.h"
+
 #include "resource.hpp"
 
 #include <glad/glad.h>
@@ -10,7 +12,7 @@
 
 namespace resources {
 
-class Font : public Resource {
+class DECLSPEC Font : public Resource {
 
 public:
 

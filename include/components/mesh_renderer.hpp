@@ -1,5 +1,7 @@
 #pragma once
 
+#include "export.h"
+
 #include "component.hpp"
 
 #include "resources/shader.hpp"
@@ -12,7 +14,7 @@
 
 namespace components {
 
-class Renderer : public Component {
+class DECLSPEC Renderer : public Component {
 
 public:
 	Renderer(Object*);

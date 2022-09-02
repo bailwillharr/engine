@@ -1,9 +1,11 @@
 #pragma once
 
+#include "export.h"
+
 #include <string>
 #include <filesystem>
 
-class Resource {
+class DECLSPEC Resource {
 
 public:
 	Resource(const std::filesystem::path& resPath, const std::string& type);

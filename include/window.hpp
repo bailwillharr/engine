@@ -1,5 +1,7 @@
 #pragma once
 
+#include "export.h"
+
 #include "inputs/keyboard.hpp"
 #include "inputs/mouse.hpp"
 
@@ -12,9 +14,9 @@
 #include <array>
 #include <string>
 
-extern const uint64_t BILLION;
+DECLSPEC extern const uint64_t BILLION;
 
-class Window {
+class DECLSPEC Window {
 
 public:
 	Window(const std::string& title);

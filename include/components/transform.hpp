@@ -1,5 +1,7 @@
 #pragma once
 
+#include "export.h"
+
 #include "component.hpp"
 
 #include <glm/mat4x4.hpp>
@@ -12,7 +14,7 @@
 
 namespace components {
 
-class Transform : public Component {
+class DECLSPEC Transform : public Component {
 
 // Scale, rotate (XYZ), translate
 

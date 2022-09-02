@@ -1,5 +1,7 @@
 #pragma once
 
+#include "export.h"
+
 #include "component.hpp"
 
 #include "resources/font.hpp"
@@ -9,7 +11,7 @@
 
 namespace components {
 
-class UI : public Component {
+class DECLSPEC UI : public Component {
 
 public:
 	UI(Object*);

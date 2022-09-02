@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.4)
 
 # options
 
@@ -32,6 +32,8 @@ add_library(${PROJECT_NAME} SHARED
 
 	# PUBLIC API
 
+	"include/export.h"
+
 	"include/log.hpp"
 
 	"include/window.hpp"
@@ -59,16 +61,18 @@ add_library(${PROJECT_NAME} SHARED
 
 	"include/resource_manager.hpp"
 
- )
+)
 
 # compiling options:
+
+target_compile_definitions(${PROJECT_NAME} PRIVATE DEFINITIONS "ENGINE_EXPORTS")
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
 
 if (MSVC)
 	target_compile_options(${PROJECT_NAME} PRIVATE /W3)
-	target_compile_options(${PROJECT_NAME} PRIVATE /M3)
+	target_compile_options(${PROJECT_NAME} PRIVATE /MP)
 endif()
 
 target_include_directories(${PROJECT_NAME} PUBLIC include)
@@ -76,7 +80,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE src)
 
 # Pass some project information into the source code
 configure_file(config.h.in config.h)
-target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
 # libraries:
 
@@ -94,11 +98,6 @@ add_subdirectory(dependencies/SDL)
 target_include_directories(${PROJECT_NAME} PUBLIC dependencies/SDL/include)
 target_link_libraries(${PROJECT_NAME} PUBLIC SDL2::SDL2)
 target_link_libraries(${PROJECT_NAME} PUBLIC SDL2::SDL2main)
-# copy over SDL2 library:
-add_custom_command(
-	TARGET ${PROJECT_NAME} PRE_BUILD
-	COMMAND ${CMAKE_COMMAND} -E copy_if_different
-	$<TARGET_FILE:SDL2::SDL2> $<TARGET_FILE_DIR:${PROJECT_NAME}>)
 
 # GLM:
 add_subdirectory(dependencies/glm)
@@ -124,14 +123,11 @@ add_subdirectory(dependencies/spdlog)
 target_link_libraries(${PROJECT_NAME} PUBLIC spdlog)
 target_include_directories(${PROJECT_NAME} PUBLIC dependencies/spdlog/include)
 
-
-
 # freetype
 set(BUILD_SHARED_LIBS ON)
 add_subdirectory(dependencies/freetype)
 target_link_libraries(${PROJECT_NAME} PRIVATE freetype)
 target_include_directories(${PROJECT_NAME} PRIVATE dependencies/freetype/include)
-set(BUILD_SHARED_LIBS OFF)
 
 # stb
 target_include_directories(${PROJECT_NAME} PRIVATE dependencies/stb)
@@ -139,4 +135,3 @@ target_include_directories(${PROJECT_NAME} PRIVATE dependencies/stb)
 
 
 # public API:
-

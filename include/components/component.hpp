@@ -1,11 +1,13 @@
 #pragma once
 
+#include "export.h"
+
 class Object;
 class Window;
 class Input;
 class ResourceManager;
 
-class Component {
+class DECLSPEC Component {
 
 public:
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "export.h"
+
 #include "resources/resource.hpp"
 
 #include <vector>
@@ -7,7 +9,7 @@
 
 // Doesn't own resources, only holds weak_ptrs
 
-class ResourceManager {
+class DECLSPEC ResourceManager {
 
 public:
 	ResourceManager();

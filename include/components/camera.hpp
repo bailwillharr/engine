@@ -1,5 +1,7 @@
 #pragma once
 
+#include "export.h"
+
 #include "component.hpp"
 
 #include "object.hpp"
@@ -11,7 +13,7 @@
 
 namespace components {
 
-class Camera : public Component {
+class DECLSPEC Camera : public Component {
 
 public:
 	Camera(Object* parent);

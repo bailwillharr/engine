@@ -1,5 +1,7 @@
 #pragma once
 
+#include "export.h"
+
 #include "inputs/mouse.hpp"
 #include "inputs/keyboard.hpp"
 
@@ -17,7 +19,7 @@ enum class InputDevice : int {
 };
 
 // This class should be used to get platform/input-device independent input
-class Input {
+class DECLSPEC Input {
 
 public:
 

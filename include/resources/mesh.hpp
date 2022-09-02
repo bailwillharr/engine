@@ -1,5 +1,7 @@
 #pragma once
 
+#include "export.h"
+
 #include "resource.hpp"
 
 #include "resources/shader.hpp"
@@ -20,7 +22,7 @@ struct Vertex {
 
 namespace resources {
 
-class Mesh : public Resource {
+class DECLSPEC Mesh : public Resource {
 
 public:
 	Mesh(const std::vector<Vertex>& vertices);

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "export.h"
+
 #include "resource.hpp"
 
 #include <glad/glad.h>
@@ -11,7 +13,7 @@
 
 namespace resources {
 
-class Shader : public Resource {
+class DECLSPEC Shader : public Resource {
 
 public:
 	Shader(const std::filesystem::path& resPath);

@@ -1,12 +1,14 @@
 #pragma once
 
+#include "export.h"
+
 #include "component.hpp"
 
 #include <glm/mat4x4.hpp>
 
 namespace components {
 
-	class CustomComponent : public Component {
+	class DECLSPEC CustomComponent : public Component {
 
 	public:
 		CustomComponent(Object* parent);

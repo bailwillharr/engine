@@ -1,11 +1,13 @@
 #pragma once
 
+#include "export.h"
+
 #include "object.hpp"
 
 #include <filesystem>
 
 // Holds everything you would expect to find in a game scene
-class SceneRoot : public Object {
+class DECLSPEC SceneRoot : public Object {
 
 public:
 	// create a new empty scene
