@@ -8,7 +8,7 @@
 
 namespace components {
 
-	class DECLSPEC CustomComponent : public Component {
+	class ENGINE_API CustomComponent : public Component {
 
 	public:
 		CustomComponent(Object* parent);

@@ -14,7 +14,7 @@
 
 namespace components {
 
-class DECLSPEC Renderer : public Component {
+class ENGINE_API Renderer : public Component {
 
 public:
 	Renderer(Object*);

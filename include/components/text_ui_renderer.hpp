@@ -11,7 +11,7 @@
 
 namespace components {
 
-class DECLSPEC UI : public Component {
+class ENGINE_API UI : public Component {
 
 public:
 	UI(Object*);

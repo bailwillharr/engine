@@ -19,7 +19,7 @@ enum class InputDevice : int {
 };
 
 // This class should be used to get platform/input-device independent input
-class DECLSPEC Input {
+class ENGINE_API Input {
 
 public:
 

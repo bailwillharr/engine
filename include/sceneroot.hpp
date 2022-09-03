@@ -7,7 +7,7 @@
 #include <filesystem>
 
 // Holds everything you would expect to find in a game scene
-class DECLSPEC SceneRoot : public Object {
+class ENGINE_API SceneRoot : public Object {
 
 public:
 	// create a new empty scene

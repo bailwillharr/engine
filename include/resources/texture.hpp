@@ -8,7 +8,7 @@
 
 namespace resources {
 
-class DECLSPEC Texture : public Resource {
+class ENGINE_API Texture : public Resource {
 
 private:
 

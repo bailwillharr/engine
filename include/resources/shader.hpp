@@ -13,7 +13,7 @@
 
 namespace resources {
 
-class DECLSPEC Shader : public Resource {
+class ENGINE_API Shader : public Resource {
 
 public:
 	Shader(const std::filesystem::path& resPath);

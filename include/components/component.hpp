@@ -7,7 +7,7 @@ class Window;
 class Input;
 class ResourceManager;
 
-class DECLSPEC Component {
+class ENGINE_API Component {
 
 public:
 

@@ -1,13 +1,13 @@
 #pragma once
 
-#ifndef DECLSPEC
+#ifndef ENGINE_API
 # ifdef _MSC_VER
 #  ifdef ENGINE_EXPORTS
-#   define DECLSPEC __declspec(dllexport)
+#   define ENGINE_API __declspec(dllexport)
 #  else
-#   define DECLSPEC __declspec(dllimport)
+#   define ENGINE_API __declspec(dllimport)
 #  endif
 # else
-#  define DECLSPEC
+#  define ENGINE_API
 # endif
 #endif

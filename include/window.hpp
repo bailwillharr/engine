@@ -14,9 +14,9 @@
 #include <array>
 #include <string>
 
-DECLSPEC extern const uint64_t BILLION;
+ENGINE_API extern const uint64_t BILLION;
 
-class DECLSPEC Window {
+class ENGINE_API Window {
 
 public:
 	Window(const std::string& title);

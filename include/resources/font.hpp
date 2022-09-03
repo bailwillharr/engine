@@ -12,7 +12,7 @@
 
 namespace resources {
 
-class DECLSPEC Font : public Resource {
+class ENGINE_API Font : public Resource {
 
 public:
 

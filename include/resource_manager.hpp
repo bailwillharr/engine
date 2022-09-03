@@ -9,7 +9,7 @@
 
 // Doesn't own resources, only holds weak_ptrs
 
-class DECLSPEC ResourceManager {
+class ENGINE_API ResourceManager {
 
 public:
 	ResourceManager();

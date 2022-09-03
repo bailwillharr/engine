@@ -14,7 +14,7 @@
 
 namespace components {
 
-class DECLSPEC Transform : public Component {
+class ENGINE_API Transform : public Component {
 
 // Scale, rotate (XYZ), translate
 

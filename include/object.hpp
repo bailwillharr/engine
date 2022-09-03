@@ -33,7 +33,7 @@ struct GameIO {
 
 // This object lives until it is deleted by its parent(s) or finally when the "Scene" is destroyed.
 // Therefore it is safe to return raw pointers
-class DECLSPEC Object {
+class ENGINE_API Object {
 
 public:
 	Object(std::string name, Object* parent, SceneRoot& root, struct GameIO things);
