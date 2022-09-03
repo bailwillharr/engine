@@ -34,6 +34,8 @@ add_library(${PROJECT_NAME} SHARED
 
 	"include/export.h"
 
+	"include/engine.hpp"
+
 	"include/log.hpp"
 
 	"include/window.hpp"
@@ -80,7 +82,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE src)
 
 # Pass some project information into the source code
 configure_file(config.h.in config.h)
-target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
 # libraries:
 
