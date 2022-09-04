@@ -1,6 +1,5 @@
 #include "object.hpp"
 
-#include "components/transform.hpp"
 #include "components/camera.hpp"
 #include "components/mesh_renderer.hpp"
 #include "components/text_ui_renderer.hpp"
@@ -18,8 +17,6 @@ Object::Object(std::string name, Object* parent, SceneRoot& root, struct GameIO 
 	res(*things.resMan)
 {
 	s_object_count++;
-	// all objects come with at least a transform component
-	createComponent<components::Transform>();
 }
 
 Object::~Object()
@@ -98,16 +95,16 @@ void Object::getAllSubComponents(struct CompList& compList, glm::mat4 parentTran
 
 	glm::mat4 objTransform{1.0f};
 
-	auto t = getComponent<Transform>();
+	auto t = transform;
 
 	// rotation
-	objTransform = glm::mat4_cast(t->rotation);
+	objTransform = glm::mat4_cast(t.rotation);
 
 	// position
-	reinterpret_cast<glm::vec3&>(objTransform[3]) = t->position;
+	reinterpret_cast<glm::vec3&>(objTransform[3]) = t.position;
 	
 	// scale (effectively applied first
-	objTransform = glm::scale(objTransform, t->scale);
+	objTransform = glm::scale(objTransform, t.scale);
 
 	const glm::mat4 newTransform = parentTransform * objTransform;
 

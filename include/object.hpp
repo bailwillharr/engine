@@ -4,6 +4,8 @@
 
 #include <glm/mat4x4.hpp>
 
+#include "transform.hpp"
+
 #include <list>
 #include <vector>
 #include <string>
@@ -79,10 +81,13 @@ public:
 	// Ignores 'Transform'
 	void getAllSubComponents(struct CompList& compList, glm::mat4 t);
 
+	Transform transform;
+
 private:
 	static int s_object_count;
 	int m_id = s_object_count;
 	std::string m_name;
+
 	std::list<std::unique_ptr<Object>> m_children{};
 	std::list<std::unique_ptr<Component>> m_components{};
 
@@ -124,9 +129,6 @@ template<class T> void Object::deleteComponent()
 {
 	if (std::is_base_of<Component, T>::value == false) {
 		throw std::runtime_error("deleteComponent() error: specified type is not a subclass of 'Component'");
-	}
-	if (std::is_same<T, components::Transform>::value) {
-		throw std::runtime_error("deleteComponent() error: attempt to remove the 'Transform' component");
 	}
 	for (auto itr = m_components.begin(); itr != m_components.end(); ++itr) {
 		if (dynamic_cast<T*>((*itr).get()) != nullptr) {

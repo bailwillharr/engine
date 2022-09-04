@@ -16,7 +16,7 @@ add_library(${PROJECT_NAME} SHARED
 	"src/sceneroot.cpp"
 
 	"src/components/component.cpp"
-	"src/components/transform.cpp" # TODO move functionality into "Object" class
+	 # TODO move functionality into "Object" class
 	"src/components/camera.cpp"
 	"src/components/mesh_renderer.cpp"
 	"src/components/text_ui_renderer.cpp"
@@ -45,11 +45,11 @@ add_library(${PROJECT_NAME} SHARED
 
 	"include/input.hpp"
 
+	"include/transform.hpp"
 	"include/object.hpp"
 	"include/sceneroot.hpp"
 
 	"include/components/component.hpp"
-	"include/components/transform.hpp"
 	"include/components/camera.hpp"
 	"include/components/mesh_renderer.hpp"
 	"include/components/text_ui_renderer.hpp"
