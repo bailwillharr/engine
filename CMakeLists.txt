@@ -32,7 +32,7 @@ add_library(${PROJECT_NAME} SHARED
 
 	# PUBLIC API
 
-	"include/export.h"
+	"include/engine_api.h"
 
 	"include/engine.hpp"
 
@@ -84,7 +84,15 @@ target_include_directories(${PROJECT_NAME} PRIVATE src)
 configure_file(config.h.in config.h)
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
-# libraries:
+# project submodules:
+
+add_subdirectory(graphics)
+target_include_directories(${PROJECT_NAME} PUBLIC graphics/include)
+target_link_libraries(${PROJECT_NAME} PUBLIC graphics)
+
+
+
+# external libraries:
 
 # MinGW library if using it
 if (MINGW)

@@ -1,0 +1,17 @@
+Place all instances of a particular component in contiguous memory: I.e., a
+scene holds many std::vectors, one for each type of component. These vectors are
+looped through every frame. This should optimise things by improving the memory
+layout of the program, significantly reducing cache misses.
+
+At some point, add game controller support. Make sure it works well with the
+'Input' class.
+
+For mesh rendering, give every mesh-renderer a ShaderMaterial which, depending
+on the shader, defines how the mesh reacts to light and also stores a reference
+to its texture(s). -- Also make a model loader that works with multiple meshes
+(by creating many objects).
+
+Add support for shadows and other complex lighting. Also add post-processing.
+
+For font rendering, put all ASCII characters in one large texture and use
+'instancing' (and uniform buffer objects?) to reduce draw calls.
