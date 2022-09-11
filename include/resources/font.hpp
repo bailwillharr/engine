@@ -1,6 +1,6 @@
 #pragma once
 
-#include "export.h"
+#include "engine_api.h"
 
 #include "resource.hpp"
 
@@ -12,7 +12,7 @@
 
 namespace resources {
 
-class DECLSPEC Font : public Resource {
+class ENGINE_API Font : public Resource {
 
 public:
 

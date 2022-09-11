@@ -1,13 +1,13 @@
 #pragma once
 
-#include "export.h"
+#include "engine_api.h"
 
 class Object;
 class Window;
 class Input;
 class ResourceManager;
 
-class DECLSPEC Component {
+class ENGINE_API Component {
 
 public:
 

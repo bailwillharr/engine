@@ -4,7 +4,6 @@
 
 #include "components/custom.hpp"
 #include "components/camera.hpp"
-#include "components/transform.hpp"
 #include "components/mesh_renderer.hpp"
 #include "components/text_ui_renderer.hpp"
 

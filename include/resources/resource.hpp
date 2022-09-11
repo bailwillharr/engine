@@ -1,11 +1,11 @@
 #pragma once
 
-#include "export.h"
+#include "engine_api.h"
 
 #include <string>
 #include <filesystem>
 
-class DECLSPEC Resource {
+class ENGINE_API Resource {
 
 public:
 	Resource(const std::filesystem::path& resPath, const std::string& type);

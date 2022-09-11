@@ -1,6 +1,6 @@
 #pragma once
 
-#include "export.h"
+#include "engine_api.h"
 
 #include "component.hpp"
 
@@ -13,7 +13,7 @@
 
 namespace components {
 
-class DECLSPEC Camera : public Component {
+class ENGINE_API Camera : public Component {
 
 public:
 	Camera(Object* parent);

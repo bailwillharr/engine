@@ -1,6 +1,6 @@
 #pragma once
 
-#include "export.h"
+#include "engine_api.h"
 
 #include "resource.hpp"
 
@@ -22,7 +22,7 @@ struct Vertex {
 
 namespace resources {
 
-class DECLSPEC Mesh : public Resource {
+class ENGINE_API Mesh : public Resource {
 
 public:
 	Mesh(const std::vector<Vertex>& vertices);

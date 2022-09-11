@@ -2,8 +2,11 @@
 
 #ifdef _MSC_VER
 #include <windows.h>
+#include <direct.h>
 #define MAX_PATH 260
 #endif
+
+#include "log.hpp"
 
 ResourceManager::ResourceManager()
 {
@@ -11,12 +14,13 @@ ResourceManager::ResourceManager()
 	CHAR exeDirBuf[MAX_PATH + 1];
 	GetModuleFileNameA(NULL, exeDirBuf, MAX_PATH + 1);
 	std::filesystem::path cwd = std::filesystem::path(exeDirBuf).parent_path();
+	(void)_chdir((const char*)std::filesystem::absolute(cwd).c_str());
 #else
 	std::filesystem::path cwd = std::filesystem::current_path();
 #endif
 
 	if (std::filesystem::is_directory(cwd / "res")) {
-		m_resourcesPath = std::filesystem::absolute("res");
+		m_resourcesPath = cwd / "res";
 	} else {
 		m_resourcesPath = cwd.parent_path() / "share" / "sdltest";
 	}
@@ -26,7 +30,7 @@ ResourceManager::ResourceManager()
 	}
 
 	if (std::filesystem::is_directory(m_resourcesPath) == false) {
-		throw std::runtime_error("Unable to determine resources location");
+		throw std::runtime_error("Unable to determine resources location. CWD: " + cwd.string());
 	}
 }
 

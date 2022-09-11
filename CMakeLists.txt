@@ -16,7 +16,7 @@ add_library(${PROJECT_NAME} SHARED
 	"src/sceneroot.cpp"
 
 	"src/components/component.cpp"
-	"src/components/transform.cpp" # TODO move functionality into "Object" class
+	 # TODO move functionality into "Object" class
 	"src/components/camera.cpp"
 	"src/components/mesh_renderer.cpp"
 	"src/components/text_ui_renderer.cpp"
@@ -32,7 +32,9 @@ add_library(${PROJECT_NAME} SHARED
 
 	# PUBLIC API
 
-	"include/export.h"
+	"include/engine_api.h"
+
+	"include/engine.hpp"
 
 	"include/log.hpp"
 
@@ -43,11 +45,11 @@ add_library(${PROJECT_NAME} SHARED
 
 	"include/input.hpp"
 
+	"include/transform.hpp"
 	"include/object.hpp"
 	"include/sceneroot.hpp"
 
 	"include/components/component.hpp"
-	"include/components/transform.hpp"
 	"include/components/camera.hpp"
 	"include/components/mesh_renderer.hpp"
 	"include/components/text_ui_renderer.hpp"
@@ -80,9 +82,17 @@ target_include_directories(${PROJECT_NAME} PRIVATE src)
 
 # Pass some project information into the source code
 configure_file(config.h.in config.h)
-target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
-# libraries:
+# project submodules:
+
+add_subdirectory(graphics)
+target_include_directories(${PROJECT_NAME} PUBLIC graphics/include)
+target_link_libraries(${PROJECT_NAME} PUBLIC graphics)
+
+
+
+# external libraries:
 
 # MinGW library if using it
 if (MINGW)
@@ -90,13 +100,18 @@ if (MINGW)
 endif()
 
 # SDL2:
-set(SDL2_DISABLE_INSTALL ON CACHE INTERNAL "" FORCE)
-set(SDL_SHARED ON CACHE INTERNAL "" FORCE)
-set(SDL_STATIC OFF CACHE INTERNAL "" FORCE)
-set(SDL_TEST OFF CACHE INTERNAL "" FORCE)
-set(BUILD_SHARED_LIBS ON)
-add_subdirectory(dependencies/SDL)
-target_include_directories(${PROJECT_NAME} PUBLIC dependencies/SDL/include)
+find_package(SDL2)
+if (SDL2_FOUND)
+	target_include_directories(${PROJECT_NAME} PUBLIC ${SDL2_INCLUDE_DIRS})
+else()
+	set(SDL2_DISABLE_INSTALL ON CACHE INTERNAL "" FORCE)
+	set(SDL_SHARED ON CACHE INTERNAL "" FORCE)
+	set(SDL_STATIC OFF CACHE INTERNAL "" FORCE)
+	set(SDL_TEST OFF CACHE INTERNAL "" FORCE)
+	set(BUILD_SHARED_LIBS ON)
+	add_subdirectory(dependencies/SDL)
+	target_include_directories(${PROJECT_NAME} PUBLIC dependencies/SDL/include)
+endif()
 target_link_libraries(${PROJECT_NAME} PUBLIC SDL2::SDL2)
 target_link_libraries(${PROJECT_NAME} PUBLIC SDL2::SDL2main)
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "export.h"
+#include "engine_api.h"
 
 #include "resources/resource.hpp"
 
@@ -9,7 +9,7 @@
 
 // Doesn't own resources, only holds weak_ptrs
 
-class DECLSPEC ResourceManager {
+class ENGINE_API ResourceManager {
 
 public:
 	ResourceManager();

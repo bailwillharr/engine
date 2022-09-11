@@ -1,6 +1,6 @@
 #pragma once
 
-#include "export.h"
+#include "engine_api.h"
 
 #include "resource.hpp"
 
@@ -8,7 +8,7 @@
 
 namespace resources {
 
-class DECLSPEC Texture : public Resource {
+class ENGINE_API Texture : public Resource {
 
 private:
 
