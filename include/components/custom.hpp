@@ -14,8 +14,7 @@ namespace components {
 		CustomComponent(Object* parent);
 		virtual ~CustomComponent() = 0;
 
-		virtual void onInit();
-		virtual void onUpdate(glm::mat4 t);
+		virtual void onUpdate(glm::mat4 t) {}
 
 	};
 

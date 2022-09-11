@@ -77,7 +77,7 @@ static glm::vec2 getViewportSize()
 void Camera::usePerspective(float fovDeg)
 {
 	constexpr float NEAR = 0.1f;
-	constexpr float FAR = 1000.0f;
+	constexpr float FAR = 100000.0f;
 
 	m_mode = Modes::PERSPECTIVE;
 	m_fovDeg = fovDeg;

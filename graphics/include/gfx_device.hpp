@@ -5,8 +5,11 @@
 #include "gfx.hpp"
 
 namespace gfx {
-
-	struct GFX_API Device {
+	
+	// Do not use a pointer to this class, always cast to the proper implementation to avoid V-Table overhead
+	struct GFX_API IDevice {
+		
+		
 
 		virtual void setViewport(uint32_t top_left_x, uint32_t top_left_y, uint32_t width, uint32_t height) = 0;
 
@@ -17,7 +20,7 @@ namespace gfx {
 		virtual void bufferData(const void* data, Buffer buffer) = 0;
 		virtual void bufferSubData(uint32_t offset, uint32_t size, const void* data, Buffer buffer) = 0;
 
-		virtual void drawElements(Primitive primitive, IndexBufferFormat format, uint32_t count, uint32_t offset);
+		virtual void drawElements(Primitive primitive, IndexBufferFormat format, uint32_t count, uint32_t offset) = 0;
 		virtual void drawArrays() = 0;
 
 	};
