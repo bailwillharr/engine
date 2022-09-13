@@ -8,7 +8,8 @@
 
 #include "log.hpp"
 
-#include <vulkan/vulkan.h>
+#define VOLK_IMPLEMENTATION
+#include "volk.h"
 
 #include <assert.h>
 
@@ -187,8 +188,6 @@ namespace engine::gfx {
 			assert(res == VK_SUCCESS);
 #endif
 		}
-
-
 
 	};
 

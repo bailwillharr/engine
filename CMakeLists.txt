@@ -113,6 +113,14 @@ set_property(TARGET glad PROPERTY POSITION_INDEPENDENT_CODE ON)
 target_link_libraries(${PROJECT_NAME} PUBLIC glad)
 target_include_directories(${PROJECT_NAME} PUBLIC dependencies/glad/include)
 
+# Volk
+set(VOLK_STATIC_DEFINES "")
+set(VOLK_PULL_IN_VULKAN ON)
+set(VOLK_INSTALL OFF)
+set(VOLK_HEADERS_ONLY ON)
+add_subdirectory(dependencies/volk)
+target_link_libraries(${PROJECT_NAME} PRIVATE volk_headers)
+
 # SDL2:
 find_package(SDL2)
 if (SDL2_FOUND)
