@@ -8,8 +8,8 @@ project(engine LANGUAGES CXX
 
 add_library(${PROJECT_NAME} SHARED
 	
+	"src/engine.cpp"
 	"src/window.cpp"
-
 	"src/input.cpp"	#TODO make input_manager
 
 	"src/object.cpp"
@@ -29,6 +29,8 @@ add_library(${PROJECT_NAME} SHARED
 	"src/resources/font.cpp"
 
 	"src/resource_manager.cpp"
+
+	"src/gfx_device_vulkan.cpp"
 
 	# PUBLIC API
 
@@ -63,6 +65,9 @@ add_library(${PROJECT_NAME} SHARED
 
 	"include/resource_manager.hpp"
 
+	"include/gfx.hpp"
+	"include/gfx_device.hpp"
+
 )
 
 # compiling options:
@@ -84,13 +89,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE src)
 configure_file(config.h.in config.h)
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
-# project submodules:
-
-add_subdirectory(graphics)
-target_include_directories(${PROJECT_NAME} PUBLIC graphics/include)
-target_link_libraries(${PROJECT_NAME} PUBLIC graphics)
-
-
+target_compile_definitions(${PROJECT_NAME} PRIVATE "ENGINE_BUILD_VULKAN")
 
 # external libraries:
 
@@ -98,6 +97,11 @@ target_link_libraries(${PROJECT_NAME} PUBLIC graphics)
 if (MINGW)
 	target_link_libraries(${PROJECT_NAME} PUBLIC mingw32)
 endif()
+
+# Vulkan
+find_package(Vulkan REQUIRED)
+target_include_directories(${PROJECT_NAME} PRIVATE ${Vulkan_INCLUDE_DIRS})
+target_link_libraries(${PROJECT_NAME} PRIVATE Vulkan::Vulkan)
 
 # SDL2:
 find_package(SDL2)

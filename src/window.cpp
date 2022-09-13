@@ -5,6 +5,10 @@
 #include <iostream>
 #include <stdexcept>
 
+#ifdef ENGINE_BUILD_VULKAN
+#include <SDL2/SDL_vulkan.h>
+#endif
+
 const uint64_t BILLION = 1000000000;
 
 Window::Window(const std::string& title) : m_title(title)
@@ -483,6 +487,20 @@ bool Window::infoBox(const std::string& title, const std::string& msg)
 	} else {
 		return false;
 	}
+}
+
+std::vector<const char*> Window::getRequiredVulkanExtensions() const
+{
+#ifdef ENGINE_BUILD_VULKAN
+	unsigned int sdlExtensionCount = 0;
+	SDL_Vulkan_GetInstanceExtensions(m_handle, &sdlExtensionCount, nullptr);
+	std::vector<const char*> requiredExtensions(sdlExtensionCount);
+	SDL_Vulkan_GetInstanceExtensions(m_handle, &sdlExtensionCount, requiredExtensions.data());
+
+	return requiredExtensions;
+#else
+	return std::vector<const char*>{};
+#endif
 }
 
 /* STATIC METHODS */

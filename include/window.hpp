@@ -13,6 +13,7 @@
 
 #include <array>
 #include <string>
+#include <vector>
 
 ENGINE_API extern const uint64_t BILLION;
 
@@ -137,6 +138,8 @@ public:
 	void resetAvgFPS();
 
 	bool infoBox(const std::string& title, const std::string& msg);
+
+	std::vector<const char*> getRequiredVulkanExtensions() const;
 
 	/* STATIC METHODS */
 	static void errorBox(const std::string& message);
