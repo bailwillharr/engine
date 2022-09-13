@@ -54,7 +54,7 @@ void Camera::updateCam(glm::mat4 transform)
 		auto shader = dynamic_cast<Shader*>(lockedPtr.get());
 		shader->setUniform_m4(VIEW_MAT_UNIFORM, viewMatrix);
 		shader->setUniform_m4(PROJ_MAT_UNIFORM, m_projMatrix);
-		shader->setUniform_v2(WINDOW_SIZE_UNIFORM, win.getViewportSize());
+//		shader->setUniform_v2(WINDOW_SIZE_UNIFORM, win.getViewportSize());
 		shader->setUniform_v3("lightPos", m_lightPos);
 	}
 

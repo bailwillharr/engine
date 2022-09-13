@@ -28,24 +28,9 @@ public:
 	// Return the title name
 	std::string getTitle() const;
 
-	// Make this window the current OpenGL context.
-	// This is already done in window initialisation.
-	void makeContextCurrent();
-
-	// Tell the GPU to render the back buffer to the screen.
-	// Run this on every frame.
-	void swapBuffers();
 	// Update the window state to capture any events that have occurred.
 	// Run this on every frame.
 	void getInputAndEvents();
-
-	// if 'true', swapBuffers() will wait in order to synchronise with the
-	// monitor's refresh rate.
-	void setVSync(bool enable);
-	// Returns true if VSync is enabled.
-	bool getVSync() const;
-
-	glm::ivec2 getViewportSize();
 
 	void setTitle(std::string title);
 
@@ -146,7 +131,6 @@ public:
 
 	private:
 		SDL_Window* m_handle;
-		SDL_GLContext m_glContext;
 
 		bool m_shouldClose = false;
 
@@ -158,8 +142,6 @@ public:
 
 		// size in screen coordinates
 		glm::ivec2 m_winSize = glm::vec2(640, 480);
-		// actual framebuffer size
-		glm::ivec2 m_fbSize;
 
 		// performance counter frequency
 		uint64_t m_counterFreq;

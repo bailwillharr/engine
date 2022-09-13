@@ -98,10 +98,20 @@ if (MINGW)
 	target_link_libraries(${PROJECT_NAME} PUBLIC mingw32)
 endif()
 
-# Vulkan
-find_package(Vulkan REQUIRED)
-target_include_directories(${PROJECT_NAME} PRIVATE ${Vulkan_INCLUDE_DIRS})
-target_link_libraries(${PROJECT_NAME} PRIVATE Vulkan::Vulkan)
+# GLAD:
+set(GLAD_PROFILE "core" CACHE INTERNAL "" FORCE)
+set(GLAD_API "gl=3.3" CACHE INTERNAL "" FORCE)
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+	set(GLAD_GENERATOR "c-debug" CACHE INTERNAL "" FORCE)
+else()
+	set(GLAD_GENERATOR "c" CACHE INTERNAL "" FORCE)
+endif()
+set(GLAD_SPEC "gl" CACHE INTERNAL "" FORCE)
+set(BUILD_SHARED_LIBS OFF)
+add_subdirectory(dependencies/glad)
+set_property(TARGET glad PROPERTY POSITION_INDEPENDENT_CODE ON)
+target_link_libraries(${PROJECT_NAME} PUBLIC glad)
+target_include_directories(${PROJECT_NAME} PUBLIC dependencies/glad/include)
 
 # SDL2:
 find_package(SDL2)
@@ -123,21 +133,6 @@ target_link_libraries(${PROJECT_NAME} PUBLIC SDL2::SDL2main)
 set(BUILD_SHARED_LIBS OFF)
 add_subdirectory(dependencies/glm)
 target_include_directories(${PROJECT_NAME} PUBLIC dependencies/glm)
-
-# GLAD:
-set(GLAD_PROFILE "core" CACHE INTERNAL "" FORCE)
-set(GLAD_API "gl=3.3" CACHE INTERNAL "" FORCE)
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-	set(GLAD_GENERATOR "c-debug" CACHE INTERNAL "" FORCE)
-else()
-	set(GLAD_GENERATOR "c" CACHE INTERNAL "" FORCE)
-endif()
-set(GLAD_SPEC "gl" CACHE INTERNAL "" FORCE)
-set(BUILD_SHARED_LIBS OFF)
-add_subdirectory(dependencies/glad)
-set_property(TARGET glad PROPERTY POSITION_INDEPENDENT_CODE ON)
-target_link_libraries(${PROJECT_NAME} PUBLIC glad)
-target_include_directories(${PROJECT_NAME} PUBLIC dependencies/glad/include)
 
 # spdlog
 set(SPDLOG_BUILD_SHARED ON CACHE INTERNAL "" FORCE)

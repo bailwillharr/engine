@@ -1,7 +1,5 @@
 #include "window.hpp"
 
-#include <glad/glad.h>
-
 #include <iostream>
 #include <stdexcept>
 
@@ -28,17 +26,13 @@ Window::Window(const std::string& title) : m_title(title)
 	m_lastFrameStamp = m_startTime - 1;
 	m_avgFpsStart = m_startTime;
 
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-
 	// create the window
 	m_handle = SDL_CreateWindow(
 			m_title.c_str(),
 			SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
 			static_cast<int>(m_winSize.x),
 			static_cast<int>(m_winSize.y),
-			SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI);
+			0);
 	if (m_handle == NULL) {
 		SDL_Quit();
 		throw std::runtime_error("Unable to create window: " + std::string(SDL_GetError()));
@@ -54,6 +48,7 @@ Window::Window(const std::string& title) : m_title(title)
 	const int WINDOWED_MIN_HEIGHT = 480;
 	SDL_SetWindowMinimumSize(m_handle, WINDOWED_MIN_WIDTH, WINDOWED_MIN_HEIGHT);
 
+	/*
 	m_glContext = SDL_GL_CreateContext(m_handle);
 	if (m_glContext == NULL) {
 		SDL_DestroyWindow(m_handle);
@@ -66,14 +61,14 @@ Window::Window(const std::string& title) : m_title(title)
 		SDL_Quit();
 		throw std::runtime_error("Unable to initialise GLAD");
 	}
+	*/
 
-	onResize(m_winSize.x, m_winSize.y);
+//	onResize(m_winSize.x, m_winSize.y);
 
 }
 
 Window::~Window()
 {
-	SDL_GL_DeleteContext(m_glContext);
 	SDL_DestroyWindow(m_handle);
 	SDL_Quit();
 }
@@ -85,13 +80,6 @@ void Window::onResize(Sint32 width, Sint32 height)
 	// get window size
 	m_winSize.x = static_cast<int>(width);
 	m_winSize.y = static_cast<int>(height);
-
-	// get framebuffer size
-	int fbWidth, fbHeight;
-	SDL_GL_GetDrawableSize(m_handle, &fbWidth, &fbHeight);
-	m_fbSize.x = static_cast<int>(fbWidth);
-	m_fbSize.y = static_cast<int>(fbHeight);
-	glViewport(0, 0, fbWidth, fbHeight);
 
 	m_justResized = true;
 }
@@ -195,26 +183,13 @@ std::string Window::getTitle() const
 	return m_title;
 }
 
-void Window::makeContextCurrent()
+void Window::getInputAndEvents()
 {
-	if (SDL_GL_MakeCurrent(m_handle, m_glContext) != 0) {
-		throw std::runtime_error("Failed to make GL context current");
-	}
-}
 
-void Window::swapBuffers()
-{
-#ifndef SDLTEST_NOGFX
-	SDL_GL_SwapWindow(m_handle);
-#endif
 	m_frames++;
 	uint64_t currentFrameStamp = getNanos();
 	m_lastFrameTime = currentFrameStamp - m_lastFrameStamp;
 	m_lastFrameStamp = currentFrameStamp;
-}
-
-void Window::getInputAndEvents()
-{
 
 	resetInputDeltas();
 
@@ -252,23 +227,6 @@ void Window::getInputAndEvents()
 		}
 	}
 
-}
-
-void Window::setVSync(bool enable)
-{
-	if (SDL_GL_SetSwapInterval(enable ? 1 : 0) != 0) {
-		throw std::runtime_error("Failed to set swap interval");
-	}
-}
-
-bool Window::getVSync() const
-{
-	return SDL_GL_GetSwapInterval() == 0 ? false : true;
-}
-
-glm::ivec2 Window::getViewportSize()
-{
-	return m_fbSize;
 }
 
 void Window::setTitle(std::string title)
