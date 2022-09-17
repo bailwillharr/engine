@@ -124,77 +124,76 @@ public:
 
 	bool infoBox(const std::string& title, const std::string& msg);
 
-	std::vector<const char*> getRequiredVulkanExtensions() const;
-
 	/* STATIC METHODS */
 	static void errorBox(const std::string& message);
 
-	private:
-		SDL_Window* m_handle;
+public:
+	SDL_Window* m_handle;
 
-		bool m_shouldClose = false;
+private:
 
-		std::string m_title;
+	bool m_shouldClose = false;
 
-		bool m_fullscreen = false;
-		bool m_justResized = false;
-		bool m_keyboardFocus = true;
+	std::string m_title;
 
-		// size in screen coordinates
-		glm::ivec2 m_winSize = glm::vec2(640, 480);
+	bool m_fullscreen = false;
+	bool m_justResized = false;
+	bool m_keyboardFocus = true;
 
-		// performance counter frequency
-		uint64_t m_counterFreq;
+	// size in screen coordinates
+	glm::ivec2 m_winSize = glm::vec2(640, 480);
 
-		// number of frames swapped
-		uint64_t m_frames = 0;
-		// frame count offset for fpsAvg
-		uint64_t m_avgFpsStartCount = 0;
-		// in nanoseconds
-		uint64_t m_startTime;
-		// in nanoseconds
-		uint64_t m_lastFrameStamp;
-		// in nanoseconds; elapsed time between frames
-		uint64_t m_lastFrameTime = 1; // not 0 to avoid division by zero
-		// in nanoseconds
-		uint64_t m_avgFpsStart;
+	// performance counter frequency
+	uint64_t m_counterFreq;
 
-		// input stuff
+	// number of frames swapped
+	uint64_t m_frames = 0;
+	// frame count offset for fpsAvg
+	uint64_t m_avgFpsStartCount = 0;
+	// in nanoseconds
+	uint64_t m_startTime;
+	// in nanoseconds
+	uint64_t m_lastFrameStamp;
+	// in nanoseconds; elapsed time between frames
+	uint64_t m_lastFrameTime = 1; // not 0 to avoid division by zero
+	// in nanoseconds
+	uint64_t m_avgFpsStart;
 
-		enum class ButtonDelta {
-			SAME = 0,
-			PRESSED,
-			RELEASED
-		};
+	// input stuff
 
-		struct {
-			std::array<bool, SDL_NUM_SCANCODES> keys;
-			std::array<enum ButtonDelta, SDL_NUM_SCANCODES> deltas;
-		} m_keyboard{ };
+	enum class ButtonDelta {
+		SAME = 0,
+		PRESSED,
+		RELEASED
+	};
 
-		struct {
-			std::array<bool, static_cast<int>(inputs::MouseButton::M_SIZE)> buttons;
-			std::array<enum ButtonDelta, 8> deltas;
-			Sint32 x;
-			Sint32 y;
-			Sint32 dx;
-			Sint32 dy;
-			float xscroll;
-			float yscroll;
-			bool captured = false;
-		} m_mouse{ };
+	struct {
+		std::array<bool, SDL_NUM_SCANCODES> keys;
+		std::array<enum ButtonDelta, SDL_NUM_SCANCODES> deltas;
+	} m_keyboard{ };
 
-		// private methods
+	struct {
+		std::array<bool, static_cast<int>(inputs::MouseButton::M_SIZE)> buttons;
+		std::array<enum ButtonDelta, 8> deltas;
+		Sint32 x;
+		Sint32 y;
+		Sint32 dx;
+		Sint32 dy;
+		float xscroll;
+		float yscroll;
+		bool captured = false;
+	} m_mouse{ };
 
-		void onResize(Sint32 width, Sint32 height);
-		void resetInputDeltas();
+	// private methods
 
-		// event methods (like callbacks)
+	void onResize(Sint32 width, Sint32 height);
+	void resetInputDeltas();
 
-		void onWindowEvent(SDL_WindowEvent& e);
-		void onKeyEvent(SDL_KeyboardEvent& e);
-		void onMouseButtonEvent(SDL_MouseButtonEvent& e);
-		void onMouseMotionEvent(SDL_MouseMotionEvent& e);
-		void onMouseWheelEvent(SDL_MouseWheelEvent& e);
+	// event methods (like callbacks)
 
+	void onWindowEvent(SDL_WindowEvent& e);
+	void onKeyEvent(SDL_KeyboardEvent& e);
+	void onMouseButtonEvent(SDL_MouseButtonEvent& e);
+	void onMouseMotionEvent(SDL_MouseMotionEvent& e);
+	void onMouseWheelEvent(SDL_MouseWheelEvent& e);
 };

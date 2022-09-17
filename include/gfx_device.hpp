@@ -4,13 +4,16 @@
 
 #include "engine.hpp"
 
-class Window;
+#include <SDL_video.h>
+
+#include <memory>
+
 
 namespace engine::gfx {
 	
 	struct ENGINE_API Device {
 
-		Device(AppInfo appInfo, const Window& window);
+		Device(AppInfo appInfo, SDL_Window* window);
 		~Device();
 
 	private:

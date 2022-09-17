@@ -1,5 +1,7 @@
 #include "engine.hpp"
 
+#include <cstdio>
+
 namespace engine {
 
 bool versionFromCharArray(const char* version, int* major, int* minor, int* patch)
