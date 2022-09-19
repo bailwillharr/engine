@@ -19,7 +19,6 @@ namespace engine::gfx {
 
 	static std::vector<const char*> getRequiredVulkanExtensions(SDL_Window* window)
 	{
-#ifdef ENGINE_BUILD_VULKAN
 		SDL_bool res;
 
 		unsigned int sdlExtensionCount = 0;
@@ -30,72 +29,69 @@ namespace engine::gfx {
 		assert(res == SDL_TRUE);
 
 		return requiredExtensions;
-#else
-		return std::vector<const char*>{};
-#endif
-	}
-
-	static VkBool32 debugMessenger(
-		VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-		VkDebugUtilsMessageTypeFlagsEXT messageTypes,
-		const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-		void* pUserData)
-	{
-
-		std::string msgType{};
-
-		if (messageTypes & VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT)
-			msgType += " (GENERAL)";
-		if (messageTypes & VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT)
-			msgType += " (PERF.)";
-		if (messageTypes & VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT)
-			msgType += " (VALID.)";
-
-		switch (messageSeverity) {
-		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
-			TRACE("VULKAN MESSAGE{}: ID: {} MSG: {}", msgType, pCallbackData->pMessageIdName, pCallbackData->pMessage);
-			break;
-		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
-			INFO("VULKAN MESSAGE{}: ID: {} MSG: {}", msgType, pCallbackData->pMessageIdName, pCallbackData->pMessage);
-			break;
-		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
-			WARN("VULKAN MESSAGE{}: ID: {} MSG: {}", msgType, pCallbackData->pMessageIdName, pCallbackData->pMessage);
-			break;
-		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
-			ERROR("VULKAN MESSAGE{}: ID: {} MSG: {}", msgType, pCallbackData->pMessageIdName, pCallbackData->pMessage);
-			break;
-		default:
-			break;
-		}
-		return VK_FALSE;
-	}
+	}	
 
 	class Device::Impl {
-		friend Device;
 
 	public:
 		Impl(AppInfo appInfo, SDL_Window* window)
 		{
-			m_instance = std::make_unique<Instance>(appInfo, getRequiredVulkanExtensions(window));
-#ifndef NDEBUG
-			m_debugMessenger = std::make_unique<DebugMessenger>(m_instance->getHandle());
+#ifdef NDEBUG
+			findAvailableLayers(m_layerInfo, false);
+#else
+			findAvailableLayers(m_layerInfo, true);
 #endif
+			m_instance = std::make_shared<Instance>(appInfo, m_layerInfo, getRequiredVulkanExtensions(window));
+			m_debugMessenger = std::make_unique<DebugMessenger>(m_instance);
+		}
+		~Impl()
+		{
 		}
 
 	private:
 
 //		VkSurfaceKHR m_surface;
 
-		static constexpr VkDebugUtilsMessageSeverityFlagBitsEXT MESSAGE_LEVEL = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
+		struct LayerInfo {
+
+			static constexpr const char* VALIDATION_LAYER_NAME = "VK_LAYER_KHRONOS_validation";
+
+			std::vector<VkLayerProperties> layersAvailable{};
+			std::optional<std::vector<VkLayerProperties>::iterator> validationLayer;
+
+		} m_layerInfo;
+
+		static void findAvailableLayers(LayerInfo& layerInfo, bool useValidation)
+		{
+			VkResult res;
+
+			uint32_t layerCount;
+			res = vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
+			assert(res == VK_SUCCESS);
+			layerInfo.layersAvailable.resize(layerCount);
+			res = vkEnumerateInstanceLayerProperties(&layerCount, layerInfo.layersAvailable.data());
+			assert(res == VK_SUCCESS);
+
+			if (useValidation == true) {
+				// find validation layer and print all layers to log
+				for (auto it = layerInfo.layersAvailable.begin(); it != layerInfo.layersAvailable.end(); it++) {
+					if (strncmp(it->layerName, LayerInfo::VALIDATION_LAYER_NAME, 256) == 0) {
+						layerInfo.validationLayer = it;
+					}
+				}
+				if (layerInfo.validationLayer.has_value() == false) {
+					CRITICAL("The validation layer was not found. Quitting.");
+					throw std::runtime_error("Validation layer not found");
+				}
+			}
+		}
 
 		class Instance {
 
 		public:
-			Instance(AppInfo appInfo, const std::vector<const char*>& windowExtensions)
+			Instance(AppInfo appInfo, const LayerInfo& layerInfo, const std::vector<const char*>& windowExtensions)
 			{
 				VkResult res;
-
-				findAvailableLayers();
 
 				int appVersionMajor, appVersionMinor, appVersionPatch;
 				assert(versionFromCharArray(appInfo.version, &appVersionMajor, &appVersionMinor, &appVersionPatch));
@@ -118,8 +114,8 @@ namespace engine::gfx {
 
 				std::vector<const char*> layers{};
 
-				if (m_validationLayer.has_value()) {
-					layers.push_back(m_validationLayer.value()->layerName);
+				if (layerInfo.validationLayer.has_value()) {
+					layers.push_back(layerInfo.validationLayer.value()->layerName);
 					extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 				}
 
@@ -134,8 +130,9 @@ namespace engine::gfx {
 					.ppEnabledExtensionNames = extensions.data(),
 				};
 
-				if (m_validationLayer.has_value()) {
-					VkDebugUtilsMessengerCreateInfoEXT debugMessengerCreateInfo = DebugMessenger::getCreateInfo();
+				VkDebugUtilsMessengerCreateInfoEXT debugMessengerCreateInfo = DebugMessenger::getCreateInfo();
+
+				if (layerInfo.validationLayer.has_value()) {
 					instanceInfo.pNext = &debugMessengerCreateInfo;
 				}
 
@@ -158,7 +155,9 @@ namespace engine::gfx {
 
 			~Instance()
 			{
+				INFO("DESTROYING INSTANCE...");
 				vkDestroyInstance(m_handle, nullptr);
+				INFO("DESTROYED INSTANCE.");
 			}
 
 			VkInstance getHandle()
@@ -170,54 +169,27 @@ namespace engine::gfx {
 
 			VkInstance m_handle;
 
-			std::vector<VkLayerProperties> m_layersAvailable{};
-			static constexpr const char* VALIDATION_LAYER_NAME = "VK_LAYER_KHRONOS_validation";
-			std::optional<std::vector<VkLayerProperties>::iterator> m_validationLayer;
-
-			void findAvailableLayers()
-			{
-				VkResult res;
-
-				uint32_t layerCount;
-				res = vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
-				assert(res == VK_SUCCESS);
-				m_layersAvailable.resize(layerCount);
-				res = vkEnumerateInstanceLayerProperties(&layerCount, m_layersAvailable.data());
-				assert(res == VK_SUCCESS);
-
-#ifndef NDEBUG
-				// find validation layer and print all layers to log
-				for (auto it = m_layersAvailable.begin(); it != m_layersAvailable.end(); it++) {
-					//				TRACE("Found Vulkan layer: {}, {}", it->layerName, it->description);
-					if (strncmp(it->layerName, VALIDATION_LAYER_NAME, 256) == 0) {
-						m_validationLayer = it;
-					}
-				}
-				if (m_validationLayer.has_value() == false) {
-					CRITICAL("The validation layer was not found. Quitting.");
-					throw std::runtime_error("Validation layer not found");
-				}
-#endif
-			}
-
 		};
 
-#ifndef NDEBUG
 		class DebugMessenger {
 
 		public:
-			DebugMessenger(const VkInstance& instance) : m_instance(instance)
+			DebugMessenger(std::shared_ptr<Instance> instance) : m_instance(instance)
 			{
 				VkDebugUtilsMessengerCreateInfoEXT createInfo = getCreateInfo();
 
-				VkResult res = vkCreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &m_debugMessenger);
+				VkResult res = vkCreateDebugUtilsMessengerEXT(instance->getHandle(), &createInfo, nullptr, &m_messengerHandle);
 				assert(res == VK_SUCCESS);
 			}
 
 			~DebugMessenger()
 			{
-				vkDestroyDebugUtilsMessengerEXT(m_instance, m_debugMessenger, nullptr);
+				INFO("DESTROYING MESSENGER...");
+				vkDestroyDebugUtilsMessengerEXT(m_instance->getHandle(), m_messengerHandle, nullptr);
+				INFO("DESTROYED MESSENGER.");
 			}
+
+			static constexpr VkDebugUtilsMessageSeverityFlagBitsEXT MESSAGE_LEVEL = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
 
 			static VkDebugUtilsMessengerCreateInfoEXT getCreateInfo()
 			{
@@ -230,7 +202,7 @@ namespace engine::gfx {
 						VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
 						VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
 						VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
-					.pfnUserCallback = debugMessenger,
+					.pfnUserCallback = messengerCallback,
 					.pUserData = nullptr,
 				};
 
@@ -255,16 +227,48 @@ namespace engine::gfx {
 			}
 
 		private:
-			VkDebugUtilsMessengerEXT m_debugMessenger;
-			const VkInstance& m_instance;
+			VkDebugUtilsMessengerEXT m_messengerHandle;
+			std::shared_ptr<Instance> m_instance;
+
+			static VkBool32 messengerCallback(
+					VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+					VkDebugUtilsMessageTypeFlagsEXT messageTypes,
+					const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+					void* pUserData)
+			{
+
+				std::string msgType{};
+
+				if (messageTypes & VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT)
+					msgType += " (GENERAL)";
+				if (messageTypes & VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT)
+					msgType += " (PERF.)";
+				if (messageTypes & VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT)
+					msgType += " (VALID.)";
+
+				switch (messageSeverity) {
+				case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
+					TRACE("VULKAN MESSAGE{}: ID: {} MSG: {}", msgType, pCallbackData->pMessageIdName, pCallbackData->pMessage);
+					break;
+				case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
+					INFO("VULKAN MESSAGE{}: ID: {} MSG: {}", msgType, pCallbackData->pMessageIdName, pCallbackData->pMessage);
+					break;
+				case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
+					WARN("VULKAN MESSAGE{}: ID: {} MSG: {}", msgType, pCallbackData->pMessageIdName, pCallbackData->pMessage);
+					break;
+				case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
+					ERROR("VULKAN MESSAGE{}: ID: {} MSG: {}", msgType, pCallbackData->pMessageIdName, pCallbackData->pMessage);
+					break;
+				default:
+					break;
+				}
+				return VK_FALSE;
+			}
 
 		};
-#endif
 
-		std::unique_ptr<Instance> m_instance;
-#ifndef NDEBUG
+		std::shared_ptr<Instance> m_instance;
 		std::unique_ptr<DebugMessenger> m_debugMessenger;
-#endif
 
 /*
 
@@ -291,12 +295,11 @@ namespace engine::gfx {
 
 		pimpl = std::make_unique<Impl>(appInfo, window);
 
-		//pimpl->createDebugMessenger();
+
 	}
 
 	Device::~Device()
 	{
-		//pimpl->cleanup();
 	}
 
 }

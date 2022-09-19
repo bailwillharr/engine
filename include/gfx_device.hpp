@@ -4,10 +4,9 @@
 
 #include "engine.hpp"
 
-#include <SDL_video.h>
-
 #include <memory>
 
+struct SDL_Window;
 
 namespace engine::gfx {
 	
