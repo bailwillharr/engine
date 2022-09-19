@@ -45,143 +45,13 @@ namespace engine::gfx {
 			m_layerInfo = std::make_unique<LayerInfo>(true);
 #endif
 			m_instance = std::make_shared<Instance>(appInfo, *m_layerInfo, getRequiredVulkanExtensions(window));
+
+			volkLoadInstanceOnly(m_instance->getHandle());
+
 			m_debugMessenger = std::make_unique<DebugMessenger>(m_instance);
+			m_device = std::make_unique<Device>(m_instance);
 
-			// enumerate physical devices
-			uint32_t physDeviceCount = 0;
-			VkResult res;
-			res = vkEnumeratePhysicalDevices(m_instance->getHandle(), &physDeviceCount, nullptr);
-			assert(res == VK_SUCCESS);
-			if (physDeviceCount == 0) {
-				throw std::runtime_error("No GPU found with vulkan support!");
-			}
-			std::vector<VkPhysicalDevice> physicalDevices(physDeviceCount);
-			res = vkEnumeratePhysicalDevices(m_instance->getHandle(), &physDeviceCount, physicalDevices.data());
-			assert(res == VK_SUCCESS);
-
-			// find suitable device
-			const std::vector<const char*> requiredDeviceExtensions{
-				VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-			};
-
-			VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-
-			for (const auto& dev : physicalDevices) {
-
-				uint32_t extensionCount;
-				res = vkEnumerateDeviceExtensionProperties(dev, nullptr, &extensionCount, nullptr);
-				assert(res == VK_SUCCESS);
-				std::vector<VkExtensionProperties> availableExtensions(extensionCount);
-				res = vkEnumerateDeviceExtensionProperties(dev, nullptr, &extensionCount, availableExtensions.data());
-				assert(res == VK_SUCCESS);
-
-				bool suitable = true;
-
-				for (const auto& extToFind : requiredDeviceExtensions) {
-
-					bool extFound = false;
-
-					for (const auto& ext : availableExtensions) {
-						if (strcmp(extToFind, ext.extensionName) == 0) {
-							extFound = true;
-						}
-					}
-
-					if (!extFound) {
-						suitable = false;
-					}
-				}
-
-				if (suitable) {
-					physicalDevice = dev;
-					break;
-				}
-
-			}
-
-			if (physicalDevice == VK_NULL_HANDLE) {
-				throw std::runtime_error("No suitable Vulkan physical device found");
-			}
-
-			VkPhysicalDeviceProperties devProps;
-			vkGetPhysicalDeviceProperties(physicalDevice, &devProps);
-			TRACE("Physical device to use: {}", devProps.deviceName);
-
-			// queue families
-
-			uint32_t queueFamilyCount = 0;
-			vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nullptr);
-			std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-			vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, queueFamilies.data());
-
-			std::optional<uint32_t> graphicsFamilyIndex;
-			std::optional<uint32_t> transferFamilyIndex;
-			std::optional<uint32_t> computeFamilyIndex;
-
-			for (uint32_t i = 0; i < queueFamilyCount; i++) {
-				VkQueueFamilyProperties family = queueFamilies[i];
-				if (family.queueCount > 0) {
-					if (graphicsFamilyIndex.has_value() == false && family.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-						TRACE("GRAPHICS:");
-						graphicsFamilyIndex = i;
-					}
-					if (transferFamilyIndex.has_value() == false && family.queueFlags & VK_QUEUE_TRANSFER_BIT) {
-						TRACE("TRANSFER:");
-						transferFamilyIndex = i;
-					}
-					if (computeFamilyIndex.has_value() == false && family.queueFlags & VK_QUEUE_COMPUTE_BIT) {
-						TRACE("COMPUTE:");
-						computeFamilyIndex = i;
-					}
-					TRACE("\t\ti = {}\t\tcount = {}", i, family.queueCount);
-				}
-			}
-			if (graphicsFamilyIndex.has_value() == false || transferFamilyIndex.has_value() == false) {
-				throw std::runtime_error("Unable to find a queue with the GRAPHICS family flag");
-			}
-
-			std::vector<VkDeviceQueueCreateInfo> queueCreateInfos{};
-
-			// use a set to filter out duplicate indices
-			std::unordered_set<uint32_t> uniqueQueueFamilies{ graphicsFamilyIndex.value(), transferFamilyIndex.value(), computeFamilyIndex.value() };
-			float queuePriority = 1.0f;
-			for (uint32_t family : uniqueQueueFamilies) {
-				// create a queue for each unique type to ensure that there are queues available for graphics, transfer, and compute
-				TRACE("Creating queue from family {}", family);
-				VkDeviceQueueCreateInfo queueCreateInfo{
-					.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-					.pNext = nullptr,
-					.flags = 0,
-					.queueFamilyIndex = family,
-					.queueCount = 1,
-					.pQueuePriorities = &queuePriority,
-				};
-				queueCreateInfos.push_back(queueCreateInfo);
-			}
-
-			VkDeviceCreateInfo deviceCreateInfo{
-				.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-				.pNext = nullptr,
-				.flags = 0,
-				.queueCreateInfoCount = (uint32_t)queueCreateInfos.size(),
-				.pQueueCreateInfos = queueCreateInfos.data(),
-				// IGNORED: .enabledLayerCount
-				// IGNORED: .ppEnabledLayerNames
-				.enabledExtensionCount = (uint32_t)requiredDeviceExtensions.size(),
-				.ppEnabledExtensionNames = requiredDeviceExtensions.data(),
-				.pEnabledFeatures = nullptr,
-			};
-
-			VkDevice device;
-
-			res = vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &device);
-			if (res != VK_SUCCESS) {
-				throw std::runtime_error("Unable to create Vulkan logical device, error code: " + std::to_string(res));
-			}
-
-			volkLoadDevice(device);
-
-			vkDestroyDevice(device, nullptr);
+			volkLoadDevice(m_device->getHandle());
 
 		}
 
@@ -286,8 +156,6 @@ namespace engine::gfx {
 				}
 				assert(res == VK_SUCCESS);
 
-				volkLoadInstanceOnly(m_handle);
-
 			}
 
 			Instance(const Instance&) = delete;
@@ -314,7 +182,7 @@ namespace engine::gfx {
 			{
 				VkDebugUtilsMessengerCreateInfoEXT createInfo = getCreateInfo();
 
-				VkResult res = vkCreateDebugUtilsMessengerEXT(instance->getHandle(), &createInfo, nullptr, &m_messengerHandle);
+				VkResult res = vkCreateDebugUtilsMessengerEXT(m_instance->getHandle(), &createInfo, nullptr, &m_messengerHandle);
 				assert(res == VK_SUCCESS);
 			}
 
@@ -361,8 +229,8 @@ namespace engine::gfx {
 			}
 
 		private:
-			VkDebugUtilsMessengerEXT m_messengerHandle;
 			std::shared_ptr<Instance> m_instance;
+			VkDebugUtilsMessengerEXT m_messengerHandle;
 			
 			enum class Severity {
 				VERBOSE,
@@ -409,9 +277,164 @@ namespace engine::gfx {
 
 		};
 
+		class Device {
+
+		public:
+			Device(std::shared_ptr<Instance> instance) : m_instance(instance)
+			{
+				// enumerate physical devices
+				uint32_t physDeviceCount = 0;
+				VkResult res;
+				res = vkEnumeratePhysicalDevices(m_instance->getHandle(), &physDeviceCount, nullptr);
+				assert(res == VK_SUCCESS);
+				if (physDeviceCount == 0) {
+					throw std::runtime_error("No GPU found with vulkan support!");
+				}
+				std::vector<VkPhysicalDevice> physicalDevices(physDeviceCount);
+				res = vkEnumeratePhysicalDevices(m_instance->getHandle(), &physDeviceCount, physicalDevices.data());
+				assert(res == VK_SUCCESS);
+
+				// find suitable device
+				const std::vector<const char*> requiredDeviceExtensions{
+					VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+				};
+
+				VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+
+				for (const auto& dev : physicalDevices) {
+
+					uint32_t extensionCount;
+					res = vkEnumerateDeviceExtensionProperties(dev, nullptr, &extensionCount, nullptr);
+					assert(res == VK_SUCCESS);
+					std::vector<VkExtensionProperties> availableExtensions(extensionCount);
+					res = vkEnumerateDeviceExtensionProperties(dev, nullptr, &extensionCount, availableExtensions.data());
+					assert(res == VK_SUCCESS);
+
+					bool suitable = true;
+
+					for (const auto& extToFind : requiredDeviceExtensions) {
+
+						bool extFound = false;
+
+						for (const auto& ext : availableExtensions) {
+							if (strcmp(extToFind, ext.extensionName) == 0) {
+								extFound = true;
+							}
+						}
+
+						if (!extFound) {
+							suitable = false;
+						}
+					}
+
+					if (suitable) {
+						physicalDevice = dev;
+						break;
+					}
+
+				}
+
+				if (physicalDevice == VK_NULL_HANDLE) {
+					throw std::runtime_error("No suitable Vulkan physical device found");
+				}
+
+				VkPhysicalDeviceProperties devProps;
+				vkGetPhysicalDeviceProperties(physicalDevice, &devProps);
+				TRACE("Selected physical device: {}", devProps.deviceName);
+
+				// queue families
+
+				uint32_t queueFamilyCount = 0;
+				vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nullptr);
+				std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+				vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, queueFamilies.data());
+
+				std::optional<uint32_t> graphicsFamilyIndex;
+				std::optional<uint32_t> transferFamilyIndex;
+				std::optional<uint32_t> computeFamilyIndex;
+
+				for (uint32_t i = 0; i < queueFamilyCount; i++) {
+					VkQueueFamilyProperties family = queueFamilies[i];
+					if (family.queueCount > 0) {
+						if (graphicsFamilyIndex.has_value() == false && family.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+							TRACE("GRAPHICS:");
+							graphicsFamilyIndex = i;
+						}
+						if (transferFamilyIndex.has_value() == false && family.queueFlags & VK_QUEUE_TRANSFER_BIT) {
+							TRACE("TRANSFER:");
+							transferFamilyIndex = i;
+						}
+						if (computeFamilyIndex.has_value() == false && family.queueFlags & VK_QUEUE_COMPUTE_BIT) {
+							TRACE("COMPUTE:");
+							computeFamilyIndex = i;
+						}
+						TRACE("\t\ti = {}\t\tcount = {}", i, family.queueCount);
+					}
+				}
+				if (graphicsFamilyIndex.has_value() == false || transferFamilyIndex.has_value() == false) {
+					throw std::runtime_error("Unable to find a queue with the GRAPHICS family flag");
+				}
+
+				std::vector<VkDeviceQueueCreateInfo> queueCreateInfos{};
+
+				// use a set to filter out duplicate indices
+				std::unordered_set<uint32_t> uniqueQueueFamilies{ graphicsFamilyIndex.value(), transferFamilyIndex.value(), computeFamilyIndex.value() };
+				float queuePriority = 1.0f;
+				for (uint32_t family : uniqueQueueFamilies) {
+					// create a queue for each unique type to ensure that there are queues available for graphics, transfer, and compute
+					TRACE("Creating queue from family {}", family);
+					VkDeviceQueueCreateInfo queueCreateInfo{
+						.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+						.pNext = nullptr,
+						.flags = 0,
+						.queueFamilyIndex = family,
+						.queueCount = 1,
+						.pQueuePriorities = &queuePriority,
+					};
+					queueCreateInfos.push_back(queueCreateInfo);
+				}
+
+				VkDeviceCreateInfo deviceCreateInfo{
+					.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+					.pNext = nullptr,
+					.flags = 0,
+					.queueCreateInfoCount = (uint32_t)queueCreateInfos.size(),
+					.pQueueCreateInfos = queueCreateInfos.data(),
+					// IGNORED: .enabledLayerCount
+					// IGNORED: .ppEnabledLayerNames
+					.enabledExtensionCount = (uint32_t)requiredDeviceExtensions.size(),
+					.ppEnabledExtensionNames = requiredDeviceExtensions.data(),
+					.pEnabledFeatures = nullptr,
+				};
+
+				res = vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &m_handle);
+				if (res != VK_SUCCESS) {
+					throw std::runtime_error("Unable to create Vulkan logical device, error code: " + std::to_string(res));
+				}
+			}
+			Device(const Device&) = delete;
+			Device& operator=(const Device&) = delete;
+
+			~Device()
+			{
+				vkDestroyDevice(m_handle, nullptr);
+			}
+
+			VkDevice getHandle()
+			{
+				return m_handle;
+			}
+
+		private:
+			std::shared_ptr<Instance> m_instance;
+			VkDevice m_handle;
+
+		};
+
 		std::unique_ptr<LayerInfo> m_layerInfo;
 		std::shared_ptr<Instance> m_instance;
-		std::unique_ptr<DebugMessenger> m_debugMessenger;
+		std::unique_ptr<DebugMessenger> m_debugMessenger; // uses instance
+		std::unique_ptr<Device> m_device; // uses instance
 
 /*
 
