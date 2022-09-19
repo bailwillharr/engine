@@ -89,8 +89,8 @@ void Window::resetInputDeltas()
 	m_keyboard.deltas.fill(ButtonDelta::SAME);
 	
 	m_mouse.deltas.fill(ButtonDelta::SAME);
-	m_mouse.dx = 0.0f;
-	m_mouse.dy = 0.0f;
+	m_mouse.dx = 0;
+	m_mouse.dy = 0;
 	m_mouse.xscroll = 0.0f;
 	m_mouse.yscroll = 0.0f;
 }
@@ -143,14 +143,14 @@ void Window::onMouseButtonEvent(SDL_MouseButtonEvent &e)
 			button = inputs::MouseButton::M_X2;
 			break;
 	}
-
-	bool buttonWasDown = m_mouse.buttons[static_cast<int>(button)];
+	int buttonIndex = static_cast<int>(button);
+	bool buttonWasDown = m_mouse.buttons.at(buttonIndex);
 	bool buttonIsDown = (e.state == SDL_PRESSED);
-	m_mouse.buttons[static_cast<int>(button)] = buttonIsDown;
+	m_mouse.buttons.at(buttonIndex) = buttonIsDown;
 	if (buttonIsDown != buttonWasDown) { // (if button was pressed or released)
 		// only sets delta if it hasn't already been set this frame (to detect very fast presses)
-		if (m_mouse.deltas[static_cast<int>(button)] == ButtonDelta::SAME) {
-			m_mouse.deltas[static_cast<int>(button)] = buttonIsDown ? ButtonDelta::PRESSED : ButtonDelta::RELEASED;
+		if (m_mouse.deltas[buttonIndex] == ButtonDelta::SAME) {
+			m_mouse.deltas[buttonIndex] = buttonIsDown ? ButtonDelta::PRESSED : ButtonDelta::RELEASED;
 		}
 	}
 }

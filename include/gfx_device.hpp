@@ -13,6 +13,9 @@ namespace engine::gfx {
 	struct ENGINE_API Device {
 
 		Device(AppInfo appInfo, SDL_Window* window);
+
+		Device(const Device&) = delete;
+		Device& operator=(const Device&) = delete;
 		~Device();
 
 	private:
