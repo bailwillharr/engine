@@ -10,13 +10,13 @@ struct SDL_Window;
 
 namespace engine::gfx {
 	
-	struct ENGINE_API Device {
+	struct ENGINE_API GFXDevice {
 
-		Device(AppInfo appInfo, SDL_Window* window);
+		GFXDevice(AppInfo appInfo, SDL_Window* window);
 
-		Device(const Device&) = delete;
-		Device& operator=(const Device&) = delete;
-		~Device();
+		GFXDevice(const GFXDevice&) = delete;
+		GFXDevice& operator=(const GFXDevice&) = delete;
+		~GFXDevice();
 
 	private:
 		class Impl;

@@ -32,32 +32,39 @@ namespace engine::gfx {
 		return requiredExtensions;
 	}	
 
-	class Device::Impl {
+	static VkSurfaceKHR createSurface(SDL_Window* window, VkInstance instance)
+	{
+		VkSurfaceKHR surface;
+
+		if (SDL_Vulkan_CreateSurface(window, instance, &surface) == false) {
+			throw std::runtime_error("Unable to create window surface");
+		}
+
+		return surface;
+	}
+
+	class GFXDevice::Impl {
 
 	public:
 		Impl(AppInfo appInfo, SDL_Window* window)
 		{
 #ifdef NDEBUG
-			// release mode; don't use validation layer
+			// release mode: don't use validation layer
 			m_layerInfo = std::make_unique<LayerInfo>(false);
 #else
-			// debug mode; use validation layer
+			// debug mode: use validation layer
 			m_layerInfo = std::make_unique<LayerInfo>(true);
 #endif
 			m_instance = std::make_shared<Instance>(appInfo, *m_layerInfo, getRequiredVulkanExtensions(window));
-
 			volkLoadInstanceOnly(m_instance->getHandle());
-
 			m_debugMessenger = std::make_unique<DebugMessenger>(m_instance);
+
+			m_surface = std::make_unique<Surface>(window, m_instance);
+
 			m_device = std::make_unique<Device>(m_instance);
-
-			volkLoadDevice(m_device->getHandle());
-
 		}
 
 	private:
-
-//		VkSurfaceKHR m_surface;
 
 		struct LayerInfo {
 
@@ -162,6 +169,7 @@ namespace engine::gfx {
 			Instance& operator=(const Instance&) = delete;
 			~Instance()
 			{
+				TRACE("Destroying instance...");
 				vkDestroyInstance(m_handle, nullptr);
 			}
 
@@ -190,6 +198,7 @@ namespace engine::gfx {
 			DebugMessenger& operator=(const DebugMessenger&) = delete;
 			~DebugMessenger()
 			{
+				TRACE("Destroying debug messenger...");
 				vkDestroyDebugUtilsMessengerEXT(m_instance->getHandle(), m_messengerHandle, nullptr);
 			}
 
@@ -277,6 +286,28 @@ namespace engine::gfx {
 
 		};
 
+		class Surface {
+
+		public:
+			Surface(SDL_Window* window, std::shared_ptr<Instance> instance) : m_instance(instance)
+			{
+				m_handle = createSurface(window, instance->getHandle());
+			}
+			Surface(const Surface&) = delete;
+			Surface& operator=(const Surface&) = delete;
+
+			~Surface()
+			{
+				TRACE("Destroying surface...");
+				vkDestroySurfaceKHR(m_instance->getHandle(), m_handle, nullptr);
+			}
+
+		private:
+			std::shared_ptr<Instance> m_instance;
+			VkSurfaceKHR m_handle;
+
+		};
+
 		class Device {
 
 		public:
@@ -340,7 +371,7 @@ namespace engine::gfx {
 
 				VkPhysicalDeviceProperties devProps;
 				vkGetPhysicalDeviceProperties(physicalDevice, &devProps);
-				TRACE("Selected physical device: {}", devProps.deviceName);
+				INFO("Selected physical device: {}", devProps.deviceName);
 
 				// queue families
 
@@ -411,12 +442,18 @@ namespace engine::gfx {
 				if (res != VK_SUCCESS) {
 					throw std::runtime_error("Unable to create Vulkan logical device, error code: " + std::to_string(res));
 				}
+
+				volkLoadDevice(m_handle);
+
+				vkGetDeviceQueue(m_handle, graphicsFamilyIndex.value(), 0, &graphicsQueue);
+
 			}
 			Device(const Device&) = delete;
 			Device& operator=(const Device&) = delete;
 
 			~Device()
 			{
+				TRACE("Destroying device...");
 				vkDestroyDevice(m_handle, nullptr);
 			}
 
@@ -429,27 +466,19 @@ namespace engine::gfx {
 			std::shared_ptr<Instance> m_instance;
 			VkDevice m_handle;
 
+			VkQueue graphicsQueue = VK_NULL_HANDLE;
+
 		};
 
 		std::unique_ptr<LayerInfo> m_layerInfo;
 		std::shared_ptr<Instance> m_instance;
 		std::unique_ptr<DebugMessenger> m_debugMessenger; // uses instance
+		std::unique_ptr<Surface> m_surface; // uses instance
 		std::unique_ptr<Device> m_device; // uses instance
-
-/*
-
-		void createSurface(SDL_Window* window)
-		{
-			if (SDL_Vulkan_CreateSurface(window, m_instance, &m_surface) == false) {
-				CRITICAL("Unable to create window surface");
-				throw std::runtime_error("Unable to create window surface");
-			}
-		}
-*/	
 
 	};
 
-	Device::Device(AppInfo appInfo, SDL_Window* window)
+	GFXDevice::GFXDevice(AppInfo appInfo, SDL_Window* window)
 	{
 		VkResult res;
 		res = volkInitialize();
@@ -463,8 +492,9 @@ namespace engine::gfx {
 
 	}
 
-	Device::~Device()
+	GFXDevice::~GFXDevice()
 	{
+		TRACE("Destroying GFXDevice...");
 	}
 
 }
