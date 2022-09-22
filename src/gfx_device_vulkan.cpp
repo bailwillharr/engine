@@ -50,18 +50,22 @@ namespace engine::gfx {
 		{
 #ifdef NDEBUG
 			// release mode: don't use validation layer
-			m_layerInfo = std::make_unique<LayerInfo>(false);
+			LayerInfo layerInfo(false);
 #else
 			// debug mode: use validation layer
-			m_layerInfo = std::make_unique<LayerInfo>(true);
+			LayerInfo layerInfo(true);
 #endif
-			m_instance = std::make_shared<Instance>(appInfo, *m_layerInfo, getRequiredVulkanExtensions(window));
-			volkLoadInstanceOnly(m_instance->getHandle());
-			m_debugMessenger = std::make_unique<DebugMessenger>(m_instance);
+			auto instance = std::make_shared<Instance>(appInfo, layerInfo, getRequiredVulkanExtensions(window));
 
-			m_surface = std::make_unique<Surface>(window, m_instance);
+			volkLoadInstanceOnly(instance->getHandle());
 
-			m_device = std::make_unique<Device>(m_instance);
+			m_debugMessenger = std::make_unique<DebugMessenger>(instance); // instance.use_count ++
+
+			auto surface = std::make_shared<Surface>(window, instance); // instance.use_count ++
+
+			auto device = std::make_shared<Device>(instance, surface); // instance.use_count ++ ; surface.use_count ++
+
+			m_swapchain = std::make_unique<Swapchain>(device, surface);
 		}
 
 	private:
@@ -173,7 +177,7 @@ namespace engine::gfx {
 				vkDestroyInstance(m_handle, nullptr);
 			}
 
-			VkInstance getHandle()
+			VkInstance getHandle() const
 			{
 				return m_handle;
 			}
@@ -289,9 +293,9 @@ namespace engine::gfx {
 		class Surface {
 
 		public:
-			Surface(SDL_Window* window, std::shared_ptr<Instance> instance) : m_instance(instance)
+			Surface(SDL_Window* window, std::shared_ptr<Instance> instance) : m_instance(instance), m_window(window)
 			{
-				m_handle = createSurface(window, instance->getHandle());
+				m_handle = createSurface(m_window, instance->getHandle());
 			}
 			Surface(const Surface&) = delete;
 			Surface& operator=(const Surface&) = delete;
@@ -302,16 +306,27 @@ namespace engine::gfx {
 				vkDestroySurfaceKHR(m_instance->getHandle(), m_handle, nullptr);
 			}
 
+			VkSurfaceKHR getHandle() const
+			{
+				return m_handle;
+			}
+
+			SDL_Window* getWindow() const
+			{
+				return m_window;
+			}
+
 		private:
 			std::shared_ptr<Instance> m_instance;
 			VkSurfaceKHR m_handle;
+			SDL_Window* m_window;
 
 		};
 
 		class Device {
 
 		public:
-			Device(std::shared_ptr<Instance> instance) : m_instance(instance)
+			Device(std::shared_ptr<Instance> instance, std::shared_ptr<Surface> surface) : m_instance(instance), m_surface(surface)
 			{
 				// enumerate physical devices
 				uint32_t physDeviceCount = 0;
@@ -325,7 +340,8 @@ namespace engine::gfx {
 				res = vkEnumeratePhysicalDevices(m_instance->getHandle(), &physDeviceCount, physicalDevices.data());
 				assert(res == VK_SUCCESS);
 
-				// find suitable device
+				// find suitable device:
+
 				const std::vector<const char*> requiredDeviceExtensions{
 					VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 				};
@@ -334,6 +350,7 @@ namespace engine::gfx {
 
 				for (const auto& dev : physicalDevices) {
 
+					// first, check extension support
 					uint32_t extensionCount;
 					res = vkEnumerateDeviceExtensionProperties(dev, nullptr, &extensionCount, nullptr);
 					assert(res == VK_SUCCESS);
@@ -341,27 +358,46 @@ namespace engine::gfx {
 					res = vkEnumerateDeviceExtensionProperties(dev, nullptr, &extensionCount, availableExtensions.data());
 					assert(res == VK_SUCCESS);
 
-					bool suitable = true;
-
 					for (const auto& extToFind : requiredDeviceExtensions) {
-
 						bool extFound = false;
-
 						for (const auto& ext : availableExtensions) {
 							if (strcmp(extToFind, ext.extensionName) == 0) {
 								extFound = true;
 							}
 						}
-
 						if (!extFound) {
-							suitable = false;
+							continue;
 						}
 					}
 
-					if (suitable) {
-						physicalDevice = dev;
-						break;
+					// get surface capabilities
+					res = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(dev, m_surface->getHandle(), &m_swapchainSupportDetails.caps);
+					assert (res == VK_SUCCESS);
+
+					// check there is at least one supported surface format
+					uint32_t surfaceFormatCount = 0;
+					res = vkGetPhysicalDeviceSurfaceFormatsKHR(dev, m_surface->getHandle(), &surfaceFormatCount, nullptr);
+					assert(res == VK_SUCCESS);
+					if (surfaceFormatCount == 0) {
+						continue;
 					}
+					m_swapchainSupportDetails.formats.resize(surfaceFormatCount);
+					res = vkGetPhysicalDeviceSurfaceFormatsKHR(dev, m_surface->getHandle(), &surfaceFormatCount, m_swapchainSupportDetails.formats.data());
+					assert(res == VK_SUCCESS);
+
+					// check there is at least one supported present mode
+					uint32_t surfacePresentModeCount = 0;
+					res = vkGetPhysicalDeviceSurfacePresentModesKHR(dev, m_surface->getHandle(), &surfacePresentModeCount, nullptr);
+					assert(res == VK_SUCCESS);
+					if (surfacePresentModeCount == 0) {
+						continue;
+					}
+					m_swapchainSupportDetails.presentModes.resize(surfacePresentModeCount);
+					res = vkGetPhysicalDeviceSurfacePresentModesKHR(dev, m_surface->getHandle(), &surfacePresentModeCount, m_swapchainSupportDetails.presentModes.data());
+					assert(res == VK_SUCCESS);
+
+					physicalDevice = dev;
+					break;
 
 				}
 
@@ -372,6 +408,33 @@ namespace engine::gfx {
 				VkPhysicalDeviceProperties devProps;
 				vkGetPhysicalDeviceProperties(physicalDevice, &devProps);
 				INFO("Selected physical device: {}", devProps.deviceName);
+
+				INFO("Supported present modes:");
+				for (const auto& presMode : m_swapchainSupportDetails.presentModes) {
+					switch (presMode) {
+					case VK_PRESENT_MODE_IMMEDIATE_KHR:
+						INFO("\tVK_PRESENT_MODE_IMMEDIATE_KHR");
+						break;
+					case VK_PRESENT_MODE_MAILBOX_KHR:
+						INFO("\tVK_PRESENT_MODE_MAILBOX_KHR");
+						break;
+					case VK_PRESENT_MODE_FIFO_KHR:
+						INFO("\tVK_PRESENT_MODE_FIFO_KHR");
+						break;
+					case VK_PRESENT_MODE_FIFO_RELAXED_KHR:
+						INFO("\tVK_PRESENT_MODE_FIFO_RELAXED_KHR");
+						break;
+					case VK_PRESENT_MODE_SHARED_DEMAND_REFRESH_KHR:
+						INFO("\tVK_PRESENT_MODE_SHARED_DEMAND_REFRESH_KHR");
+						break;
+					case VK_PRESENT_MODE_SHARED_CONTINUOUS_REFRESH_KHR:
+						INFO("\tVK_PRESENT_MODE_SHARED_CONTINUOUS_REFRESH_KHR");
+						break;
+					default:
+						INFO("\tUNKNOWN DISPLAY MODE");
+						break;
+					}
+				}
 
 				// queue families
 
@@ -403,7 +466,11 @@ namespace engine::gfx {
 					}
 				}
 				if (graphicsFamilyIndex.has_value() == false || transferFamilyIndex.has_value() == false) {
-					throw std::runtime_error("Unable to find a queue with the GRAPHICS family flag");
+					throw std::runtime_error("Unable to find queues with the GRAPHICS or TRANSFER family flags");
+				}
+
+				if (graphicsFamilyIndex.value() != transferFamilyIndex.value()) {
+					throw std::runtime_error("Vulkan device creation error: graphics and transfer queue families are not the same!");
 				}
 
 				std::vector<VkDeviceQueueCreateInfo> queueCreateInfos{};
@@ -445,7 +512,7 @@ namespace engine::gfx {
 
 				volkLoadDevice(m_handle);
 
-				vkGetDeviceQueue(m_handle, graphicsFamilyIndex.value(), 0, &graphicsQueue);
+				vkGetDeviceQueue(m_handle, graphicsFamilyIndex.value(), 0, &m_queues.graphicsQueue);
 
 			}
 			Device(const Device&) = delete;
@@ -457,24 +524,143 @@ namespace engine::gfx {
 				vkDestroyDevice(m_handle, nullptr);
 			}
 
-			VkDevice getHandle()
+			VkDevice getHandle() const
 			{
 				return m_handle;
 			}
 
+			struct SwapchainSupportDetails {
+				VkSurfaceCapabilitiesKHR caps{};
+				std::vector<VkSurfaceFormatKHR> formats{};
+				std::vector<VkPresentModeKHR> presentModes{};
+			};
+
+			SwapchainSupportDetails getSupportDetails()
+			{
+				return m_swapchainSupportDetails;
+			}
+
 		private:
 			std::shared_ptr<Instance> m_instance;
-			VkDevice m_handle;
+			std::shared_ptr<Surface> m_surface;
 
-			VkQueue graphicsQueue = VK_NULL_HANDLE;
+			SwapchainSupportDetails m_swapchainSupportDetails{};
+
+			VkDevice m_handle = VK_NULL_HANDLE;
+
+			struct Queues {
+				VkQueue graphicsQueue = VK_NULL_HANDLE;
+			} m_queues;
 
 		};
 
-		std::unique_ptr<LayerInfo> m_layerInfo;
-		std::shared_ptr<Instance> m_instance;
+		class Swapchain {
+
+		public:
+			Swapchain(std::shared_ptr<Device> device, std::shared_ptr<Surface> surface) : m_device(device), m_surface(surface)
+			{
+				VkResult res;
+
+				auto supportDetails = device->getSupportDetails();
+
+				VkSurfaceFormatKHR chosenSurfaceFormat = supportDetails.formats[0];
+
+				for (const auto& format : supportDetails.formats) {
+						if (	format.format == VK_FORMAT_B8G8R8A8_SRGB &&
+							format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR	) {
+						chosenSurfaceFormat = format; // prefer using srgb non linear colors
+					}
+				}
+
+				VkPresentModeKHR chosenPresentMode = VK_PRESENT_MODE_FIFO_KHR;
+
+				for (const auto& presMode : supportDetails.presentModes) {
+					if (presMode == VK_PRESENT_MODE_MAILBOX_KHR) {
+						chosenPresentMode = presMode; // this mode allows uncapped FPS while also avoiding screen tearing
+					}
+				}
+
+				VkExtent2D chosenSwapExtent{};
+				
+				if (supportDetails.caps.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
+					chosenSwapExtent = supportDetails.caps.currentExtent;
+				} else {
+					// if fb size isn't already found, get it from SDL
+					int width, height;
+					SDL_Vulkan_GetDrawableSize(m_surface->getWindow(), &width, &height);
+
+					chosenSwapExtent.width = static_cast<uint32_t>(width);
+					chosenSwapExtent.height = static_cast<uint32_t>(height);
+
+					chosenSwapExtent.width = std::clamp(
+							chosenSwapExtent.width,
+							supportDetails.caps.minImageExtent.width, supportDetails.caps.maxImageExtent.width);
+					chosenSwapExtent.height = std::clamp(
+							chosenSwapExtent.height,
+							supportDetails.caps.minImageExtent.height, supportDetails.caps.maxImageExtent.height);
+				}
+
+				uint32_t imageCount = supportDetails.caps.minImageCount + 1;
+				if (supportDetails.caps.maxImageCount > 0 && imageCount > supportDetails.caps.maxImageCount) {
+					imageCount = supportDetails.caps.maxImageCount;
+				}
+
+				VkSwapchainCreateInfoKHR createInfo{
+					.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+					.pNext = nullptr,
+					.flags = 0,
+					.surface = m_surface->getHandle(),
+					.minImageCount = imageCount,
+					.imageFormat = chosenSurfaceFormat.format,
+					.imageColorSpace = chosenSurfaceFormat.colorSpace,
+					.imageExtent = chosenSwapExtent,
+					.imageArrayLayers = 1,
+					.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+					.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
+					.queueFamilyIndexCount = 0,
+					.pQueueFamilyIndices = nullptr,
+					.preTransform = supportDetails.caps.currentTransform,
+					.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+					.presentMode = chosenPresentMode,
+					.clipped = VK_TRUE,
+					.oldSwapchain = VK_NULL_HANDLE,
+
+				};
+
+				res = vkCreateSwapchainKHR(m_device->getHandle(), &createInfo, nullptr, &m_handle);
+				assert(res == VK_SUCCESS);
+
+				/*
+				uint32_t swapchainImageCount = 0;
+				res = vkGetSwapchainImagesKHR(m_device.getHandle(), m_handle, &swapchainImageCount, nullptr);
+				assert(res == VK_SUCCESS);
+				m_images.resize(swapchainImageCount);
+				res = vkGetSwapchainImagesKHR(m_device.getHandle(), m_handle, &swapchainImageCount, m_images.data());
+				assert(res == VK_SUCCESS);
+				*/
+			}
+			Swapchain(const Swapchain&) = delete;
+			Swapchain& operator=(const Swapchain&) = delete;
+
+			~Swapchain()
+			{
+				TRACE("Destroying swapchain...");
+				vkDestroySwapchainKHR(m_device->getHandle(), m_handle, nullptr);
+			}
+
+		private:
+			std::shared_ptr<Device> m_device;
+			std::shared_ptr<Surface> m_surface;
+
+			VkSwapchainKHR m_handle = VK_NULL_HANDLE;
+
+			std::vector<VkImage> m_images;
+
+		};
+
+
 		std::unique_ptr<DebugMessenger> m_debugMessenger; // uses instance
-		std::unique_ptr<Surface> m_surface; // uses instance
-		std::unique_ptr<Device> m_device; // uses instance
+		std::unique_ptr<Swapchain> m_swapchain;
 
 	};
 
