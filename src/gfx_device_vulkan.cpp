@@ -492,6 +492,13 @@ namespace engine::gfx {
 					queueCreateInfos.push_back(queueCreateInfo);
 				}
 
+				VkBool32 supported;
+				res = vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, graphicsFamilyIndex.value(), m_surface->getHandle(), &supported);
+				assert(res == VK_SUCCESS);
+				if (supported != VK_TRUE) {
+					throw std::runtime_error("The selected physical device and queue family do not support this surface");
+				}
+
 				VkDeviceCreateInfo deviceCreateInfo{
 					.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
 					.pNext = nullptr,
@@ -561,7 +568,7 @@ namespace engine::gfx {
 			{
 				VkResult res;
 
-				auto supportDetails = device->getSupportDetails();
+				auto supportDetails = m_device->getSupportDetails();
 
 				VkSurfaceFormatKHR chosenSurfaceFormat = supportDetails.formats[0];
 
