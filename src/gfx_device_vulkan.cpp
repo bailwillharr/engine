@@ -586,6 +586,7 @@ namespace engine::gfx {
 				for (const auto& queue : m_queues) {
 					if (queue.supportsGraphics) return queue;
 				}
+				throw std::runtime_error("Unable to find graphics queue");
 			}
 
 			Queue getTransferQueue()
@@ -593,6 +594,7 @@ namespace engine::gfx {
 				for (const auto& queue : m_queues) {
 					if (queue.supportsTransfer) return queue;
 				}
+				throw std::runtime_error("Unable to find transfer queue");
 			}
 
 			Queue getComputeQueue()
@@ -600,6 +602,7 @@ namespace engine::gfx {
 				for (const auto& queue : m_queues) {
 					if (queue.supportsCompute) return queue;
 				}
+				throw std::runtime_error("Unable to find compute queue");
 			}
 
 
@@ -664,7 +667,7 @@ namespace engine::gfx {
 				uint32_t imageCount = supportDetails.caps.minImageCount + 1;
 				if (supportDetails.caps.maxImageCount > 0 && imageCount > supportDetails.caps.maxImageCount) {
 					imageCount = supportDetails.caps.maxImageCount;
-				}
+				}	
 
 				VkSwapchainCreateInfoKHR createInfo{
 					.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
@@ -688,6 +691,18 @@ namespace engine::gfx {
 
 				};
 
+				std::array<uint32_t, 2> queueFamilyIndices{
+					m_device->getGraphicsQueue().familyIndex,
+					m_device->getTransferQueue().familyIndex
+				};
+
+				// if graphics and transfer queues aren't in the same family
+				if (queueFamilyIndices[0] != queueFamilyIndices[1]) {
+					createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+					createInfo.queueFamilyIndexCount = queueFamilyIndices.size();
+					createInfo.pQueueFamilyIndices = queueFamilyIndices.data();
+				}
+
 				res = vkCreateSwapchainKHR(m_device->getHandle(), &createInfo, nullptr, &m_handle);
 				assert(res == VK_SUCCESS);
 
@@ -698,6 +713,36 @@ namespace engine::gfx {
 				res = vkGetSwapchainImagesKHR(m_device->getHandle(), m_handle, &swapchainImageCount, m_images.data());
 				assert(res == VK_SUCCESS);
 
+				m_currentFormat = chosenSurfaceFormat.format;
+				m_currentExtent = chosenSwapExtent;
+
+				// create image views
+				m_imageViews.resize(m_images.size());
+				for (VkImage image : m_images) {
+
+					VkImageViewCreateInfo createInfo{};
+					createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+					createInfo.pNext = nullptr;
+					createInfo.image = image;
+					createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+					createInfo.format = m_currentFormat;
+					createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+					createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+					createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+					createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+					createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+					createInfo.subresourceRange.baseMipLevel = 0;
+					createInfo.subresourceRange.levelCount = 1;
+					createInfo.subresourceRange.baseArrayLayer = 0;
+					createInfo.subresourceRange.layerCount = 1;
+
+					VkImageView imageView;
+					res = vkCreateImageView(m_device->getHandle(), &createInfo, nullptr, &imageView);
+					assert (res == VK_SUCCESS);
+
+					m_imageViews.push_back(imageView);
+				}
+
 			}
 			Swapchain(const Swapchain&) = delete;
 			Swapchain& operator=(const Swapchain&) = delete;
@@ -705,6 +750,9 @@ namespace engine::gfx {
 			~Swapchain()
 			{
 				TRACE("Destroying swapchain...");
+				for (VkImageView view : m_imageViews) {
+					vkDestroyImageView(m_device->getHandle(), view, nullptr);
+				}
 				vkDestroySwapchainKHR(m_device->getHandle(), m_handle, nullptr);
 			}
 
@@ -715,6 +763,10 @@ namespace engine::gfx {
 			VkSwapchainKHR m_handle = VK_NULL_HANDLE;
 
 			std::vector<VkImage> m_images;
+			std::vector<VkImageView> m_imageViews;
+
+			VkFormat m_currentFormat{};
+			VkExtent2D m_currentExtent{};
 
 		};
 
