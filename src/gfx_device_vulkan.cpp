@@ -492,11 +492,12 @@ namespace engine::gfx {
 					queueCreateInfos.push_back(queueCreateInfo);
 				}
 
-				VkBool32 supported;
-				res = vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, graphicsFamilyIndex.value(), m_surface->getHandle(), &supported);
+				// check the physical device is compatible with the surface
+				VkBool32 graphicsQueueCanPresent;
+				res = vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, graphicsFamilyIndex.value(), m_surface->getHandle(), &graphicsQueueCanPresent);
 				assert(res == VK_SUCCESS);
-				if (supported != VK_TRUE) {
-					throw std::runtime_error("The selected physical device and queue family do not support this surface");
+				if (graphicsQueueCanPresent != VK_TRUE) {
+					throw std::runtime_error("The selected queue family does not support this surface");
 				}
 
 				VkDeviceCreateInfo deviceCreateInfo{
