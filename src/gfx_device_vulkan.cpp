@@ -1,3 +1,5 @@
+// The implementation of the graphics layer using Vulkan 1.3
+
 #ifdef ENGINE_BUILD_VULKAN
 
 #include "gfx_device.hpp"
@@ -122,7 +124,7 @@ namespace engine::gfx {
 					.applicationVersion = VK_MAKE_VERSION(appVersionMajor, appVersionMinor, appVersionPatch),
 					.pEngineName = "engine",
 					.engineVersion = VK_MAKE_VERSION(engineVersionMajor, engineVersionMinor, engineVersionPatch),
-					.apiVersion = VK_API_VERSION_1_0,
+					.apiVersion = VK_API_VERSION_1_3,
 				};
 
 				// make a list of all extensions to use
@@ -395,6 +397,14 @@ namespace engine::gfx {
 					m_swapchainSupportDetails.presentModes.resize(surfacePresentModeCount);
 					res = vkGetPhysicalDeviceSurfacePresentModesKHR(dev, m_surface->getHandle(), &surfacePresentModeCount, m_swapchainSupportDetails.presentModes.data());
 					assert(res == VK_SUCCESS);
+
+					VkPhysicalDeviceProperties devProps;
+					vkGetPhysicalDeviceProperties(dev, &devProps);
+
+					// check that the device supports vulkan 1.3
+					if (devProps.apiVersion < VK_API_VERSION_1_3) {
+						continue;
+					}
 
 					physicalDevice = dev;
 					break;
@@ -680,6 +690,11 @@ namespace engine::gfx {
 			throw std::runtime_error("Unable to load vulkan, is it installed?");
 		}
 		assert(res == VK_SUCCESS);
+
+		uint32_t vulkanVersion = volkGetInstanceVersion();
+		if (vulkanVersion < VK_MAKE_VERSION(1, 3, 0)) {
+			throw std::runtime_error("The loaded Vulkan version must be at least 1.3");
+		}
 
 		pimpl = std::make_unique<Impl>(appInfo, window);
 
