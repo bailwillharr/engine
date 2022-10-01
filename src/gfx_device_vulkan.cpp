@@ -487,9 +487,19 @@ namespace engine::gfx {
 
 				// use a set to filter out duplicate indices
 				std::unordered_set<uint32_t> uniqueQueueFamilies{ graphicsFamilyIndex.value(), transferFamilyIndex.value(), computeFamilyIndex.value() };
+
 				float queuePriority = 1.0f;
+
 				for (uint32_t family : uniqueQueueFamilies) {
 					// create a queue for each unique type to ensure that there are queues available for graphics, transfer, and compute
+
+					Queue newQueue{};
+					newQueue.familyIndex = family;
+					newQueue.queueIndex = 0;
+					if (graphicsFamilyIndex == family) newQueue.supportsGraphics = true;
+					if (transferFamilyIndex == family) newQueue.supportsTransfer = true;
+					if (computeFamilyIndex == family) newQueue.supportsCompute = true;
+
 					TRACE("Creating queue from family {}", family);
 					VkDeviceQueueCreateInfo queueCreateInfo{
 						.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
@@ -500,6 +510,7 @@ namespace engine::gfx {
 						.pQueuePriorities = &queuePriority,
 					};
 					queueCreateInfos.push_back(queueCreateInfo);
+					m_queues.push_back(newQueue);
 				}
 
 				// check the physical device is compatible with the surface
@@ -530,7 +541,9 @@ namespace engine::gfx {
 
 				volkLoadDevice(m_handle);
 
-				vkGetDeviceQueue(m_handle, graphicsFamilyIndex.value(), 0, &m_queues.graphicsQueue);
+				for (auto& q : m_queues) {
+					vkGetDeviceQueue(m_handle, q.familyIndex, q.queueIndex, &q.handle);
+				}
 
 			}
 			Device(const Device&) = delete;
@@ -558,6 +571,38 @@ namespace engine::gfx {
 				return m_swapchainSupportDetails;
 			}
 
+			struct Queue {
+				uint32_t familyIndex;
+				uint32_t queueIndex;
+				bool supportsGraphics = false;
+				bool supportsTransfer = false;
+				bool supportsCompute = false;
+
+				VkQueue handle;
+			};
+
+			Queue getGraphicsQueue()
+			{
+				for (const auto& queue : m_queues) {
+					if (queue.supportsGraphics) return queue;
+				}
+			}
+
+			Queue getTransferQueue()
+			{
+				for (const auto& queue : m_queues) {
+					if (queue.supportsTransfer) return queue;
+				}
+			}
+
+			Queue getComputeQueue()
+			{
+				for (const auto& queue : m_queues) {
+					if (queue.supportsCompute) return queue;
+				}
+			}
+
+
 		private:
 			std::shared_ptr<Instance> m_instance;
 			std::shared_ptr<Surface> m_surface;
@@ -566,9 +611,7 @@ namespace engine::gfx {
 
 			VkDevice m_handle = VK_NULL_HANDLE;
 
-			struct Queues {
-				VkQueue graphicsQueue = VK_NULL_HANDLE;
-			} m_queues;
+			std::vector<Queue> m_queues{};
 
 		};
 
@@ -648,14 +691,13 @@ namespace engine::gfx {
 				res = vkCreateSwapchainKHR(m_device->getHandle(), &createInfo, nullptr, &m_handle);
 				assert(res == VK_SUCCESS);
 
-				/*
 				uint32_t swapchainImageCount = 0;
-				res = vkGetSwapchainImagesKHR(m_device.getHandle(), m_handle, &swapchainImageCount, nullptr);
+				res = vkGetSwapchainImagesKHR(m_device->getHandle(), m_handle, &swapchainImageCount, nullptr);
 				assert(res == VK_SUCCESS);
 				m_images.resize(swapchainImageCount);
-				res = vkGetSwapchainImagesKHR(m_device.getHandle(), m_handle, &swapchainImageCount, m_images.data());
+				res = vkGetSwapchainImagesKHR(m_device->getHandle(), m_handle, &swapchainImageCount, m_images.data());
 				assert(res == VK_SUCCESS);
-				*/
+
 			}
 			Swapchain(const Swapchain&) = delete;
 			Swapchain& operator=(const Swapchain&) = delete;
