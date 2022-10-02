@@ -2,9 +2,12 @@
 
 #include "engine_api.h"
 
+namespace engine {
+	class Window;
+	class Input;
+}
+
 class Object;
-class Window;
-class Input;
 class ResourceManager;
 
 class ENGINE_API Component {
@@ -30,8 +33,8 @@ public:
 	Object& parent;
 
 protected:
-	Window& win;
-	Input& inp;
+	engine::Window& win;
+	engine::Input& inp;
 	ResourceManager& res;
 
 private:

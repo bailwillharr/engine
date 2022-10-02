@@ -8,7 +8,7 @@
 
 struct SDL_Window;
 
-namespace engine::gfx {
+namespace engine {
 	
 	class ENGINE_API GFXDevice {
 

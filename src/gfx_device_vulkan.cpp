@@ -14,11 +14,12 @@
 
 #include <assert.h>
 
+#include <array>
 #include <iostream>
 #include <optional>
 #include <unordered_set>
 
-namespace engine::gfx {
+namespace engine {
 
 	static std::vector<const char*> getRequiredVulkanExtensions(SDL_Window* window)
 	{

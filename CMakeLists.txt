@@ -6,7 +6,7 @@ project(engine LANGUAGES CXX
 	VERSION "0.1.0"
 )
 
-add_library(${PROJECT_NAME} SHARED
+add_library(${PROJECT_NAME} STATIC
 	
 	"src/engine.cpp"
 	"src/window.cpp"
@@ -73,6 +73,8 @@ add_library(${PROJECT_NAME} SHARED
 # compiling options:
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE DEFINITIONS "ENGINE_EXPORTS")
+
+set_property(TARGET ${PROJECT_NAME} PROPERTY WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
@@ -143,8 +145,8 @@ add_subdirectory(dependencies/glm)
 target_include_directories(${PROJECT_NAME} PUBLIC dependencies/glm)
 
 # spdlog
-set(SPDLOG_BUILD_SHARED ON CACHE INTERNAL "" FORCE)
-set(BUILD_SHARED_LIBS ON)
+set(SPDLOG_BUILD_SHARED OFF CACHE INTERNAL "" FORCE)
+set(BUILD_SHARED_LIBS OFF)
 add_subdirectory(dependencies/spdlog)
 target_link_libraries(${PROJECT_NAME} PUBLIC spdlog)
 target_include_directories(${PROJECT_NAME} PUBLIC dependencies/spdlog/include)

@@ -12,8 +12,10 @@
 #include <memory>
 #include <stdexcept>
 
-class Window;
-class Input;
+namespace engine {
+	class Window;
+	class Input;
+}
 class ResourceManager;
 
 class SceneRoot;
@@ -28,8 +30,8 @@ namespace components {
 }
 
 struct GameIO {
-	Window * const win;
-	Input * const input;
+	engine::Window * const win;
+	engine::Input * const input;
 	ResourceManager * const resMan;
 };
 
@@ -43,8 +45,8 @@ public:
 	Object& operator=(const Object&) = delete;
 	~Object();
 
-	Window& win;
-	Input& inp;
+	engine::Window& win;
+	engine::Input& inp;
 	ResourceManager& res;
 
 	SceneRoot& root;
