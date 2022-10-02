@@ -810,14 +810,18 @@ namespace engine::gfx {
 			throw std::runtime_error("The loaded Vulkan version must be at least 1.3");
 		}
 
-		pimpl = std::make_unique<Impl>(appInfo, window);
-
+		m_pimpl = std::make_unique<Impl>(appInfo, window);
 
 	}
 
 	GFXDevice::~GFXDevice()
 	{
 		TRACE("Destroying GFXDevice...");
+	}
+
+	void GFXDevice::draw()
+	{
+		TRACE("Drawing");
 	}
 
 }
