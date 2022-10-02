@@ -61,13 +61,14 @@ namespace engine::gfx {
 
 			volkLoadInstanceOnly(instance->getHandle());
 
-			m_debugMessenger = std::make_unique<DebugMessenger>(instance); // instance.use_count ++
+			m_debugMessenger = std::make_unique<DebugMessenger>(instance); // owns the instance
+			auto surface = std::make_shared<Surface>(window, instance); // owns the instance
 
-			auto surface = std::make_shared<Surface>(window, instance); // instance.use_count ++
+			auto device = std::make_shared<Device>(surface); // owns the surface
 
-			auto device = std::make_shared<Device>(instance, surface); // instance.use_count ++ ; surface.use_count ++
+			m_swapchain = std::make_unique<Swapchain>(device); // owns the device
 
-			m_swapchain = std::make_unique<Swapchain>(device, surface);
+			INFO("Instance use count: {}", instance.use_count());
 		}
 
 	private:
@@ -318,6 +319,11 @@ namespace engine::gfx {
 				return m_window;
 			}
 
+			VkInstance getInstance() const
+			{
+				return m_instance->getHandle();
+			}
+
 		private:
 			std::shared_ptr<Instance> m_instance;
 			VkSurfaceKHR m_handle;
@@ -328,18 +334,18 @@ namespace engine::gfx {
 		class Device {
 
 		public:
-			Device(std::shared_ptr<Instance> instance, std::shared_ptr<Surface> surface) : m_instance(instance), m_surface(surface)
+			Device(std::shared_ptr<Surface> surface) : m_surface(surface)
 			{
 				// enumerate physical devices
 				uint32_t physDeviceCount = 0;
 				VkResult res;
-				res = vkEnumeratePhysicalDevices(m_instance->getHandle(), &physDeviceCount, nullptr);
+				res = vkEnumeratePhysicalDevices(m_surface->getInstance(), &physDeviceCount, nullptr);
 				assert(res == VK_SUCCESS);
 				if (physDeviceCount == 0) {
 					throw std::runtime_error("No GPU found with vulkan support!");
 				}
 				std::vector<VkPhysicalDevice> physicalDevices(physDeviceCount);
-				res = vkEnumeratePhysicalDevices(m_instance->getHandle(), &physDeviceCount, physicalDevices.data());
+				res = vkEnumeratePhysicalDevices(m_surface->getInstance(), &physDeviceCount, physicalDevices.data());
 				assert(res == VK_SUCCESS);
 
 				// find suitable device:
@@ -372,6 +378,10 @@ namespace engine::gfx {
 						}
 					}
 
+
+
+					// get swapchain support details:
+
 					// get surface capabilities
 					res = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(dev, m_surface->getHandle(), &m_swapchainSupportDetails.caps);
 					assert (res == VK_SUCCESS);
@@ -398,6 +408,9 @@ namespace engine::gfx {
 					res = vkGetPhysicalDeviceSurfacePresentModesKHR(dev, m_surface->getHandle(), &surfacePresentModeCount, m_swapchainSupportDetails.presentModes.data());
 					assert(res == VK_SUCCESS);
 
+
+
+					// check physical device properties
 					VkPhysicalDeviceProperties devProps;
 					vkGetPhysicalDeviceProperties(dev, &devProps);
 
@@ -409,7 +422,7 @@ namespace engine::gfx {
 					physicalDevice = dev;
 					break;
 
-				}
+				} // end for()
 
 				if (physicalDevice == VK_NULL_HANDLE) {
 					throw std::runtime_error("No suitable Vulkan physical device found");
@@ -419,34 +432,36 @@ namespace engine::gfx {
 				vkGetPhysicalDeviceProperties(physicalDevice, &devProps);
 				INFO("Selected physical device: {}", devProps.deviceName);
 
-				INFO("Supported present modes:");
+				TRACE("Supported present modes:");
 				for (const auto& presMode : m_swapchainSupportDetails.presentModes) {
 					switch (presMode) {
 					case VK_PRESENT_MODE_IMMEDIATE_KHR:
-						INFO("\tVK_PRESENT_MODE_IMMEDIATE_KHR");
+						TRACE("\tVK_PRESENT_MODE_IMMEDIATE_KHR");
 						break;
 					case VK_PRESENT_MODE_MAILBOX_KHR:
-						INFO("\tVK_PRESENT_MODE_MAILBOX_KHR");
+						TRACE("\tVK_PRESENT_MODE_MAILBOX_KHR");
 						break;
 					case VK_PRESENT_MODE_FIFO_KHR:
-						INFO("\tVK_PRESENT_MODE_FIFO_KHR");
+						TRACE("\tVK_PRESENT_MODE_FIFO_KHR");
 						break;
 					case VK_PRESENT_MODE_FIFO_RELAXED_KHR:
-						INFO("\tVK_PRESENT_MODE_FIFO_RELAXED_KHR");
+						TRACE("\tVK_PRESENT_MODE_FIFO_RELAXED_KHR");
 						break;
 					case VK_PRESENT_MODE_SHARED_DEMAND_REFRESH_KHR:
-						INFO("\tVK_PRESENT_MODE_SHARED_DEMAND_REFRESH_KHR");
+						TRACE("\tVK_PRESENT_MODE_SHARED_DEMAND_REFRESH_KHR");
 						break;
 					case VK_PRESENT_MODE_SHARED_CONTINUOUS_REFRESH_KHR:
-						INFO("\tVK_PRESENT_MODE_SHARED_CONTINUOUS_REFRESH_KHR");
+						TRACE("\tVK_PRESENT_MODE_SHARED_CONTINUOUS_REFRESH_KHR");
 						break;
 					default:
-						INFO("\tUNKNOWN DISPLAY MODE");
+						TRACE("\tUNKNOWN DISPLAY MODE");
 						break;
 					}
 				}
 
-				// queue families
+
+
+				// Get the queue families and find ones that support graphics, transfer, and compute
 
 				uint32_t queueFamilyCount = 0;
 				vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nullptr);
@@ -475,18 +490,20 @@ namespace engine::gfx {
 						TRACE("\t\ti = {}\t\tcount = {}", i, family.queueCount);
 					}
 				}
-				if (graphicsFamilyIndex.has_value() == false || transferFamilyIndex.has_value() == false) {
+				if (	graphicsFamilyIndex.has_value() == false ||
+						transferFamilyIndex.has_value() == false) {
 					throw std::runtime_error("Unable to find queues with the GRAPHICS or TRANSFER family flags");
 				}
 
-				if (graphicsFamilyIndex.value() != transferFamilyIndex.value()) {
-					throw std::runtime_error("Vulkan device creation error: graphics and transfer queue families are not the same!");
-				}
+				// there is no guaranteed support for compute queues
 
 				std::vector<VkDeviceQueueCreateInfo> queueCreateInfos{};
 
 				// use a set to filter out duplicate indices
-				std::unordered_set<uint32_t> uniqueQueueFamilies{ graphicsFamilyIndex.value(), transferFamilyIndex.value(), computeFamilyIndex.value() };
+				std::unordered_set<uint32_t> uniqueQueueFamilies{};
+				if (graphicsFamilyIndex.has_value()) uniqueQueueFamilies.insert(graphicsFamilyIndex.value());
+				if (transferFamilyIndex.has_value()) uniqueQueueFamilies.insert(transferFamilyIndex.value());
+				if (computeFamilyIndex.has_value()) uniqueQueueFamilies.insert(computeFamilyIndex.value());
 
 				float queuePriority = 1.0f;
 
@@ -605,9 +622,12 @@ namespace engine::gfx {
 				throw std::runtime_error("Unable to find compute queue");
 			}
 
+			std::shared_ptr<Surface> getSurface()
+			{
+				return m_surface;
+			}
 
 		private:
-			std::shared_ptr<Instance> m_instance;
 			std::shared_ptr<Surface> m_surface;
 
 			SwapchainSupportDetails m_swapchainSupportDetails{};
@@ -621,7 +641,7 @@ namespace engine::gfx {
 		class Swapchain {
 
 		public:
-			Swapchain(std::shared_ptr<Device> device, std::shared_ptr<Surface> surface) : m_device(device), m_surface(surface)
+			Swapchain(std::shared_ptr<Device> device) : m_device(device)
 			{
 				VkResult res;
 
@@ -651,7 +671,7 @@ namespace engine::gfx {
 				} else {
 					// if fb size isn't already found, get it from SDL
 					int width, height;
-					SDL_Vulkan_GetDrawableSize(m_surface->getWindow(), &width, &height);
+					SDL_Vulkan_GetDrawableSize(m_device->getSurface()->getWindow(), &width, &height);
 
 					chosenSwapExtent.width = static_cast<uint32_t>(width);
 					chosenSwapExtent.height = static_cast<uint32_t>(height);
@@ -673,7 +693,7 @@ namespace engine::gfx {
 					.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
 					.pNext = nullptr,
 					.flags = 0,
-					.surface = m_surface->getHandle(),
+					.surface = m_device->getSurface()->getHandle(),
 					.minImageCount = imageCount,
 					.imageFormat = chosenSurfaceFormat.format,
 					.imageColorSpace = chosenSurfaceFormat.colorSpace,
@@ -706,6 +726,7 @@ namespace engine::gfx {
 				res = vkCreateSwapchainKHR(m_device->getHandle(), &createInfo, nullptr, &m_handle);
 				assert(res == VK_SUCCESS);
 
+				// get all the image handles
 				uint32_t swapchainImageCount = 0;
 				res = vkGetSwapchainImagesKHR(m_device->getHandle(), m_handle, &swapchainImageCount, nullptr);
 				assert(res == VK_SUCCESS);
@@ -717,7 +738,7 @@ namespace engine::gfx {
 				m_currentExtent = chosenSwapExtent;
 
 				// create image views
-				m_imageViews.resize(m_images.size());
+				m_imageViews.clear();
 				for (VkImage image : m_images) {
 
 					VkImageViewCreateInfo createInfo{};
@@ -758,7 +779,6 @@ namespace engine::gfx {
 
 		private:
 			std::shared_ptr<Device> m_device;
-			std::shared_ptr<Surface> m_surface;
 
 			VkSwapchainKHR m_handle = VK_NULL_HANDLE;
 
