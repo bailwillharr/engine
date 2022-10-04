@@ -1,18 +1,57 @@
 #include "engine.hpp"
 
-#include <cstdio>
+#include "window.hpp"
+#include "gfx_device.hpp"
 
 namespace engine {
 
-bool versionFromCharArray(const char* version, int* major, int* minor, int* patch)
-{
-	if (sscanf(version, "%d.%d.%d", major, minor, patch) != 3) {
-		*major = 0;
-		*minor = 0;
-		*patch = 0;
-		return false;
+	Application::Application(const char* appName, const char* appVersion)
+	{
+		m_win = std::make_unique<Window>(appName);
+		m_gfx = std::make_unique<GFXDevice>(appName, appVersion, m_win->m_handle);
 	}
-	return true;
-}
+
+	Application::~Application()
+	{
+
+	}
+
+	void Application::gameLoop()
+	{
+		uint64_t lastTick = m_win->getNanos();
+		constexpr int TICKFREQ = 20; // in hz
+
+		// single-threaded game loop
+		while (m_win->isRunning()) {
+
+			/* logic */
+
+			if (m_win->getLastFrameStamp() >= lastTick + (BILLION / TICKFREQ)) {
+				lastTick = m_win->getLastFrameStamp();
+
+				// do tick stuff here
+
+			}
+
+			if (m_win->getKeyPress(inputs::Key::F11)) {
+				if (m_win->isFullscreen()) {
+					m_win->setFullscreen(false);
+				}
+				else {
+					m_win->setFullscreen(true, false); // borderless window
+				}
+			}
+			if (m_win->getKeyPress(inputs::Key::ESCAPE)) {
+				m_win->setCloseFlag();
+			}
+
+			/* draw */
+			m_gfx->draw();
+
+			/* poll events */
+			m_win->getInputAndEvents();
+
+		}
+	}
 
 }

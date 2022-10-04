@@ -38,6 +38,8 @@ add_library(${PROJECT_NAME} STATIC
 
 	"include/engine.hpp"
 
+	"include/util.hpp"
+
 	"include/log.hpp"
 
 	"include/window.hpp"
@@ -67,7 +69,6 @@ add_library(${PROJECT_NAME} STATIC
 
 	"include/gfx.hpp"
 	"include/gfx_device.hpp"
-
 )
 
 # compiling options:

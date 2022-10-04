@@ -4,6 +4,8 @@
 
 #include "gfx_device.hpp"
 
+#include "util.hpp"
+
 #include "config.h"
 #include "log.hpp"
 
@@ -49,7 +51,7 @@ namespace engine {
 	class GFXDevice::Impl {
 
 	public:
-		Impl(AppInfo appInfo, SDL_Window* window)
+		Impl(const char* appName, const char* appVersion, SDL_Window* window)
 		{
 #ifdef NDEBUG
 			// release mode: don't use validation layer
@@ -58,7 +60,7 @@ namespace engine {
 			// debug mode: use validation layer
 			LayerInfo layerInfo(true);
 #endif
-			auto instance = std::make_shared<Instance>(appInfo, layerInfo, getRequiredVulkanExtensions(window));
+			auto instance = std::make_shared<Instance>(appName, appVersion, layerInfo, getRequiredVulkanExtensions(window));
 
 			volkLoadInstanceOnly(instance->getHandle());
 
@@ -110,19 +112,19 @@ namespace engine {
 		class Instance {
 
 		public:
-			Instance(AppInfo appInfo, const LayerInfo& layerInfo, const std::vector<const char*>& windowExtensions)
+			Instance(const char* appName, const char* appVersion, const LayerInfo& layerInfo, const std::vector<const char*>& windowExtensions)
 			{
 				VkResult res;
 
 				int appVersionMajor = 0, appVersionMinor = 0, appVersionPatch = 0;
-				assert(versionFromCharArray(appInfo.version, &appVersionMajor, &appVersionMinor, &appVersionPatch));
+				assert(versionFromCharArray(appVersion, &appVersionMajor, &appVersionMinor, &appVersionPatch));
 				int engineVersionMajor = 0, engineVersionMinor = 0, engineVersionPatch = 0;
 				assert(versionFromCharArray(ENGINE_VERSION, &engineVersionMajor, &engineVersionMinor, &engineVersionPatch));
 
 				VkApplicationInfo applicationInfo{
 					.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
 					.pNext = nullptr,
-					.pApplicationName = appInfo.name,
+					.pApplicationName = appName,
 					.applicationVersion = VK_MAKE_VERSION(appVersionMajor, appVersionMinor, appVersionPatch),
 					.pEngineName = "engine",
 					.engineVersion = VK_MAKE_VERSION(engineVersionMajor, engineVersionMinor, engineVersionPatch),
@@ -797,7 +799,7 @@ namespace engine {
 
 	};
 
-	GFXDevice::GFXDevice(AppInfo appInfo, SDL_Window* window)
+	GFXDevice::GFXDevice(const char* appName, const char* appVersion, SDL_Window* window)
 	{
 		VkResult res;
 		res = volkInitialize();
@@ -811,7 +813,7 @@ namespace engine {
 			throw std::runtime_error("The loaded Vulkan version must be at least 1.3");
 		}
 
-		m_pimpl = std::make_unique<Impl>(appInfo, window);
+		m_pimpl = std::make_unique<Impl>(appName, appVersion, window);
 
 	}
 
