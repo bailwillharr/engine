@@ -179,6 +179,11 @@ namespace engine {
 
 	// public methods
 
+	SDL_Window* Window::getHandle() const
+	{
+		return m_handle;
+	}
+
 	std::string Window::getTitle() const
 	{
 		return m_title;

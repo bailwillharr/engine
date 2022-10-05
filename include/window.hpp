@@ -27,6 +27,8 @@ namespace engine {
 		Window& operator=(const Window&) = delete;
 		~Window();
 
+		SDL_Window* getHandle() const;
+
 		// Return the title name
 		std::string getTitle() const;
 
@@ -129,10 +131,9 @@ namespace engine {
 		/* STATIC METHODS */
 		static void errorBox(const std::string& message);
 
-	public:
-		SDL_Window* m_handle;
-
 	private:
+
+		SDL_Window* m_handle;
 
 		bool m_shouldClose = false;
 
