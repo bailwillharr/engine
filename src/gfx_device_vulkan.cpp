@@ -71,7 +71,6 @@ namespace engine {
 
 			m_swapchain = std::make_unique<Swapchain>(device); // owns the device
 
-			INFO("Instance use count: {}", instance.use_count());
 		}
 
 	private:
@@ -565,6 +564,27 @@ namespace engine {
 					vkGetDeviceQueue(m_handle, q.familyIndex, q.queueIndex, &q.handle);
 				}
 
+				Queue gfxQueue = getGraphicsQueue();
+
+				VkCommandPoolCreateInfo gfxCmdPoolInfo{
+					.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+					.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+					.queueFamilyIndex = gfxQueue.familyIndex,
+				};
+
+				res = vkCreateCommandPool(m_handle, &gfxCmdPoolInfo, nullptr, &m_gfxCommandPool);
+				assert(res == VK_SUCCESS);
+
+				VkCommandBufferAllocateInfo gfxCmdBufInfo{
+					.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+					.commandPool = m_gfxCommandPool,
+					.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+					.commandBufferCount = 1
+				};
+
+				res = vkAllocateCommandBuffers(m_handle, &gfxCmdBufInfo, &m_gfxCommandBuffer);
+				assert(res == VK_SUCCESS);
+
 			}
 			Device(const Device&) = delete;
 			Device& operator=(const Device&) = delete;
@@ -572,6 +592,7 @@ namespace engine {
 			~Device()
 			{
 				TRACE("Destroying device...");
+				vkDestroyCommandPool(m_handle, m_gfxCommandPool, nullptr);
 				vkDestroyDevice(m_handle, nullptr);
 			}
 
@@ -601,6 +622,16 @@ namespace engine {
 				VkQueue handle;
 			};
 
+			VkCommandBuffer getGraphicsCommandBuffer()
+			{
+				return m_gfxCommandBuffer;
+			}
+
+			std::shared_ptr<Surface> getSurface()
+			{
+				return m_surface;
+			}
+
 			Queue getGraphicsQueue()
 			{
 				for (const auto& queue : m_queues) {
@@ -617,18 +648,13 @@ namespace engine {
 				throw std::runtime_error("Unable to find transfer queue");
 			}
 
-			Queue getComputeQueue()
+			/*Queue getComputeQueue()
 			{
 				for (const auto& queue : m_queues) {
 					if (queue.supportsCompute) return queue;
 				}
 				throw std::runtime_error("Unable to find compute queue");
-			}
-
-			std::shared_ptr<Surface> getSurface()
-			{
-				return m_surface;
-			}
+			}*/
 
 		private:
 			std::shared_ptr<Surface> m_surface;
@@ -639,9 +665,14 @@ namespace engine {
 
 			std::vector<Queue> m_queues{};
 
+			VkCommandPool m_gfxCommandPool = VK_NULL_HANDLE;
+			VkCommandBuffer m_gfxCommandBuffer = VK_NULL_HANDLE;
+
 		};
 
 		class Swapchain {
+
+			// this class also creates a depth buffer image
 
 		public:
 			Swapchain(std::shared_ptr<Device> device) : m_device(device)
@@ -765,6 +796,24 @@ namespace engine {
 					assert (res == VK_SUCCESS);
 
 					m_imageViews.push_back(imageView);
+
+					// create depth buffer
+
+					VkImageCreateInfo depthImageInfo{
+						.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+						.flags = 0,
+						.imageType = VK_IMAGE_TYPE_2D,
+						.format = VK_FORMAT_D16_UNORM,
+						.extent = {
+							.width = chosenSwapExtent.width,
+							.height = chosenSwapExtent.height,
+							.depth = 1,
+						},
+						.mipLevels = 1,
+						.arrayLayers = 1,
+						.samples = 
+					};
+
 				}
 
 			}
@@ -792,6 +841,7 @@ namespace engine {
 			VkExtent2D m_currentExtent{};
 
 		};
+
 
 
 		std::unique_ptr<DebugMessenger> m_debugMessenger; // uses instance
@@ -824,7 +874,7 @@ namespace engine {
 
 	void GFXDevice::draw()
 	{
-		TRACE("Drawing");
+		
 	}
 
 }
