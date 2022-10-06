@@ -20,7 +20,7 @@ struct Vertex {
 	glm::vec2 uv;
 };
 
-namespace resources {
+namespace engine::resources {
 
 class ENGINE_API Mesh : public Resource {
 

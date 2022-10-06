@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <cstddef>
 
-namespace gfx {
+namespace engine {
 
 	enum class ShaderType {
 		VERTEX,

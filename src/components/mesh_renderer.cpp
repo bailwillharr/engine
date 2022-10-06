@@ -6,7 +6,7 @@
 
 #include <iostream>
 
-namespace components {
+namespace engine::components {
 
 Renderer::Renderer(Object* parent) : Component(parent, TypeEnum::RENDERER)
 {

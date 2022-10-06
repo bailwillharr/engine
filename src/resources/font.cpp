@@ -3,7 +3,7 @@
 #include <ft2build.h>
 #include FT_FREETYPE_H
 
-namespace resources {
+namespace engine::resources {
 
 Font::Font(const std::filesystem::path& resPath) : Resource(resPath, "font")
 {

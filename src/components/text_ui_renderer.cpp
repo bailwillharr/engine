@@ -4,7 +4,7 @@
 #include "resource_manager.hpp"
 #include "resources/texture.hpp"
 
-namespace components {
+namespace engine::components {
 
 UI::UI(Object* parent) : Component(parent, TypeEnum::UI)
 {

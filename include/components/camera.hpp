@@ -11,7 +11,7 @@
 #include <glm/glm.hpp>
 #include <glm/ext.hpp>
 
-namespace components {
+namespace engine::components {
 
 class ENGINE_API Camera : public Component {
 

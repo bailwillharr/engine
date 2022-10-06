@@ -1,6 +1,6 @@
 #include "resources/mesh.hpp"
 
-namespace resources {
+namespace engine::resources {
 
 struct MeshFileHeader {
 	unsigned int vertex_count;

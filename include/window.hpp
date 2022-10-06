@@ -22,7 +22,7 @@ namespace engine {
 	class ENGINE_API Window {
 
 	public:
-		Window(const std::string& title);
+		Window(const std::string& title, bool resizable = true);
 		Window(const Window&) = delete;
 		Window& operator=(const Window&) = delete;
 		~Window();
@@ -52,7 +52,7 @@ namespace engine {
 		// Returns true if the window should remain open
 		bool isRunning() const;
 
-		void setFullscreen(bool fullscreen, bool exclusive = true);
+		void setFullscreen(bool fullscreen, bool exclusive = false);
 		void toggleFullscreen();
 
 		bool isFullscreen() const;
@@ -138,6 +138,8 @@ namespace engine {
 		bool m_shouldClose = false;
 
 		std::string m_title;
+
+		bool m_resizable;
 
 		bool m_fullscreen = false;
 		bool m_justResized = false;

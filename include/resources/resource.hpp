@@ -5,20 +5,24 @@
 #include <string>
 #include <filesystem>
 
-class ENGINE_API Resource {
+namespace engine {
 
-public:
-	Resource(const std::filesystem::path& resPath, const std::string& type);
-	Resource(const Resource&) = delete;
-	Resource& operator=(const Resource&) = delete;
-	virtual ~Resource() = 0;
+	class ENGINE_API Resource {
 
-	std::string getType();
+	public:
+		Resource(const std::filesystem::path& resPath, const std::string& type);
+		Resource(const Resource&) = delete;
+		Resource& operator=(const Resource&) = delete;
+		virtual ~Resource() = 0;
 
-protected:
-	std::filesystem::path m_resourcePath;
+		std::string getType();
 
-private:
-	const std::string m_type;
+	protected:
+		std::filesystem::path m_resourcePath;
 
-};
+	private:
+		const std::string m_type;
+
+	};
+
+}

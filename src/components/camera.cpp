@@ -13,7 +13,7 @@ static const std::string VIEW_MAT_UNIFORM = "viewMat";
 static const std::string PROJ_MAT_UNIFORM = "projMat";
 static const std::string WINDOW_SIZE_UNIFORM = "windowSize";
 
-namespace components {
+namespace engine::components {
 
 glm::vec4 Camera::s_clearColor{-999.0f, -999.0f, -999.0f, -999.0f};
 

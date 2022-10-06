@@ -6,24 +6,28 @@
 
 #include <filesystem>
 
-// Holds everything you would expect to find in a game scene
-class ENGINE_API SceneRoot : public Object {
+namespace engine {
 
-public:
-	// create a new empty scene
-	SceneRoot(struct GameIO things);
-	SceneRoot(const std::filesystem::path& file, struct GameIO things);
+	// Holds everything you would expect to find in a game scene
+	class ENGINE_API SceneRoot : public Object {
 
-	SceneRoot(const SceneRoot&) = delete;
-	SceneRoot& operator=(const SceneRoot&) = delete;
-	~SceneRoot();
+	public:
+		// create a new empty scene
+		SceneRoot(struct GameIO things);
+		SceneRoot(const std::filesystem::path& file, struct GameIO things);
 
-	void updateStuff();
+		SceneRoot(const SceneRoot&) = delete;
+		SceneRoot& operator=(const SceneRoot&) = delete;
+		~SceneRoot();
 
-	void activateCam(int id);
-	void deactivateCam(int id);
+		void updateStuff();
 
-private:
-	std::vector<int> m_activeCameras{};
+		void activateCam(int id);
+		void deactivateCam(int id);
 
-};
+	private:
+		std::vector<int> m_activeCameras{};
+
+	};
+
+}

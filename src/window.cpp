@@ -9,7 +9,7 @@ const uint64_t BILLION = 1000000000;
 
 namespace engine {
 
-	Window::Window(const std::string& title) : m_title(title)
+	Window::Window(const std::string& title, bool resizable) : m_title(title), m_resizable(resizable)
 	{
 
 		// init SDL
@@ -26,13 +26,23 @@ namespace engine {
 		m_lastFrameStamp = m_startTime - 1;
 		m_avgFpsStart = m_startTime;
 
+		Uint32 windowFlags = SDL_WINDOW_SHOWN;
+
+#ifdef ENGINE_BUILD_VULKAN
+		windowFlags |= SDL_WINDOW_VULKAN;
+#endif
+
+		if (m_resizable) {
+			windowFlags |= SDL_WINDOW_RESIZABLE;
+		}
+
 		// create the window
 		m_handle = SDL_CreateWindow(
 			m_title.c_str(),
 			SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
 			static_cast<int>(m_winSize.x),
 			static_cast<int>(m_winSize.y),
-			SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN);
+			windowFlags);
 		if (m_handle == NULL) {
 			SDL_Quit();
 			throw std::runtime_error("Unable to create window: " + std::string(SDL_GetError()));
@@ -278,14 +288,16 @@ namespace engine {
 
 	void Window::setFullscreen(bool fullscreen, bool exclusive)
 	{
-		if (SDL_SetWindowFullscreen(m_handle, fullscreen ? (exclusive ? SDL_WINDOW_FULLSCREEN : SDL_WINDOW_FULLSCREEN_DESKTOP) : 0) != 0) {
-			throw std::runtime_error("Unable to set window to fullscreen/windowed");
-		}
-		m_fullscreen = fullscreen;
-		if (fullscreen) {
-			int width, height;
-			SDL_GetWindowSize(m_handle, &width, &height);
-			onResize(width, height);
+		if (m_resizable) {
+			if (SDL_SetWindowFullscreen(m_handle, fullscreen ? (exclusive ? SDL_WINDOW_FULLSCREEN : SDL_WINDOW_FULLSCREEN_DESKTOP) : 0) != 0) {
+				throw std::runtime_error("Unable to set window to fullscreen/windowed");
+			}
+			m_fullscreen = fullscreen;
+			if (fullscreen) {
+				int width, height;
+				SDL_GetWindowSize(m_handle, &width, &height);
+				onResize(width, height);
+			}
 		}
 	}
 

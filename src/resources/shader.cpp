@@ -50,7 +50,7 @@ static GLuint compile(const char *path, GLenum type)
     } return handle;
 }
 
-namespace resources {
+namespace engine::resources {
 
 // I've got to do this because of GL's stupid state machine
 GLuint Shader::s_activeProgram = 0;

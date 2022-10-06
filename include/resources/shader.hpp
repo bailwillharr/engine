@@ -11,7 +11,7 @@
 #include <string>
 #include <map>
 
-namespace resources {
+namespace engine::resources {
 
 class ENGINE_API Shader : public Resource {
 
@@ -40,7 +40,7 @@ public:
 
 	static void invalidate()
 	{
-		s_activeProgram = -1;
+		s_activeProgram = std::numeric_limits<GLuint>::max();
 	}
 
 private:

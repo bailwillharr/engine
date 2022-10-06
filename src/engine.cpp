@@ -7,7 +7,7 @@ namespace engine {
 
 	Application::Application(const char* appName, const char* appVersion)
 	{
-		m_win = std::make_unique<Window>(appName);
+		m_win = std::make_unique<Window>(appName, true);
 		m_gfx = std::make_unique<GFXDevice>(appName, appVersion, m_win->getHandle());
 	}
 
@@ -34,12 +34,7 @@ namespace engine {
 			}
 
 			if (m_win->getKeyPress(inputs::Key::F11)) {
-				if (m_win->isFullscreen()) {
-					m_win->setFullscreen(false);
-				}
-				else {
-					m_win->setFullscreen(true, false); // borderless window
-				}
+				m_win->toggleFullscreen();
 			}
 			if (m_win->getKeyPress(inputs::Key::ESCAPE)) {
 				m_win->setCloseFlag();

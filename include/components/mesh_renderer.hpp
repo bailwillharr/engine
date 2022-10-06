@@ -12,7 +12,7 @@
 #include <string>
 #include <memory>
 
-namespace components {
+namespace engine::components {
 
 class ENGINE_API Renderer : public Component {
 

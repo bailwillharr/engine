@@ -6,12 +6,16 @@
 #include <glm/vec3.hpp>
 #include <glm/ext/quaternion_float.hpp>
 
-struct ENGINE_API Transform {
+namespace engine {
 
-// Scale, rotate (XYZ), translate
+	struct ENGINE_API Transform {
 
-	glm::vec3 position{0.0f};
-	glm::quat rotation{};
-	glm::vec3 scale{1.0f};
+		// Scale, rotate (XYZ), translate
 
-};
+		glm::vec3 position{ 0.0f };
+		glm::quat rotation{};
+		glm::vec3 scale{ 1.0f };
+
+	};
+
+}
