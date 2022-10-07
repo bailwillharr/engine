@@ -48,6 +48,13 @@ namespace engine {
 		return surface;
 	}
 
+	static VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features)
+	{
+		for (VkFormat format : candidates) {
+
+		}
+	}
+
 	class GFXDevice::Impl {
 
 	public:
@@ -356,8 +363,6 @@ namespace engine {
 					VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 				};
 
-				VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-
 				for (const auto& dev : physicalDevices) {
 
 					// first, check extension support
@@ -421,17 +426,17 @@ namespace engine {
 						continue;
 					}
 
-					physicalDevice = dev;
+					m_physicalDevice = dev;
 					break;
 
 				} // end for()
 
-				if (physicalDevice == VK_NULL_HANDLE) {
+				if (m_physicalDevice == VK_NULL_HANDLE) {
 					throw std::runtime_error("No suitable Vulkan physical device found");
 				}
 
 				VkPhysicalDeviceProperties devProps;
-				vkGetPhysicalDeviceProperties(physicalDevice, &devProps);
+				vkGetPhysicalDeviceProperties(m_physicalDevice, &devProps);
 				INFO("Selected physical device: {}", devProps.deviceName);
 
 				TRACE("Supported present modes:");
@@ -466,9 +471,9 @@ namespace engine {
 				// Get the queue families and find ones that support graphics, transfer, and compute
 
 				uint32_t queueFamilyCount = 0;
-				vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nullptr);
+				vkGetPhysicalDeviceQueueFamilyProperties(m_physicalDevice, &queueFamilyCount, nullptr);
 				std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-				vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, queueFamilies.data());
+				vkGetPhysicalDeviceQueueFamilyProperties(m_physicalDevice, &queueFamilyCount, queueFamilies.data());
 
 				std::optional<uint32_t> graphicsFamilyIndex;
 				std::optional<uint32_t> transferFamilyIndex;
@@ -534,7 +539,7 @@ namespace engine {
 
 				// check the physical device is compatible with the surface
 				VkBool32 graphicsQueueCanPresent;
-				res = vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, graphicsFamilyIndex.value(), m_surface->getHandle(), &graphicsQueueCanPresent);
+				res = vkGetPhysicalDeviceSurfaceSupportKHR(m_physicalDevice, graphicsFamilyIndex.value(), m_surface->getHandle(), &graphicsQueueCanPresent);
 				assert(res == VK_SUCCESS);
 				if (graphicsQueueCanPresent != VK_TRUE) {
 					throw std::runtime_error("The selected queue family does not support this surface");
@@ -553,7 +558,7 @@ namespace engine {
 					.pEnabledFeatures = nullptr,
 				};
 
-				res = vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &m_handle);
+				res = vkCreateDevice(m_physicalDevice, &deviceCreateInfo, nullptr, &m_handle);
 				if (res != VK_SUCCESS) {
 					throw std::runtime_error("Unable to create Vulkan logical device, error code: " + std::to_string(res));
 				}
@@ -599,6 +604,11 @@ namespace engine {
 			VkDevice getHandle() const
 			{
 				return m_handle;
+			}
+
+			VkPhysicalDevice getPhysicalDevice() const
+			{
+				return m_physicalDevice;
 			}
 
 			struct SwapchainSupportDetails {
@@ -663,6 +673,8 @@ namespace engine {
 
 			VkDevice m_handle = VK_NULL_HANDLE;
 
+			VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
+
 			std::vector<Queue> m_queues{};
 
 			VkCommandPool m_gfxCommandPool = VK_NULL_HANDLE;
@@ -671,8 +683,6 @@ namespace engine {
 		};
 
 		class Swapchain {
-
-			// this class also creates a depth buffer image
 
 		public:
 			Swapchain(std::shared_ptr<Device> device) : m_device(device)
@@ -798,21 +808,8 @@ namespace engine {
 					m_imageViews.push_back(imageView);
 
 					// create depth buffer
-
-					VkImageCreateInfo depthImageInfo{
-						.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-						.flags = 0,
-						.imageType = VK_IMAGE_TYPE_2D,
-						.format = VK_FORMAT_D16_UNORM,
-						.extent = {
-							.width = chosenSwapExtent.width,
-							.height = chosenSwapExtent.height,
-							.depth = 1,
-						},
-						.mipLevels = 1,
-						.arrayLayers = 1,
-						.samples = 
-					};
+					
+					m_depthBuffer = std::make_unique<DepthBuffer>(m_currentExtent);
 
 				}
 
@@ -839,6 +836,26 @@ namespace engine {
 
 			VkFormat m_currentFormat{};
 			VkExtent2D m_currentExtent{};
+
+			class DepthBuffer {
+			public:
+				DepthBuffer(VkExtent2D bufferExtent)
+				{
+					VkImageCreateInfo depthImageInfo{
+						.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+						.flags = 0,
+						.imageType = VK_IMAGE_TYPE_2D,
+					};
+				}
+				DepthBuffer(const DepthBuffer&) = delete;
+				DepthBuffer& operator=(const DepthBuffer&) = delete;
+				~DepthBuffer()
+				{
+
+				}
+			};
+
+			std::unique_ptr<DepthBuffer> m_depthBuffer;
 
 		};
 
