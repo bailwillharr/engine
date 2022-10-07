@@ -7,6 +7,31 @@
 struct SDL_Window;
 
 namespace engine {
+
+	namespace gfx {
+
+		enum class BufferUsage {
+			DEFAULT,
+			UPLOAD,
+			READBACK,
+		};
+
+		enum class BindFlag {
+			NONE = 0,
+			UNIFORM_BUFFER = 1 << 0,
+		};
+
+		struct BufferDesc {
+			uint64_t size;
+			BufferUsage usage;
+			BindFlag bindFlags;
+		};
+
+		// handles (incomplete types)
+
+		class BufferHandle;
+
+	};
 	
 	class ENGINE_API GFXDevice {
 
@@ -19,6 +44,8 @@ namespace engine {
 
 		// submit command lists and draw to the screen
 		void draw();
+
+		bool createBuffer(const gfx::BufferDesc& desc, const void* data, gfx::BufferHandle* out);
 
 	private:
 		class Impl;

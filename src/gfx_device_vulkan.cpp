@@ -48,11 +48,17 @@ namespace engine {
 		return surface;
 	}
 
-	static VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features)
+	static uint32_t getMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties)
 	{
-		for (VkFormat format : candidates) {
-
+		VkPhysicalDeviceMemoryProperties memProps;
+		vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProps);
+		for (uint32_t i = 0; i < memProps.memoryTypeCount; i++) {
+			if (typeFilter & (1 << i)) {
+				return i;
+			}
 		}
+
+		throw std::runtime_error("Failed to find a suitable memory type");
 	}
 
 	class GFXDevice::Impl {
@@ -807,11 +813,11 @@ namespace engine {
 
 					m_imageViews.push_back(imageView);
 
-					// create depth buffer
-					
-					m_depthBuffer = std::make_unique<DepthBuffer>(m_currentExtent);
-
 				}
+
+				// create depth buffer
+					
+				m_depthBuffer = std::make_unique<DepthStencil>(m_currentExtent, m_device.get());
 
 			}
 			Swapchain(const Swapchain&) = delete;
@@ -837,29 +843,135 @@ namespace engine {
 			VkFormat m_currentFormat{};
 			VkExtent2D m_currentExtent{};
 
-			class DepthBuffer {
+			class DepthStencil {
 			public:
-				DepthBuffer(VkExtent2D bufferExtent)
+				DepthStencil(VkExtent2D bufferExtent, Device* device) : m_device(device)
 				{
-					VkImageCreateInfo depthImageInfo{
+					// find a suitable format
+
+					const std::vector<VkFormat> formatCandidates{
+						VK_FORMAT_D24_UNORM_S8_UINT,
+						VK_FORMAT_D32_SFLOAT_S8_UINT,
+					};
+
+					const VkFormatFeatureFlags formatFeatures =
+						VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
+
+					std::optional<VkFormat> chosenFormat;
+
+					for (VkFormat format : formatCandidates) {
+						VkFormatProperties props;
+						vkGetPhysicalDeviceFormatProperties(m_device->getPhysicalDevice(), format, &props);
+
+						if ((props.optimalTilingFeatures & formatFeatures) == formatFeatures) {
+							chosenFormat = format;
+							break;
+						}
+					}
+
+					if (chosenFormat.has_value() == false) {
+						throw std::runtime_error("Unable to find a suitable depth-stencil format");
+					}
+
+					m_format = chosenFormat.value();
+
+					switch (m_format) {
+					case VK_FORMAT_D24_UNORM_S8_UINT:
+						INFO("VK_FORMAT_D24_UNORM_S8_UINT");
+						break;
+					case VK_FORMAT_D32_SFLOAT_S8_UINT:
+						INFO("VK_FORMAT_D32_SFLOAT_S8_UINT");
+						break;
+					default:
+						break;
+					}
+
+					VkImageCreateInfo imageCreateInfo{
 						.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+						.pNext = nullptr,
 						.flags = 0,
 						.imageType = VK_IMAGE_TYPE_2D,
+						.format = m_format,
+						.extent = {
+							.width = bufferExtent.width,
+							.height = bufferExtent.height,
+							.depth = 1,
+						},
+						.mipLevels = 1,
+						.arrayLayers = 1,
+						.samples = VK_SAMPLE_COUNT_1_BIT,
+						.tiling = VK_IMAGE_TILING_OPTIMAL,
+						.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+						.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+						.queueFamilyIndexCount = 1,
+						.pQueueFamilyIndices = nullptr,
+						.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
 					};
-				}
-				DepthBuffer(const DepthBuffer&) = delete;
-				DepthBuffer& operator=(const DepthBuffer&) = delete;
-				~DepthBuffer()
-				{
+
+					VkResult res;
+
+					res = vkCreateImage(m_device->getHandle(), &imageCreateInfo, nullptr, &m_image);
+					assert(res == VK_SUCCESS);
+
+					VkMemoryRequirements memReqs;
+					vkGetImageMemoryRequirements(m_device->getHandle(), m_image, &memReqs);
+
+					VkMemoryAllocateInfo allocInfo{};
+					allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+					allocInfo.pNext = nullptr,
+					allocInfo.allocationSize = memReqs.size,
+					allocInfo.memoryTypeIndex = getMemoryType(m_device->getPhysicalDevice(), memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+					res = vkAllocateMemory(m_device->getHandle(), &allocInfo, nullptr, &m_imageMemory);
+					assert(res == VK_SUCCESS);
+
+					res = vkBindImageMemory(m_device->getHandle(), m_image, m_imageMemory, 0);
+					assert(res == VK_SUCCESS);
+
+					VkImageViewCreateInfo createInfo{};
+					createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+					createInfo.pNext = nullptr;
+					createInfo.image = m_image;
+					createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+					createInfo.format = m_format;
+					createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+					createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+					createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+					createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+					createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+					createInfo.subresourceRange.baseMipLevel = 0;
+					createInfo.subresourceRange.levelCount = 1;
+					createInfo.subresourceRange.baseArrayLayer = 0;
+					createInfo.subresourceRange.layerCount = 1;
+
+					res = vkCreateImageView(m_device->getHandle(), &createInfo, nullptr, &m_imageView);
+					assert (res == VK_SUCCESS);
 
 				}
+				DepthStencil(const DepthStencil&) = delete;
+				DepthStencil& operator=(const DepthStencil&) = delete;
+				~DepthStencil()
+				{
+					vkDestroyImageView(m_device->getHandle(), m_imageView, nullptr);
+					vkFreeMemory(m_device->getHandle(), m_imageMemory, nullptr);
+					vkDestroyImage(m_device->getHandle(), m_image, nullptr);
+				}
+
+			private:
+
+				VkFormat m_format;
+
+				Device* m_device;
+
+				VkImage m_image = VK_NULL_HANDLE;
+				VkDeviceMemory m_imageMemory = VK_NULL_HANDLE;
+				VkImageView m_imageView = VK_NULL_HANDLE;
+
 			};
 
-			std::unique_ptr<DepthBuffer> m_depthBuffer;
+			std::unique_ptr<DepthStencil> m_depthBuffer;
 
 		};
-
-
 
 		std::unique_ptr<DebugMessenger> m_debugMessenger; // uses instance
 		std::unique_ptr<Swapchain> m_swapchain;
