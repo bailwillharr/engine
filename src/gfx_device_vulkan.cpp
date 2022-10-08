@@ -1006,6 +1006,11 @@ namespace engine {
 		
 	}
 
+	bool GFXDevice::createBuffer(const gfx::BufferDesc& desc, const void* data, gfx::BufferHandle* out)
+	{
+		return false;
+	}
+
 }
 
 #endif
