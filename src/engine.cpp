@@ -7,7 +7,7 @@ namespace engine {
 
 	Application::Application(const char* appName, const char* appVersion)
 	{
-		m_win = std::make_unique<Window>(appName, true);
+		m_win = std::make_unique<Window>(appName, false);
 		m_gfx = std::make_unique<GFXDevice>(appName, appVersion, m_win->getHandle());
 	}
 

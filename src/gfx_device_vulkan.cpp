@@ -952,6 +952,7 @@ namespace engine {
 				DepthStencil& operator=(const DepthStencil&) = delete;
 				~DepthStencil()
 				{
+					TRACE("Destroying DepthStencil...");
 					vkDestroyImageView(m_device->getHandle(), m_imageView, nullptr);
 					vkFreeMemory(m_device->getHandle(), m_imageMemory, nullptr);
 					vkDestroyImage(m_device->getHandle(), m_image, nullptr);
