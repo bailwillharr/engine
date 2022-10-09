@@ -13,6 +13,8 @@
 #include <volk.h>
 
 #define VMA_STATIC_VULKAN_FUNCTIONS 0
+#define VMA_DYNAMIC_VULKAN_FUNCTIONS 0
+#define VMA_VULKAN_VERSION 1003000
 #define VMA_IMPLEMENTATION
 #include <vk_mem_alloc.h>
 
@@ -688,8 +690,32 @@ namespace engine {
 				GPUAllocator(const Device* device)
 				{
 					VmaVulkanFunctions functions{
-						.vkGetInstanceProcAddr = vkGetInstanceProcAddr,
-						.vkGetDeviceProcAddr = vkGetDeviceProcAddr,
+						.vkGetInstanceProcAddr = nullptr,
+						.vkGetDeviceProcAddr = nullptr,
+						.vkGetPhysicalDeviceProperties = vkGetPhysicalDeviceProperties,
+						.vkGetPhysicalDeviceMemoryProperties = vkGetPhysicalDeviceMemoryProperties,
+						.vkAllocateMemory = vkAllocateMemory,
+						.vkFreeMemory = vkFreeMemory,
+						.vkMapMemory = vkMapMemory,
+						.vkUnmapMemory = vkUnmapMemory,
+						.vkFlushMappedMemoryRanges = vkFlushMappedMemoryRanges,
+						.vkInvalidateMappedMemoryRanges = vkInvalidateMappedMemoryRanges,
+						.vkBindBufferMemory = vkBindBufferMemory,
+						.vkBindImageMemory = vkBindImageMemory,
+						.vkGetBufferMemoryRequirements = vkGetBufferMemoryRequirements,
+						.vkGetImageMemoryRequirements = vkGetImageMemoryRequirements,
+						.vkCreateBuffer = vkCreateBuffer,
+						.vkDestroyBuffer = vkDestroyBuffer,
+						.vkCreateImage = vkCreateImage,
+						.vkDestroyImage = vkDestroyImage,
+						.vkCmdCopyBuffer = vkCmdCopyBuffer,
+						.vkGetBufferMemoryRequirements2KHR = vkGetBufferMemoryRequirements2,
+						.vkGetImageMemoryRequirements2KHR = vkGetImageMemoryRequirements2,
+						.vkBindBufferMemory2KHR = vkBindBufferMemory2,
+						.vkBindImageMemory2KHR = vkBindImageMemory2,
+						.vkGetPhysicalDeviceMemoryProperties2KHR = vkGetPhysicalDeviceMemoryProperties2,
+						.vkGetDeviceBufferMemoryRequirements = vkGetDeviceBufferMemoryRequirements,
+						.vkGetDeviceImageMemoryRequirements = vkGetDeviceImageMemoryRequirements,
 					};
 
 					VmaAllocatorCreateInfo createInfo{
@@ -714,7 +740,7 @@ namespace engine {
 				GPUAllocator& operator=(const GPUAllocator&) = delete;
 				~GPUAllocator()
 				{
-
+					vmaDestroyAllocator(m_handle);
 				}
 
 				VmaAllocator getHandle() const
