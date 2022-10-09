@@ -10,7 +10,11 @@
 #include "log.hpp"
 
 #define VOLK_IMPLEMENTATION
-#include "volk.h"
+#include <volk.h>
+
+#define VMA_STATIC_VULKAN_FUNCTIONS 0
+#define VMA_IMPLEMENTATION
+#include <vk_mem_alloc.h>
 
 #include <SDL_vulkan.h>
 
@@ -80,9 +84,9 @@ namespace engine {
 			m_debugMessenger = std::make_unique<DebugMessenger>(instance); // owns the instance
 			auto surface = std::make_shared<Surface>(window, instance); // owns the instance
 
-			auto device = std::make_shared<Device>(surface); // owns the surface
+			m_device = std::make_unique<Device>(surface); // owns the surface
 
-			m_swapchain = std::make_unique<Swapchain>(device); // owns the device
+			m_swapchain = std::make_unique<Swapchain>(m_device.get()); // owns the device
 
 		}
 
@@ -596,6 +600,8 @@ namespace engine {
 				res = vkAllocateCommandBuffers(m_handle, &gfxCmdBufInfo, &m_gfxCommandBuffer);
 				assert(res == VK_SUCCESS);
 
+				m_allocator = std::make_unique<GPUAllocator>(this);
+
 			}
 			Device(const Device&) = delete;
 			Device& operator=(const Device&) = delete;
@@ -615,6 +621,11 @@ namespace engine {
 			VkPhysicalDevice getPhysicalDevice() const
 			{
 				return m_physicalDevice;
+			}
+
+			VkInstance getInstance() const
+			{
+				return m_surface->getInstance();
 			}
 
 			struct SwapchainSupportDetails {
@@ -672,6 +683,49 @@ namespace engine {
 				throw std::runtime_error("Unable to find compute queue");
 			}*/
 
+			class GPUAllocator {
+			public:
+				GPUAllocator(const Device* device)
+				{
+					VmaVulkanFunctions functions{
+						.vkGetInstanceProcAddr = vkGetInstanceProcAddr,
+						.vkGetDeviceProcAddr = vkGetDeviceProcAddr,
+					};
+
+					VmaAllocatorCreateInfo createInfo{
+						.flags = 0,
+						.physicalDevice = device->getPhysicalDevice(),
+						.device = device->getHandle(),
+						.preferredLargeHeapBlockSize = 0,
+						.pAllocationCallbacks = nullptr,
+						.pDeviceMemoryCallbacks = nullptr,
+						.pHeapSizeLimit = nullptr,
+						.pVulkanFunctions = &functions,
+						.instance = device->getInstance(),
+						.vulkanApiVersion = VK_API_VERSION_1_3,
+						.pTypeExternalMemoryHandleTypes = nullptr
+					};
+
+					VkResult res = vmaCreateAllocator(&createInfo, &m_handle);
+					assert(res == VK_SUCCESS);
+
+				}
+				GPUAllocator(const GPUAllocator&) = delete;
+				GPUAllocator& operator=(const GPUAllocator&) = delete;
+				~GPUAllocator()
+				{
+
+				}
+
+				VmaAllocator getHandle() const
+				{
+					return m_handle;
+				}
+
+			private:
+				VmaAllocator m_handle = nullptr;
+			};
+
 		private:
 			std::shared_ptr<Surface> m_surface;
 
@@ -686,12 +740,14 @@ namespace engine {
 			VkCommandPool m_gfxCommandPool = VK_NULL_HANDLE;
 			VkCommandBuffer m_gfxCommandBuffer = VK_NULL_HANDLE;
 
+			std::unique_ptr<GPUAllocator> m_allocator;
+
 		};
 
 		class Swapchain {
 
 		public:
-			Swapchain(std::shared_ptr<Device> device) : m_device(device)
+			Swapchain(Device* device) : m_device(device)
 			{
 				VkResult res;
 
@@ -817,7 +873,7 @@ namespace engine {
 
 				// create depth buffer
 					
-				m_depthBuffer = std::make_unique<DepthStencil>(m_currentExtent, m_device.get());
+				m_depthBuffer = std::make_unique<DepthStencil>(m_currentExtent, m_device);
 
 			}
 			Swapchain(const Swapchain&) = delete;
@@ -833,7 +889,7 @@ namespace engine {
 			}
 
 		private:
-			std::shared_ptr<Device> m_device;
+			Device* m_device;
 
 			VkSwapchainKHR m_handle = VK_NULL_HANDLE;
 
@@ -975,6 +1031,9 @@ namespace engine {
 		};
 
 		std::unique_ptr<DebugMessenger> m_debugMessenger; // uses instance
+
+		std::unique_ptr<Device> m_device;
+
 		std::unique_ptr<Swapchain> m_swapchain;
 
 	};

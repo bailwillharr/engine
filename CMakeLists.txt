@@ -124,6 +124,9 @@ set(VOLK_HEADERS_ONLY ON)
 add_subdirectory(dependencies/volk)
 target_link_libraries(${PROJECT_NAME} PRIVATE volk_headers)
 
+# Vulkan Memory Allocator
+target_include_directories(${PROJECT_NAME} PRIVATE dependencies/VulkanMemoryAllocator/include)
+
 # SDL2:
 find_package(SDL2)
 if (SDL2_FOUND)
