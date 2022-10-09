@@ -15,3 +15,6 @@ Add support for shadows and other complex lighting. Also add post-processing.
 
 For font rendering, put all ASCII characters in one large texture and use
 'instancing' (and uniform buffer objects?) to reduce draw calls.
+
+# VULKAN #
+The entire vulkan backend needs redesigning without so many classes

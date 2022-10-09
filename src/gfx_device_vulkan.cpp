@@ -86,9 +86,10 @@ namespace engine {
 			m_debugMessenger = std::make_unique<DebugMessenger>(instance); // owns the instance
 			auto surface = std::make_shared<Surface>(window, instance); // owns the instance
 
-			m_device = std::make_unique<Device>(surface); // owns the surface
+			auto device = std::make_shared<Device>(surface); // owns the surface
+			auto allocator = std::make_shared<GPUAllocator>(device); // owns the device
 
-			m_swapchain = std::make_unique<Swapchain>(m_device.get()); // owns the device
+			m_swapchain = std::make_unique<Swapchain>(device, allocator); // owns the device, allocator
 
 		}
 
@@ -602,8 +603,6 @@ namespace engine {
 				res = vkAllocateCommandBuffers(m_handle, &gfxCmdBufInfo, &m_gfxCommandBuffer);
 				assert(res == VK_SUCCESS);
 
-				m_allocator = std::make_unique<GPUAllocator>(this);
-
 			}
 			Device(const Device&) = delete;
 			Device& operator=(const Device&) = delete;
@@ -685,73 +684,6 @@ namespace engine {
 				throw std::runtime_error("Unable to find compute queue");
 			}*/
 
-			class GPUAllocator {
-			public:
-				GPUAllocator(const Device* device)
-				{
-					VmaVulkanFunctions functions{
-						.vkGetInstanceProcAddr = nullptr,
-						.vkGetDeviceProcAddr = nullptr,
-						.vkGetPhysicalDeviceProperties = vkGetPhysicalDeviceProperties,
-						.vkGetPhysicalDeviceMemoryProperties = vkGetPhysicalDeviceMemoryProperties,
-						.vkAllocateMemory = vkAllocateMemory,
-						.vkFreeMemory = vkFreeMemory,
-						.vkMapMemory = vkMapMemory,
-						.vkUnmapMemory = vkUnmapMemory,
-						.vkFlushMappedMemoryRanges = vkFlushMappedMemoryRanges,
-						.vkInvalidateMappedMemoryRanges = vkInvalidateMappedMemoryRanges,
-						.vkBindBufferMemory = vkBindBufferMemory,
-						.vkBindImageMemory = vkBindImageMemory,
-						.vkGetBufferMemoryRequirements = vkGetBufferMemoryRequirements,
-						.vkGetImageMemoryRequirements = vkGetImageMemoryRequirements,
-						.vkCreateBuffer = vkCreateBuffer,
-						.vkDestroyBuffer = vkDestroyBuffer,
-						.vkCreateImage = vkCreateImage,
-						.vkDestroyImage = vkDestroyImage,
-						.vkCmdCopyBuffer = vkCmdCopyBuffer,
-						.vkGetBufferMemoryRequirements2KHR = vkGetBufferMemoryRequirements2,
-						.vkGetImageMemoryRequirements2KHR = vkGetImageMemoryRequirements2,
-						.vkBindBufferMemory2KHR = vkBindBufferMemory2,
-						.vkBindImageMemory2KHR = vkBindImageMemory2,
-						.vkGetPhysicalDeviceMemoryProperties2KHR = vkGetPhysicalDeviceMemoryProperties2,
-						.vkGetDeviceBufferMemoryRequirements = vkGetDeviceBufferMemoryRequirements,
-						.vkGetDeviceImageMemoryRequirements = vkGetDeviceImageMemoryRequirements,
-					};
-
-					VmaAllocatorCreateInfo createInfo{
-						.flags = 0,
-						.physicalDevice = device->getPhysicalDevice(),
-						.device = device->getHandle(),
-						.preferredLargeHeapBlockSize = 0,
-						.pAllocationCallbacks = nullptr,
-						.pDeviceMemoryCallbacks = nullptr,
-						.pHeapSizeLimit = nullptr,
-						.pVulkanFunctions = &functions,
-						.instance = device->getInstance(),
-						.vulkanApiVersion = VK_API_VERSION_1_3,
-						.pTypeExternalMemoryHandleTypes = nullptr
-					};
-
-					VkResult res = vmaCreateAllocator(&createInfo, &m_handle);
-					assert(res == VK_SUCCESS);
-
-				}
-				GPUAllocator(const GPUAllocator&) = delete;
-				GPUAllocator& operator=(const GPUAllocator&) = delete;
-				~GPUAllocator()
-				{
-					vmaDestroyAllocator(m_handle);
-				}
-
-				VmaAllocator getHandle() const
-				{
-					return m_handle;
-				}
-
-			private:
-				VmaAllocator m_handle = nullptr;
-			};
-
 		private:
 			std::shared_ptr<Surface> m_surface;
 
@@ -766,14 +698,81 @@ namespace engine {
 			VkCommandPool m_gfxCommandPool = VK_NULL_HANDLE;
 			VkCommandBuffer m_gfxCommandBuffer = VK_NULL_HANDLE;
 
-			std::unique_ptr<GPUAllocator> m_allocator;
+		};
 
+		class GPUAllocator {
+		public:
+			GPUAllocator(std::shared_ptr<const Device> device) : m_device(device)
+			{
+				VmaVulkanFunctions functions{
+					.vkGetInstanceProcAddr = nullptr,
+					.vkGetDeviceProcAddr = nullptr,
+					.vkGetPhysicalDeviceProperties = vkGetPhysicalDeviceProperties,
+					.vkGetPhysicalDeviceMemoryProperties = vkGetPhysicalDeviceMemoryProperties,
+					.vkAllocateMemory = vkAllocateMemory,
+					.vkFreeMemory = vkFreeMemory,
+					.vkMapMemory = vkMapMemory,
+					.vkUnmapMemory = vkUnmapMemory,
+					.vkFlushMappedMemoryRanges = vkFlushMappedMemoryRanges,
+					.vkInvalidateMappedMemoryRanges = vkInvalidateMappedMemoryRanges,
+					.vkBindBufferMemory = vkBindBufferMemory,
+					.vkBindImageMemory = vkBindImageMemory,
+					.vkGetBufferMemoryRequirements = vkGetBufferMemoryRequirements,
+					.vkGetImageMemoryRequirements = vkGetImageMemoryRequirements,
+					.vkCreateBuffer = vkCreateBuffer,
+					.vkDestroyBuffer = vkDestroyBuffer,
+					.vkCreateImage = vkCreateImage,
+					.vkDestroyImage = vkDestroyImage,
+					.vkCmdCopyBuffer = vkCmdCopyBuffer,
+					.vkGetBufferMemoryRequirements2KHR = vkGetBufferMemoryRequirements2,
+					.vkGetImageMemoryRequirements2KHR = vkGetImageMemoryRequirements2,
+					.vkBindBufferMemory2KHR = vkBindBufferMemory2,
+					.vkBindImageMemory2KHR = vkBindImageMemory2,
+					.vkGetPhysicalDeviceMemoryProperties2KHR = vkGetPhysicalDeviceMemoryProperties2,
+					.vkGetDeviceBufferMemoryRequirements = vkGetDeviceBufferMemoryRequirements,
+					.vkGetDeviceImageMemoryRequirements = vkGetDeviceImageMemoryRequirements,
+				};
+
+				VmaAllocatorCreateInfo createInfo{
+					.flags = 0,
+					.physicalDevice = m_device->getPhysicalDevice(),
+					.device = m_device->getHandle(),
+					.preferredLargeHeapBlockSize = 0,
+					.pAllocationCallbacks = nullptr,
+					.pDeviceMemoryCallbacks = nullptr,
+					.pHeapSizeLimit = nullptr,
+					.pVulkanFunctions = &functions,
+					.instance = m_device->getInstance(),
+					.vulkanApiVersion = VK_API_VERSION_1_3,
+					.pTypeExternalMemoryHandleTypes = nullptr
+				};
+
+				VkResult res = vmaCreateAllocator(&createInfo, &m_handle);
+				assert(res == VK_SUCCESS);
+
+			}
+			GPUAllocator(const GPUAllocator&) = delete;
+			GPUAllocator& operator=(const GPUAllocator&) = delete;
+			~GPUAllocator()
+			{
+				TRACE("Destroying allocator...");
+				vmaDestroyAllocator(m_handle);
+			}
+
+			VmaAllocator getHandle() const
+			{
+				return m_handle;
+			}
+
+		private:
+			std::shared_ptr<const Device> m_device;
+			VmaAllocator m_handle = nullptr;
 		};
 
 		class Swapchain {
 
 		public:
-			Swapchain(Device* device) : m_device(device)
+			Swapchain(std::shared_ptr<Device> device, std::shared_ptr<GPUAllocator> allocator) : m_device(device), m_allocator(allocator)
 			{
 				VkResult res;
 
@@ -899,7 +898,7 @@ namespace engine {
 
 				// create depth buffer
 					
-				m_depthBuffer = std::make_unique<DepthStencil>(m_currentExtent, m_device);
+				m_depthBuffer = std::make_unique<DepthStencil>(m_currentExtent, m_device.get(), m_allocator.get());
 
 			}
 			Swapchain(const Swapchain&) = delete;
@@ -915,7 +914,8 @@ namespace engine {
 			}
 
 		private:
-			Device* m_device;
+			std::shared_ptr<Device> m_device;
+			std::shared_ptr<GPUAllocator> m_allocator;
 
 			VkSwapchainKHR m_handle = VK_NULL_HANDLE;
 
@@ -927,8 +927,9 @@ namespace engine {
 
 			class DepthStencil {
 			public:
-				DepthStencil(VkExtent2D bufferExtent, Device* device) : m_device(device)
+				DepthStencil(VkExtent2D bufferExtent, Device* device, GPUAllocator* allocator) : m_device(device), m_allocator(allocator)
 				{
+
 					// find a suitable format
 
 					const std::vector<VkFormat> formatCandidates{
@@ -990,24 +991,12 @@ namespace engine {
 						.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
 					};
 
+					VmaAllocationCreateInfo allocInfo{};
+					allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+
 					VkResult res;
 
-					res = vkCreateImage(m_device->getHandle(), &imageCreateInfo, nullptr, &m_image);
-					assert(res == VK_SUCCESS);
-
-					VkMemoryRequirements memReqs;
-					vkGetImageMemoryRequirements(m_device->getHandle(), m_image, &memReqs);
-
-					VkMemoryAllocateInfo allocInfo{};
-					allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-					allocInfo.pNext = nullptr,
-					allocInfo.allocationSize = memReqs.size,
-					allocInfo.memoryTypeIndex = getMemoryType(m_device->getPhysicalDevice(), memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-					res = vkAllocateMemory(m_device->getHandle(), &allocInfo, nullptr, &m_imageMemory);
-					assert(res == VK_SUCCESS);
-
-					res = vkBindImageMemory(m_device->getHandle(), m_image, m_imageMemory, 0);
+					res = vmaCreateImage(m_allocator->getHandle(), &imageCreateInfo, &allocInfo, &m_image, &m_allocation, nullptr);
 					assert(res == VK_SUCCESS);
 
 					VkImageViewCreateInfo createInfo{};
@@ -1028,7 +1017,7 @@ namespace engine {
 
 					res = vkCreateImageView(m_device->getHandle(), &createInfo, nullptr, &m_imageView);
 					assert (res == VK_SUCCESS);
-
+					
 				}
 				DepthStencil(const DepthStencil&) = delete;
 				DepthStencil& operator=(const DepthStencil&) = delete;
@@ -1036,8 +1025,8 @@ namespace engine {
 				{
 					TRACE("Destroying DepthStencil...");
 					vkDestroyImageView(m_device->getHandle(), m_imageView, nullptr);
-					vkFreeMemory(m_device->getHandle(), m_imageMemory, nullptr);
-					vkDestroyImage(m_device->getHandle(), m_image, nullptr);
+					// destroy allocation
+					vmaDestroyImage(m_allocator->getHandle(), m_image, m_allocation);
 				}
 
 			private:
@@ -1045,9 +1034,10 @@ namespace engine {
 				VkFormat m_format;
 
 				Device* m_device;
+				GPUAllocator* m_allocator;
 
 				VkImage m_image = VK_NULL_HANDLE;
-				VkDeviceMemory m_imageMemory = VK_NULL_HANDLE;
+				VmaAllocation m_allocation;
 				VkImageView m_imageView = VK_NULL_HANDLE;
 
 			};
@@ -1057,8 +1047,6 @@ namespace engine {
 		};
 
 		std::unique_ptr<DebugMessenger> m_debugMessenger; // uses instance
-
-		std::unique_ptr<Device> m_device;
 
 		std::unique_ptr<Swapchain> m_swapchain;
 
