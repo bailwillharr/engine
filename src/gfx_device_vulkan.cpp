@@ -4,9 +4,7 @@
 #ifdef ENGINE_BUILD_VULKAN
 
 #include "gfx_device.hpp"
-
 #include "util.hpp"
-
 #include "config.h"
 #include "log.hpp"
 
@@ -26,9 +24,6 @@
 #include <array>
 
 namespace engine {
-
-	// singleton variable
-	static GFXDevice* s_gfx_device_instance = nullptr;
 
 	// structures
 
@@ -57,10 +52,18 @@ namespace engine {
 		VkSwapchainKHR swapchain = VK_NULL_HANDLE;
 
 		VkExtent2D extent;
-		VkFormat format;
+		VkSurfaceFormatKHR surfaceFormat;
+		VkPresentModeKHR presentMode;
 
 		std::vector<VkImage> images{};
 		std::vector<VkImageView> imageViews{};
+		std::vector<VkFramebuffer> framebuffers{};
+
+		VkRenderPass renderpass;
+
+		uint32_t swapchainImageIndex = 0;
+		VkSemaphore acquireSemaphore = VK_NULL_HANDLE;
+		VkSemaphore releaseSemaphore = VK_NULL_HANDLE;
 	};
 
 	// enums
@@ -231,45 +234,43 @@ namespace engine {
 		throw std::runtime_error("Unable to find the requested queue");
 	}
 
+	// This is called not just on initialisation, but also when the window is resized.
 	static void createSwapchain(VkDevice device, const std::vector<Queue> queues, SDL_Window* window, VkSurfaceKHR surface, const SwapchainSupportDetails& supportDetails, Swapchain* swapchain)
 	{
 		VkResult res;
 
-		VkSurfaceFormatKHR chosenSurfaceFormat = supportDetails.formats[0];
-
+		swapchain->surfaceFormat = supportDetails.formats[0];
 		for (const auto& format : supportDetails.formats) {
 			if (format.format == VK_FORMAT_B8G8R8A8_SRGB &&
 				format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
-				chosenSurfaceFormat = format; // prefer using srgb non linear colors
+				swapchain->surfaceFormat = format; // prefer using srgb non linear colors
 			}
 		}
 
-		VkPresentModeKHR chosenPresentMode = VK_PRESENT_MODE_FIFO_KHR;
+		swapchain->presentMode = VK_PRESENT_MODE_FIFO_KHR; // This mode is always available
 
 		for (const auto& presMode : supportDetails.presentModes) {
 			if (presMode == VK_PRESENT_MODE_MAILBOX_KHR) {
-				chosenPresentMode = presMode; // this mode allows uncapped FPS while also avoiding screen tearing
+				swapchain->presentMode = presMode; // this mode allows uncapped FPS while also avoiding screen tearing
 			}
 		}
 
-		VkExtent2D chosenSwapExtent{};
-
 		if (supportDetails.caps.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
-			chosenSwapExtent = supportDetails.caps.currentExtent;
+			swapchain->extent = supportDetails.caps.currentExtent;
 		}
 		else {
 			// if fb size isn't already found, get it from SDL
 			int width, height;
 			SDL_Vulkan_GetDrawableSize(window, &width, &height);
 
-			chosenSwapExtent.width = static_cast<uint32_t>(width);
-			chosenSwapExtent.height = static_cast<uint32_t>(height);
+			swapchain->extent.width = static_cast<uint32_t>(width);
+			swapchain->extent.height = static_cast<uint32_t>(height);
 
-			chosenSwapExtent.width = std::clamp(
-				chosenSwapExtent.width,
+			swapchain->extent.width = std::clamp(
+				swapchain->extent.width,
 				supportDetails.caps.minImageExtent.width, supportDetails.caps.maxImageExtent.width);
-			chosenSwapExtent.height = std::clamp(
-				chosenSwapExtent.height,
+			swapchain->extent.height = std::clamp(
+				swapchain->extent.height,
 				supportDetails.caps.minImageExtent.height, supportDetails.caps.maxImageExtent.height);
 		}
 
@@ -284,9 +285,9 @@ namespace engine {
 			.flags = 0,
 			.surface = surface,
 			.minImageCount = imageCount,
-			.imageFormat = chosenSurfaceFormat.format,
-			.imageColorSpace = chosenSurfaceFormat.colorSpace,
-			.imageExtent = chosenSwapExtent,
+			.imageFormat = swapchain->surfaceFormat.format,
+			.imageColorSpace = swapchain->surfaceFormat.colorSpace,
+			.imageExtent = swapchain->extent,
 			.imageArrayLayers = 1,
 			.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
 			.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
@@ -294,9 +295,9 @@ namespace engine {
 			.pQueueFamilyIndices = nullptr,
 			.preTransform = supportDetails.caps.currentTransform,
 			.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
-			.presentMode = chosenPresentMode,
+			.presentMode = swapchain->presentMode,
 			.clipped = VK_TRUE,
-			.oldSwapchain = VK_NULL_HANDLE,
+			.oldSwapchain = swapchain->swapchain,
 
 		};
 
@@ -313,6 +314,11 @@ namespace engine {
 		res = vkCreateSwapchainKHR(device, &createInfo, nullptr, &swapchain->swapchain);
 		assert(res == VK_SUCCESS);
 
+		if (createInfo.oldSwapchain != VK_NULL_HANDLE) {
+			// if recreating swapchain, destroy old one
+			vkDestroySwapchainKHR(device, createInfo.oldSwapchain, nullptr);
+		}
+
 		// get all the image handles
 		uint32_t swapchainImageCount = 0;
 		res = vkGetSwapchainImagesKHR(device, swapchain->swapchain, &swapchainImageCount, nullptr);
@@ -321,19 +327,52 @@ namespace engine {
 		res = vkGetSwapchainImagesKHR(device, swapchain->swapchain, &swapchainImageCount, swapchain->images.data());
 		assert(res == VK_SUCCESS);
 
-		swapchain->format = chosenSurfaceFormat.format;
-		swapchain->extent = chosenSwapExtent;
+		// create the render pass
+		{
+			VkAttachmentDescription colorAttachment{};
+			colorAttachment.format = swapchain->surfaceFormat.format;
+			colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+			colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+			colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+			colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+			colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+			colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
-		// create image views
-		swapchain->imageViews.clear();
-		for (VkImage image : swapchain->images) {
+			VkAttachmentReference colorAttachmentRef{};
+			colorAttachmentRef.attachment = 0;
+			colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+			VkSubpassDescription subpass{};
+			subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+			subpass.colorAttachmentCount = 1;
+			subpass.pColorAttachments = &colorAttachmentRef;
+
+			VkRenderPassCreateInfo createInfo{};
+			createInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+			createInfo.attachmentCount = 1;
+			createInfo.pAttachments = &colorAttachment;
+			createInfo.subpassCount = 1;
+			createInfo.pSubpasses = &subpass;
+
+			//if (swapchain->renderpass != VK_NULL_HANDLE) {
+			//	vkDestroyRenderPass(device, swapchain->renderpass, nullptr);
+			//	swapchain->renderpass = VK_NULL_HANDLE;
+			//}
+			res = vkCreateRenderPass(device, &createInfo, nullptr, &swapchain->renderpass);
+		}
+
+		// create image views and framebuffers
+		swapchain->imageViews.resize(swapchain->images.size());
+		swapchain->framebuffers.resize(swapchain->images.size());
+		for (int i = 0; i < swapchain->images.size(); i++) {
 
 			VkImageViewCreateInfo createInfo{};
 			createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 			createInfo.pNext = nullptr;
-			createInfo.image = image;
+			createInfo.image = swapchain->images[i];
 			createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-			createInfo.format = swapchain->format;
+			createInfo.format = swapchain->surfaceFormat.format;
 			createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
 			createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
 			createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -343,13 +382,40 @@ namespace engine {
 			createInfo.subresourceRange.levelCount = 1;
 			createInfo.subresourceRange.baseArrayLayer = 0;
 			createInfo.subresourceRange.layerCount = 1;
-
-			VkImageView imageView;
-			res = vkCreateImageView(device, &createInfo, nullptr, &imageView);
+			res = vkCreateImageView(device, &createInfo, nullptr, &swapchain->imageViews[i]);
 			assert(res == VK_SUCCESS);
 
-			swapchain->imageViews.push_back(imageView);
+			VkImageView attachments[] = {
+				swapchain->imageViews[i]
+			};
 
+			VkFramebufferCreateInfo framebufferInfo{};
+			framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+			framebufferInfo.renderPass = swapchain->renderpass;
+			framebufferInfo.attachmentCount = 1;
+			framebufferInfo.pAttachments = attachments;
+			framebufferInfo.width = swapchain->extent.width;
+			framebufferInfo.height = swapchain->extent.height;
+			framebufferInfo.layers = 1;
+
+			if (swapchain->framebuffers[i] != VK_NULL_HANDLE) {
+				vkDestroyFramebuffer(device, swapchain->framebuffers[i], nullptr);
+			}
+			res = vkCreateFramebuffer(device, &framebufferInfo, nullptr, &swapchain->framebuffers[i]);
+			assert(res == VK_SUCCESS);
+
+		}
+
+		// create the swapchain semaphores
+		VkSemaphoreCreateInfo semaphoreInfo{};
+		semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+		if (swapchain->acquireSemaphore == VK_NULL_HANDLE) {
+			res = vkCreateSemaphore(device, &semaphoreInfo, nullptr, &swapchain->acquireSemaphore);
+			assert(res == VK_SUCCESS);
+		}
+		if (swapchain->releaseSemaphore == VK_NULL_HANDLE) {
+			res = vkCreateSemaphore(device, &semaphoreInfo, nullptr, &swapchain->releaseSemaphore);
+			assert(res == VK_SUCCESS);
 		}
 
 	}
@@ -377,12 +443,6 @@ namespace engine {
 
 	GFXDevice::GFXDevice(const char* appName, const char* appVersion, SDL_Window* window)
 	{
-		// ensure there is only one instance of this class
-		if (s_gfx_device_instance != nullptr) {
-			throw std::runtime_error("Multiple gfxdevice classes cannot be created");
-		}
-		s_gfx_device_instance = this;
-
 		pimpl = std::make_unique<Impl>();
 
 		VkResult res;
@@ -816,9 +876,15 @@ namespace engine {
 	{
 		TRACE("Destroying GFXDevice...");
 
+		vkDestroySemaphore(pimpl->device, pimpl->swapchain.releaseSemaphore, nullptr);
+		vkDestroySemaphore(pimpl->device, pimpl->swapchain.acquireSemaphore, nullptr);
 		for (VkImageView view : pimpl->swapchain.imageViews) {
 			vkDestroyImageView(pimpl->device, view, nullptr);
 		}
+		for (VkFramebuffer fb : pimpl->swapchain.framebuffers) {
+			vkDestroyFramebuffer(pimpl->device, fb, nullptr);
+		}
+		vkDestroyRenderPass(pimpl->device, pimpl->swapchain.renderpass, nullptr);
 		vkDestroySwapchainKHR(pimpl->device, pimpl->swapchain.swapchain, nullptr);
 
 		vmaDestroyAllocator(pimpl->allocator);
@@ -828,8 +894,6 @@ namespace engine {
 		vkDestroySurfaceKHR(pimpl->instance, pimpl->surface, nullptr);
 		vkDestroyDebugUtilsMessengerEXT(pimpl->instance, pimpl->debugMessenger, nullptr);
 		vkDestroyInstance(pimpl->instance, nullptr);
-
-		s_gfx_device_instance = nullptr;
 	}
 
 	void GFXDevice::draw()
