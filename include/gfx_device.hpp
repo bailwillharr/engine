@@ -45,10 +45,15 @@ namespace engine {
 		// submit command lists and draw to the screen
 		void draw();
 
+		void createPipeline(const char* vertShaderPath, const char* fragShaderPath);
+
 		bool createBuffer(const gfx::BufferDesc& desc, const void* data, gfx::BufferHandle* out);
 
+		// waits for the gpu to stop doing stuff to allow for a safe cleanup
+		void waitIdle();
+
 	private:
-		class Impl;
+		struct Impl;
 		std::unique_ptr<Impl> pimpl;
 
 	};

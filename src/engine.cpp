@@ -2,6 +2,7 @@
 
 #include "window.hpp"
 #include "gfx_device.hpp"
+#include "resource_manager.hpp"
 
 namespace engine {
 
@@ -9,6 +10,10 @@ namespace engine {
 	{
 		m_win = std::make_unique<Window>(appName, false);
 		m_gfx = std::make_unique<GFXDevice>(appName, appVersion, m_win->getHandle());
+
+		engine::ResourceManager resMan{};
+
+		m_gfx->createPipeline(resMan.getFilePath("shader.vert.spv").string().c_str(), resMan.getFilePath("shader.frag.spv").string().c_str());
 	}
 
 	Application::~Application()
@@ -19,7 +24,7 @@ namespace engine {
 	void Application::gameLoop()
 	{
 		uint64_t lastTick = m_win->getNanos();
-		constexpr int TICKFREQ = 20; // in hz
+		constexpr int TICKFREQ = 1; // in hz
 
 		// single-threaded game loop
 		while (m_win->isRunning()) {
@@ -30,6 +35,7 @@ namespace engine {
 				lastTick = m_win->getLastFrameStamp();
 
 				// do tick stuff here
+				m_win->setTitle("frame time: " + std::to_string(m_win->dt() * 1000.0f) + " ms");
 
 			}
 
@@ -47,6 +53,8 @@ namespace engine {
 			m_win->getInputAndEvents();
 
 		}
+
+		m_gfx->waitIdle();
 	}
 
 }

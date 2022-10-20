@@ -22,10 +22,12 @@
 #include <assert.h>
 #include <unordered_set>
 #include <array>
+#include <fstream>
+#include <filesystem>
 
 namespace engine {
 
-	// structures
+	// structures and enums
 
 	struct LayerInfo {
 		std::vector<VkLayerProperties> layersAvailable{};
@@ -61,12 +63,14 @@ namespace engine {
 
 		VkRenderPass renderpass;
 
-		uint32_t swapchainImageIndex = 0;
-		VkSemaphore acquireSemaphore = VK_NULL_HANDLE;
-		VkSemaphore releaseSemaphore = VK_NULL_HANDLE;
+		VkSemaphore acquireSemaphore = VK_NULL_HANDLE; // waits until the image is available
+		VkSemaphore releaseSemaphore = VK_NULL_HANDLE; // waits until rendering finishes
 	};
 
-	// enums
+	struct Pipeline {
+		VkPipelineLayout layout = VK_NULL_HANDLE;
+		VkPipeline handle = VK_NULL_HANDLE;
+	};
 
 	enum class QueueFlags : uint32_t {
 		GRAPHICS =	(1 << 0),
@@ -74,7 +78,22 @@ namespace engine {
 		COMPUTE =	(1 << 2),
 	};
 
+
+
 	// functions
+
+	static std::vector<char> readFile(const std::string& filename)
+	{
+		std::ifstream file(filename, std::ios::ate | std::ios::binary);
+		if (file.is_open() == false) {
+			throw std::runtime_error("Unable to open file " + filename);
+		}
+		std::vector<char> buffer(file.tellg());
+		file.seekg(0);
+		file.read(buffer.data(), buffer.size());
+		file.close();
+		return buffer;
+	}
 
 	static std::vector<const char*> getRequiredVulkanExtensions(SDL_Window* window)
 	{
@@ -251,7 +270,7 @@ namespace engine {
 
 		for (const auto& presMode : supportDetails.presentModes) {
 			if (presMode == VK_PRESENT_MODE_MAILBOX_KHR) {
-				swapchain->presentMode = presMode; // this mode allows uncapped FPS while also avoiding screen tearing
+				//swapchain->presentMode = presMode; // this mode allows uncapped FPS while also avoiding screen tearing
 			}
 		}
 
@@ -348,12 +367,23 @@ namespace engine {
 			subpass.colorAttachmentCount = 1;
 			subpass.pColorAttachments = &colorAttachmentRef;
 
+			VkSubpassDependency dependency{};
+			dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+			dependency.dstSubpass = 0;
+			dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+			dependency.srcAccessMask = 0;
+			dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+			dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
 			VkRenderPassCreateInfo createInfo{};
 			createInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
 			createInfo.attachmentCount = 1;
 			createInfo.pAttachments = &colorAttachment;
 			createInfo.subpassCount = 1;
 			createInfo.pSubpasses = &subpass;
+
+			createInfo.dependencyCount = 1;
+			createInfo.pDependencies = &dependency;
 
 			//if (swapchain->renderpass != VK_NULL_HANDLE) {
 			//	vkDestroyRenderPass(device, swapchain->renderpass, nullptr);
@@ -420,6 +450,25 @@ namespace engine {
 
 	}
 
+	static VkShaderModule createShaderModule(VkDevice device, const std::vector<char>& code)
+	{
+		VkShaderModuleCreateInfo createInfo{};
+		createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+		createInfo.codeSize = code.size();
+		createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+
+		VkShaderModule shaderModule;
+		if (vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
+			throw std::runtime_error("failed to create shader module!");
+		}
+
+		return shaderModule;
+	}
+
+
+
+	// class definitions
+
 	struct GFXDevice::Impl {
 		
 		VkInstance instance = VK_NULL_HANDLE;
@@ -432,12 +481,17 @@ namespace engine {
 		VkDevice device = VK_NULL_HANDLE;
 		
 		std::vector<Queue> queues{};
+		Queue gfxQueue;
 		VkCommandPool commandPool = VK_NULL_HANDLE;
 		VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
 
 		VmaAllocator allocator = nullptr;
 
 		Swapchain swapchain{};
+
+		VkFence inFlightFence = VK_NULL_HANDLE;
+
+		Pipeline pipeline{};
 
 	};
 
@@ -543,7 +597,7 @@ namespace engine {
 		}
 		assert(res == VK_SUCCESS);
 
-		
+
 
 		// load the instance functions
 		volkLoadInstanceOnly(pimpl->instance);
@@ -792,12 +846,12 @@ namespace engine {
 				vkGetDeviceQueue(pimpl->device, q.familyIndex, q.queueIndex, &q.handle);
 			}
 
-			Queue gfxQueue = getQueueSupporting(pimpl->queues, QueueFlags::GRAPHICS);
+			pimpl->gfxQueue = getQueueSupporting(pimpl->queues, QueueFlags::GRAPHICS);
 
 			VkCommandPoolCreateInfo gfxCmdPoolInfo{
 				.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
 				.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-				.queueFamilyIndex = gfxQueue.familyIndex,
+				.queueFamilyIndex = pimpl->gfxQueue.familyIndex,
 			};
 
 			res = vkCreateCommandPool(pimpl->device, &gfxCmdPoolInfo, nullptr, &pimpl->commandPool);
@@ -865,16 +919,32 @@ namespace engine {
 			assert(res == VK_SUCCESS);
 		}
 
-		
+
 
 		// Now make the swapchain
 		createSwapchain(pimpl->device, pimpl->queues, window, pimpl->surface, pimpl->swapchainSupportDetails, &pimpl->swapchain);
+
+
+
+		// for testing purposes, create a pipeline with a simple shader
+		VkFenceCreateInfo fenceInfo{};
+		fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+		fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+		fenceInfo.pNext = nullptr;
+		res = vkCreateFence(pimpl->device, &fenceInfo, nullptr, &pimpl->inFlightFence);
 
 	}
 
 	GFXDevice::~GFXDevice()
 	{
 		TRACE("Destroying GFXDevice...");
+
+		if (pimpl->pipeline.handle != VK_NULL_HANDLE) {
+			vkDestroyPipeline(pimpl->device, pimpl->pipeline.handle, nullptr);
+			vkDestroyPipelineLayout(pimpl->device, pimpl->pipeline.layout, nullptr);
+		}
+
+		vkDestroyFence(pimpl->device, pimpl->inFlightFence, nullptr);
 
 		vkDestroySemaphore(pimpl->device, pimpl->swapchain.releaseSemaphore, nullptr);
 		vkDestroySemaphore(pimpl->device, pimpl->swapchain.acquireSemaphore, nullptr);
@@ -898,12 +968,248 @@ namespace engine {
 
 	void GFXDevice::draw()
 	{
+		VkResult res;
+
+		res = vkWaitForFences(pimpl->device, 1, &pimpl->inFlightFence, VK_TRUE, UINT64_MAX);
+		assert(res == VK_SUCCESS);
+		res = vkResetFences(pimpl->device, 1, &pimpl->inFlightFence);
+		assert(res == VK_SUCCESS);
+
+		uint32_t imageIndex;
+		vkAcquireNextImageKHR(pimpl->device, pimpl->swapchain.swapchain, UINT64_MAX, pimpl->swapchain.acquireSemaphore, VK_NULL_HANDLE, &imageIndex);
+
+		vkResetCommandBuffer(pimpl->commandBuffer, 0);
 		
+		// now record command buffer
+		{
+			VkCommandBufferBeginInfo beginInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+			beginInfo.flags = 0;
+			beginInfo.pInheritanceInfo = nullptr;
+			res = vkBeginCommandBuffer(pimpl->commandBuffer, &beginInfo);
+			assert(res == VK_SUCCESS);
+
+			VkRenderPassBeginInfo renderPassInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
+			renderPassInfo.renderPass = pimpl->swapchain.renderpass;
+			renderPassInfo.framebuffer = pimpl->swapchain.framebuffers[imageIndex];
+			renderPassInfo.renderArea.offset = { 0, 0 };
+			renderPassInfo.renderArea.extent = pimpl->swapchain.extent;
+
+			VkClearValue clearColor{ {0.0f, 0.0f, 0.0f, 0.0f} };
+			renderPassInfo.clearValueCount = 1;
+			renderPassInfo.pClearValues = &clearColor;
+			
+			vkCmdBeginRenderPass(pimpl->commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+			vkCmdBindPipeline(pimpl->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pimpl->pipeline.handle);
+
+			VkViewport viewport{};
+			viewport.x = 0.0f;
+			viewport.y = 0.0f;
+			viewport.width = (float)pimpl->swapchain.extent.width;
+			viewport.height = (float)pimpl->swapchain.extent.height;
+			viewport.minDepth = 0.0f;
+			viewport.maxDepth = 1.0f;
+			vkCmdSetViewport(pimpl->commandBuffer, 0, 1, &viewport);
+
+			VkRect2D scissor{};
+			scissor.offset = { 0, 0 };
+			scissor.extent = pimpl->swapchain.extent;
+			vkCmdSetScissor(pimpl->commandBuffer, 0, 1, &scissor);
+
+			vkCmdDraw(pimpl->commandBuffer, 3, 1, 0, 0);
+
+			vkCmdEndRenderPass(pimpl->commandBuffer);
+
+			res = vkEndCommandBuffer(pimpl->commandBuffer);
+			assert(res == VK_SUCCESS);
+		}
+
+		VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
+
+		VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+		submitInfo.waitSemaphoreCount = 1;
+		submitInfo.pWaitSemaphores = &pimpl->swapchain.acquireSemaphore;
+		submitInfo.pWaitDstStageMask = waitStages;
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &pimpl->commandBuffer;
+		submitInfo.signalSemaphoreCount = 1;
+		submitInfo.pSignalSemaphores = &pimpl->swapchain.releaseSemaphore;
+
+		res = vkQueueSubmit(pimpl->gfxQueue.handle, 1, &submitInfo, pimpl->inFlightFence);
+		assert(res == VK_SUCCESS);
+
+		VkPresentInfoKHR presentInfo{ VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
+		presentInfo.waitSemaphoreCount = 1;
+		presentInfo.pWaitSemaphores = &pimpl->swapchain.releaseSemaphore;
+
+		VkSwapchainKHR swapchains[] = { pimpl->swapchain.swapchain };
+		presentInfo.swapchainCount = 1;
+		presentInfo.pSwapchains = swapchains;
+		presentInfo.pImageIndices = &imageIndex;
+		presentInfo.pResults = nullptr;
+
+		res = vkQueuePresentKHR(pimpl->gfxQueue.handle, &presentInfo);
+		assert(res == VK_SUCCESS);
+	}
+	
+	void GFXDevice::createPipeline(const char* vertShaderPath, const char* fragShaderPath)
+	{
+
+		VkResult res;
+
+		auto vertShaderCode = readFile(vertShaderPath);
+		auto fragShaderCode = readFile(fragShaderPath);
+		INFO("Opened shader: {}", std::filesystem::path(vertShaderPath).filename().string());
+
+		VkShaderModule vertShaderModule = createShaderModule(pimpl->device, vertShaderCode);
+		VkShaderModule fragShaderModule = createShaderModule(pimpl->device, fragShaderCode);
+
+		VkPipelineShaderStageCreateInfo vertShaderStageInfo{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO };
+		vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+		vertShaderStageInfo.module = vertShaderModule;
+		vertShaderStageInfo.pName = "main";
+		vertShaderStageInfo.pSpecializationInfo = nullptr;
+
+		VkPipelineShaderStageCreateInfo fragShaderStageInfo{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO };
+		fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+		fragShaderStageInfo.module = fragShaderModule;
+		fragShaderStageInfo.pName = "main";
+		fragShaderStageInfo.pSpecializationInfo = nullptr;
+
+		VkPipelineShaderStageCreateInfo shaderStages[2] = { vertShaderStageInfo, fragShaderStageInfo };
+
+		VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
+		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+		vertexInputInfo.vertexBindingDescriptionCount = 0;
+		vertexInputInfo.pVertexBindingDescriptions = nullptr;
+		vertexInputInfo.vertexAttributeDescriptionCount = 0;
+		vertexInputInfo.pVertexAttributeDescriptions = nullptr;
+
+		VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
+		inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+		inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+		inputAssembly.primitiveRestartEnable = VK_FALSE;
+
+		VkViewport viewport{};
+		viewport.x = 0.0f;
+		viewport.y = 0.0f;
+		viewport.width = (float)pimpl->swapchain.extent.width;
+		viewport.height = (float)pimpl->swapchain.extent.height;
+		viewport.minDepth = 0.0f;
+		viewport.maxDepth = 1.0f;
+
+		VkRect2D scissor{};
+		scissor.offset = { 0, 0 };
+		scissor.extent = pimpl->swapchain.extent;
+
+		std::vector<VkDynamicState> dynamicStates = {
+			VK_DYNAMIC_STATE_VIEWPORT,
+			VK_DYNAMIC_STATE_SCISSOR
+		};
+
+		VkPipelineDynamicStateCreateInfo dynamicState{};
+		dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+		dynamicState.dynamicStateCount = dynamicStates.size();
+		dynamicState.pDynamicStates = dynamicStates.data();
+
+		VkPipelineViewportStateCreateInfo viewportState{};
+		viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+		viewportState.viewportCount = 1;
+		viewportState.pViewports = &viewport;
+		viewportState.scissorCount = 1;
+		viewportState.pScissors = &scissor;
+
+		VkPipelineRasterizationStateCreateInfo rasterizer{};
+		rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+		rasterizer.depthClampEnable = VK_FALSE;
+		rasterizer.rasterizerDiscardEnable = VK_FALSE;
+		rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+		rasterizer.lineWidth = 1.0f;
+		rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+		rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
+		rasterizer.depthBiasEnable = VK_FALSE;
+		rasterizer.depthBiasConstantFactor = 0.0f; // ignored
+		rasterizer.depthBiasClamp = 0.0f; // ignored
+		rasterizer.depthBiasSlopeFactor = 0.0f; // ignored
+
+		VkPipelineMultisampleStateCreateInfo multisampling{};
+		multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+		multisampling.sampleShadingEnable = VK_FALSE;
+		multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+		multisampling.minSampleShading = 1.0f; // ignored
+		multisampling.pSampleMask = nullptr; // ignored
+		multisampling.alphaToCoverageEnable = VK_FALSE; // ignored
+		multisampling.alphaToOneEnable = VK_FALSE; // ignored
+
+		VkPipelineColorBlendAttachmentState colorBlendAttachment{};
+		colorBlendAttachment.colorWriteMask =
+			VK_COLOR_COMPONENT_R_BIT |
+			VK_COLOR_COMPONENT_G_BIT |
+			VK_COLOR_COMPONENT_B_BIT |
+			VK_COLOR_COMPONENT_A_BIT;
+		colorBlendAttachment.blendEnable = VK_FALSE;
+		colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE; // ignored
+		colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO; // ignored
+		colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD; // ignored
+		colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE; // ignored
+		colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO; // ignored
+		colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD; // ignored
+
+		VkPipelineColorBlendStateCreateInfo colorBlending{};
+		colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+		colorBlending.logicOpEnable = VK_FALSE;
+		colorBlending.logicOp = VK_LOGIC_OP_COPY; // ignored
+		colorBlending.attachmentCount = 1;
+		colorBlending.pAttachments = &colorBlendAttachment;
+		colorBlending.blendConstants[0] = 0.0f; // ignored
+		colorBlending.blendConstants[1] = 0.0f; // ignored
+		colorBlending.blendConstants[2] = 0.0f; // ignored
+		colorBlending.blendConstants[3] = 0.0f; // ignored
+
+		VkPipelineLayoutCreateInfo layoutInfo{};
+		layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+		// everything is 0 because we're not using uniforms
+		layoutInfo.setLayoutCount = 0;
+		layoutInfo.pSetLayouts = nullptr;
+		layoutInfo.pushConstantRangeCount = 0;
+		layoutInfo.pPushConstantRanges = nullptr;
+
+		res = vkCreatePipelineLayout(pimpl->device, &layoutInfo, nullptr, &pimpl->pipeline.layout);
+		assert(res == VK_SUCCESS);
+
+		VkGraphicsPipelineCreateInfo createInfo{};
+		createInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+		createInfo.stageCount = 2;
+		createInfo.pStages = shaderStages;
+		createInfo.pVertexInputState = &vertexInputInfo;
+		createInfo.pInputAssemblyState = &inputAssembly;
+		createInfo.pViewportState = &viewportState;
+		createInfo.pRasterizationState = &rasterizer;
+		createInfo.pMultisampleState = &multisampling;
+		createInfo.pDepthStencilState = nullptr;
+		createInfo.pColorBlendState = &colorBlending;
+		createInfo.pDynamicState = &dynamicState;
+		createInfo.layout = pimpl->pipeline.layout;
+		createInfo.renderPass = pimpl->swapchain.renderpass;
+		createInfo.subpass = 0;
+		createInfo.basePipelineHandle = VK_NULL_HANDLE;
+		createInfo.basePipelineIndex = -1;
+
+		res = vkCreateGraphicsPipelines(pimpl->device, VK_NULL_HANDLE, 1, &createInfo, nullptr, &pimpl->pipeline.handle);
+		assert(res == VK_SUCCESS);
+
+		vkDestroyShaderModule(pimpl->device, fragShaderModule, nullptr);
+		vkDestroyShaderModule(pimpl->device, vertShaderModule, nullptr);
+
 	}
 
 	bool GFXDevice::createBuffer(const gfx::BufferDesc& desc, const void* data, gfx::BufferHandle* out)
 	{
 		return false;
+	}
+
+	void GFXDevice::waitIdle()
+	{
+		vkDeviceWaitIdle(pimpl->device);
 	}
 
 }
