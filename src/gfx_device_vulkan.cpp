@@ -954,15 +954,16 @@ namespace engine {
 		res = vkResetFences(pimpl->device, 1, &pimpl->inFlightFence);
 		assert(res == VK_SUCCESS);
 
-		uint32_t imageIndex;
+		uint32_t imageIndex = 0;
 		res = vkAcquireNextImageKHR(pimpl->device, pimpl->swapchain.swapchain, UINT64_MAX, pimpl->swapchain.acquireSemaphore, VK_NULL_HANDLE, &imageIndex);
-		if (res == VK_SUBOPTIMAL_KHR || res == VK_ERROR_OUT_OF_DATE_KHR) {
+		if (res == VK_ERROR_OUT_OF_DATE_KHR) {
 			// recreate swapchain
 			waitIdle();
 			createSwapchain(pimpl->device, pimpl->physicalDevice, pimpl->queues, pimpl->window, pimpl->surface, &pimpl->swapchain);
+			return;
 		}
 		else {
-			assert(res == VK_SUCCESS);
+			assert(res == VK_SUCCESS || res == VK_SUBOPTIMAL_KHR);
 		}
 
 		res = vkResetCommandBuffer(pimpl->commandBuffer, 0);
