@@ -62,7 +62,7 @@ static bool readGLRaw(const std::string& path, std::vector<uint8_t>& texbuf, int
 	uint64_t end = ftell(fp);
 
 	texbuf.resize(end);
-	fseek(fp, tex_data_offset, SEEK_SET);
+	fseek(fp, (long)tex_data_offset, SEEK_SET);
 	fread(texbuf.data(), 1, end, fp);
 
 	fclose(fp);

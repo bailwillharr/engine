@@ -42,14 +42,16 @@ namespace engine {
 		GFXDevice& operator=(const GFXDevice&) = delete;
 		~GFXDevice();
 
-		// submit command lists and draw to the screen
+		// Call once per frame. Executes all queued draw calls and renders to the screen.
 		void draw();
-
+		
+		// creates the equivalent of an OpenGL shader program & vertex attrib configuration
 		void createPipeline(const char* vertShaderPath, const char* fragShaderPath);
 
+		// creates a vertex array for holding mesh data
 		bool createBuffer(const gfx::BufferDesc& desc, const void* data, gfx::BufferHandle* out);
 
-		// waits for the gpu to stop doing stuff to allow for a safe cleanup
+		// wait until all the active GPU queues have finished working
 		void waitIdle();
 
 	private:

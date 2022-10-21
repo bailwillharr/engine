@@ -85,6 +85,8 @@ set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
 if (MSVC)
 	target_compile_options(${PROJECT_NAME} PRIVATE /W3)
 	target_compile_options(${PROJECT_NAME} PRIVATE /MP)
+
+	target_compile_definitions(${PROJECT_NAME} PRIVATE _CRT_SECURE_NO_WARNINGS)
 endif()
 
 target_include_directories(${PROJECT_NAME} PUBLIC include)

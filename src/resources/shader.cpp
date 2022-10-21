@@ -30,7 +30,7 @@ static GLuint compile(const char *path, GLenum type)
 
     // compile shader
     GLuint handle = glCreateShader(type);
-	GLint size = src->size();
+	GLint size = (GLint)src->size();
 	GLchar *data = src->data();
     glShaderSource(handle, 1, &data, &size);
     glCompileShader(handle);

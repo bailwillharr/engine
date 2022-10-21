@@ -8,7 +8,7 @@ namespace engine {
 
 	Application::Application(const char* appName, const char* appVersion)
 	{
-		m_win = std::make_unique<Window>(appName, false);
+		m_win = std::make_unique<Window>(appName, true);
 		m_gfx = std::make_unique<GFXDevice>(appName, appVersion, m_win->getHandle());
 
 		engine::ResourceManager resMan{};
@@ -35,7 +35,7 @@ namespace engine {
 				lastTick = m_win->getLastFrameStamp();
 
 				// do tick stuff here
-				m_win->setTitle("frame time: " + std::to_string(m_win->dt() * 1000.0f) + " ms");
+				m_win->setTitle("frame time: " + std::to_string(m_win->dt() * 1000.0f) + " ms, " + std::to_string(m_win->getFPS()) + " fps");
 
 			}
 

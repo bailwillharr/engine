@@ -35,12 +35,6 @@ namespace engine {
 		std::optional<std::vector<VkLayerProperties>::iterator> validationLayer;
 	};
 
-	struct SwapchainSupportDetails {
-		VkSurfaceCapabilitiesKHR caps{};
-		std::vector<VkSurfaceFormatKHR> formats{};
-		std::vector<VkPresentModeKHR> presentModes{};
-	};
-
 	struct Queue {
 		uint32_t familyIndex;
 		uint32_t queueIndex;
@@ -71,6 +65,11 @@ namespace engine {
 	struct Pipeline {
 		VkPipelineLayout layout = VK_NULL_HANDLE;
 		VkPipeline handle = VK_NULL_HANDLE;
+	};
+
+	struct AllocatedBuffer {
+		VkBuffer buffer = VK_NULL_HANDLE;
+		VmaAllocation allocation = nullptr;
 	};
 
 	enum class QueueFlags : uint32_t {
@@ -255,12 +254,47 @@ namespace engine {
 	}
 
 	// This is called not just on initialisation, but also when the window is resized.
-	static void createSwapchain(VkDevice device, const std::vector<Queue> queues, SDL_Window* window, VkSurfaceKHR surface, const SwapchainSupportDetails& supportDetails, Swapchain* swapchain)
+	static void createSwapchain(VkDevice device, VkPhysicalDevice physicalDevice, const std::vector<Queue> queues, SDL_Window* window, VkSurfaceKHR surface, Swapchain* swapchain)
 	{
 		VkResult res;
 
-		swapchain->surfaceFormat = supportDetails.formats[0];
-		for (const auto& format : supportDetails.formats) {
+		// get surface capabilities
+		VkSurfaceCapabilitiesKHR caps;
+		res = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &caps);
+		assert(res == VK_SUCCESS);
+
+		// check there is at least one supported surface format
+		uint32_t surfaceFormatCount = 0;
+		std::vector<VkSurfaceFormatKHR> formats{};
+		res = vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &surfaceFormatCount, nullptr);
+		assert(res == VK_SUCCESS);
+		formats.resize(surfaceFormatCount);
+		res = vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &surfaceFormatCount, formats.data());
+		assert(res == VK_SUCCESS);
+
+		// check there is at least one supported present mode
+		uint32_t surfacePresentModeCount = 0;
+		std::vector<VkPresentModeKHR> presentModes{};
+		res = vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &surfacePresentModeCount, nullptr);
+		assert(res == VK_SUCCESS);
+		presentModes.resize(surfacePresentModeCount);
+		res = vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &surfacePresentModeCount, presentModes.data());
+		assert(res == VK_SUCCESS);
+
+
+
+		// delete old framebuffers
+		for (VkFramebuffer fb : swapchain->framebuffers) {
+			vkDestroyFramebuffer(device, fb, nullptr);
+		}
+
+		// delete old image views
+		for (VkImageView view : swapchain->imageViews) {
+			vkDestroyImageView(device, view, nullptr);
+		}
+
+		swapchain->surfaceFormat = formats[0];
+		for (const auto& format : formats) {
 			if (format.format == VK_FORMAT_B8G8R8A8_SRGB &&
 				format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
 				swapchain->surfaceFormat = format; // prefer using srgb non linear colors
@@ -269,14 +303,14 @@ namespace engine {
 
 		swapchain->presentMode = VK_PRESENT_MODE_FIFO_KHR; // This mode is always available
 
-		for (const auto& presMode : supportDetails.presentModes) {
+		for (const auto& presMode : presentModes) {
 			if (presMode == VK_PRESENT_MODE_MAILBOX_KHR) {
 				//swapchain->presentMode = presMode; // this mode allows uncapped FPS while also avoiding screen tearing
 			}
 		}
 
-		if (supportDetails.caps.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
-			swapchain->extent = supportDetails.caps.currentExtent;
+		if (caps.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
+			swapchain->extent = caps.currentExtent;
 		}
 		else {
 			// if fb size isn't already found, get it from SDL
@@ -288,15 +322,15 @@ namespace engine {
 
 			swapchain->extent.width = std::clamp(
 				swapchain->extent.width,
-				supportDetails.caps.minImageExtent.width, supportDetails.caps.maxImageExtent.width);
+				caps.minImageExtent.width, caps.maxImageExtent.width);
 			swapchain->extent.height = std::clamp(
 				swapchain->extent.height,
-				supportDetails.caps.minImageExtent.height, supportDetails.caps.maxImageExtent.height);
+				caps.minImageExtent.height, caps.maxImageExtent.height);
 		}
 
-		uint32_t imageCount = supportDetails.caps.minImageCount + 1;
-		if (supportDetails.caps.maxImageCount > 0 && imageCount > supportDetails.caps.maxImageCount) {
-			imageCount = supportDetails.caps.maxImageCount;
+		uint32_t imageCount = caps.minImageCount + 1;
+		if (caps.maxImageCount > 0 && imageCount > caps.maxImageCount) {
+			imageCount = caps.maxImageCount;
 		}
 
 		VkSwapchainCreateInfoKHR createInfo{
@@ -313,7 +347,7 @@ namespace engine {
 			.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
 			.queueFamilyIndexCount = 0,
 			.pQueueFamilyIndices = nullptr,
-			.preTransform = supportDetails.caps.currentTransform,
+			.preTransform = caps.currentTransform,
 			.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
 			.presentMode = swapchain->presentMode,
 			.clipped = VK_TRUE,
@@ -348,7 +382,7 @@ namespace engine {
 		assert(res == VK_SUCCESS);
 
 		// create the render pass
-		{
+		if (swapchain->renderpass == VK_NULL_HANDLE) {
 			VkAttachmentDescription colorAttachment{};
 			colorAttachment.format = swapchain->surfaceFormat.format;
 			colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -394,6 +428,7 @@ namespace engine {
 		}
 
 		// create image views and framebuffers
+
 		swapchain->imageViews.resize(swapchain->images.size());
 		swapchain->framebuffers.resize(swapchain->images.size());
 		for (int i = 0; i < swapchain->images.size(); i++) {
@@ -429,9 +464,6 @@ namespace engine {
 			framebufferInfo.height = swapchain->extent.height;
 			framebufferInfo.layers = 1;
 
-			if (swapchain->framebuffers[i] != VK_NULL_HANDLE) {
-				vkDestroyFramebuffer(device, swapchain->framebuffers[i], nullptr);
-			}
 			res = vkCreateFramebuffer(device, &framebufferInfo, nullptr, &swapchain->framebuffers[i]);
 			assert(res == VK_SUCCESS);
 
@@ -474,9 +506,10 @@ namespace engine {
 		
 		VkInstance instance = VK_NULL_HANDLE;
 		VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
+
+		SDL_Window* window = nullptr;
 		
 		VkSurfaceKHR surface = VK_NULL_HANDLE;
-		SwapchainSupportDetails swapchainSupportDetails{}; // available capabilities, formats, and present modes
 
 		VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 		VkDevice device = VK_NULL_HANDLE;
@@ -501,6 +534,8 @@ namespace engine {
 		pimpl = std::make_unique<Impl>();
 
 		VkResult res;
+
+		pimpl->window = window;
 
 		// initialise vulkan
 
@@ -665,36 +700,6 @@ namespace engine {
 
 
 
-				// get swapchain support details:
-
-				// get surface capabilities
-				res = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(dev, pimpl->surface, &pimpl->swapchainSupportDetails.caps);
-				assert(res == VK_SUCCESS);
-
-				// check there is at least one supported surface format
-				uint32_t surfaceFormatCount = 0;
-				res = vkGetPhysicalDeviceSurfaceFormatsKHR(dev, pimpl->surface, &surfaceFormatCount, nullptr);
-				assert(res == VK_SUCCESS);
-				if (surfaceFormatCount == 0) {
-					continue;
-				}
-				pimpl->swapchainSupportDetails.formats.resize(surfaceFormatCount);
-				res = vkGetPhysicalDeviceSurfaceFormatsKHR(dev, pimpl->surface, &surfaceFormatCount, pimpl->swapchainSupportDetails.formats.data());
-				assert(res == VK_SUCCESS);
-
-				// check there is at least one supported present mode
-				uint32_t surfacePresentModeCount = 0;
-				res = vkGetPhysicalDeviceSurfacePresentModesKHR(dev, pimpl->surface, &surfacePresentModeCount, nullptr);
-				assert(res == VK_SUCCESS);
-				if (surfacePresentModeCount == 0) {
-					continue;
-				}
-				pimpl->swapchainSupportDetails.presentModes.resize(surfacePresentModeCount);
-				res = vkGetPhysicalDeviceSurfacePresentModesKHR(dev, pimpl->surface, &surfacePresentModeCount, pimpl->swapchainSupportDetails.presentModes.data());
-				assert(res == VK_SUCCESS);
-
-
-
 				// check physical device properties
 				VkPhysicalDeviceProperties devProps;
 				vkGetPhysicalDeviceProperties(dev, &devProps);
@@ -716,33 +721,6 @@ namespace engine {
 			VkPhysicalDeviceProperties devProps;
 			vkGetPhysicalDeviceProperties(pimpl->physicalDevice, &devProps);
 			INFO("Selected physical device: {}", devProps.deviceName);
-
-			TRACE("Supported present modes:");
-			for (const auto& presMode : pimpl->swapchainSupportDetails.presentModes) {
-				switch (presMode) {
-				case VK_PRESENT_MODE_IMMEDIATE_KHR:
-					TRACE("\tVK_PRESENT_MODE_IMMEDIATE_KHR");
-					break;
-				case VK_PRESENT_MODE_MAILBOX_KHR:
-					TRACE("\tVK_PRESENT_MODE_MAILBOX_KHR");
-					break;
-				case VK_PRESENT_MODE_FIFO_KHR:
-					TRACE("\tVK_PRESENT_MODE_FIFO_KHR");
-					break;
-				case VK_PRESENT_MODE_FIFO_RELAXED_KHR:
-					TRACE("\tVK_PRESENT_MODE_FIFO_RELAXED_KHR");
-					break;
-				case VK_PRESENT_MODE_SHARED_DEMAND_REFRESH_KHR:
-					TRACE("\tVK_PRESENT_MODE_SHARED_DEMAND_REFRESH_KHR");
-					break;
-				case VK_PRESENT_MODE_SHARED_CONTINUOUS_REFRESH_KHR:
-					TRACE("\tVK_PRESENT_MODE_SHARED_CONTINUOUS_REFRESH_KHR");
-					break;
-				default:
-					TRACE("\tUNKNOWN DISPLAY MODE");
-					break;
-				}
-			}
 
 
 
@@ -923,7 +901,7 @@ namespace engine {
 
 
 		// Now make the swapchain
-		createSwapchain(pimpl->device, pimpl->queues, window, pimpl->surface, pimpl->swapchainSupportDetails, &pimpl->swapchain);
+		createSwapchain(pimpl->device, pimpl->physicalDevice, pimpl->queues, window, pimpl->surface, &pimpl->swapchain);
 
 
 
@@ -977,9 +955,18 @@ namespace engine {
 		assert(res == VK_SUCCESS);
 
 		uint32_t imageIndex;
-		vkAcquireNextImageKHR(pimpl->device, pimpl->swapchain.swapchain, UINT64_MAX, pimpl->swapchain.acquireSemaphore, VK_NULL_HANDLE, &imageIndex);
+		res = vkAcquireNextImageKHR(pimpl->device, pimpl->swapchain.swapchain, UINT64_MAX, pimpl->swapchain.acquireSemaphore, VK_NULL_HANDLE, &imageIndex);
+		if (res == VK_SUBOPTIMAL_KHR || res == VK_ERROR_OUT_OF_DATE_KHR) {
+			// recreate swapchain
+			waitIdle();
+			createSwapchain(pimpl->device, pimpl->physicalDevice, pimpl->queues, pimpl->window, pimpl->surface, &pimpl->swapchain);
+		}
+		else {
+			assert(res == VK_SUCCESS);
+		}
 
-		vkResetCommandBuffer(pimpl->commandBuffer, 0);
+		res = vkResetCommandBuffer(pimpl->commandBuffer, 0);
+		assert(res == VK_SUCCESS);
 		
 		// now record command buffer
 		{
@@ -1049,7 +1036,14 @@ namespace engine {
 		presentInfo.pResults = nullptr;
 
 		res = vkQueuePresentKHR(pimpl->gfxQueue.handle, &presentInfo);
-		assert(res == VK_SUCCESS);
+		if (res == VK_SUBOPTIMAL_KHR || res == VK_ERROR_OUT_OF_DATE_KHR) {
+			// recreate swapchain
+			waitIdle();
+			createSwapchain(pimpl->device, pimpl->physicalDevice, pimpl->queues, pimpl->window, pimpl->surface, &pimpl->swapchain);
+		}
+		else {
+			assert(res == VK_SUCCESS);
+		}
 	}
 	
 	void GFXDevice::createPipeline(const char* vertShaderPath, const char* fragShaderPath)
