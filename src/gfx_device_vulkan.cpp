@@ -24,6 +24,7 @@
 #include <array>
 #include <fstream>
 #include <filesystem>
+#include <optional>
 
 namespace engine {
 

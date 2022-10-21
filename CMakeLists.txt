@@ -31,6 +31,8 @@ add_library(${PROJECT_NAME} STATIC
 	"src/resource_manager.cpp"
 
 	"src/gfx_device_vulkan.cpp"
+	"src/gfx_device_null.cpp"
+	"src/gfx_device_opengl45.cpp"
 
 	# PUBLIC API
 
