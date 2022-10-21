@@ -56,6 +56,8 @@ namespace engine {
 		std::vector<VkImageView> imageViews{};
 		std::vector<VkFramebuffer> framebuffers{};
 
+		VkQueue activeQueue{};
+
 		VkRenderPass renderpass;
 
 		VkSemaphore acquireSemaphore = VK_NULL_HANDLE; // waits until the image is available
@@ -67,15 +69,17 @@ namespace engine {
 		VkPipeline handle = VK_NULL_HANDLE;
 	};
 
-	struct AllocatedBuffer {
-		VkBuffer buffer = VK_NULL_HANDLE;
-		VmaAllocation allocation = nullptr;
-	};
-
 	enum class QueueFlags : uint32_t {
 		GRAPHICS =	(1 << 0),
 		TRANSFER =	(1 << 1),
 		COMPUTE =	(1 << 2),
+	};
+
+	// handles
+	
+	struct gfx::BufferHandle {
+		VkBuffer buffer = VK_NULL_HANDLE;
+		VmaAllocation allocation = nullptr;
 	};
 
 
@@ -516,6 +520,7 @@ namespace engine {
 		
 		std::vector<Queue> queues{};
 		Queue gfxQueue;
+		Queue presentQueue;
 		VkCommandPool commandPool = VK_NULL_HANDLE;
 		VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
 
@@ -825,6 +830,8 @@ namespace engine {
 				vkGetDeviceQueue(pimpl->device, q.familyIndex, q.queueIndex, &q.handle);
 			}
 
+			pimpl->presentQueue = getQueueSupporting(pimpl->queues, QueueFlags::TRANSFER);
+
 			pimpl->gfxQueue = getQueueSupporting(pimpl->queues, QueueFlags::GRAPHICS);
 
 			VkCommandPoolCreateInfo gfxCmdPoolInfo{
@@ -1036,7 +1043,7 @@ namespace engine {
 		presentInfo.pImageIndices = &imageIndex;
 		presentInfo.pResults = nullptr;
 
-		res = vkQueuePresentKHR(pimpl->gfxQueue.handle, &presentInfo);
+		res = vkQueuePresentKHR(pimpl->presentQueue.handle, &presentInfo);
 		if (res == VK_SUBOPTIMAL_KHR || res == VK_ERROR_OUT_OF_DATE_KHR) {
 			// recreate swapchain
 			waitIdle();
@@ -1198,9 +1205,27 @@ namespace engine {
 
 	}
 
-	bool GFXDevice::createBuffer(const gfx::BufferDesc& desc, const void* data, gfx::BufferHandle* out)
+	gfx::BufferHandle* GFXDevice::createBuffer(const gfx::BufferDesc& desc, const void* data)
 	{
-		return false;
+		auto out = new gfx::BufferHandle{};
+
+		VkBufferCreateInfo createInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+		createInfo.size = desc.size;
+		createInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+
+		VmaAllocationCreateInfo allocInfo{};
+		allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+
+		VkResult res = vmaCreateBuffer(pimpl->allocator, &createInfo, &allocInfo, &out->buffer, &out->allocation, nullptr);
+		assert(res == VK_SUCCESS);
+
+		return out;
+	}
+
+	void GFXDevice::destroyBuffer(const gfx::BufferHandle* buffer)
+	{
+		vmaDestroyBuffer(pimpl->allocator, buffer->buffer, buffer->allocation);
+		delete buffer;
 	}
 
 	void GFXDevice::waitIdle()

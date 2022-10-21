@@ -49,7 +49,8 @@ namespace engine {
 		void createPipeline(const char* vertShaderPath, const char* fragShaderPath);
 
 		// creates a vertex array for holding mesh data
-		bool createBuffer(const gfx::BufferDesc& desc, const void* data, gfx::BufferHandle* out);
+		gfx::BufferHandle* createVertexBuffer(const gfx::BufferDesc& desc, const void* vertices, const void* indices);
+		void destroyBuffer(const gfx::BufferHandle* buffer);
 
 		// wait until all the active GPU queues have finished working
 		void waitIdle();

@@ -10,21 +10,9 @@ namespace engine {
 		FRAGMENT,
 	};
 
-	struct Shader {
-		ShaderType type;
-		uint32_t handle;
-	};
-
-	typedef uint32_t Program;
-
 	enum class BufferType {
 		VERTEX,
 		INDEX,
-	};
-
-	struct Buffer {
-		BufferType type;
-		uint32_t handle;
 	};
 
 	enum class Primitive {

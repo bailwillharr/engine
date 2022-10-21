@@ -3,6 +3,7 @@
 #include "window.hpp"
 #include "gfx_device.hpp"
 #include "resource_manager.hpp"
+#include "log.hpp"
 
 namespace engine {
 
@@ -14,11 +15,17 @@ namespace engine {
 		engine::ResourceManager resMan{};
 
 		m_gfx->createPipeline(resMan.getFilePath("shader.vert.spv").string().c_str(), resMan.getFilePath("shader.frag.spv").string().c_str());
+
+		gfx::BufferDesc bufferDesc {
+			.size = 65536,
+		};
+		gfx::BufferHandle* buffer = m_gfx->createBuffer(bufferDesc, nullptr);
+
+		m_gfx->destroyBuffer(buffer);
 	}
 
 	Application::~Application()
 	{
-
 	}
 
 	void Application::gameLoop()
