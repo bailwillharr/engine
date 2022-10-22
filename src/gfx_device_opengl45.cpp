@@ -1,4 +1,4 @@
-// The implementation of the graphics layer using Vulkan 1.3.
+// The implementation of the graphics layer using OpenGL 4.5
 // This uses SDL specific code
 
 #ifdef ENGINE_BUILD_OPENGL

@@ -5,6 +5,11 @@
 #include "resource_manager.hpp"
 #include "log.hpp"
 
+#include <glm/glm.hpp>
+
+static engine::gfx::VertexBuffer* buffer;
+static engine::gfx::VertexBuffer* buffer2;
+
 namespace engine {
 
 	Application::Application(const char* appName, const char* appVersion)
@@ -14,22 +19,48 @@ namespace engine {
 
 		engine::ResourceManager resMan{};
 
-		m_gfx->createPipeline(resMan.getFilePath("shader.vert.spv").string().c_str(), resMan.getFilePath("shader.frag.spv").string().c_str());
-
-		gfx::BufferDesc bufferDesc {
-			.size = 65536,
+		struct Vertex {
+			glm::vec2 pos;
+			glm::vec3 col;
 		};
-		gfx::BufferHandle* buffer = m_gfx->createBuffer(bufferDesc, nullptr);
 
-		m_gfx->destroyBuffer(buffer);
+		gfx::VertexFormat vertFormat{
+			.stride = (uint32_t)sizeof(Vertex),
+		};
+
+		vertFormat.attributeDescriptions.push_back({0, gfx::VertexAttribFormat::VEC2, 0});
+		vertFormat.attributeDescriptions.push_back({1, gfx::VertexAttribFormat::VEC3, offsetof(Vertex, col)});
+
+		m_gfx->createPipeline(resMan.getFilePath("shader.vert.spv").string().c_str(), resMan.getFilePath("shader.frag.spv").string().c_str(), vertFormat);
+
+
+
+		const std::vector<Vertex> vertices = {
+			{	{ 0.0f,	-0.5f},	{1.0f, 0.0f, 0.0f}	},
+			{	{ 0.5f,	 0.5f},	{0.0f, 1.0f, 0.0f}	},
+			{	{-0.5f,	 0.5f},	{0.0f, 0.0f, 1.0f}	}
+		};
+		buffer = m_gfx->createVertexBuffer(sizeof(Vertex) * vertices.size(), vertices.data(), nullptr);
+
+		const std::vector<Vertex> vertices2 = {
+			{	{ 0.9f,	-0.9f},	{1.0f, 0.0f, 0.0f}	},
+			{	{ 0.9f,	-0.8f},	{1.0f, 0.0f, 0.0f}	},
+			{	{ 0.8f,	-0.9f},	{1.0f, 0.0f, 0.0f}	}
+		};
+		buffer2 = m_gfx->createVertexBuffer(sizeof(Vertex) * vertices2.size(), vertices2.data(), nullptr);
+		
 	}
 
 	Application::~Application()
 	{
+		m_gfx->destroyVertexBuffer(buffer);
+		m_gfx->destroyVertexBuffer(buffer2);
 	}
 
 	void Application::gameLoop()
 	{
+		TRACE("Begin game loop...");
+
 		uint64_t lastTick = m_win->getNanos();
 		constexpr int TICKFREQ = 1; // in hz
 
@@ -54,6 +85,10 @@ namespace engine {
 			}
 
 			/* draw */
+
+			m_gfx->drawBuffer(buffer);
+			m_gfx->drawBuffer(buffer2);
+
 			m_gfx->draw();
 
 			/* poll events */

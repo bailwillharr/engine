@@ -25,6 +25,7 @@
 #include <fstream>
 #include <filesystem>
 #include <optional>
+#include <queue>
 
 namespace engine {
 
@@ -77,12 +78,28 @@ namespace engine {
 
 	// handles
 	
-	struct gfx::BufferHandle {
+	struct gfx::VertexBuffer {
 		VkBuffer buffer = VK_NULL_HANDLE;
 		VmaAllocation allocation = nullptr;
+		uint32_t size;
 	};
 
 
+
+	// enum converters
+
+	namespace vkinternal {
+
+		static VkFormat getVertexAttribFormat(gfx::VertexAttribFormat fmt)
+		{
+			switch (fmt) {
+			case gfx::VertexAttribFormat::VEC2:
+				return VK_FORMAT_R32G32_SFLOAT;
+			case gfx::VertexAttribFormat::VEC3:
+				return VK_FORMAT_R32G32B32_SFLOAT;
+			}
+		}
+	}
 
 	// functions
 
@@ -532,6 +549,8 @@ namespace engine {
 
 		Pipeline pipeline{};
 
+		std::queue<const gfx::VertexBuffer*> drawQueue{};
+
 	};
 
 	GFXDevice::GFXDevice(const char* appName, const char* appVersion, SDL_Window* window)
@@ -952,6 +971,11 @@ namespace engine {
 		vkDestroyInstance(pimpl->instance, nullptr);
 	}
 
+	void GFXDevice::drawBuffer(const gfx::VertexBuffer* vb)
+	{
+		pimpl->drawQueue.push(vb);
+	}
+
 	void GFXDevice::draw()
 	{
 		VkResult res;
@@ -995,7 +1019,6 @@ namespace engine {
 			renderPassInfo.pClearValues = &clearColor;
 			
 			vkCmdBeginRenderPass(pimpl->commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-			vkCmdBindPipeline(pimpl->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pimpl->pipeline.handle);
 
 			VkViewport viewport{};
 			viewport.x = 0.0f;
@@ -1011,7 +1034,20 @@ namespace engine {
 			scissor.extent = pimpl->swapchain.extent;
 			vkCmdSetScissor(pimpl->commandBuffer, 0, 1, &scissor);
 
-			vkCmdDraw(pimpl->commandBuffer, 3, 1, 0, 0);
+			// run queued draw calls
+
+			vkCmdBindPipeline(pimpl->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pimpl->pipeline.handle);
+			VkDeviceSize offsets[] = { 0 };
+			while (pimpl->drawQueue.empty() == false) {
+
+				const auto* buffer = pimpl->drawQueue.front();
+				
+				vkCmdBindVertexBuffers(pimpl->commandBuffer, 0, 1, &buffer->buffer, offsets);
+				vkCmdDraw(pimpl->commandBuffer, buffer->size, 1, 0, 0);
+
+				pimpl->drawQueue.pop();
+
+			}
 
 			vkCmdEndRenderPass(pimpl->commandBuffer);
 
@@ -1054,10 +1090,27 @@ namespace engine {
 		}
 	}
 	
-	void GFXDevice::createPipeline(const char* vertShaderPath, const char* fragShaderPath)
+	void GFXDevice::createPipeline(const char* vertShaderPath, const char* fragShaderPath, const gfx::VertexFormat& vertexFormat)
 	{
 
 		VkResult res;
+
+		// get vertex attrib layout:
+		VkVertexInputBindingDescription bindingDescription{ };
+		bindingDescription.binding = 0;
+		bindingDescription.stride = vertexFormat.stride;
+		bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+		std::vector<VkVertexInputAttributeDescription> attribDescs{};
+		attribDescs.reserve(vertexFormat.attributeDescriptions.size());
+		for (const auto& desc : vertexFormat.attributeDescriptions) {
+			VkVertexInputAttributeDescription vulkanAttribDesc{};
+			vulkanAttribDesc.binding = 0;
+			vulkanAttribDesc.location = desc.location;
+			vulkanAttribDesc.offset = desc.offset;
+			vulkanAttribDesc.format = vkinternal::getVertexAttribFormat(desc.format);
+			attribDescs.push_back(vulkanAttribDesc);
+		}
 
 		auto vertShaderCode = readFile(vertShaderPath);
 		auto fragShaderCode = readFile(fragShaderPath);
@@ -1080,12 +1133,13 @@ namespace engine {
 
 		VkPipelineShaderStageCreateInfo shaderStages[2] = { vertShaderStageInfo, fragShaderStageInfo };
 
+		// this sets "vertex attribute pointers"
 		VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
 		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-		vertexInputInfo.vertexBindingDescriptionCount = 0;
-		vertexInputInfo.pVertexBindingDescriptions = nullptr;
-		vertexInputInfo.vertexAttributeDescriptionCount = 0;
-		vertexInputInfo.pVertexAttributeDescriptions = nullptr;
+		vertexInputInfo.vertexBindingDescriptionCount = 1;
+		vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
+		vertexInputInfo.vertexAttributeDescriptionCount = attribDescs.size();
+		vertexInputInfo.pVertexAttributeDescriptions = attribDescs.data();
 
 		VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
 		inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -1205,24 +1259,35 @@ namespace engine {
 
 	}
 
-	gfx::BufferHandle* GFXDevice::createBuffer(const gfx::BufferDesc& desc, const void* data)
+	gfx::VertexBuffer* GFXDevice::createVertexBuffer(uint32_t size, const void* vertices, const void* indices)
 	{
-		auto out = new gfx::BufferHandle{};
+		auto out = new gfx::VertexBuffer{};
+		out->size = size;
 
 		VkBufferCreateInfo createInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
-		createInfo.size = desc.size;
+		createInfo.size = out->size;
 		createInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+		createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		createInfo.flags = 0;
 
 		VmaAllocationCreateInfo allocInfo{};
 		allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+		allocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+		allocInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 
 		VkResult res = vmaCreateBuffer(pimpl->allocator, &createInfo, &allocInfo, &out->buffer, &out->allocation, nullptr);
 		assert(res == VK_SUCCESS);
 
+		void* data;
+		res = vmaMapMemory(pimpl->allocator, out->allocation, &data);
+		assert(res == VK_SUCCESS);
+		memcpy(data, vertices, out->size);
+		vmaUnmapMemory(pimpl->allocator, out->allocation);
+
 		return out;
 	}
 
-	void GFXDevice::destroyBuffer(const gfx::BufferHandle* buffer)
+	void GFXDevice::destroyVertexBuffer(const gfx::VertexBuffer* buffer)
 	{
 		vmaDestroyBuffer(pimpl->allocator, buffer->buffer, buffer->allocation);
 		delete buffer;

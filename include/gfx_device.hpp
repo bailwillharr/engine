@@ -2,36 +2,13 @@
 
 #include "engine_api.h"
 
+#include "gfx.hpp"
+
 #include <memory>
 
 struct SDL_Window;
 
 namespace engine {
-
-	namespace gfx {
-
-		enum class BufferUsage {
-			DEFAULT,
-			UPLOAD,
-			READBACK,
-		};
-
-		enum class BindFlag {
-			NONE = 0,
-			UNIFORM_BUFFER = 1 << 0,
-		};
-
-		struct BufferDesc {
-			uint64_t size;
-			BufferUsage usage;
-			BindFlag bindFlags;
-		};
-
-		// handles (incomplete types)
-
-		class BufferHandle;
-
-	};
 	
 	class ENGINE_API GFXDevice {
 
@@ -42,15 +19,18 @@ namespace engine {
 		GFXDevice& operator=(const GFXDevice&) = delete;
 		~GFXDevice();
 
+		// adds a vertex buffer draw call to the queue
+		void drawBuffer(const gfx::VertexBuffer* vb);
+
 		// Call once per frame. Executes all queued draw calls and renders to the screen.
 		void draw();
 		
 		// creates the equivalent of an OpenGL shader program & vertex attrib configuration
-		void createPipeline(const char* vertShaderPath, const char* fragShaderPath);
+		void createPipeline(const char* vertShaderPath, const char* fragShaderPath, const gfx::VertexFormat& vertexFormat);
 
 		// creates a vertex array for holding mesh data
-		gfx::BufferHandle* createVertexBuffer(const gfx::BufferDesc& desc, const void* vertices, const void* indices);
-		void destroyBuffer(const gfx::BufferHandle* buffer);
+		gfx::VertexBuffer* createVertexBuffer(uint32_t size, const void* vertices, const void* indices);
+		void destroyVertexBuffer(const gfx::VertexBuffer* buffer);
 
 		// wait until all the active GPU queues have finished working
 		void waitIdle();
