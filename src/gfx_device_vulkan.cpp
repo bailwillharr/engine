@@ -98,6 +98,7 @@ namespace engine {
 			case gfx::VertexAttribFormat::VEC3:
 				return VK_FORMAT_R32G32B32_SFLOAT;
 			}
+			throw std::runtime_error("Unknown vertex attribute format");
 		}
 	}
 
