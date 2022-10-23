@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.4)
+cmake_minimum_required(VERSION 3.8)
 
 # options
 
@@ -6,8 +6,7 @@ project(engine LANGUAGES CXX
 	VERSION "0.1.0"
 )
 
-add_library(${PROJECT_NAME} STATIC
-	
+set(SRC_FILES
 	"src/engine.cpp"
 	"src/window.cpp"
 	"src/input.cpp"	#TODO make input_manager
@@ -33,8 +32,9 @@ add_library(${PROJECT_NAME} STATIC
 	"src/gfx_device_vulkan.cpp"
 	"src/gfx_device_null.cpp"
 	"src/gfx_device_opengl45.cpp"
+)
 
-	# PUBLIC API
+set(INCLUDE_FILES
 
 	"include/engine_api.h"
 
@@ -72,6 +72,16 @@ add_library(${PROJECT_NAME} STATIC
 	"include/gfx.hpp"
 	"include/gfx_device.hpp"
 )
+
+add_library(${PROJECT_NAME} STATIC
+
+	${SRC_FILES}
+	${INCLUDE_FILES}
+
+)
+
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src" PREFIX "Source" FILES ${SRC_FILES})
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/include" PREFIX "Include" FILES ${INCLUDE_FILES})
 
 # compiling options:
 
