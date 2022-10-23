@@ -7,6 +7,7 @@
 
 #include <glm/glm.hpp>
 
+static engine::gfx::Pipeline* pipeline;
 static engine::gfx::VertexBuffer* buffer;
 
 namespace engine {
@@ -17,22 +18,16 @@ namespace engine {
 		m_gfx = std::make_unique<GFXDevice>(appName, appVersion, m_win->getHandle());
 
 		engine::ResourceManager resMan{};
-
 		struct Vertex {
 			glm::vec2 pos;
 			glm::vec3 col;
 		};
-
 		gfx::VertexFormat vertFormat{
 			.stride = (uint32_t)sizeof(Vertex),
 		};
-
 		vertFormat.attributeDescriptions.push_back({0, gfx::VertexAttribFormat::VEC2, 0});
 		vertFormat.attributeDescriptions.push_back({1, gfx::VertexAttribFormat::VEC3, offsetof(Vertex, col)});
-
-		m_gfx->createPipeline(resMan.getFilePath("shader.vert.spv").string().c_str(), resMan.getFilePath("shader.frag.spv").string().c_str(), vertFormat);
-
-
+		pipeline = m_gfx->createPipeline(resMan.getFilePath("shader.vert.spv").string().c_str(), resMan.getFilePath("shader.frag.spv").string().c_str(), vertFormat);
 
 		const std::vector<Vertex> vertices = {
 			{	{ 0.0f,	-0.5f},	{1.0f, 0.0f, 0.0f}	},
@@ -44,17 +39,12 @@ namespace engine {
 		};
 		buffer = m_gfx->createVertexBuffer(sizeof(Vertex) * vertices.size(), vertices.data(), indices.data());
 
-		const std::vector<Vertex> vertices2 = {
-			{	{ 0.9f,	-0.9f},	{1.0f, 0.0f, 0.0f}	},
-			{	{ 0.9f,	-0.8f},	{1.0f, 0.0f, 0.0f}	},
-			{	{ 0.8f,	-0.9f},	{1.0f, 0.0f, 0.0f}	}
-		};
-		
 	}
 
 	Application::~Application()
 	{
 		m_gfx->destroyVertexBuffer(buffer);
+		m_gfx->destroyPipeline(pipeline);
 	}
 
 	void Application::gameLoop()
@@ -86,7 +76,7 @@ namespace engine {
 
 			/* draw */
 
-			m_gfx->drawBuffer(buffer);
+			m_gfx->drawBuffer(pipeline, buffer);
 
 			m_gfx->draw();
 

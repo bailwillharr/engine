@@ -26,6 +26,7 @@
 #include <filesystem>
 #include <optional>
 #include <queue>
+#include <map>
 
 namespace engine {
 
@@ -65,11 +66,6 @@ namespace engine {
 		VkSemaphore releaseSemaphore = VK_NULL_HANDLE; // waits until rendering finishes
 	};
 
-	struct Pipeline {
-		VkPipelineLayout layout = VK_NULL_HANDLE;
-		VkPipeline handle = VK_NULL_HANDLE;
-	};
-
 	enum class QueueFlags : uint32_t {
 		GRAPHICS =	(1 << 0),
 		TRANSFER =	(1 << 1),
@@ -82,6 +78,11 @@ namespace engine {
 		VkBuffer buffer = VK_NULL_HANDLE;
 		VmaAllocation allocation = nullptr;
 		uint32_t size;
+	};
+
+	struct gfx::Pipeline {
+		VkPipelineLayout layout = VK_NULL_HANDLE;
+		VkPipeline handle = VK_NULL_HANDLE;
 	};
 
 
@@ -595,9 +596,7 @@ namespace engine {
 
 		VkFence inFlightFence = VK_NULL_HANDLE;
 
-		Pipeline pipeline{};
-
-		std::queue<const gfx::VertexBuffer*> drawQueue{};
+		std::map<const gfx::Pipeline*, std::queue<const gfx::VertexBuffer*>> drawQueues{};
 
 	};
 
@@ -995,11 +994,6 @@ namespace engine {
 	{
 		TRACE("Destroying GFXDevice...");
 
-		if (pimpl->pipeline.handle != VK_NULL_HANDLE) {
-			vkDestroyPipeline(pimpl->device, pimpl->pipeline.handle, nullptr);
-			vkDestroyPipelineLayout(pimpl->device, pimpl->pipeline.layout, nullptr);
-		}
-
 		vkDestroyFence(pimpl->device, pimpl->inFlightFence, nullptr);
 
 		vkDestroySemaphore(pimpl->device, pimpl->swapchain.releaseSemaphore, nullptr);
@@ -1022,9 +1016,9 @@ namespace engine {
 		vkDestroyInstance(pimpl->instance, nullptr);
 	}
 
-	void GFXDevice::drawBuffer(const gfx::VertexBuffer* vb)
+	void GFXDevice::drawBuffer(const gfx::Pipeline* pipeline, const gfx::VertexBuffer* vb)
 	{
-		pimpl->drawQueue.push(vb);
+		pimpl->drawQueues[pipeline].push(vb);
 	}
 
 	void GFXDevice::draw()
@@ -1087,18 +1081,19 @@ namespace engine {
 
 			// run queued draw calls
 
-			vkCmdBindPipeline(pimpl->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pimpl->pipeline.handle);
 			VkDeviceSize offsets[] = { 0 };
-			while (pimpl->drawQueue.empty() == false) {
 
-				const auto* buffer = pimpl->drawQueue.front();
-				
-				vkCmdBindVertexBuffers(pimpl->commandBuffer, 0, 1, &buffer->buffer, offsets);
-				vkCmdDraw(pimpl->commandBuffer, buffer->size, 1, 0, 0);
-
-				pimpl->drawQueue.pop();
-
+			for (auto& [pipeline, queue] : pimpl->drawQueues) {
+				vkCmdBindPipeline(pimpl->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->handle);
+				while (queue.empty() == false) {
+					const gfx::VertexBuffer* buffer = queue.front();
+					vkCmdBindVertexBuffers(pimpl->commandBuffer, 0, 1, &buffer->buffer, offsets);
+					vkCmdDraw(pimpl->commandBuffer, buffer->size, 1, 0, 0);
+					queue.pop();
+				}
 			}
+
+			pimpl->drawQueues.clear();
 
 			vkCmdEndRenderPass(pimpl->commandBuffer);
 
@@ -1141,10 +1136,12 @@ namespace engine {
 		}
 	}
 	
-	void GFXDevice::createPipeline(const char* vertShaderPath, const char* fragShaderPath, const gfx::VertexFormat& vertexFormat)
+	gfx::Pipeline* GFXDevice::createPipeline(const char* vertShaderPath, const char* fragShaderPath, const gfx::VertexFormat& vertexFormat)
 	{
 
 		VkResult res;
+
+		gfx::Pipeline* pipeline = new gfx::Pipeline;
 
 		// get vertex attrib layout:
 		VkVertexInputBindingDescription bindingDescription{ };
@@ -1281,7 +1278,7 @@ namespace engine {
 		layoutInfo.pushConstantRangeCount = 0;
 		layoutInfo.pPushConstantRanges = nullptr;
 
-		res = vkCreatePipelineLayout(pimpl->device, &layoutInfo, nullptr, &pimpl->pipeline.layout);
+		res = vkCreatePipelineLayout(pimpl->device, &layoutInfo, nullptr, &pipeline->layout);
 		assert(res == VK_SUCCESS);
 
 		VkGraphicsPipelineCreateInfo createInfo{};
@@ -1296,18 +1293,29 @@ namespace engine {
 		createInfo.pDepthStencilState = nullptr;
 		createInfo.pColorBlendState = &colorBlending;
 		createInfo.pDynamicState = &dynamicState;
-		createInfo.layout = pimpl->pipeline.layout;
+		createInfo.layout = pipeline->layout;
 		createInfo.renderPass = pimpl->swapchain.renderpass;
 		createInfo.subpass = 0;
 		createInfo.basePipelineHandle = VK_NULL_HANDLE;
 		createInfo.basePipelineIndex = -1;
 
-		res = vkCreateGraphicsPipelines(pimpl->device, VK_NULL_HANDLE, 1, &createInfo, nullptr, &pimpl->pipeline.handle);
+		res = vkCreateGraphicsPipelines(pimpl->device, VK_NULL_HANDLE, 1, &createInfo, nullptr, &pipeline->handle);
 		assert(res == VK_SUCCESS);
 
 		vkDestroyShaderModule(pimpl->device, fragShaderModule, nullptr);
 		vkDestroyShaderModule(pimpl->device, vertShaderModule, nullptr);
 
+		return pipeline;
+
+	}
+
+	void GFXDevice::destroyPipeline(const gfx::Pipeline* pipeline)
+	{
+
+		vkDestroyPipeline(pimpl->device, pipeline->handle, nullptr);
+		vkDestroyPipelineLayout(pimpl->device, pipeline->layout, nullptr);
+
+		delete pipeline;
 	}
 
 	gfx::VertexBuffer* GFXDevice::createVertexBuffer(uint32_t size, const void* vertices, const void* indices)
