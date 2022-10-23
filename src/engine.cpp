@@ -8,7 +8,6 @@
 #include <glm/glm.hpp>
 
 static engine::gfx::VertexBuffer* buffer;
-static engine::gfx::VertexBuffer* buffer2;
 
 namespace engine {
 
@@ -40,21 +39,22 @@ namespace engine {
 			{	{ 0.5f,	 0.5f},	{0.0f, 1.0f, 0.0f}	},
 			{	{-0.5f,	 0.5f},	{0.0f, 0.0f, 1.0f}	}
 		};
-		buffer = m_gfx->createVertexBuffer(sizeof(Vertex) * vertices.size(), vertices.data(), nullptr);
+		const std::vector<uint16_t> indices{
+			0, 1, 2,
+		};
+		buffer = m_gfx->createVertexBuffer(sizeof(Vertex) * vertices.size(), vertices.data(), indices.data());
 
 		const std::vector<Vertex> vertices2 = {
 			{	{ 0.9f,	-0.9f},	{1.0f, 0.0f, 0.0f}	},
 			{	{ 0.9f,	-0.8f},	{1.0f, 0.0f, 0.0f}	},
 			{	{ 0.8f,	-0.9f},	{1.0f, 0.0f, 0.0f}	}
 		};
-		buffer2 = m_gfx->createVertexBuffer(sizeof(Vertex) * vertices2.size(), vertices2.data(), nullptr);
 		
 	}
 
 	Application::~Application()
 	{
 		m_gfx->destroyVertexBuffer(buffer);
-		m_gfx->destroyVertexBuffer(buffer2);
 	}
 
 	void Application::gameLoop()
@@ -73,8 +73,8 @@ namespace engine {
 				lastTick = m_win->getLastFrameStamp();
 
 				// do tick stuff here
-				m_win->setTitle("frame time: " + std::to_string(m_win->dt() * 1000.0f) + " ms, " + std::to_string(m_win->getFPS()) + " fps");
-
+				m_win->setTitle("frame time: " + std::to_string(m_win->dt() * 1000.0f) + " ms, " + std::to_string(m_win->getAvgFPS()) + " fps");
+				m_win->resetAvgFPS();
 			}
 
 			if (m_win->getKeyPress(inputs::Key::F11)) {
@@ -87,7 +87,6 @@ namespace engine {
 			/* draw */
 
 			m_gfx->drawBuffer(buffer);
-			m_gfx->drawBuffer(buffer2);
 
 			m_gfx->draw();
 

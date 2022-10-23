@@ -327,7 +327,7 @@ namespace engine {
 
 		for (const auto& presMode : presentModes) {
 			if (presMode == VK_PRESENT_MODE_MAILBOX_KHR) {
-				//swapchain->presentMode = presMode; // this mode allows uncapped FPS while also avoiding screen tearing
+				swapchain->presentMode = presMode; // this mode allows uncapped FPS while also avoiding screen tearing
 			}
 		}
 
@@ -518,6 +518,53 @@ namespace engine {
 		}
 
 		return shaderModule;
+	}
+
+	static void copyBuffer(VkDevice device, VkCommandPool commandPool, VkQueue queue, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
+	{
+		VkResult res;
+
+		VkCommandBufferAllocateInfo allocInfo{};
+		allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+		allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+		allocInfo.commandPool = commandPool;
+		allocInfo.commandBufferCount = 1;
+
+		VkCommandBuffer commandBuffer;
+		res = vkAllocateCommandBuffers(device, &allocInfo, &commandBuffer);
+		assert(res == VK_SUCCESS);
+
+		{ // record the command buffer
+			VkCommandBufferBeginInfo beginInfo{};
+			beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+			beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+			res = vkBeginCommandBuffer(commandBuffer, &beginInfo);
+			assert(res == VK_SUCCESS);
+
+			VkBufferCopy copyRegion{};
+			copyRegion.srcOffset = 0;
+			copyRegion.dstOffset = 0;
+			copyRegion.size = size;
+			vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
+
+			res = vkEndCommandBuffer(commandBuffer);
+			assert(res == VK_SUCCESS);
+		}
+
+		// submit
+		VkSubmitInfo submitInfo{};
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &commandBuffer;
+
+		res = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
+		assert(res == VK_SUCCESS);
+
+		res = vkQueueWaitIdle(queue);
+		assert(res == VK_SUCCESS);
+
+		vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
+		
 	}
 
 
@@ -1262,28 +1309,58 @@ namespace engine {
 
 	gfx::VertexBuffer* GFXDevice::createVertexBuffer(uint32_t size, const void* vertices, const void* indices)
 	{
+		VkResult res;
+
 		auto out = new gfx::VertexBuffer{};
 		out->size = size;
 
-		VkBufferCreateInfo createInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
-		createInfo.size = out->size;
-		createInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-		createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-		createInfo.flags = 0;
+		VkBuffer stagingBuffer;
+		VmaAllocation stagingAllocation;
 
-		VmaAllocationCreateInfo allocInfo{};
-		allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
-		allocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
-		allocInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+		// first create the staging buffer
+		{
+			VkBufferCreateInfo stagingBufferInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+			stagingBufferInfo.size = out->size;
+			stagingBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+			stagingBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+			stagingBufferInfo.flags = 0;
 
-		VkResult res = vmaCreateBuffer(pimpl->allocator, &createInfo, &allocInfo, &out->buffer, &out->allocation, nullptr);
-		assert(res == VK_SUCCESS);
+			VmaAllocationCreateInfo stagingAllocInfo{};
+			stagingAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+			stagingAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+			stagingAllocInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 
-		void* data;
-		res = vmaMapMemory(pimpl->allocator, out->allocation, &data);
-		assert(res == VK_SUCCESS);
-		memcpy(data, vertices, out->size);
-		vmaUnmapMemory(pimpl->allocator, out->allocation);
+			res = vmaCreateBuffer(pimpl->allocator, &stagingBufferInfo, &stagingAllocInfo, &stagingBuffer, &stagingAllocation, nullptr);
+			assert(res == VK_SUCCESS);
+
+			void* data;
+			res = vmaMapMemory(pimpl->allocator, stagingAllocation, &data);
+			assert(res == VK_SUCCESS);
+			memcpy(data, vertices, out->size);
+			vmaUnmapMemory(pimpl->allocator, stagingAllocation);
+		}
+
+		// create the actual buffer on the GPU
+		{
+			VkBufferCreateInfo gpuBufferInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+			gpuBufferInfo.size = out->size;
+			gpuBufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+			gpuBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+			gpuBufferInfo.flags = 0;
+			
+			VmaAllocationCreateInfo gpuAllocationInfo{};
+			gpuAllocationInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+			gpuAllocationInfo.flags = 0;
+
+			res = vmaCreateBuffer(pimpl->allocator, &gpuBufferInfo, &gpuAllocationInfo, &out->buffer, &out->allocation, nullptr);
+			assert(res == VK_SUCCESS);
+		}
+
+		// copy the data from the staging buffer to the gpu buffer
+		copyBuffer(pimpl->device, pimpl->commandPool, pimpl->gfxQueue.handle, stagingBuffer, out->buffer, out->size);
+
+		// destroy staging buffer
+		vmaDestroyBuffer(pimpl->allocator, stagingBuffer, stagingAllocation);
 
 		return out;
 	}
