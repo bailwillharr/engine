@@ -39,9 +39,9 @@ namespace engine {
 	struct Queue {
 		uint32_t familyIndex;
 		uint32_t queueIndex;
-		bool supportsGraphics = false;
-		bool supportsTransfer = false;
-		bool supportsCompute = false;
+		bool supportsGraphics;
+		bool supportsTransfer;
+		bool supportsCompute;
 
 		VkQueue handle;
 	};
@@ -584,8 +584,8 @@ namespace engine {
 		VkDevice device = VK_NULL_HANDLE;
 		
 		std::vector<Queue> queues{};
-		Queue gfxQueue;
-		Queue presentQueue;
+		Queue gfxQueue{};
+		Queue presentQueue{};
 		VkCommandPool commandPool = VK_NULL_HANDLE;
 		VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
 
@@ -848,6 +848,9 @@ namespace engine {
 				Queue newQueue{};
 				newQueue.familyIndex = family;
 				newQueue.queueIndex = 0;
+				newQueue.supportsGraphics = false;
+				newQueue.supportsTransfer = false;
+				newQueue.supportsCompute = false;
 				if (graphicsFamilyIndex == family) newQueue.supportsGraphics = true;
 				if (transferFamilyIndex == family) newQueue.supportsTransfer = true;
 				if (computeFamilyIndex == family) newQueue.supportsCompute = true;
