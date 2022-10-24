@@ -37,10 +37,10 @@ namespace engine {
 			{	{-0.5f,	 0.5f},	{0.0f, 1.0f, 1.0f}	},
 		};
 		vb = m_gfx->createBuffer(gfx::BufferType::VERTEX, sizeof(Vertex) * vertices.size(), vertices.data());
-		const std::vector<uint16_t> indices = {
+		const std::vector<uint32_t> indices = {
 			0, 1, 2, 2, 1, 3,
 		};
-		ib = m_gfx->createBuffer(gfx::BufferType::INDEX, sizeof(uint16_t) * indices.size(), indices.data());
+		ib = m_gfx->createBuffer(gfx::BufferType::INDEX, sizeof(uint32_t) * indices.size(), indices.data());
 
 	}
 

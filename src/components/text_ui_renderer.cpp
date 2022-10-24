@@ -57,6 +57,7 @@ void UI::render(glm::mat4 transform)
 		float w = glyph.size.x * scale;
 		float h = glyph.size.y * scale;
 
+		/*
 		resources::Mesh mesh({
 			{{xpos,		ypos + h,	0.0f}, {}, {0.0f, 0.0f}},
 			{{xpos,		ypos	,	0.0f}, {}, {0.0f, 1.0f}},
@@ -64,11 +65,11 @@ void UI::render(glm::mat4 transform)
 			{{xpos,		ypos + h,	0.0f}, {}, {0.0f, 0.0f}},
 			{{xpos + w,	ypos,		0.0f}, {}, {1.0f, 1.0f}},
 			{{xpos + w,	ypos + h,	0.0f}, {}, {1.0f, 0.0f}},
-		});
+		});*/
 
 		glBindTexture(GL_TEXTURE_2D, glyph.textureID);
 
-		mesh.drawMesh(*m_shader);
+//		mesh.drawMesh(*m_shader);
 
 		x += (glyph.advance >> 6) * scale;
 

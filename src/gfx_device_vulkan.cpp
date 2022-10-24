@@ -1134,7 +1134,7 @@ namespace engine {
 						// do a simple draw call
 						vkCmdDraw(pimpl->commandBuffer, call.count, 1, 0, 0);
 					} else {
-						vkCmdBindIndexBuffer(pimpl->commandBuffer, call.indexBuffer->buffer, 0, VK_INDEX_TYPE_UINT16);
+						vkCmdBindIndexBuffer(pimpl->commandBuffer, call.indexBuffer->buffer, 0, VK_INDEX_TYPE_UINT32);
 						vkCmdDrawIndexed(pimpl->commandBuffer, call.count, 1, 0, 0, 0);
 					}
 					queue.pop();

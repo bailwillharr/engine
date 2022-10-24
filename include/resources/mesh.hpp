@@ -4,9 +4,7 @@
 
 #include "resource.hpp"
 
-#include "resources/shader.hpp"
-
-#include <glad/glad.h>
+#include "gfx.hpp"
 
 #include <glm/vec3.hpp>
 #include <glm/vec2.hpp>
@@ -20,34 +18,30 @@ struct Vertex {
 	glm::vec2 uv;
 };
 
+namespace engine {
+	class GFXDevice;
+}
+
 namespace engine::resources {
 
 class ENGINE_API Mesh : public Resource {
 
 public:
-	Mesh(const std::vector<Vertex>& vertices);
-	Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices);
-	Mesh(const std::filesystem::path& resPath);
+	Mesh(GFXDevice* gfx, const std::vector<Vertex>& vertices);
+	Mesh(GFXDevice* gfx, const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices);
+	Mesh(GFXDevice* gfx, const std::filesystem::path& resPath);
 	~Mesh() override;
 
-	void drawMesh(const Shader& shader);
-
-	static void invalidate()
-	{
-		s_active_vao = -1;
-	}
+	void drawMesh(const gfx::Pipeline* pipeline);
 
 	std::vector<Vertex> m_vertices;
-	std::vector<unsigned int> m_indices;
+	std::vector<uint32_t> m_indices;
 
 private:
-	static int s_active_vao;
+	const gfx::Buffer* vb;
+	const gfx::Buffer* ib;
 
-	GLuint m_vao;
-	GLuint m_vbo;
-	GLuint m_ebo;
-
-	void bindVAO() const;
+	GFXDevice* gfx;
 
 	void initMesh();
 

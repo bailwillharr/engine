@@ -6,6 +6,7 @@
 
 #include "resources/font.hpp"
 #include "resources/mesh.hpp"
+#include "resources/shader.hpp"
 
 #include <glm/mat4x4.hpp>
 
