@@ -66,6 +66,12 @@ namespace engine {
 		VkSemaphore releaseSemaphore = VK_NULL_HANDLE; // waits until rendering finishes
 	};
 
+	struct DrawCall {
+		const gfx::Buffer* vertexBuffer = nullptr;
+		const gfx::Buffer* indexBuffer = nullptr; // if this is nullptr, don't use indexed
+		uint32_t count = 0;
+	};
+
 	enum class QueueFlags : uint32_t {
 		GRAPHICS =	(1 << 0),
 		TRANSFER =	(1 << 1),
@@ -74,10 +80,11 @@ namespace engine {
 
 	// handles
 	
-	struct gfx::VertexBuffer {
+	struct gfx::Buffer {
+		gfx::BufferType type;
 		VkBuffer buffer = VK_NULL_HANDLE;
 		VmaAllocation allocation = nullptr;
-		uint32_t size;
+		VkDeviceSize size = 0;
 	};
 
 	struct gfx::Pipeline {
@@ -101,6 +108,18 @@ namespace engine {
 			}
 			throw std::runtime_error("Unknown vertex attribute format");
 		}
+
+		static VkBufferUsageFlagBits getBufferUsageFlag(gfx::BufferType type)
+		{
+			switch (type) {
+			case gfx::BufferType::VERTEX:
+				return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+			case gfx::BufferType::INDEX:
+				return VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+			}
+			throw std::runtime_error("Unknown buffer type");
+		}
+
 	}
 
 	// functions
@@ -596,7 +615,7 @@ namespace engine {
 
 		VkFence inFlightFence = VK_NULL_HANDLE;
 
-		std::map<const gfx::Pipeline*, std::queue<const gfx::VertexBuffer*>> drawQueues{};
+		std::map<const gfx::Pipeline*, std::queue<DrawCall>> drawQueues{};
 
 	};
 
@@ -1016,12 +1035,34 @@ namespace engine {
 		vkDestroyInstance(pimpl->instance, nullptr);
 	}
 
-	void GFXDevice::drawBuffer(const gfx::Pipeline* pipeline, const gfx::VertexBuffer* vb)
+	void GFXDevice::drawBuffer(const gfx::Pipeline* pipeline, const gfx::Buffer* vertexBuffer, uint32_t count)
 	{
-		pimpl->drawQueues[pipeline].push(vb);
+		assert(vertexBuffer->type == gfx::BufferType::VERTEX);
+
+		DrawCall call{
+			.vertexBuffer = vertexBuffer,
+			.indexBuffer = nullptr, // don't use indexed drawing
+			.count = count,
+		};
+
+		pimpl->drawQueues[pipeline].push(call);
 	}
 
-	void GFXDevice::draw()
+	void GFXDevice::drawIndexed(const gfx::Pipeline* pipeline, const gfx::Buffer* vertexBuffer, const gfx::Buffer* indexBuffer, uint32_t count)
+	{
+		assert(vertexBuffer->type == gfx::BufferType::VERTEX);
+		assert(indexBuffer->type == gfx::BufferType::INDEX);
+
+		DrawCall call{
+			.vertexBuffer = vertexBuffer,
+			.indexBuffer = indexBuffer, // don't use indexed drawing
+			.count = count,
+		};
+
+		pimpl->drawQueues[pipeline].push(call);
+	}
+
+	void GFXDevice::renderFrame()
 	{
 		VkResult res;
 
@@ -1086,9 +1127,15 @@ namespace engine {
 			for (auto& [pipeline, queue] : pimpl->drawQueues) {
 				vkCmdBindPipeline(pimpl->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->handle);
 				while (queue.empty() == false) {
-					const gfx::VertexBuffer* buffer = queue.front();
-					vkCmdBindVertexBuffers(pimpl->commandBuffer, 0, 1, &buffer->buffer, offsets);
-					vkCmdDraw(pimpl->commandBuffer, buffer->size, 1, 0, 0);
+					DrawCall call = queue.front();
+					vkCmdBindVertexBuffers(pimpl->commandBuffer, 0, 1, &call.vertexBuffer->buffer, offsets);
+					if (call.indexBuffer == nullptr) {
+						// do a simple draw call
+						vkCmdDraw(pimpl->commandBuffer, call.count, 1, 0, 0);
+					} else {
+						vkCmdBindIndexBuffer(pimpl->commandBuffer, call.indexBuffer->buffer, 0, VK_INDEX_TYPE_UINT16);
+						vkCmdDrawIndexed(pimpl->commandBuffer, call.count, 1, 0, 0, 0);
+					}
 					queue.pop();
 				}
 			}
@@ -1318,12 +1365,14 @@ namespace engine {
 		delete pipeline;
 	}
 
-	gfx::VertexBuffer* GFXDevice::createVertexBuffer(uint32_t size, const void* vertices, const void* indices)
+	gfx::Buffer* GFXDevice::createBuffer(gfx::BufferType type, uint64_t size, const void* data)
 	{
 		VkResult res;
 
-		auto out = new gfx::VertexBuffer{};
+		auto out = new gfx::Buffer{};
 		out->size = size;
+
+		out->type = type;
 
 		VkBuffer stagingBuffer;
 		VmaAllocation stagingAllocation;
@@ -1344,10 +1393,10 @@ namespace engine {
 			res = vmaCreateBuffer(pimpl->allocator, &stagingBufferInfo, &stagingAllocInfo, &stagingBuffer, &stagingAllocation, nullptr);
 			assert(res == VK_SUCCESS);
 
-			void* data;
-			res = vmaMapMemory(pimpl->allocator, stagingAllocation, &data);
+			void* dataDest;
+			res = vmaMapMemory(pimpl->allocator, stagingAllocation, &dataDest);
 			assert(res == VK_SUCCESS);
-			memcpy(data, vertices, out->size);
+			memcpy(dataDest, data, out->size);
 			vmaUnmapMemory(pimpl->allocator, stagingAllocation);
 		}
 
@@ -1355,7 +1404,7 @@ namespace engine {
 		{
 			VkBufferCreateInfo gpuBufferInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
 			gpuBufferInfo.size = out->size;
-			gpuBufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+			gpuBufferInfo.usage = vkinternal::getBufferUsageFlag(type) | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 			gpuBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 			gpuBufferInfo.flags = 0;
 			
@@ -1376,7 +1425,7 @@ namespace engine {
 		return out;
 	}
 
-	void GFXDevice::destroyVertexBuffer(const gfx::VertexBuffer* buffer)
+	void GFXDevice::destroyBuffer(const gfx::Buffer* buffer)
 	{
 		vmaDestroyBuffer(pimpl->allocator, buffer->buffer, buffer->allocation);
 		delete buffer;

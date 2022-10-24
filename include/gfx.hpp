@@ -46,6 +46,6 @@ namespace engine::gfx {
 
 	// handles (incomplete types)
 	struct Pipeline;
-	struct VertexBuffer;
+	struct Buffer;
 
 }

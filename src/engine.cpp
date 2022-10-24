@@ -8,7 +8,8 @@
 #include <glm/glm.hpp>
 
 static engine::gfx::Pipeline* pipeline;
-static engine::gfx::VertexBuffer* buffer;
+static engine::gfx::Buffer* vb;
+static engine::gfx::Buffer* ib;
 
 namespace engine {
 
@@ -30,20 +31,23 @@ namespace engine {
 		pipeline = m_gfx->createPipeline(resMan.getFilePath("shader.vert.spv").string().c_str(), resMan.getFilePath("shader.frag.spv").string().c_str(), vertFormat);
 
 		const std::vector<Vertex> vertices = {
-			{	{ 0.0f,	-0.5f},	{1.0f, 0.0f, 0.0f}	},
+			{	{ 0.5f,	-0.5f},	{1.0f, 0.0f, 0.0f}	},
 			{	{ 0.5f,	 0.5f},	{0.0f, 1.0f, 0.0f}	},
-			{	{-0.5f,	 0.5f},	{0.0f, 0.0f, 1.0f}	}
+			{	{-0.5f,	-0.5f},	{0.0f, 0.0f, 1.0f}	},
+			{	{-0.5f,	 0.5f},	{0.0f, 1.0f, 1.0f}	},
 		};
-		const std::vector<uint16_t> indices{
-			0, 1, 2,
+		vb = m_gfx->createBuffer(gfx::BufferType::VERTEX, sizeof(Vertex) * vertices.size(), vertices.data());
+		const std::vector<uint16_t> indices = {
+			0, 1, 2, 2, 1, 3,
 		};
-		buffer = m_gfx->createVertexBuffer(sizeof(Vertex) * vertices.size(), vertices.data(), indices.data());
+		ib = m_gfx->createBuffer(gfx::BufferType::INDEX, sizeof(uint16_t) * indices.size(), indices.data());
 
 	}
 
 	Application::~Application()
 	{
-		m_gfx->destroyVertexBuffer(buffer);
+		m_gfx->destroyBuffer(vb);
+		m_gfx->destroyBuffer(ib);
 		m_gfx->destroyPipeline(pipeline);
 	}
 
@@ -76,9 +80,9 @@ namespace engine {
 
 			/* draw */
 
-			m_gfx->drawBuffer(pipeline, buffer);
+			m_gfx->drawIndexed(pipeline, vb, ib, 6);
 
-			m_gfx->draw();
+			m_gfx->renderFrame();
 
 			/* poll events */
 			m_win->getInputAndEvents();

@@ -57,19 +57,41 @@ namespace engine {
 	GFXDevice::~GFXDevice()
 	{
 		TRACE("Destroying GFXDevice...");
+
+		SDL_GL_DeleteContext(pimpl->context);
 	}
 
-	void GFXDevice::draw()
-	{
-	}
-	
-	void GFXDevice::createPipeline(const char* vertShaderPath, const char* fragShaderPath)
+	void GFXDevice::drawBuffer(const gfx::Pipeline* pipeline, const gfx::Buffer* vertexBuffer, uint32_t count)
 	{
 	}
 
-	bool GFXDevice::createBuffer(const gfx::BufferDesc& desc, const void* data, gfx::BufferHandle* out)
+	void GFXDevice::drawIndexed(const gfx::Pipeline* pipeline, const gfx::Buffer* vertexBuffer, const gfx::Buffer* indexBuffer, uint32_t indexCount)
 	{
-		return false;
+	}
+
+	void GFXDevice::renderFrame()
+	{
+
+	}
+		
+	gfx::Pipeline* GFXDevice::createPipeline(const char* vertShaderPath, const char* fragShaderPath, const gfx::VertexFormat& vertexFormat)
+	{
+		return nullptr;
+	}
+
+	void GFXDevice::destroyPipeline(const gfx::Pipeline* pipeline)
+	{
+
+	}
+
+	gfx::Buffer* GFXDevice::createBuffer(gfx::BufferType type, uint64_t size, const void* data)
+	{
+		return nullptr;
+	}
+
+	void GFXDevice::destroyBuffer(const gfx::Buffer* buffer)
+	{
+
 	}
 
 	void GFXDevice::waitIdle()

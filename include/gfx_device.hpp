@@ -20,18 +20,19 @@ namespace engine {
 		~GFXDevice();
 
 		// adds a vertex buffer draw call to the queue
-		void drawBuffer(const gfx::Pipeline* pipeline, const gfx::VertexBuffer* vb);
+		void drawBuffer(const gfx::Pipeline* pipeline, const gfx::Buffer* vertexBuffer, uint32_t count);
+
+		void drawIndexed(const gfx::Pipeline* pipeline, const gfx::Buffer* vertexBuffer, const gfx::Buffer* indexBuffer, uint32_t indexCount);
 
 		// Call once per frame. Executes all queued draw calls and renders to the screen.
-		void draw();
+		void renderFrame();
 		
 		// creates the equivalent of an OpenGL shader program & vertex attrib configuration
 		gfx::Pipeline* createPipeline(const char* vertShaderPath, const char* fragShaderPath, const gfx::VertexFormat& vertexFormat);
 		void destroyPipeline(const gfx::Pipeline* pipeline);
 
-		// creates a vertex array for holding mesh data
-		gfx::VertexBuffer* createVertexBuffer(uint32_t size, const void* vertices, const void* indices);
-		void destroyVertexBuffer(const gfx::VertexBuffer* buffer);
+		gfx::Buffer* createBuffer(gfx::BufferType type, uint64_t size, const void* data);
+		void destroyBuffer(const gfx::Buffer* buffer);
 
 		// wait until all the active GPU queues have finished working
 		void waitIdle();
