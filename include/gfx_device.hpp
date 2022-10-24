@@ -19,10 +19,9 @@ namespace engine {
 		GFXDevice& operator=(const GFXDevice&) = delete;
 		~GFXDevice();
 
-		// adds a vertex buffer draw call to the queue
-		void drawBuffer(const gfx::Pipeline* pipeline, const gfx::Buffer* vertexBuffer, uint32_t count);
-
-		void drawIndexed(const gfx::Pipeline* pipeline, const gfx::Buffer* vertexBuffer, const gfx::Buffer* indexBuffer, uint32_t indexCount);
+		// adds a draw call to the queue
+		// vertexBuffer is required. indexBuffer and uniformData can be NULL
+		void draw(const gfx::Pipeline* pipeline, const gfx::Buffer* vertexBuffer, const gfx::Buffer* indexBuffer, uint32_t count, const void* uniformData);
 
 		// Call once per frame. Executes all queued draw calls and renders to the screen.
 		void renderFrame();

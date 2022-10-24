@@ -6,6 +6,13 @@
 #include "log.hpp"
 
 #include <glm/glm.hpp>
+#include <glm/ext.hpp>
+
+struct UBO {
+	glm::mat4 model{};
+	glm::mat4 view{};
+	glm::mat4 proj{};
+};
 
 static engine::gfx::Pipeline* pipeline;
 static engine::gfx::Buffer* vb;
@@ -29,11 +36,7 @@ namespace engine {
 		};
 		vertFormat.attributeDescriptions.push_back({0, gfx::VertexAttribFormat::VEC2, 0});
 		vertFormat.attributeDescriptions.push_back({1, gfx::VertexAttribFormat::VEC3, offsetof(Vertex, col)});
-		struct UBO {
-			glm::mat4 model{};
-			glm::mat4 view{};
-			glm::mat4 proj{};
-		};
+
 		pipeline = m_gfx->createPipeline(resMan.getFilePath("shader.vert.spv").string().c_str(), resMan.getFilePath("shader.frag.spv").string().c_str(), vertFormat, sizeof(UBO));
 
 		const std::vector<Vertex> vertices = {
@@ -47,9 +50,6 @@ namespace engine {
 			0, 1, 2, 2, 1, 3,
 		};
 		ib = m_gfx->createBuffer(gfx::BufferType::INDEX, sizeof(uint32_t) * indices.size(), indices.data());
-
-		UBO initialUbo{};
-//		ub = m_gfx->createBuffer(gfx::BufferType::UNIFORM, sizeof(UBO), &initialUbo);
 
 	}
 
@@ -89,8 +89,13 @@ namespace engine {
 			}
 
 			/* draw */
-
-			m_gfx->drawIndexed(pipeline, vb, ib, 6);
+			UBO initialUbo{
+				.model = glm::mat4{1.0f},
+				.view = glm::mat4{1.0f},
+				.proj = glm::mat4{1.0f}
+			};
+			initialUbo.model = glm::scale(glm::mat4{ 1.0f }, glm::vec3{ 0.5f, 0.5f, 1.0f });
+			m_gfx->draw(pipeline, vb, ib, 6, &initialUbo);
 
 			m_gfx->renderFrame();
 

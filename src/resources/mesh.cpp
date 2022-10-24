@@ -42,7 +42,7 @@ void Mesh::initMesh()
 
 void Mesh::drawMesh(const gfx::Pipeline* pipeline)
 {
-	gfx->drawIndexed(pipeline, vb, ib, m_indices.size());
+	gfx->draw(pipeline, vb, ib, m_indices.size(), nullptr);
 }
 
 Mesh::Mesh(GFXDevice* gfx, const std::vector<Vertex>& vertices) : Resource("", "mesh"), gfx(gfx)

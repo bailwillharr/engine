@@ -94,6 +94,8 @@ namespace engine {
 		VkPipelineLayout layout = VK_NULL_HANDLE;
 		VkPipeline handle = VK_NULL_HANDLE;
 		std::vector<gfx::Buffer*> uniformBuffers{};
+		VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
+		std::array<VkDescriptorSet, FRAMES_IN_FLIGHT> descriptorSets{};
 	};
 
 
@@ -1070,29 +1072,32 @@ namespace engine {
 		vkDestroyInstance(pimpl->instance, nullptr);
 	}
 
-	void GFXDevice::drawBuffer(const gfx::Pipeline* pipeline, const gfx::Buffer* vertexBuffer, uint32_t count)
+	void GFXDevice::draw(const gfx::Pipeline* pipeline, const gfx::Buffer* vertexBuffer, const gfx::Buffer* indexBuffer, uint32_t count, const void* uniformData)
 	{
 		assert(vertexBuffer->type == gfx::BufferType::VERTEX);
+		assert(vertexBuffer != nullptr);
+		assert(indexBuffer == nullptr || indexBuffer->type == gfx::BufferType::INDEX);
+
+		VkResult res;
 
 		DrawCall call{
 			.vertexBuffer = vertexBuffer,
-			.indexBuffer = nullptr, // don't use indexed drawing
+			.indexBuffer = indexBuffer, // will be ignored if nullptr
 			.count = count,
 		};
 
-		pimpl->drawQueues[pipeline].push(call);
-	}
+		if (uniformData != nullptr) {
+			uint32_t frameIndex = pimpl->FRAMECOUNT % FRAMES_IN_FLIGHT;
 
-	void GFXDevice::drawIndexed(const gfx::Pipeline* pipeline, const gfx::Buffer* vertexBuffer, const gfx::Buffer* indexBuffer, uint32_t count)
-	{
-		assert(vertexBuffer->type == gfx::BufferType::VERTEX);
-		assert(indexBuffer->type == gfx::BufferType::INDEX);
+			void* dest;
+			res = vmaMapMemory(pimpl->allocator, pipeline->uniformBuffers[frameIndex]->allocation, &dest);
+			assert(res == VK_SUCCESS);
 
-		DrawCall call{
-			.vertexBuffer = vertexBuffer,
-			.indexBuffer = indexBuffer, // don't use indexed drawing
-			.count = count,
-		};
+			memcpy(dest, uniformData, pipeline->uniformBuffers[frameIndex]->size);
+
+			vmaUnmapMemory(pimpl->allocator, pipeline->uniformBuffers[frameIndex]->allocation);
+
+		}
 
 		pimpl->drawQueues[pipeline].push(call);
 	}
@@ -1163,9 +1168,11 @@ namespace engine {
 
 			for (auto& [pipeline, queue] : pimpl->drawQueues) {
 				vkCmdBindPipeline(pimpl->commandBuffers[frameIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->handle);
+				vkCmdBindDescriptorSets(pimpl->commandBuffers[frameIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->layout, 0, 1, &pipeline->descriptorSets[frameIndex], 0, nullptr);
 				while (queue.empty() == false) {
 					DrawCall call = queue.front();
 					vkCmdBindVertexBuffers(pimpl->commandBuffers[frameIndex], 0, 1, &call.vertexBuffer->buffer, offsets);
+					
 					if (call.indexBuffer == nullptr) {
 						// do a simple draw call
 						vkCmdDraw(pimpl->commandBuffers[frameIndex], call.count, 1, 0, 0);
@@ -1250,6 +1257,46 @@ namespace engine {
 			assert(res == VK_SUCCESS);
 
 			pipeline->uniformBuffers[i] = buf;
+		}
+
+		// create descriptor pool for uniform buffers
+		VkDescriptorPoolSize poolSize{};
+		poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		poolSize.descriptorCount = FRAMES_IN_FLIGHT;
+		VkDescriptorPoolCreateInfo poolInfo{};
+		poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+		poolInfo.poolSizeCount = 1;
+		poolInfo.pPoolSizes = &poolSize;
+		poolInfo.maxSets = FRAMES_IN_FLIGHT;
+		res = vkCreateDescriptorPool(pimpl->device, &poolInfo, nullptr, &pipeline->descriptorPool);
+		assert(res == VK_SUCCESS);
+
+		std::array<VkDescriptorSetLayout, FRAMES_IN_FLIGHT> layouts;
+		layouts.fill(pimpl->uboLayout);
+		VkDescriptorSetAllocateInfo dSetAllocInfo{};
+		dSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+		dSetAllocInfo.descriptorPool = pipeline->descriptorPool;
+		dSetAllocInfo.descriptorSetCount = FRAMES_IN_FLIGHT;
+		dSetAllocInfo.pSetLayouts = layouts.data();
+		res = vkAllocateDescriptorSets(pimpl->device, &dSetAllocInfo, pipeline->descriptorSets.data());
+
+		for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
+			VkDescriptorBufferInfo bufferInfo{};
+			bufferInfo.buffer = pipeline->uniformBuffers[i]->buffer;
+			bufferInfo.offset = 0;
+			bufferInfo.range = uniformBufferSize;
+			VkWriteDescriptorSet descriptorWrite{};
+			descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrite.dstSet = pipeline->descriptorSets[i];
+			descriptorWrite.dstBinding = 0;
+			descriptorWrite.dstArrayElement = 0;
+			descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			descriptorWrite.descriptorCount = 1;
+			descriptorWrite.pBufferInfo = &bufferInfo;
+			descriptorWrite.pImageInfo = nullptr;
+			descriptorWrite.pTexelBufferView = nullptr;
+
+			vkUpdateDescriptorSets(pimpl->device, 1, &descriptorWrite, 0, nullptr);
 		}
 
 		// get vertex attrib layout:
@@ -1422,6 +1469,8 @@ namespace engine {
 
 		vkDestroyPipeline(pimpl->device, pipeline->handle, nullptr);
 		vkDestroyPipelineLayout(pimpl->device, pipeline->layout, nullptr);
+
+		vkDestroyDescriptorPool(pimpl->device, pipeline->descriptorPool, nullptr);
 
 		for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
 			destroyBuffer(pipeline->uniformBuffers[i]);
