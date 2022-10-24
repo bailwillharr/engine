@@ -1,6 +1,6 @@
-// The implementation of the graphics layer using Vulkan 1.3.
-// This uses SDL specific code
+// This implementation of the graphics layer does nothing
 
+//#define ENGINE_BUILD_NULLGFX
 #ifdef ENGINE_BUILD_NULLGFX
 
 #include "gfx_device.hpp"
@@ -8,12 +8,23 @@
 #include "config.h"
 #include "log.hpp"
 
+#include <SDL2/SDL.h>
+
+#include <assert.h>
+#include <unordered_set>
+#include <array>
+#include <fstream>
+#include <filesystem>
+#include <optional>
+
 namespace engine {
+
+	// structures and enums
 
 	// class definitions
 
 	struct GFXDevice::Impl {
-		
+
 	};
 
 	GFXDevice::GFXDevice(const char* appName, const char* appVersion, SDL_Window* window)
@@ -26,17 +37,37 @@ namespace engine {
 		TRACE("Destroying GFXDevice...");
 	}
 
-	void GFXDevice::draw()
-	{
-	}
-	
-	void GFXDevice::createPipeline(const char* vertShaderPath, const char* fragShaderPath)
+	void GFXDevice::drawBuffer(const gfx::Pipeline* pipeline, const gfx::Buffer* vertexBuffer, uint32_t count)
 	{
 	}
 
-	bool GFXDevice::createBuffer(const gfx::BufferDesc& desc, const void* data, gfx::BufferHandle* out)
+	void GFXDevice::drawIndexed(const gfx::Pipeline* pipeline, const gfx::Buffer* vertexBuffer, const gfx::Buffer* indexBuffer, uint32_t indexCount)
 	{
-		return true;
+	}
+
+	void GFXDevice::renderFrame()
+	{
+
+	}
+		
+	gfx::Pipeline* GFXDevice::createPipeline(const char* vertShaderPath, const char* fragShaderPath, const gfx::VertexFormat& vertexFormat)
+	{
+		return nullptr;
+	}
+
+	void GFXDevice::destroyPipeline(const gfx::Pipeline* pipeline)
+	{
+
+	}
+
+	gfx::Buffer* GFXDevice::createBuffer(gfx::BufferType type, uint64_t size, const void* data)
+	{
+		return nullptr;
+	}
+
+	void GFXDevice::destroyBuffer(const gfx::Buffer* buffer)
+	{
+
 	}
 
 	void GFXDevice::waitIdle()

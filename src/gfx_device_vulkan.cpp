@@ -1,6 +1,7 @@
 // The implementation of the graphics layer using Vulkan 1.3.
 // This uses SDL specific code
 
+//#undef ENGINE_BUILD_VULKAN
 #ifdef ENGINE_BUILD_VULKAN
 
 #include "gfx_device.hpp"

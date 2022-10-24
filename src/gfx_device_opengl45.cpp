@@ -1,6 +1,7 @@
 // The implementation of the graphics layer using OpenGL 4.5
 // This uses SDL specific code
 
+//#undef ENGINE_BUILD_OPENGL
 #ifdef ENGINE_BUILD_OPENGL
 
 #include "gfx_device.hpp"
