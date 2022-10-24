@@ -28,7 +28,7 @@ namespace engine {
 		void renderFrame();
 		
 		// creates the equivalent of an OpenGL shader program & vertex attrib configuration
-		gfx::Pipeline* createPipeline(const char* vertShaderPath, const char* fragShaderPath, const gfx::VertexFormat& vertexFormat);
+		gfx::Pipeline* createPipeline(const char* vertShaderPath, const char* fragShaderPath, const gfx::VertexFormat& vertexFormat, uint64_t uniformBufferSize);
 		void destroyPipeline(const gfx::Pipeline* pipeline);
 
 		gfx::Buffer* createBuffer(gfx::BufferType type, uint64_t size, const void* data);

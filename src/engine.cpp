@@ -10,6 +10,7 @@
 static engine::gfx::Pipeline* pipeline;
 static engine::gfx::Buffer* vb;
 static engine::gfx::Buffer* ib;
+static engine::gfx::Buffer* ub;
 
 namespace engine {
 
@@ -28,7 +29,12 @@ namespace engine {
 		};
 		vertFormat.attributeDescriptions.push_back({0, gfx::VertexAttribFormat::VEC2, 0});
 		vertFormat.attributeDescriptions.push_back({1, gfx::VertexAttribFormat::VEC3, offsetof(Vertex, col)});
-		pipeline = m_gfx->createPipeline(resMan.getFilePath("shader.vert.spv").string().c_str(), resMan.getFilePath("shader.frag.spv").string().c_str(), vertFormat);
+		struct UBO {
+			glm::mat4 model{};
+			glm::mat4 view{};
+			glm::mat4 proj{};
+		};
+		pipeline = m_gfx->createPipeline(resMan.getFilePath("shader.vert.spv").string().c_str(), resMan.getFilePath("shader.frag.spv").string().c_str(), vertFormat, sizeof(UBO));
 
 		const std::vector<Vertex> vertices = {
 			{	{ 0.5f,	-0.5f},	{1.0f, 0.0f, 0.0f}	},
@@ -42,12 +48,16 @@ namespace engine {
 		};
 		ib = m_gfx->createBuffer(gfx::BufferType::INDEX, sizeof(uint32_t) * indices.size(), indices.data());
 
+		UBO initialUbo{};
+//		ub = m_gfx->createBuffer(gfx::BufferType::UNIFORM, sizeof(UBO), &initialUbo);
+
 	}
 
 	Application::~Application()
 	{
-		m_gfx->destroyBuffer(vb);
+//		m_gfx->destroyBuffer(ub);
 		m_gfx->destroyBuffer(ib);
+		m_gfx->destroyBuffer(vb);
 		m_gfx->destroyPipeline(pipeline);
 	}
 

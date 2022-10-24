@@ -14,6 +14,7 @@ namespace engine::gfx {
 	enum class BufferType {
 		VERTEX,
 		INDEX,
+		UNIFORM,
 	};
 
 	enum class Primitive {

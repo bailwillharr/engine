@@ -31,6 +31,8 @@
 
 namespace engine {
 
+	static constexpr uint32_t FRAMES_IN_FLIGHT = 2; // This improved FPS by 5x!
+
 	// structures and enums
 
 	struct LayerInfo {
@@ -63,8 +65,8 @@ namespace engine {
 
 		VkRenderPass renderpass;
 
-		VkSemaphore acquireSemaphore = VK_NULL_HANDLE; // waits until the image is available
-		VkSemaphore releaseSemaphore = VK_NULL_HANDLE; // waits until rendering finishes
+		std::array<VkSemaphore, FRAMES_IN_FLIGHT> acquireSemaphores{}; // waits until the image is available
+		std::array<VkSemaphore, FRAMES_IN_FLIGHT> releaseSemaphores{}; // waits until rendering finishes
 	};
 
 	struct DrawCall {
@@ -91,6 +93,7 @@ namespace engine {
 	struct gfx::Pipeline {
 		VkPipelineLayout layout = VK_NULL_HANDLE;
 		VkPipeline handle = VK_NULL_HANDLE;
+		std::vector<gfx::Buffer*> uniformBuffers{};
 	};
 
 
@@ -515,13 +518,17 @@ namespace engine {
 		// create the swapchain semaphores
 		VkSemaphoreCreateInfo semaphoreInfo{};
 		semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-		if (swapchain->acquireSemaphore == VK_NULL_HANDLE) {
-			res = vkCreateSemaphore(device, &semaphoreInfo, nullptr, &swapchain->acquireSemaphore);
-			assert(res == VK_SUCCESS);
+		for (auto& acquireSemaphore : swapchain->acquireSemaphores) {
+			if (acquireSemaphore == VK_NULL_HANDLE) {
+				res = vkCreateSemaphore(device, &semaphoreInfo, nullptr, &acquireSemaphore);
+				assert(res == VK_SUCCESS);
+			}
 		}
-		if (swapchain->releaseSemaphore == VK_NULL_HANDLE) {
-			res = vkCreateSemaphore(device, &semaphoreInfo, nullptr, &swapchain->releaseSemaphore);
-			assert(res == VK_SUCCESS);
+		for (auto& releaseSemaphore : swapchain->releaseSemaphores) {
+			if (releaseSemaphore == VK_NULL_HANDLE) {
+				res = vkCreateSemaphore(device, &semaphoreInfo, nullptr, &releaseSemaphore);
+				assert(res == VK_SUCCESS);
+			}
 		}
 
 	}
@@ -588,8 +595,6 @@ namespace engine {
 		
 	}
 
-
-
 	// class definitions
 
 	struct GFXDevice::Impl {
@@ -608,15 +613,20 @@ namespace engine {
 		Queue gfxQueue{};
 		Queue presentQueue{};
 		VkCommandPool commandPool = VK_NULL_HANDLE;
-		VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
 
 		VmaAllocator allocator = nullptr;
 
 		Swapchain swapchain{};
 
-		VkFence inFlightFence = VK_NULL_HANDLE;
+		uint64_t FRAMECOUNT = 0;
+
+		std::array<VkCommandBuffer, FRAMES_IN_FLIGHT> commandBuffers{};
+		std::array<VkFence, FRAMES_IN_FLIGHT> inFlightFences{};
 
 		std::map<const gfx::Pipeline*, std::queue<DrawCall>> drawQueues{};
+
+		VkDescriptorSetLayoutBinding uboLayoutBinding{};
+		VkDescriptorSetLayout uboLayout{};
 
 	};
 
@@ -939,8 +949,10 @@ namespace engine {
 				.commandBufferCount = 1
 			};
 
-			res = vkAllocateCommandBuffers(pimpl->device, &gfxCmdBufInfo, &pimpl->commandBuffer);
-			assert(res == VK_SUCCESS);
+			for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
+				res = vkAllocateCommandBuffers(pimpl->device, &gfxCmdBufInfo, &pimpl->commandBuffers[i]);
+				assert(res == VK_SUCCESS);
+			}
 		}
 
 
@@ -1001,12 +1013,28 @@ namespace engine {
 
 
 
-		// for testing purposes, create a pipeline with a simple shader
 		VkFenceCreateInfo fenceInfo{};
 		fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 		fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 		fenceInfo.pNext = nullptr;
-		res = vkCreateFence(pimpl->device, &fenceInfo, nullptr, &pimpl->inFlightFence);
+		for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
+			res = vkCreateFence(pimpl->device, &fenceInfo, nullptr, &pimpl->inFlightFences[i]);
+			assert(res == VK_SUCCESS);
+		}
+
+		// create uniform buffer stuff
+		pimpl->uboLayoutBinding.binding = 0;
+		pimpl->uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		pimpl->uboLayoutBinding.descriptorCount = 1;
+		pimpl->uboLayoutBinding.stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS;
+		pimpl->uboLayoutBinding.pImmutableSamplers = nullptr;
+		VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+		descriptorSetLayoutInfo.bindingCount = 1;
+		descriptorSetLayoutInfo.pBindings = &pimpl->uboLayoutBinding;
+		res = vkCreateDescriptorSetLayout(pimpl->device, &descriptorSetLayoutInfo, nullptr, &pimpl->uboLayout);
+		assert(res == VK_SUCCESS);
+
+
 
 	}
 
@@ -1014,10 +1042,16 @@ namespace engine {
 	{
 		TRACE("Destroying GFXDevice...");
 
-		vkDestroyFence(pimpl->device, pimpl->inFlightFence, nullptr);
+		vkDestroyDescriptorSetLayout(pimpl->device, pimpl->uboLayout, nullptr);
 
-		vkDestroySemaphore(pimpl->device, pimpl->swapchain.releaseSemaphore, nullptr);
-		vkDestroySemaphore(pimpl->device, pimpl->swapchain.acquireSemaphore, nullptr);
+		for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
+
+			vkDestroyFence(pimpl->device, pimpl->inFlightFences[i], nullptr);
+
+			vkDestroySemaphore(pimpl->device, pimpl->swapchain.releaseSemaphores[i], nullptr);
+			vkDestroySemaphore(pimpl->device, pimpl->swapchain.acquireSemaphores[i], nullptr);
+
+		}
 		for (VkImageView view : pimpl->swapchain.imageViews) {
 			vkDestroyImageView(pimpl->device, view, nullptr);
 		}
@@ -1067,13 +1101,15 @@ namespace engine {
 	{
 		VkResult res;
 
-		res = vkWaitForFences(pimpl->device, 1, &pimpl->inFlightFence, VK_TRUE, UINT64_MAX);
+		const uint32_t frameIndex = pimpl->FRAMECOUNT % FRAMES_IN_FLIGHT;
+
+		res = vkWaitForFences(pimpl->device, 1, &pimpl->inFlightFences[frameIndex], VK_TRUE, UINT64_MAX);
 		assert(res == VK_SUCCESS);
-		res = vkResetFences(pimpl->device, 1, &pimpl->inFlightFence);
+		res = vkResetFences(pimpl->device, 1, &pimpl->inFlightFences[frameIndex]);
 		assert(res == VK_SUCCESS);
 
 		uint32_t imageIndex = 0;
-		res = vkAcquireNextImageKHR(pimpl->device, pimpl->swapchain.swapchain, UINT64_MAX, pimpl->swapchain.acquireSemaphore, VK_NULL_HANDLE, &imageIndex);
+		res = vkAcquireNextImageKHR(pimpl->device, pimpl->swapchain.swapchain, UINT64_MAX, pimpl->swapchain.acquireSemaphores[frameIndex], VK_NULL_HANDLE, &imageIndex);
 		if (res == VK_ERROR_OUT_OF_DATE_KHR) {
 			// recreate swapchain
 			waitIdle();
@@ -1084,7 +1120,7 @@ namespace engine {
 			assert(res == VK_SUCCESS || res == VK_SUBOPTIMAL_KHR);
 		}
 
-		res = vkResetCommandBuffer(pimpl->commandBuffer, 0);
+		res = vkResetCommandBuffer(pimpl->commandBuffers[frameIndex], 0);
 		assert(res == VK_SUCCESS);
 		
 		// now record command buffer
@@ -1092,7 +1128,7 @@ namespace engine {
 			VkCommandBufferBeginInfo beginInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
 			beginInfo.flags = 0;
 			beginInfo.pInheritanceInfo = nullptr;
-			res = vkBeginCommandBuffer(pimpl->commandBuffer, &beginInfo);
+			res = vkBeginCommandBuffer(pimpl->commandBuffers[frameIndex], &beginInfo);
 			assert(res == VK_SUCCESS);
 
 			VkRenderPassBeginInfo renderPassInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
@@ -1105,7 +1141,7 @@ namespace engine {
 			renderPassInfo.clearValueCount = 1;
 			renderPassInfo.pClearValues = &clearColor;
 			
-			vkCmdBeginRenderPass(pimpl->commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+			vkCmdBeginRenderPass(pimpl->commandBuffers[frameIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 			VkViewport viewport{};
 			viewport.x = 0.0f;
@@ -1114,28 +1150,28 @@ namespace engine {
 			viewport.height = (float)pimpl->swapchain.extent.height;
 			viewport.minDepth = 0.0f;
 			viewport.maxDepth = 1.0f;
-			vkCmdSetViewport(pimpl->commandBuffer, 0, 1, &viewport);
+			vkCmdSetViewport(pimpl->commandBuffers[frameIndex], 0, 1, &viewport);
 
 			VkRect2D scissor{};
 			scissor.offset = { 0, 0 };
 			scissor.extent = pimpl->swapchain.extent;
-			vkCmdSetScissor(pimpl->commandBuffer, 0, 1, &scissor);
+			vkCmdSetScissor(pimpl->commandBuffers[frameIndex], 0, 1, &scissor);
 
 			// run queued draw calls
 
 			VkDeviceSize offsets[] = { 0 };
 
 			for (auto& [pipeline, queue] : pimpl->drawQueues) {
-				vkCmdBindPipeline(pimpl->commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->handle);
+				vkCmdBindPipeline(pimpl->commandBuffers[frameIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->handle);
 				while (queue.empty() == false) {
 					DrawCall call = queue.front();
-					vkCmdBindVertexBuffers(pimpl->commandBuffer, 0, 1, &call.vertexBuffer->buffer, offsets);
+					vkCmdBindVertexBuffers(pimpl->commandBuffers[frameIndex], 0, 1, &call.vertexBuffer->buffer, offsets);
 					if (call.indexBuffer == nullptr) {
 						// do a simple draw call
-						vkCmdDraw(pimpl->commandBuffer, call.count, 1, 0, 0);
+						vkCmdDraw(pimpl->commandBuffers[frameIndex], call.count, 1, 0, 0);
 					} else {
-						vkCmdBindIndexBuffer(pimpl->commandBuffer, call.indexBuffer->buffer, 0, VK_INDEX_TYPE_UINT32);
-						vkCmdDrawIndexed(pimpl->commandBuffer, call.count, 1, 0, 0, 0);
+						vkCmdBindIndexBuffer(pimpl->commandBuffers[frameIndex], call.indexBuffer->buffer, 0, VK_INDEX_TYPE_UINT32);
+						vkCmdDrawIndexed(pimpl->commandBuffers[frameIndex], call.count, 1, 0, 0, 0);
 					}
 					queue.pop();
 				}
@@ -1143,9 +1179,9 @@ namespace engine {
 
 			pimpl->drawQueues.clear();
 
-			vkCmdEndRenderPass(pimpl->commandBuffer);
+			vkCmdEndRenderPass(pimpl->commandBuffers[frameIndex]);
 
-			res = vkEndCommandBuffer(pimpl->commandBuffer);
+			res = vkEndCommandBuffer(pimpl->commandBuffers[frameIndex]);
 			assert(res == VK_SUCCESS);
 		}
 
@@ -1153,19 +1189,19 @@ namespace engine {
 
 		VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 		submitInfo.waitSemaphoreCount = 1;
-		submitInfo.pWaitSemaphores = &pimpl->swapchain.acquireSemaphore;
+		submitInfo.pWaitSemaphores = &pimpl->swapchain.acquireSemaphores[frameIndex];
 		submitInfo.pWaitDstStageMask = waitStages;
 		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &pimpl->commandBuffer;
+		submitInfo.pCommandBuffers = &pimpl->commandBuffers[frameIndex];
 		submitInfo.signalSemaphoreCount = 1;
-		submitInfo.pSignalSemaphores = &pimpl->swapchain.releaseSemaphore;
+		submitInfo.pSignalSemaphores = &pimpl->swapchain.releaseSemaphores[frameIndex];
 
-		res = vkQueueSubmit(pimpl->gfxQueue.handle, 1, &submitInfo, pimpl->inFlightFence);
+		res = vkQueueSubmit(pimpl->gfxQueue.handle, 1, &submitInfo, pimpl->inFlightFences[frameIndex]);
 		assert(res == VK_SUCCESS);
 
 		VkPresentInfoKHR presentInfo{ VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
 		presentInfo.waitSemaphoreCount = 1;
-		presentInfo.pWaitSemaphores = &pimpl->swapchain.releaseSemaphore;
+		presentInfo.pWaitSemaphores = &pimpl->swapchain.releaseSemaphores[frameIndex];
 
 		VkSwapchainKHR swapchains[] = { pimpl->swapchain.swapchain };
 		presentInfo.swapchainCount = 1;
@@ -1182,14 +1218,39 @@ namespace engine {
 		else {
 			assert(res == VK_SUCCESS);
 		}
+
+		pimpl->FRAMECOUNT++;
 	}
 	
-	gfx::Pipeline* GFXDevice::createPipeline(const char* vertShaderPath, const char* fragShaderPath, const gfx::VertexFormat& vertexFormat)
+	gfx::Pipeline* GFXDevice::createPipeline(const char* vertShaderPath, const char* fragShaderPath, const gfx::VertexFormat& vertexFormat, uint64_t uniformBufferSize)
 	{
 
 		VkResult res;
 
 		gfx::Pipeline* pipeline = new gfx::Pipeline;
+
+		// create uniform buffers
+		pipeline->uniformBuffers.resize(FRAMES_IN_FLIGHT);
+		for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
+			auto buf = new gfx::Buffer{};
+			buf->size = uniformBufferSize;
+			buf->type = gfx::BufferType::UNIFORM;
+
+			VkBufferCreateInfo bufferInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+			bufferInfo.size = buf->size;
+			bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+			bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+			VmaAllocationCreateInfo allocInfo{};
+			allocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_HOST; // prefer CPU memory for uniforms
+			allocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+			allocInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+
+			res = vmaCreateBuffer(pimpl->allocator, &bufferInfo, &allocInfo, &buf->buffer, &buf->allocation, nullptr);
+			assert(res == VK_SUCCESS);
+
+			pipeline->uniformBuffers[i] = buf;
+		}
 
 		// get vertex attrib layout:
 		VkVertexInputBindingDescription bindingDescription{ };
@@ -1320,9 +1381,8 @@ namespace engine {
 
 		VkPipelineLayoutCreateInfo layoutInfo{};
 		layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		// everything is 0 because we're not using uniforms
-		layoutInfo.setLayoutCount = 0;
-		layoutInfo.pSetLayouts = nullptr;
+		layoutInfo.setLayoutCount = 1;
+		layoutInfo.pSetLayouts = &pimpl->uboLayout;
 		layoutInfo.pushConstantRangeCount = 0;
 		layoutInfo.pPushConstantRanges = nullptr;
 
@@ -1362,6 +1422,10 @@ namespace engine {
 
 		vkDestroyPipeline(pimpl->device, pipeline->handle, nullptr);
 		vkDestroyPipelineLayout(pimpl->device, pipeline->layout, nullptr);
+
+		for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
+			destroyBuffer(pipeline->uniformBuffers[i]);
+		}
 
 		delete pipeline;
 	}
