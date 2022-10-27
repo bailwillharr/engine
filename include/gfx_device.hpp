@@ -20,7 +20,7 @@ namespace engine {
 		~GFXDevice();
 
 		// adds a draw call to the queue
-		// vertexBuffer is required. indexBuffer and uniformData can be NULL
+		// vertexBuffer is required, indexBuffer can be NULL, uniformData is required
 		void draw(const gfx::Pipeline* pipeline, const gfx::Buffer* vertexBuffer, const gfx::Buffer* indexBuffer, uint32_t count, const void* uniformData);
 
 		// Call once per frame. Executes all queued draw calls and renders to the screen.
@@ -41,5 +41,7 @@ namespace engine {
 		std::unique_ptr<Impl> pimpl;
 
 	};
+
+	extern GFXDevice* gfxdev;
 
 }

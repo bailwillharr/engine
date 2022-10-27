@@ -5,7 +5,10 @@
 namespace engine {
 
 	class Window;
+	class Input;
 	class GFXDevice;
+	class ResourceManager;
+	class SceneRoot;
 
 	class Application {
 
@@ -21,7 +24,9 @@ namespace engine {
 
 	private:
 		std::unique_ptr<Window> m_win;
-		std::unique_ptr<GFXDevice> m_gfx;
+		std::unique_ptr<Input> m_input;
+		std::unique_ptr<ResourceManager> m_res;
+		std::unique_ptr<SceneRoot> m_scene;
 	};
 
 }

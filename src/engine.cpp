@@ -1,12 +1,15 @@
 #include "engine.hpp"
 
-#include "window.hpp"
-#include "gfx_device.hpp"
-#include "resource_manager.hpp"
 #include "log.hpp"
 
-#include <glm/glm.hpp>
-#include <glm/ext.hpp>
+#include "window.hpp"
+#include "input.hpp"
+#include "resource_manager.hpp"
+#include "sceneroot.hpp"
+
+#include "gfx_device.hpp"
+
+#include "resources/mesh.hpp"
 
 struct UBO {
 	glm::mat4 model{};
@@ -17,48 +20,27 @@ struct UBO {
 static engine::gfx::Pipeline* pipeline;
 static engine::gfx::Buffer* vb;
 static engine::gfx::Buffer* ib;
-static engine::gfx::Buffer* ub;
 
 namespace engine {
 
 	Application::Application(const char* appName, const char* appVersion)
 	{
 		m_win = std::make_unique<Window>(appName, true);
-		m_gfx = std::make_unique<GFXDevice>(appName, appVersion, m_win->getHandle());
 
-		engine::ResourceManager resMan{};
-		struct Vertex {
-			glm::vec2 pos;
-			glm::vec3 col;
-		};
-		gfx::VertexFormat vertFormat{
-			.stride = (uint32_t)sizeof(Vertex),
-		};
-		vertFormat.attributeDescriptions.push_back({0, gfx::VertexAttribFormat::VEC2, 0});
-		vertFormat.attributeDescriptions.push_back({1, gfx::VertexAttribFormat::VEC3, offsetof(Vertex, col)});
+		gfxdev = new GFXDevice(appName, appVersion, m_win->getHandle());
 
-		pipeline = m_gfx->createPipeline(resMan.getFilePath("shader.vert.spv").string().c_str(), resMan.getFilePath("shader.frag.spv").string().c_str(), vertFormat, sizeof(UBO));
-
-		const std::vector<Vertex> vertices = {
-			{	{ 0.5f,	-0.5f},	{1.0f, 0.0f, 0.0f}	},
-			{	{ 0.5f,	 0.5f},	{0.0f, 1.0f, 0.0f}	},
-			{	{-0.5f,	-0.5f},	{0.0f, 0.0f, 1.0f}	},
-			{	{-0.5f,	 0.5f},	{0.0f, 1.0f, 1.0f}	},
-		};
-		vb = m_gfx->createBuffer(gfx::BufferType::VERTEX, sizeof(Vertex) * vertices.size(), vertices.data());
-		const std::vector<uint32_t> indices = {
-			0, 1, 2, 2, 1, 3,
-		};
-		ib = m_gfx->createBuffer(gfx::BufferType::INDEX, sizeof(uint32_t) * indices.size(), indices.data());
-
+		m_input = std::make_unique<Input>(*m_win);
+		m_res = std::make_unique<ResourceManager>();
+		GameIO things{};
+		things.win = m_win.get();
+		things.input = m_input.get();
+		things.resMan = m_res.get();
+		m_scene = std::make_unique<SceneRoot>(things);
 	}
 
 	Application::~Application()
 	{
-//		m_gfx->destroyBuffer(ub);
-		m_gfx->destroyBuffer(ib);
-		m_gfx->destroyBuffer(vb);
-		m_gfx->destroyPipeline(pipeline);
+		delete gfxdev;
 	}
 
 	void Application::gameLoop()
@@ -67,6 +49,8 @@ namespace engine {
 
 		uint64_t lastTick = m_win->getNanos();
 		constexpr int TICKFREQ = 1; // in hz
+
+		auto myMesh = m_res->get<resources::Mesh>("meshes/monke.mesh");
 
 		// single-threaded game loop
 		while (m_win->isRunning()) {
@@ -88,23 +72,17 @@ namespace engine {
 				m_win->setCloseFlag();
 			}
 
-			/* draw */
-			UBO initialUbo{
-				.model = glm::mat4{1.0f},
-				.view = glm::mat4{1.0f},
-				.proj = glm::mat4{1.0f}
-			};
-			initialUbo.model = glm::scale(glm::mat4{ 1.0f }, glm::vec3{ 0.5f, 0.5f, 1.0f });
-			m_gfx->draw(pipeline, vb, ib, 6, &initialUbo);
+			m_scene->updateStuff();
 
-			m_gfx->renderFrame();
+			/* draw */
+			gfxdev->renderFrame();
 
 			/* poll events */
 			m_win->getInputAndEvents();
 
 		}
 
-		m_gfx->waitIdle();
+		gfxdev->waitIdle();
 	}
 
 }

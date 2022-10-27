@@ -20,12 +20,6 @@ namespace engine {
 	{
 	}
 
-	SceneRoot::SceneRoot(const std::filesystem::path& file, struct GameIO things) : SceneRoot(things)
-	{
-		// TODO: make this a resource
-		//loadFromSceneFile(file);
-	}
-
 	SceneRoot::~SceneRoot()
 	{
 	}

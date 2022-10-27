@@ -31,7 +31,12 @@
 
 namespace engine {
 
-	static constexpr uint32_t FRAMES_IN_FLIGHT = 2; // This improved FPS by 5x!
+	// EXTERNED GLOBAL VARIABLE
+	GFXDevice* gfxdev = nullptr;
+
+	static constexpr uint32_t FRAMES_IN_FLIGHT = 2; // This improved FPS by 5x! (on Intel IGPU)
+
+	static constexpr size_t UNIFORM_BUFFER_MAX_SIZE = 256; // bytes
 
 	// structures and enums
 
@@ -73,6 +78,7 @@ namespace engine {
 		const gfx::Buffer* vertexBuffer = nullptr;
 		const gfx::Buffer* indexBuffer = nullptr; // if this is nullptr, don't use indexed
 		uint32_t count = 0;
+		uint8_t uniformData[UNIFORM_BUFFER_MAX_SIZE];
 	};
 
 	enum class QueueFlags : uint32_t {
@@ -634,6 +640,11 @@ namespace engine {
 
 	GFXDevice::GFXDevice(const char* appName, const char* appVersion, SDL_Window* window)
 	{
+		if (gfxdev != nullptr) {
+			throw std::runtime_error("There can only be one graphics device");
+		}
+		gfxdev = this;
+
 		pimpl = std::make_unique<Impl>();
 
 		VkResult res;
@@ -1077,8 +1088,7 @@ namespace engine {
 		assert(vertexBuffer->type == gfx::BufferType::VERTEX);
 		assert(vertexBuffer != nullptr);
 		assert(indexBuffer == nullptr || indexBuffer->type == gfx::BufferType::INDEX);
-
-		VkResult res;
+		assert(uniformData != nullptr);
 
 		DrawCall call{
 			.vertexBuffer = vertexBuffer,
@@ -1086,18 +1096,9 @@ namespace engine {
 			.count = count,
 		};
 
-		if (uniformData != nullptr) {
-			uint32_t frameIndex = pimpl->FRAMECOUNT % FRAMES_IN_FLIGHT;
+		size_t uniformDataSize = pipeline->uniformBuffers[pimpl->FRAMECOUNT % FRAMES_IN_FLIGHT]->size;
 
-			void* dest;
-			res = vmaMapMemory(pimpl->allocator, pipeline->uniformBuffers[frameIndex]->allocation, &dest);
-			assert(res == VK_SUCCESS);
-
-			memcpy(dest, uniformData, pipeline->uniformBuffers[frameIndex]->size);
-
-			vmaUnmapMemory(pimpl->allocator, pipeline->uniformBuffers[frameIndex]->allocation);
-
-		}
+		memcpy(call.uniformData, uniformData, uniformDataSize);
 
 		pimpl->drawQueues[pipeline].push(call);
 	}
@@ -1171,6 +1172,15 @@ namespace engine {
 				vkCmdBindDescriptorSets(pimpl->commandBuffers[frameIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->layout, 0, 1, &pipeline->descriptorSets[frameIndex], 0, nullptr);
 				while (queue.empty() == false) {
 					DrawCall call = queue.front();
+
+					void* uniformDest;
+					res = vmaMapMemory(pimpl->allocator, pipeline->uniformBuffers[frameIndex]->allocation, &uniformDest);
+					assert(res == VK_SUCCESS);
+
+					memcpy(uniformDest, call.uniformData, pipeline->uniformBuffers[frameIndex]->size);
+
+					vmaUnmapMemory(pimpl->allocator, pipeline->uniformBuffers[frameIndex]->allocation);
+
 					vkCmdBindVertexBuffers(pimpl->commandBuffers[frameIndex], 0, 1, &call.vertexBuffer->buffer, offsets);
 					
 					if (call.indexBuffer == nullptr) {
@@ -1180,6 +1190,7 @@ namespace engine {
 						vkCmdBindIndexBuffer(pimpl->commandBuffers[frameIndex], call.indexBuffer->buffer, 0, VK_INDEX_TYPE_UINT32);
 						vkCmdDrawIndexed(pimpl->commandBuffers[frameIndex], call.count, 1, 0, 0, 0);
 					}
+
 					queue.pop();
 				}
 			}

@@ -15,7 +15,6 @@
 namespace engine {
 	class Window;
 	class Input;
-
 	class ResourceManager;
 
 	class SceneRoot;
@@ -30,9 +29,9 @@ namespace engine {
 	}
 
 	struct GameIO {
-		engine::Window* const win;
-		engine::Input* const input;
-		ResourceManager* const resMan;
+		Window* win;
+		Input* input;
+		ResourceManager* resMan;
 	};
 
 	// This object lives until it is deleted by its parent(s) or finally when the "Scene" is destroyed.
@@ -45,9 +44,10 @@ namespace engine {
 		Object& operator=(const Object&) = delete;
 		~Object();
 
-		engine::Window& win;
-		engine::Input& inp;
+		Window& win;
+		Input& inp;
 		ResourceManager& res;
+
 
 		SceneRoot& root;
 

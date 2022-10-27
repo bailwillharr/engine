@@ -36,16 +36,11 @@ static void loadMeshFromFile(const std::filesystem::path& path, std::vector<Vert
 
 void Mesh::initMesh()
 {
-	vb = gfx->createBuffer(gfx::BufferType::VERTEX, m_vertices.size() * sizeof(Vertex), m_vertices.data());
-	ib = gfx->createBuffer(gfx::BufferType::INDEX, m_indices.size() * sizeof(uint32_t), m_indices.data());
+	vb = gfxdev->createBuffer(gfx::BufferType::VERTEX, m_vertices.size() * sizeof(Vertex), m_vertices.data());
+	ib = gfxdev->createBuffer(gfx::BufferType::INDEX, m_indices.size() * sizeof(uint32_t), m_indices.data());
 }
 
-void Mesh::drawMesh(const gfx::Pipeline* pipeline)
-{
-	gfx->draw(pipeline, vb, ib, m_indices.size(), nullptr);
-}
-
-Mesh::Mesh(GFXDevice* gfx, const std::vector<Vertex>& vertices) : Resource("", "mesh"), gfx(gfx)
+Mesh::Mesh(const std::vector<Vertex>& vertices) : Resource("", "mesh")
 {
 	// constructor for custom meshes without an index array
 	m_vertices = vertices; // COPY over vertices
@@ -55,7 +50,7 @@ Mesh::Mesh(GFXDevice* gfx, const std::vector<Vertex>& vertices) : Resource("", "
 	initMesh();
 }
 
-Mesh::Mesh(GFXDevice* gfx, const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices) : Resource("", "mesh"), gfx(gfx)
+Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices) : Resource("", "mesh")
 {
 	m_vertices = vertices; // COPY over vertices
 	m_indices = indices; // COPY over indices;
@@ -63,7 +58,7 @@ Mesh::Mesh(GFXDevice* gfx, const std::vector<Vertex>& vertices, const std::vecto
 }
 
 // To be used with the resource manager
-Mesh::Mesh(GFXDevice* gfx, const std::filesystem::path& resPath) : Resource(resPath, "mesh"), gfx(gfx)
+Mesh::Mesh(const std::filesystem::path& resPath) : Resource(resPath, "mesh")
 {
 	loadMeshFromFile(resPath, &m_vertices, &m_indices);
 	initMesh();
@@ -71,8 +66,8 @@ Mesh::Mesh(GFXDevice* gfx, const std::filesystem::path& resPath) : Resource(resP
 
 Mesh::~Mesh()
 {
-	gfx->destroyBuffer(ib);
-	gfx->destroyBuffer(vb);
+	gfxdev->destroyBuffer(ib);
+	gfxdev->destroyBuffer(vb);
 }
 
 }

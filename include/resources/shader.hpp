@@ -4,8 +4,6 @@
 
 #include "resource.hpp"
 
-#include <glad/glad.h>
-
 #include <glm/mat4x4.hpp>
 
 #include <string>

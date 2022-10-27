@@ -18,30 +18,23 @@ struct Vertex {
 	glm::vec2 uv;
 };
 
-namespace engine {
-	class GFXDevice;
-}
-
 namespace engine::resources {
 
 class ENGINE_API Mesh : public Resource {
 
 public:
-	Mesh(GFXDevice* gfx, const std::vector<Vertex>& vertices);
-	Mesh(GFXDevice* gfx, const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices);
-	Mesh(GFXDevice* gfx, const std::filesystem::path& resPath);
+	Mesh(const std::vector<Vertex>& vertices);
+	Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices);
+	Mesh(const std::filesystem::path& resPath);
 	~Mesh() override;
-
-	void drawMesh(const gfx::Pipeline* pipeline);
 
 	std::vector<Vertex> m_vertices;
 	std::vector<uint32_t> m_indices;
 
-private:
 	const gfx::Buffer* vb;
 	const gfx::Buffer* ib;
 
-	GFXDevice* gfx;
+private:
 
 	void initMesh();
 
