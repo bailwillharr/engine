@@ -19,6 +19,8 @@ namespace engine {
 		GFXDevice& operator=(const GFXDevice&) = delete;
 		~GFXDevice();
 
+		void getViewportSize(uint32_t *w, uint32_t *h);
+
 		// adds a draw call to the queue
 		// vertexBuffer is required, indexBuffer can be NULL, uniformData is required
 		void draw(const gfx::Pipeline* pipeline, const gfx::Buffer* vertexBuffer, const gfx::Buffer* indexBuffer, uint32_t count, const void* uniformData);

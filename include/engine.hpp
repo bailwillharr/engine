@@ -6,7 +6,6 @@ namespace engine {
 
 	class Window;
 	class Input;
-	class GFXDevice;
 	class ResourceManager;
 	class SceneRoot;
 

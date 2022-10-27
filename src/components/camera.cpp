@@ -7,11 +7,9 @@
 
 #include "window.hpp"
 
-#include "log.hpp"
+#include "gfx_device.hpp"
 
-static const std::string VIEW_MAT_UNIFORM = "viewMat";
-static const std::string PROJ_MAT_UNIFORM = "projMat";
-static const std::string WINDOW_SIZE_UNIFORM = "windowSize";
+#include "log.hpp"
 
 namespace engine::components {
 
@@ -20,11 +18,6 @@ glm::vec4 Camera::s_clearColor{-999.0f, -999.0f, -999.0f, -999.0f};
 Camera::Camera(Object* parent) : Component(parent, TypeEnum::CAMERA)
 {
 	parent->root.activateCam(getID());
-	glEnable(GL_DEPTH_TEST);
-
-	glDisable(GL_STENCIL_TEST);
-
-	glEnable(GL_CULL_FACE);
 }
 
 Camera::~Camera()
@@ -52,26 +45,17 @@ void Camera::updateCam(glm::mat4 transform)
 		// shader ref count increased by 1, but only in this scope
 		auto lockedPtr = resPtr.lock();
 		auto shader = dynamic_cast<Shader*>(lockedPtr.get());
-		shader->setUniform_m4(VIEW_MAT_UNIFORM, viewMatrix);
-		shader->setUniform_m4(PROJ_MAT_UNIFORM, m_projMatrix);
-//		shader->setUniform_v2(WINDOW_SIZE_UNIFORM, win.getViewportSize());
-		shader->setUniform_v3("lightPos", m_lightPos);
+		// SET VIEW TRANSFORM HERE
 	}
-
-	if (s_clearColor != clearColor) {
-		s_clearColor = clearColor;
-		glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
-	}
-
-	glClear((m_noClear ? 0 : GL_COLOR_BUFFER_BIT) | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
 }
 
 static glm::vec2 getViewportSize()
 {
-	GLint64 viewportParams[4];
-	glGetInteger64v(GL_VIEWPORT, viewportParams);
-	return { viewportParams[2], viewportParams[3] };
+	uint32_t width;
+	uint32_t height;
+	gfxdev->getViewportSize(&width, &height);
+	return {width, height};
 }
 
 void Camera::usePerspective(float fovDeg)

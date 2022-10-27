@@ -11,11 +11,8 @@
 
 #include "resources/mesh.hpp"
 
-struct UBO {
-	glm::mat4 model{};
-	glm::mat4 view{};
-	glm::mat4 proj{};
-};
+#include "components/mesh_renderer.hpp"
+#include "components/camera.hpp"
 
 static engine::gfx::Pipeline* pipeline;
 static engine::gfx::Buffer* vb;
@@ -28,7 +25,6 @@ namespace engine {
 		m_win = std::make_unique<Window>(appName, true);
 
 		gfxdev = new GFXDevice(appName, appVersion, m_win->getHandle());
-
 		m_input = std::make_unique<Input>(*m_win);
 		m_res = std::make_unique<ResourceManager>();
 		GameIO things{};
@@ -36,6 +32,9 @@ namespace engine {
 		things.input = m_input.get();
 		things.resMan = m_res.get();
 		m_scene = std::make_unique<SceneRoot>(things);
+
+		m_scene->createChild("player")->createComponent<components::Renderer>()->setMesh("meshes/cube.mesh");
+		m_scene->createChild("cam")->createComponent<components::Camera>();
 	}
 
 	Application::~Application()
@@ -49,8 +48,6 @@ namespace engine {
 
 		uint64_t lastTick = m_win->getNanos();
 		constexpr int TICKFREQ = 1; // in hz
-
-		auto myMesh = m_res->get<resources::Mesh>("meshes/monke.mesh");
 
 		// single-threaded game loop
 		while (m_win->isRunning()) {

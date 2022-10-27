@@ -6,6 +6,8 @@
 
 #include "transform.hpp"
 
+#include "components/component.hpp"
+
 #include <list>
 #include <vector>
 #include <string>

@@ -2,6 +2,8 @@
 
 #include "gfx_device.hpp"
 
+#include "log.hpp"
+
 namespace engine::resources {
 
 struct MeshFileHeader {
@@ -38,6 +40,12 @@ void Mesh::initMesh()
 {
 	vb = gfxdev->createBuffer(gfx::BufferType::VERTEX, m_vertices.size() * sizeof(Vertex), m_vertices.data());
 	ib = gfxdev->createBuffer(gfx::BufferType::INDEX, m_indices.size() * sizeof(uint32_t), m_indices.data());
+
+	TRACE("Vertices:");
+
+	for (const auto& v : m_vertices) {
+		TRACE("pos: {}, {}, {}", v.pos.x, v.pos.y, v.pos.z);
+	}
 }
 
 Mesh::Mesh(const std::vector<Vertex>& vertices) : Resource("", "mesh")

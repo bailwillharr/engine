@@ -23,11 +23,14 @@ UI::~UI()
 void UI::render(glm::mat4 transform)
 {
 
+	/*
 	glActiveTexture(GL_TEXTURE0);
 	m_shader->setUniform_m4("modelMat", transform);
 
 	m_shader->setUniform_v3("textColor", m_color);
 	m_shader->setUniform_i("textScaling", (int)m_scaled);
+
+	*/
 
 	std::vector<resources::Font::Character> glyphs;
 	for (char c : m_text) {

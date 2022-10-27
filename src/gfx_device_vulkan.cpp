@@ -1083,6 +1083,12 @@ namespace engine {
 		vkDestroyInstance(pimpl->instance, nullptr);
 	}
 
+	void GFXDevice::getViewportSize(uint32_t *w, uint32_t *h)
+	{
+		*w = pimpl->swapchain.extent.width;
+		*h = pimpl->swapchain.extent.height;
+	}
+
 	void GFXDevice::draw(const gfx::Pipeline* pipeline, const gfx::Buffer* vertexBuffer, const gfx::Buffer* indexBuffer, uint32_t count, const void* uniformData)
 	{
 		assert(vertexBuffer->type == gfx::BufferType::VERTEX);
@@ -1101,6 +1107,7 @@ namespace engine {
 		memcpy(call.uniformData, uniformData, uniformDataSize);
 
 		pimpl->drawQueues[pipeline].push(call);
+
 	}
 
 	void GFXDevice::renderFrame()
@@ -1171,6 +1178,7 @@ namespace engine {
 				vkCmdBindPipeline(pimpl->commandBuffers[frameIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->handle);
 				vkCmdBindDescriptorSets(pimpl->commandBuffers[frameIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->layout, 0, 1, &pipeline->descriptorSets[frameIndex], 0, nullptr);
 				while (queue.empty() == false) {
+
 					DrawCall call = queue.front();
 
 					void* uniformDest;
