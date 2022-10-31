@@ -7,6 +7,8 @@
 
 #include <log.hpp>
 
+#include <glm/gtc/quaternion.hpp>
+
 namespace engine {
 
 	int Object::s_object_count = 0;
@@ -109,7 +111,7 @@ namespace engine {
 		// scale (effectively applied first
 		objTransform = glm::scale(objTransform, t.scale);
 
-		const glm::mat4 newTransform = parentTransform * objTransform;
+		glm::mat4 newTransform = parentTransform * objTransform;
 
 		for (const auto& compUnq : m_components) {
 			const auto comp = compUnq.get();

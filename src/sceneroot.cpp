@@ -7,6 +7,8 @@
 #include "components/mesh_renderer.hpp"
 #include "components/text_ui_renderer.hpp"
 
+#include "gfx_device.hpp"
+
 #include <glm/mat4x4.hpp>
 
 #include <iostream>
@@ -46,12 +48,12 @@ namespace engine {
 
 		// render
 
-		for (const auto& [c, t] : compList.cameras) {
+		for (const auto& [c, camt] : compList.cameras) {
 			for (int id : m_activeCameras) {
 				if (c->getID() == id) {
-					c->updateCam(t);
-					for (const auto& [c, t] : compList.renderers) {
-						c->render(t);
+					c->updateCam(camt);
+					for (const auto& [ren, ren_t] : compList.renderers) {
+						ren->render(ren_t);
 					}
 
 					break;

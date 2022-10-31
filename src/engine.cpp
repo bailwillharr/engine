@@ -14,32 +14,34 @@
 #include "components/mesh_renderer.hpp"
 #include "components/camera.hpp"
 
-static engine::gfx::Pipeline* pipeline;
-static engine::gfx::Buffer* vb;
-static engine::gfx::Buffer* ib;
-
 namespace engine {
 
 	Application::Application(const char* appName, const char* appVersion)
 	{
-		m_win = std::make_unique<Window>(appName, true);
+		m_win = new Window(appName, true);
 
 		gfxdev = new GFXDevice(appName, appVersion, m_win->getHandle());
-		m_input = std::make_unique<Input>(*m_win);
-		m_res = std::make_unique<ResourceManager>();
-		GameIO things{};
-		things.win = m_win.get();
-		things.input = m_input.get();
-		things.resMan = m_res.get();
-		m_scene = std::make_unique<SceneRoot>(things);
 
-		m_scene->createChild("player")->createComponent<components::Renderer>()->setMesh("meshes/cube.mesh");
-		m_scene->createChild("cam")->createComponent<components::Camera>();
+		m_input = new Input(*m_win);
+		m_res = new ResourceManager();
+
+		GameIO things{
+			m_win,
+			m_input,
+			m_res
+		};
+		m_scene = new SceneRoot(things);
 	}
 
 	Application::~Application()
 	{
+		delete m_scene;
+		delete m_res;
+		delete m_input;
+
 		delete gfxdev;
+
+		delete m_win;
 	}
 
 	void Application::gameLoop()

@@ -30,6 +30,7 @@ Shader::Shader(const std::filesystem::path& resPath) : Resource(resPath, "shader
 {
 
 	gfx::VertexFormat vertexFormat {};
+	vertexFormat.stride = 8 * sizeof(float);
 	vertexFormat.attributeDescriptions.emplace_back(0, gfx::VertexAttribFormat::VEC3, 0); // pos
 	vertexFormat.attributeDescriptions.emplace_back(1, gfx::VertexAttribFormat::VEC3, sizeof(glm::vec3)); // norm
 	vertexFormat.attributeDescriptions.emplace_back(2, gfx::VertexAttribFormat::VEC2, sizeof(glm::vec3) + sizeof(glm::vec3)); // uv

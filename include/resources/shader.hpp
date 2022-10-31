@@ -10,7 +10,7 @@
 #include <map>
 
 namespace engine::gfx {
-	class Pipeline;
+	struct Pipeline;
 }
 
 namespace engine::resources {
@@ -22,7 +22,8 @@ public:
 	~Shader() override;
 
 	struct UniformBuffer {
-		glm::mat4 transform;
+		glm::mat4 v;
+		glm::mat4 p;
 	};
 
 	gfx::Pipeline* getPipeline()

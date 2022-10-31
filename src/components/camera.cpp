@@ -38,6 +38,14 @@ void Camera::updateCam(glm::mat4 transform)
 
 	glm::mat4 viewMatrix = glm::inverse(transform);
 
+	struct {
+		glm::mat4 view;
+		glm::mat4 proj;
+	} uniformData{};
+
+	uniformData.view = viewMatrix;
+	uniformData.proj = m_projMatrix;
+
 	using namespace resources;
 
 	auto resPtrs = parent.res.getAllResourcesOfType("shader");
@@ -46,6 +54,7 @@ void Camera::updateCam(glm::mat4 transform)
 		auto lockedPtr = resPtr.lock();
 		auto shader = dynamic_cast<Shader*>(lockedPtr.get());
 		// SET VIEW TRANSFORM HERE
+		gfxdev->updateUniformBuffer(shader->getPipeline(), &uniformData);
 	}
 
 }
@@ -69,7 +78,8 @@ void Camera::usePerspective(float fovDeg)
 	glm::vec2 viewportDim = getViewportSize();
 
 	float fovRad = glm::radians(fovDeg);
-	m_projMatrix = glm::perspectiveFov(fovRad, viewportDim.x, viewportDim.y, NEAR, FAR);
+	m_projMatrix = glm::perspectiveFovRH_ZO(fovRad, viewportDim.x, viewportDim.y, NEAR, FAR);
+	m_projMatrix[1][1] *= -1;
 }
 
 void Camera::useOrtho()
@@ -79,7 +89,8 @@ void Camera::useOrtho()
 	glm::vec2 viewportDim = getViewportSize();
 	float aspect = viewportDim.x / viewportDim.y;
 
-	m_projMatrix = glm::ortho(-10.0f * aspect, 10.0f * aspect, -10.0f, 10.0f, -100.0f, 100.0f);
+	m_projMatrix = glm::orthoRH_ZO(-10.0f * aspect, 10.0f * aspect, -10.0f, 10.0f, -100.0f, 100.0f);
+	m_projMatrix[1][1] *= -1;
 }
 
 }

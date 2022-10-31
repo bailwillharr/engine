@@ -7,9 +7,9 @@
 namespace engine::resources {
 
 struct MeshFileHeader {
-	unsigned int vertex_count;
-	unsigned int index_count;
-	int material;
+	uint32_t vertex_count;
+	uint32_t index_count;
+	int32_t material;
 };
 
 static void loadMeshFromFile(const std::filesystem::path& path, std::vector<Vertex>* vertices, std::vector<uint32_t>* indices)
@@ -30,7 +30,7 @@ static void loadMeshFromFile(const std::filesystem::path& path, std::vector<Vert
 	indices->resize(header.index_count);
 	vertices->resize(header.vertex_count);
 
-	fread(indices->data(), sizeof(unsigned int) * header.index_count, 1, fp);
+	fread(indices->data(), sizeof(uint32_t) * header.index_count, 1, fp);
 	fread(vertices->data(), sizeof(float) * 8 * header.vertex_count, 1, fp);
 	fclose(fp);
 
@@ -41,10 +41,18 @@ void Mesh::initMesh()
 	vb = gfxdev->createBuffer(gfx::BufferType::VERTEX, m_vertices.size() * sizeof(Vertex), m_vertices.data());
 	ib = gfxdev->createBuffer(gfx::BufferType::INDEX, m_indices.size() * sizeof(uint32_t), m_indices.data());
 
+	TRACE("VB PTR in mesh: {}", (void*)vb);
+
 	TRACE("Vertices:");
 
 	for (const auto& v : m_vertices) {
 		TRACE("pos: {}, {}, {}", v.pos.x, v.pos.y, v.pos.z);
+	}
+
+	TRACE("Indices:");
+
+	for (const uint32_t i : m_indices) {
+		TRACE("\t{}", i);
 	}
 }
 

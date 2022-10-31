@@ -23,7 +23,6 @@ namespace engine {
 	class Component;
 
 	namespace components {
-		class Transform;
 		class Camera;
 		class Renderer;
 		class UI;

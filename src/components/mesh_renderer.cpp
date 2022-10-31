@@ -6,6 +6,8 @@
 
 #include "gfx_device.hpp"
 
+#include "log.hpp"
+
 #include <iostream>
 
 namespace engine::components {
@@ -23,11 +25,7 @@ Renderer::~Renderer()
 
 void Renderer::render(glm::mat4 transform)
 {
-	resources::Shader::UniformBuffer ub {
-		glm::mat4{1.0f},
-	};
-
-	gfxdev->draw(m_shader->getPipeline(), m_mesh->vb, m_mesh->ib, m_mesh->m_indices.size(), &ub);
+	gfxdev->draw(m_shader->getPipeline(), m_mesh->vb, m_mesh->ib, m_mesh->m_vertices.size(), &transform);
 }
 
 void Renderer::setMesh(const std::string& name)

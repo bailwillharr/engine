@@ -35,6 +35,8 @@ namespace engine {
 		if (std::filesystem::is_directory(m_resourcesPath) == false) {
 			throw std::runtime_error("Unable to determine resources location. CWD: " + cwd.string());
 		}
+
+		m_resourcesPath = "C:/Users/Bailey/source/repos/game/res";
 	}
 
 	std::unique_ptr<std::string> ResourceManager::getResourcesListString()

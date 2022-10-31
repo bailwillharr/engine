@@ -36,7 +36,7 @@ namespace engine {
 
 	static constexpr uint32_t FRAMES_IN_FLIGHT = 2; // This improved FPS by 5x! (on Intel IGPU)
 
-	static constexpr size_t UNIFORM_BUFFER_MAX_SIZE = 256; // bytes
+	static constexpr size_t PUSH_CONSTANT_MAX_SIZE = 128; // bytes
 
 	// structures and enums
 
@@ -55,6 +55,13 @@ namespace engine {
 		VkQueue handle;
 	};
 
+
+	struct DepthBuffer {
+		VkImage image;
+		VmaAllocation allocation;
+		VkImageView view;
+	};
+
 	struct Swapchain {
 		VkSwapchainKHR swapchain = VK_NULL_HANDLE;
 
@@ -65,6 +72,8 @@ namespace engine {
 		std::vector<VkImage> images{};
 		std::vector<VkImageView> imageViews{};
 		std::vector<VkFramebuffer> framebuffers{};
+
+		DepthBuffer depthBuffer{};
 
 		VkQueue activeQueue{};
 
@@ -78,7 +87,7 @@ namespace engine {
 		const gfx::Buffer* vertexBuffer = nullptr;
 		const gfx::Buffer* indexBuffer = nullptr; // if this is nullptr, don't use indexed
 		uint32_t count = 0;
-		uint8_t uniformData[UNIFORM_BUFFER_MAX_SIZE];
+		uint8_t pushConstantData[PUSH_CONSTANT_MAX_SIZE];
 	};
 
 	enum class QueueFlags : uint32_t {
@@ -307,8 +316,59 @@ namespace engine {
 		throw std::runtime_error("Unable to find the requested queue");
 	}
 
+	static DepthBuffer createDepthBuffer(VkDevice device, VmaAllocator allocator, VkExtent2D extent)
+	{
+		DepthBuffer db{};
+
+		VkResult res;
+
+		VkImageCreateInfo imageInfo{};
+		imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+		imageInfo.imageType = VK_IMAGE_TYPE_2D;
+		imageInfo.extent.width = extent.width;
+		imageInfo.extent.height = extent.height;
+		imageInfo.extent.depth = 1;
+		imageInfo.mipLevels = 1;
+		imageInfo.arrayLayers = 1;
+		imageInfo.format = VK_FORMAT_D32_SFLOAT;
+		imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+		imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		imageInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+		imageInfo.flags = 0;
+
+		VmaAllocationCreateInfo allocInfo{};
+		allocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+		allocInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
+		allocInfo.priority = 1.0f;
+
+		res = vmaCreateImage(allocator, &imageInfo, &allocInfo, &db.image, &db.allocation, nullptr);
+		assert(res == VK_SUCCESS);
+
+		VkImageViewCreateInfo imageViewInfo{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
+		imageViewInfo.image = db.image;
+		imageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		imageViewInfo.format = VK_FORMAT_D32_SFLOAT;
+		imageViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+		imageViewInfo.subresourceRange.baseMipLevel = 0;
+		imageViewInfo.subresourceRange.levelCount = 1;
+		imageViewInfo.subresourceRange.baseArrayLayer = 0;
+		imageViewInfo.subresourceRange.layerCount = 1;
+		res = vkCreateImageView(device, &imageViewInfo, nullptr, &db.view);
+		assert(res == VK_SUCCESS);
+
+		return db;
+	}
+
+	static void destroyDepthBuffer(DepthBuffer db, VkDevice device, VmaAllocator allocator)
+	{
+		vkDestroyImageView(device, db.view, nullptr);
+		vmaDestroyImage(allocator, db.image, db.allocation);
+	}
+
 	// This is called not just on initialisation, but also when the window is resized.
-	static void createSwapchain(VkDevice device, VkPhysicalDevice physicalDevice, const std::vector<Queue> queues, SDL_Window* window, VkSurfaceKHR surface, Swapchain* swapchain)
+	static void createSwapchain(VkDevice device, VkPhysicalDevice physicalDevice, VmaAllocator allocator, std::vector<Queue> queues, SDL_Window* window, VkSurfaceKHR surface, Swapchain* swapchain)
 	{
 		VkResult res;
 
@@ -362,6 +422,8 @@ namespace engine {
 				swapchain->presentMode = presMode; // this mode allows uncapped FPS while also avoiding screen tearing
 			}
 		}
+
+		VkExtent2D oldExtent = swapchain->extent;
 
 		if (caps.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
 			swapchain->extent = caps.currentExtent;
@@ -435,6 +497,16 @@ namespace engine {
 		res = vkGetSwapchainImagesKHR(device, swapchain->swapchain, &swapchainImageCount, swapchain->images.data());
 		assert(res == VK_SUCCESS);
 
+		// create depth buffer if old depth buffer is wrong size
+		if (swapchain->swapchain == VK_NULL_HANDLE) {
+			swapchain->depthBuffer = createDepthBuffer(device, allocator, swapchain->extent);
+		}
+		else if (swapchain->extent.width != oldExtent.width || swapchain->extent.height != oldExtent.height) {
+			destroyDepthBuffer(swapchain->depthBuffer, device, allocator);
+			swapchain->depthBuffer = createDepthBuffer(device, allocator, swapchain->extent);
+		}
+
+
 		// create the render pass
 		if (swapchain->renderpass == VK_NULL_HANDLE) {
 			VkAttachmentDescription colorAttachment{};
@@ -451,26 +523,42 @@ namespace engine {
 			colorAttachmentRef.attachment = 0;
 			colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
+			VkAttachmentDescription depthAttachment{};
+			depthAttachment.format = VK_FORMAT_D32_SFLOAT;
+			depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+			depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+			depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+			depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+			depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+			depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+			VkAttachmentReference depthAttachmentRef{};
+			depthAttachmentRef.attachment = 1;
+			depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
 			VkSubpassDescription subpass{};
 			subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 			subpass.colorAttachmentCount = 1;
 			subpass.pColorAttachments = &colorAttachmentRef;
+			subpass.pDepthStencilAttachment = &depthAttachmentRef;
 
 			VkSubpassDependency dependency{};
 			dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
 			dependency.dstSubpass = 0;
-			dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+			dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
 			dependency.srcAccessMask = 0;
-			dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-			dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+			dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+			dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+			std::array<VkAttachmentDescription, 2> attachments = { colorAttachment, depthAttachment };
 
 			VkRenderPassCreateInfo createInfo{};
 			createInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-			createInfo.attachmentCount = 1;
-			createInfo.pAttachments = &colorAttachment;
+			createInfo.attachmentCount = (uint32_t)attachments.size();
+			createInfo.pAttachments = attachments.data();
 			createInfo.subpassCount = 1;
 			createInfo.pSubpasses = &subpass;
-
 			createInfo.dependencyCount = 1;
 			createInfo.pDependencies = &dependency;
 
@@ -505,15 +593,16 @@ namespace engine {
 			res = vkCreateImageView(device, &createInfo, nullptr, &swapchain->imageViews[i]);
 			assert(res == VK_SUCCESS);
 
-			VkImageView attachments[] = {
-				swapchain->imageViews[i]
+			std::array<VkImageView, 2> attachments = {
+				swapchain->imageViews[i],
+				swapchain->depthBuffer.view
 			};
 
 			VkFramebufferCreateInfo framebufferInfo{};
 			framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 			framebufferInfo.renderPass = swapchain->renderpass;
-			framebufferInfo.attachmentCount = 1;
-			framebufferInfo.pAttachments = attachments;
+			framebufferInfo.attachmentCount = (uint32_t)attachments.size();
+			framebufferInfo.pAttachments = attachments.data();
 			framebufferInfo.width = swapchain->extent.width;
 			framebufferInfo.height = swapchain->extent.height;
 			framebufferInfo.layers = 1;
@@ -1022,7 +1111,7 @@ namespace engine {
 
 
 		// Now make the swapchain
-		createSwapchain(pimpl->device, pimpl->physicalDevice, pimpl->queues, window, pimpl->surface, &pimpl->swapchain);
+		createSwapchain(pimpl->device, pimpl->physicalDevice, pimpl->allocator, pimpl->queues, window, pimpl->surface, &pimpl->swapchain);
 
 
 
@@ -1071,6 +1160,7 @@ namespace engine {
 		for (VkFramebuffer fb : pimpl->swapchain.framebuffers) {
 			vkDestroyFramebuffer(pimpl->device, fb, nullptr);
 		}
+		destroyDepthBuffer(pimpl->swapchain.depthBuffer, pimpl->device, pimpl->allocator);
 		vkDestroyRenderPass(pimpl->device, pimpl->swapchain.renderpass, nullptr);
 		vkDestroySwapchainKHR(pimpl->device, pimpl->swapchain.swapchain, nullptr);
 
@@ -1089,12 +1179,11 @@ namespace engine {
 		*h = pimpl->swapchain.extent.height;
 	}
 
-	void GFXDevice::draw(const gfx::Pipeline* pipeline, const gfx::Buffer* vertexBuffer, const gfx::Buffer* indexBuffer, uint32_t count, const void* uniformData)
+	void GFXDevice::draw(const gfx::Pipeline* pipeline, const gfx::Buffer* vertexBuffer, const gfx::Buffer* indexBuffer, uint32_t count, const void* pushConstantData)
 	{
 		assert(vertexBuffer->type == gfx::BufferType::VERTEX);
 		assert(vertexBuffer != nullptr);
 		assert(indexBuffer == nullptr || indexBuffer->type == gfx::BufferType::INDEX);
-		assert(uniformData != nullptr);
 
 		DrawCall call{
 			.vertexBuffer = vertexBuffer,
@@ -1102,9 +1191,7 @@ namespace engine {
 			.count = count,
 		};
 
-		size_t uniformDataSize = pipeline->uniformBuffers[pimpl->FRAMECOUNT % FRAMES_IN_FLIGHT]->size;
-
-		memcpy(call.uniformData, uniformData, uniformDataSize);
+		memcpy(call.pushConstantData, pushConstantData, PUSH_CONSTANT_MAX_SIZE);
 
 		pimpl->drawQueues[pipeline].push(call);
 
@@ -1126,7 +1213,7 @@ namespace engine {
 		if (res == VK_ERROR_OUT_OF_DATE_KHR) {
 			// recreate swapchain
 			waitIdle();
-			createSwapchain(pimpl->device, pimpl->physicalDevice, pimpl->queues, pimpl->window, pimpl->surface, &pimpl->swapchain);
+			createSwapchain(pimpl->device, pimpl->physicalDevice, pimpl->allocator, pimpl->queues, pimpl->window, pimpl->surface, &pimpl->swapchain);
 			return;
 		}
 		else {
@@ -1150,9 +1237,11 @@ namespace engine {
 			renderPassInfo.renderArea.offset = { 0, 0 };
 			renderPassInfo.renderArea.extent = pimpl->swapchain.extent;
 
-			VkClearValue clearColor{ {0.0f, 0.0f, 0.0f, 0.0f} };
-			renderPassInfo.clearValueCount = 1;
-			renderPassInfo.pClearValues = &clearColor;
+			std::array<VkClearValue, 2> clearValues{};
+			clearValues[0].color = { {0.0f, 0.0f, 0.0f, 1.0f} };
+			clearValues[1].depthStencil = { 1.0f, 0 };
+			renderPassInfo.clearValueCount = (uint32_t)clearValues.size();
+			renderPassInfo.pClearValues = clearValues.data();
 			
 			vkCmdBeginRenderPass(pimpl->commandBuffers[frameIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -1181,13 +1270,7 @@ namespace engine {
 
 					DrawCall call = queue.front();
 
-					void* uniformDest;
-					res = vmaMapMemory(pimpl->allocator, pipeline->uniformBuffers[frameIndex]->allocation, &uniformDest);
-					assert(res == VK_SUCCESS);
-
-					memcpy(uniformDest, call.uniformData, pipeline->uniformBuffers[frameIndex]->size);
-
-					vmaUnmapMemory(pimpl->allocator, pipeline->uniformBuffers[frameIndex]->allocation);
+					vkCmdPushConstants(pimpl->commandBuffers[frameIndex], pipeline->layout, VK_SHADER_STAGE_VERTEX_BIT, 0, PUSH_CONSTANT_MAX_SIZE, call.pushConstantData);
 
 					vkCmdBindVertexBuffers(pimpl->commandBuffers[frameIndex], 0, 1, &call.vertexBuffer->buffer, offsets);
 					
@@ -1239,7 +1322,7 @@ namespace engine {
 		if (res == VK_SUBOPTIMAL_KHR || res == VK_ERROR_OUT_OF_DATE_KHR) {
 			// recreate swapchain
 			waitIdle();
-			createSwapchain(pimpl->device, pimpl->physicalDevice, pimpl->queues, pimpl->window, pimpl->surface, &pimpl->swapchain);
+			createSwapchain(pimpl->device, pimpl->physicalDevice, pimpl->allocator, pimpl->queues, pimpl->window, pimpl->surface, &pimpl->swapchain);
 		}
 		else {
 			assert(res == VK_SUCCESS);
@@ -1405,7 +1488,7 @@ namespace engine {
 		rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
 		rasterizer.lineWidth = 1.0f;
 		rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-		rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
+		rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 		rasterizer.depthBiasEnable = VK_FALSE;
 		rasterizer.depthBiasConstantFactor = 0.0f; // ignored
 		rasterizer.depthBiasClamp = 0.0f; // ignored
@@ -1445,12 +1528,29 @@ namespace engine {
 		colorBlending.blendConstants[2] = 0.0f; // ignored
 		colorBlending.blendConstants[3] = 0.0f; // ignored
 
+		VkPipelineDepthStencilStateCreateInfo depthStencil{};
+		depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+		depthStencil.depthTestEnable = VK_TRUE;
+		depthStencil.depthWriteEnable = VK_TRUE;
+		depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
+		depthStencil.depthBoundsTestEnable = VK_FALSE;
+		depthStencil.minDepthBounds = 0.0f;
+		depthStencil.maxDepthBounds = 1.0f;
+		depthStencil.stencilTestEnable = VK_FALSE;
+		depthStencil.front = {};
+		depthStencil.back = {};
+
+		VkPushConstantRange pushConstantRange{};
+		pushConstantRange.offset = 0;
+		pushConstantRange.size = PUSH_CONSTANT_MAX_SIZE;
+		pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
 		VkPipelineLayoutCreateInfo layoutInfo{};
 		layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 		layoutInfo.setLayoutCount = 1;
 		layoutInfo.pSetLayouts = &pimpl->uboLayout;
-		layoutInfo.pushConstantRangeCount = 0;
-		layoutInfo.pPushConstantRanges = nullptr;
+		layoutInfo.pushConstantRangeCount = 1;
+		layoutInfo.pPushConstantRanges = &pushConstantRange;
 
 		res = vkCreatePipelineLayout(pimpl->device, &layoutInfo, nullptr, &pipeline->layout);
 		assert(res == VK_SUCCESS);
@@ -1464,7 +1564,7 @@ namespace engine {
 		createInfo.pViewportState = &viewportState;
 		createInfo.pRasterizationState = &rasterizer;
 		createInfo.pMultisampleState = &multisampling;
-		createInfo.pDepthStencilState = nullptr;
+		createInfo.pDepthStencilState = &depthStencil;
 		createInfo.pColorBlendState = &colorBlending;
 		createInfo.pDynamicState = &dynamicState;
 		createInfo.layout = pipeline->layout;
@@ -1496,6 +1596,20 @@ namespace engine {
 		}
 
 		delete pipeline;
+	}
+
+	void GFXDevice::updateUniformBuffer(const gfx::Pipeline* pipeline, void* data)
+	{
+		VkResult res;
+
+		void* uniformDest;
+		for (gfx::Buffer* buffer : pipeline->uniformBuffers) {
+			res = vmaMapMemory(pimpl->allocator, buffer->allocation, &uniformDest);
+			assert(res == VK_SUCCESS);
+			memcpy(uniformDest, data, buffer->size);
+			vmaUnmapMemory(pimpl->allocator, buffer->allocation);
+		}
+		
 	}
 
 	gfx::Buffer* GFXDevice::createBuffer(gfx::BufferType type, uint64_t size, const void* data)
