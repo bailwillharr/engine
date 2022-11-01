@@ -1,14 +1,18 @@
 #include "resources/mesh.hpp"
 
-namespace resources {
+#include "gfx_device.hpp"
+
+#include "log.hpp"
+
+namespace engine::resources {
 
 struct MeshFileHeader {
-	unsigned int vertex_count;
-	unsigned int index_count;
-	int material;
+	uint32_t vertex_count;
+	uint32_t index_count;
+	int32_t material;
 };
 
-static void loadMeshFromFile(const std::filesystem::path& path, std::vector<Vertex>* vertices, std::vector<unsigned int>* indices)
+static void loadMeshFromFile(const std::filesystem::path& path, std::vector<Vertex>* vertices, std::vector<uint32_t>* indices)
 {
 
 	// TODO
@@ -26,73 +30,43 @@ static void loadMeshFromFile(const std::filesystem::path& path, std::vector<Vert
 	indices->resize(header.index_count);
 	vertices->resize(header.vertex_count);
 
-	fread(&(*indices)[0], sizeof(unsigned int) * header.index_count, 1, fp);
-	fread(&((*vertices)[0].pos[0]), sizeof(float) * 8 * header.vertex_count, 1, fp);
-
+	fread(indices->data(), sizeof(uint32_t) * header.index_count, 1, fp);
+	fread(vertices->data(), sizeof(float) * 8 * header.vertex_count, 1, fp);
 	fclose(fp);
 
 }
 
-static void loadObjFromFile(const std::filesystem::path& path, std::vector<Vertex>* vertices, std::vector<unsigned int>* indices)
-{
-
-}
-
-// -1 means invalidated
-int Mesh::s_active_vao = -1;
-
-void Mesh::bindVAO() const
-{
-	if (s_active_vao != m_vao) {
-		glBindVertexArray(m_vao);
-		s_active_vao = m_vao;
-	}
-}
-
 void Mesh::initMesh()
 {
-	glGenVertexArrays(1, &m_vao);
-	bindVAO();
-	glGenBuffers(1, &m_vbo);
-	glGenBuffers(1, &m_ebo);
-	
-	glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
-	glBufferData(GL_ARRAY_BUFFER, m_vertices.size()*sizeof(Vertex), &m_vertices[0], GL_STATIC_DRAW);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ebo);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_indices.size() * sizeof(unsigned int), &(m_indices[0]), GL_STATIC_DRAW);
+	vb = gfxdev->createBuffer(gfx::BufferType::VERTEX, m_vertices.size() * sizeof(Vertex), m_vertices.data());
+	ib = gfxdev->createBuffer(gfx::BufferType::INDEX, m_indices.size() * sizeof(uint32_t), m_indices.data());
 
-	// position
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)offsetof(Vertex, pos));
-	// normal
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)offsetof(Vertex, norm));
-	// uv
-	glEnableVertexAttribArray(2);
-	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)offsetof(Vertex, uv));
+	TRACE("VB PTR in mesh: {}", (void*)vb);
 
-}
+	TRACE("Vertices:");
 
-void Mesh::drawMesh(const Shader& shader)
-{
-	bindVAO();
-	shader.makeActive();
-#ifndef SDLTEST_NOGFX
-	glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(m_indices.size()), GL_UNSIGNED_INT, 0);
-#endif
+	for (const auto& v : m_vertices) {
+		TRACE("pos: {}, {}, {}", v.pos.x, v.pos.y, v.pos.z);
+	}
+
+	TRACE("Indices:");
+
+	for (const uint32_t i : m_indices) {
+		TRACE("\t{}", i);
+	}
 }
 
 Mesh::Mesh(const std::vector<Vertex>& vertices) : Resource("", "mesh")
 {
 	// constructor for custom meshes without an index array
 	m_vertices = vertices; // COPY over vertices
-	for (int i = 0; i < m_vertices.size(); i++) {
+	for (uint32_t i = 0; i < m_vertices.size(); i++) {
 		m_indices.push_back(i);
 	}
 	initMesh();
 }
 
-Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices) : Resource("", "mesh")
+Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices) : Resource("", "mesh")
 {
 	m_vertices = vertices; // COPY over vertices
 	m_indices = indices; // COPY over indices;
@@ -108,12 +82,8 @@ Mesh::Mesh(const std::filesystem::path& resPath) : Resource(resPath, "mesh")
 
 Mesh::~Mesh()
 {
-	glDeleteVertexArrays(1, &m_vao);
-	glDeleteBuffers(1, &m_vbo);
-	glDeleteBuffers(1, &m_ebo);
-	if (s_active_vao == m_vao) {
-		s_active_vao = -1;
-	}
+	gfxdev->destroyBuffer(ib);
+	gfxdev->destroyBuffer(vb);
 }
 
 }

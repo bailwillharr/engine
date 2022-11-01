@@ -1,6 +1,6 @@
 #pragma once
 
-namespace inputs {
+namespace engine::inputs {
 
 enum class MouseButton : int {
 	M_LEFT,

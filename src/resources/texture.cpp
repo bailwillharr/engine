@@ -7,7 +7,7 @@
 
 #include <vector>
 
-namespace resources {
+namespace engine::resources {
 
 // -1 means invalid / no bind
 GLuint Texture::s_binded_texture = -1;
@@ -28,7 +28,7 @@ static bool readPNG(const std::string& path, std::vector<uint8_t>& texbuf, int *
 		return false;
 	}
 
-	const size_t size = x * y * n;
+	const size_t size = (size_t)x * (size_t)y * (size_t)n;
 
 	texbuf.resize(size);
 	memcpy(texbuf.data(), data, size);
@@ -62,7 +62,7 @@ static bool readGLRaw(const std::string& path, std::vector<uint8_t>& texbuf, int
 	uint64_t end = ftell(fp);
 
 	texbuf.resize(end);
-	fseek(fp, tex_data_offset, SEEK_SET);
+	fseek(fp, (long)tex_data_offset, SEEK_SET);
 	fread(texbuf.data(), 1, end, fp);
 
 	fclose(fp);

@@ -6,10 +6,11 @@
 
 #include "resources/font.hpp"
 #include "resources/mesh.hpp"
+#include "resources/shader.hpp"
 
 #include <glm/mat4x4.hpp>
 
-namespace components {
+namespace engine::components {
 
 class ENGINE_API UI : public Component {
 

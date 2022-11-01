@@ -2,29 +2,19 @@
 
 #include <cstdint>
 #include <cstddef>
+#include <vector>
 
-namespace gfx {
+namespace engine::gfx {
 
 	enum class ShaderType {
 		VERTEX,
 		FRAGMENT,
 	};
 
-	struct Shader {
-		ShaderType type;
-		uint32_t handle;
-	};
-
-	typedef uint32_t Program;
-
 	enum class BufferType {
 		VERTEX,
 		INDEX,
-	};
-
-	struct Buffer {
-		BufferType type;
-		uint32_t handle;
+		UNIFORM,
 	};
 
 	enum class Primitive {
@@ -35,10 +25,28 @@ namespace gfx {
 		TRIANGLE_STRIP,
 	};
 
-	enum class IndexBufferFormat {
-		UNSIGNED_8_BITS,
-		UNSIGNED_16_BITS,
-		UNSIGNED_32_BITS,
+	enum class VertexAttribFormat {
+		VEC2,
+		VEC3,
 	};
+
+	struct VertexBufferDesc {
+		uint64_t size;
+	};
+
+	struct VertexAttribDescription {
+		uint32_t location;
+		VertexAttribFormat format;
+		uint32_t offset;
+	};
+
+	struct VertexFormat {
+		uint32_t stride;
+		std::vector<VertexAttribDescription> attributeDescriptions;
+	};
+
+	// handles (incomplete types)
+	struct Pipeline;
+	struct Buffer;
 
 }

@@ -6,7 +6,7 @@
 
 #include <glm/mat4x4.hpp>
 
-namespace components {
+namespace engine::components {
 
 	class ENGINE_API CustomComponent : public Component {
 

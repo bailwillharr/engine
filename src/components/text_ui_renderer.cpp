@@ -4,7 +4,7 @@
 #include "resource_manager.hpp"
 #include "resources/texture.hpp"
 
-namespace components {
+namespace engine::components {
 
 UI::UI(Object* parent) : Component(parent, TypeEnum::UI)
 {
@@ -23,11 +23,14 @@ UI::~UI()
 void UI::render(glm::mat4 transform)
 {
 
+	/*
 	glActiveTexture(GL_TEXTURE0);
 	m_shader->setUniform_m4("modelMat", transform);
 
 	m_shader->setUniform_v3("textColor", m_color);
 	m_shader->setUniform_i("textScaling", (int)m_scaled);
+
+	*/
 
 	std::vector<resources::Font::Character> glyphs;
 	for (char c : m_text) {
@@ -57,6 +60,7 @@ void UI::render(glm::mat4 transform)
 		float w = glyph.size.x * scale;
 		float h = glyph.size.y * scale;
 
+		/*
 		resources::Mesh mesh({
 			{{xpos,		ypos + h,	0.0f}, {}, {0.0f, 0.0f}},
 			{{xpos,		ypos	,	0.0f}, {}, {0.0f, 1.0f}},
@@ -64,11 +68,11 @@ void UI::render(glm::mat4 transform)
 			{{xpos,		ypos + h,	0.0f}, {}, {0.0f, 0.0f}},
 			{{xpos + w,	ypos,		0.0f}, {}, {1.0f, 1.0f}},
 			{{xpos + w,	ypos + h,	0.0f}, {}, {1.0f, 0.0f}},
-		});
+		});*/
 
 		glBindTexture(GL_TEXTURE_2D, glyph.textureID);
 
-		mesh.drawMesh(*m_shader);
+//		mesh.drawMesh(*m_shader);
 
 		x += (glyph.advance >> 6) * scale;
 

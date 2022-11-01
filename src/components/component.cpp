@@ -4,27 +4,31 @@
 
 #include <iostream>
 
-int Component::s_next_component_id = 0;
+namespace engine {
 
-Component::Component(Object* parent, TypeEnum type) :
-	m_type(type), parent(*parent),
-	win(parent->win),
-	inp(parent->inp),
-	res(parent->res)
-{
-	s_next_component_id++;
-}
+	int Component::s_next_component_id = 0;
 
-Component::~Component()
-{
-}
+	Component::Component(Object* parent, TypeEnum type) :
+		m_type(type), parent(*parent),
+		win(parent->win),
+		inp(parent->inp),
+		res(parent->res)
+	{
+		s_next_component_id++;
+	}
 
-int Component::getID()
-{
-	return m_id;
-}
+	Component::~Component()
+	{
+	}
 
-Component::TypeEnum Component::getType()
-{
-	return m_type;
+	int Component::getID()
+	{
+		return m_id;
+	}
+
+	Component::TypeEnum Component::getType()
+	{
+		return m_type;
+	}
+
 }

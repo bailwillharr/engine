@@ -2,7 +2,7 @@
 
 // Keyboard scancodes, taken from SDL_scancode.h
 
-namespace inputs {
+namespace engine::inputs {
 
 enum class Key : int {
     UNKNOWN = 0,

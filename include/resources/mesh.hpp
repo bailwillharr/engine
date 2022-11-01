@@ -4,9 +4,7 @@
 
 #include "resource.hpp"
 
-#include "resources/shader.hpp"
-
-#include <glad/glad.h>
+#include "gfx.hpp"
 
 #include <glm/vec3.hpp>
 #include <glm/vec2.hpp>
@@ -20,34 +18,23 @@ struct Vertex {
 	glm::vec2 uv;
 };
 
-namespace resources {
+namespace engine::resources {
 
 class ENGINE_API Mesh : public Resource {
 
 public:
 	Mesh(const std::vector<Vertex>& vertices);
-	Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices);
+	Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices);
 	Mesh(const std::filesystem::path& resPath);
 	~Mesh() override;
 
-	void drawMesh(const Shader& shader);
-
-	static void invalidate()
-	{
-		s_active_vao = -1;
-	}
-
 	std::vector<Vertex> m_vertices;
-	std::vector<unsigned int> m_indices;
+	std::vector<uint32_t> m_indices;
+
+	const gfx::Buffer* vb;
+	const gfx::Buffer* ib;
 
 private:
-	static int s_active_vao;
-
-	GLuint m_vao;
-	GLuint m_vbo;
-	GLuint m_ebo;
-
-	void bindVAO() const;
 
 	void initMesh();
 

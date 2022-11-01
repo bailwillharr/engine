@@ -1,6 +1,6 @@
 #include "components/custom.hpp"
 
-namespace components {
+namespace engine::components {
 
 	CustomComponent::CustomComponent(Object* parent) : Component(parent, TypeEnum::CUSTOM)
 	{

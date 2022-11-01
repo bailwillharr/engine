@@ -6,7 +6,7 @@
 
 #include <glad/glad.h>
 
-namespace resources {
+namespace engine::resources {
 
 class ENGINE_API Texture : public Resource {
 

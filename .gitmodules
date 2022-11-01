@@ -16,3 +16,9 @@
 [submodule "dependencies/freetype"]
 	path = dependencies/freetype
 	url = https://gitlab.freedesktop.org/freetype/freetype.git
+[submodule "dependencies/volk"]
+	path = dependencies/volk
+	url = https://github.com/zeux/volk
+[submodule "dependencies/VulkanMemoryAllocator"]
+	path = dependencies/VulkanMemoryAllocator
+	url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator

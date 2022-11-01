@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.4)
+cmake_minimum_required(VERSION 3.8)
 
 # options
 
@@ -6,8 +6,7 @@ project(engine LANGUAGES CXX
 	VERSION "0.1.0"
 )
 
-add_library(${PROJECT_NAME} SHARED
-	
+set(SRC_FILES
 	"src/engine.cpp"
 	"src/window.cpp"
 	"src/input.cpp"	#TODO make input_manager
@@ -31,12 +30,17 @@ add_library(${PROJECT_NAME} SHARED
 	"src/resource_manager.cpp"
 
 	"src/gfx_device_vulkan.cpp"
+	"src/gfx_device_null.cpp"
+	"src/gfx_device_opengl45.cpp"
+)
 
-	# PUBLIC API
+set(INCLUDE_FILES
 
 	"include/engine_api.h"
 
 	"include/engine.hpp"
+
+	"include/util.hpp"
 
 	"include/log.hpp"
 
@@ -67,12 +71,23 @@ add_library(${PROJECT_NAME} SHARED
 
 	"include/gfx.hpp"
 	"include/gfx_device.hpp"
+)
+
+add_library(${PROJECT_NAME} STATIC
+
+	${SRC_FILES}
+	${INCLUDE_FILES}
 
 )
+
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src" PREFIX "Source" FILES ${SRC_FILES})
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/include" PREFIX "Include" FILES ${INCLUDE_FILES})
 
 # compiling options:
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE DEFINITIONS "ENGINE_EXPORTS")
+
+set_property(TARGET ${PROJECT_NAME} PROPERTY WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
@@ -80,6 +95,8 @@ set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
 if (MSVC)
 	target_compile_options(${PROJECT_NAME} PRIVATE /W3)
 	target_compile_options(${PROJECT_NAME} PRIVATE /MP)
+
+	target_compile_definitions(${PROJECT_NAME} PRIVATE _CRT_SECURE_NO_WARNINGS)
 endif()
 
 target_include_directories(${PROJECT_NAME} PUBLIC include)
@@ -98,10 +115,31 @@ if (MINGW)
 	target_link_libraries(${PROJECT_NAME} PUBLIC mingw32)
 endif()
 
-# Vulkan
-find_package(Vulkan REQUIRED)
-target_include_directories(${PROJECT_NAME} PRIVATE ${Vulkan_INCLUDE_DIRS})
-target_link_libraries(${PROJECT_NAME} PRIVATE Vulkan::Vulkan)
+# GLAD:
+set(GLAD_PROFILE "core" CACHE INTERNAL "" FORCE)
+set(GLAD_API "gl=3.3" CACHE INTERNAL "" FORCE)
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+	set(GLAD_GENERATOR "c-debug" CACHE INTERNAL "" FORCE)
+else()
+	set(GLAD_GENERATOR "c" CACHE INTERNAL "" FORCE)
+endif()
+set(GLAD_SPEC "gl" CACHE INTERNAL "" FORCE)
+set(BUILD_SHARED_LIBS OFF)
+add_subdirectory(dependencies/glad)
+set_property(TARGET glad PROPERTY POSITION_INDEPENDENT_CODE ON)
+target_link_libraries(${PROJECT_NAME} PUBLIC glad)
+target_include_directories(${PROJECT_NAME} PUBLIC dependencies/glad/include)
+
+# Volk
+set(VOLK_STATIC_DEFINES "")
+set(VOLK_PULL_IN_VULKAN ON)
+set(VOLK_INSTALL OFF)
+set(VOLK_HEADERS_ONLY ON)
+add_subdirectory(dependencies/volk)
+target_link_libraries(${PROJECT_NAME} PRIVATE volk_headers)
+
+# Vulkan Memory Allocator
+target_include_directories(${PROJECT_NAME} PRIVATE dependencies/VulkanMemoryAllocator/include)
 
 # SDL2:
 find_package(SDL2)
@@ -124,24 +162,9 @@ set(BUILD_SHARED_LIBS OFF)
 add_subdirectory(dependencies/glm)
 target_include_directories(${PROJECT_NAME} PUBLIC dependencies/glm)
 
-# GLAD:
-set(GLAD_PROFILE "core" CACHE INTERNAL "" FORCE)
-set(GLAD_API "gl=3.3" CACHE INTERNAL "" FORCE)
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-	set(GLAD_GENERATOR "c-debug" CACHE INTERNAL "" FORCE)
-else()
-	set(GLAD_GENERATOR "c" CACHE INTERNAL "" FORCE)
-endif()
-set(GLAD_SPEC "gl" CACHE INTERNAL "" FORCE)
-set(BUILD_SHARED_LIBS OFF)
-add_subdirectory(dependencies/glad)
-set_property(TARGET glad PROPERTY POSITION_INDEPENDENT_CODE ON)
-target_link_libraries(${PROJECT_NAME} PUBLIC glad)
-target_include_directories(${PROJECT_NAME} PUBLIC dependencies/glad/include)
-
 # spdlog
-set(SPDLOG_BUILD_SHARED ON CACHE INTERNAL "" FORCE)
-set(BUILD_SHARED_LIBS ON)
+set(SPDLOG_BUILD_SHARED OFF CACHE INTERNAL "" FORCE)
+set(BUILD_SHARED_LIBS OFF)
 add_subdirectory(dependencies/spdlog)
 target_link_libraries(${PROJECT_NAME} PUBLIC spdlog)
 target_include_directories(${PROJECT_NAME} PUBLIC dependencies/spdlog/include)

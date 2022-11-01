@@ -17,140 +17,129 @@
 
 ENGINE_API extern const uint64_t BILLION;
 
-class ENGINE_API Window {
+namespace engine {
 
-public:
-	Window(const std::string& title);
-	Window(const Window&) = delete;
-	Window& operator=(const Window&) = delete;
-	~Window();
+	class ENGINE_API Window {
 
-	// Return the title name
-	std::string getTitle() const;
+	public:
+		Window(const std::string& title, bool resizable = true);
+		Window(const Window&) = delete;
+		Window& operator=(const Window&) = delete;
+		~Window();
 
-	// Make this window the current OpenGL context.
-	// This is already done in window initialisation.
-	void makeContextCurrent();
+		SDL_Window* getHandle() const;
 
-	// Tell the GPU to render the back buffer to the screen.
-	// Run this on every frame.
-	void swapBuffers();
-	// Update the window state to capture any events that have occurred.
-	// Run this on every frame.
-	void getInputAndEvents();
+		// Return the title name
+		std::string getTitle() const;
 
-	// if 'true', swapBuffers() will wait in order to synchronise with the
-	// monitor's refresh rate.
-	void setVSync(bool enable);
-	// Returns true if VSync is enabled.
-	bool getVSync() const;
+		// Update the window state to capture any events that have occurred.
+		// Run this on every frame.
+		void getInputAndEvents();
 
-	glm::ivec2 getViewportSize();
+		void setTitle(std::string title);
 
-	void setTitle(std::string title);
+		// Hides the window (it will appear closed to the user).
+		void hide();
+		// Shows the window again.
+		void show();
+		// Raises the window above other windows and sets the input focus
+		void focus();
+		// Returns true if the window has focus
+		bool hasFocus() const;
 
-	// Hides the window (it will appear closed to the user).
-	void hide();
-	// Shows the window again.
-	void show();
-	// Raises the window above other windows and sets the input focus
-	void focus();
-	// Returns true if the window has focus
-	bool hasFocus() const;
+		// Sets the close flag, check this with shouldClose()
+		void setCloseFlag();
+		// Returns true if the window should remain open
+		bool isRunning() const;
 
-	// Sets the close flag, check this with shouldClose()
-	void setCloseFlag();
-	// Returns true if the window should remain open
-	bool isRunning() const;
+		void setFullscreen(bool fullscreen, bool exclusive = false);
+		void toggleFullscreen();
 
-	void setFullscreen(bool fullscreen, bool exclusive=true);
-	void toggleFullscreen();
+		bool isFullscreen() const;
 
-	bool isFullscreen() const;
+		// Relative mouse mode captures the cursor for FPS style use. Returns false if unsupported.
+		bool setRelativeMouseMode(bool enabled);
 
-	// Relative mouse mode captures the cursor for FPS style use. Returns false if unsupported.
-	bool setRelativeMouseMode(bool enabled);
+		// returns true if relative mouse mode is enabled
+		bool mouseCaptured();
 
-	// returns true if relative mouse mode is enabled
-	bool mouseCaptured();
+		// window events
 
-	// window events
+		// Returns true if the window was just resized during the previous frame
+		bool getWindowResized() const;
+		// Set the window resized flag (to recalculate aspect ratios and such)
+		inline void setResizedFlag()
+		{
+			m_justResized = true;
+		}
 
-	// Returns true if the window was just resized during the previous frame
-	bool getWindowResized() const;
-	// Set the window resized flag (to recalculate aspect ratios and such)
-	inline void setResizedFlag()
-	{
-		m_justResized = true;
-	}
+		// keyboard events
 
-	// keyboard events
+		// returns true if key is down
+		bool getKey(inputs::Key key) const;
+		// returns true if key was just pressed
+		bool getKeyPress(inputs::Key key) const;
+		// returns true if key was just released
+		bool getKeyRelease(inputs::Key key) const;
 
-	// returns true if key is down
-	bool getKey(inputs::Key key) const;
-	// returns true if key was just pressed
-	bool getKeyPress(inputs::Key key) const;
-	// returns true if key was just released
-	bool getKeyRelease(inputs::Key key) const;
+		// mouse events
 
-	// mouse events
+		// returns true if button is down
+		bool getButton(inputs::MouseButton button) const;
+		// returns true if button was just pressed
+		bool getButtonPress(inputs::MouseButton button) const;
+		// returns true if button was just released
+		bool getButtonRelease(inputs::MouseButton button) const;
 
-	// returns true if button is down
-	bool getButton(inputs::MouseButton button) const;
-	// returns true if button was just pressed
-	bool getButtonPress(inputs::MouseButton button) const;
-	// returns true if button was just released
-	bool getButtonRelease(inputs::MouseButton button) const;
+		// retrieves x coordinate of the mouse
+		int getMouseX() const;
+		// retrieves y coordinate of the mouse
+		int getMouseY() const;
+		// retrieves mouse x coordinate normalised for OpenGL
+		float getMouseNormX() const;
+		// retrieves mouse y coordinate normalised for OpenGL
+		float getMouseNormY() const;
+		// retrieves dx of the mouse since the last frame
+		int getMouseDX() const;
+		// retrieves dy of the mouse since the last frame
+		int getMouseDY() const;
+		// retrieves amount scrolled vertically
+		float getMouseScrollX() const;
+		// retrieves amount scrolled horizontally
+		float getMouseScrollY() const;
 
-	// retrieves x coordinate of the mouse
-	int getMouseX() const;
-	// retrieves y coordinate of the mouse
-	int getMouseY() const;
-	// retrieves mouse x coordinate normalised for OpenGL
-	float getMouseNormX() const;
-	// retrieves mouse y coordinate normalised for OpenGL
-	float getMouseNormY() const;
-	// retrieves dx of the mouse since the last frame
-	int getMouseDX() const;
-	// retrieves dy of the mouse since the last frame
-	int getMouseDY() const;
-	// retrieves amount scrolled vertically
-	float getMouseScrollX() const;
-	// retrieves amount scrolled horizontally
-	float getMouseScrollY() const;
-
-	// joystick/gamepad events (maybe), other misc events
+		// joystick/gamepad events (maybe), other misc events
 
 
 
-	// returns the performance counter value in nanoseconds;
-	uint64_t getNanos() const;
-	// get the time recorded at the end of the last frame
-	uint64_t getLastFrameStamp() const;
+		// returns the performance counter value in nanoseconds;
+		uint64_t getNanos() const;
+		// get the time recorded at the end of the last frame
+		uint64_t getLastFrameStamp() const;
 
-	// returns the number of frames elapsed since window creation
-	uint64_t getFrameCount() const;
-	uint64_t getStartTime() const;;
-	float dt() const; // returns delta time in seconds
-	uint64_t getFPS() const;
-	uint64_t getAvgFPS() const;
+		// returns the number of frames elapsed since window creation
+		uint64_t getFrameCount() const;
+		uint64_t getStartTime() const;;
+		float dt() const; // returns delta time in seconds
+		uint64_t getFPS() const;
+		uint64_t getAvgFPS() const;
 
-	void resetAvgFPS();
+		void resetAvgFPS();
 
-	bool infoBox(const std::string& title, const std::string& msg);
+		bool infoBox(const std::string& title, const std::string& msg);
 
-	std::vector<const char*> getRequiredVulkanExtensions() const;
-
-	/* STATIC METHODS */
-	static void errorBox(const std::string& message);
+		/* STATIC METHODS */
+		static void errorBox(const std::string& message);
 
 	private:
+
 		SDL_Window* m_handle;
-		SDL_GLContext m_glContext;
 
 		bool m_shouldClose = false;
 
 		std::string m_title;
+
+		bool m_resizable;
 
 		bool m_fullscreen = false;
 		bool m_justResized = false;
@@ -158,8 +147,6 @@ public:
 
 		// size in screen coordinates
 		glm::ivec2 m_winSize = glm::vec2(640, 480);
-		// actual framebuffer size
-		glm::ivec2 m_fbSize;
 
 		// performance counter frequency
 		uint64_t m_counterFreq;
@@ -214,5 +201,6 @@ public:
 		void onMouseButtonEvent(SDL_MouseButtonEvent& e);
 		void onMouseMotionEvent(SDL_MouseMotionEvent& e);
 		void onMouseWheelEvent(SDL_MouseWheelEvent& e);
+	};
 
-};
+}

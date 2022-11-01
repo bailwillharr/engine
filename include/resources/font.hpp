@@ -10,7 +10,7 @@
 
 #include <map>
 
-namespace resources {
+namespace engine::resources {
 
 class ENGINE_API Font : public Resource {
 

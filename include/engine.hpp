@@ -1,19 +1,53 @@
 #pragma once
 
-#include <filesystem>
-
-#include "log.hpp"
-#include <spdlog/sinks/stdout_color_sinks.h>
-#include <spdlog/sinks/basic_file_sink.h>
+#include <memory>
 
 namespace engine {
 
-	struct AppInfo {
-		const char* name;
-		const char* version;
+	class Window;
+	class Input;
+	class ResourceManager;
+	class SceneRoot;
+
+	class Application {
+
+	public:
+		Application(const char* appName, const char* appVersion);
+
+		Application(const Application&) = delete;
+		Application& operator=(const Application&) = delete;
+
+		~Application();
+
+		void gameLoop();
+
+		Window* window()
+		{
+			return m_win;
+		}
+
+		Input* input()
+		{
+			return m_input;
+		}
+
+		ResourceManager* resources()
+		{
+			return m_res;
+		}
+
+		SceneRoot* scene()
+		{
+			return m_scene;
+		}
+
+
+
+	private:
+		Window* m_win;
+		Input* m_input;
+		ResourceManager* m_res;
+		SceneRoot* m_scene;
 	};
-
-
-	bool versionFromCharArray(const char* version, int* major, int* minor, int* patch);
 
 }
