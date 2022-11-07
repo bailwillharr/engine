@@ -22,8 +22,8 @@ public:
 	~Shader() override;
 
 	struct UniformBuffer {
-		glm::mat4 v;
 		glm::mat4 p;
+		glm::vec4 color;
 	};
 
 	gfx::Pipeline* getPipeline()

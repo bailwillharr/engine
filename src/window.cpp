@@ -31,6 +31,9 @@ namespace engine {
 #ifdef ENGINE_BUILD_VULKAN
 		windowFlags |= SDL_WINDOW_VULKAN;
 #endif
+#ifdef ENGINE_BUILD_OPENGL
+		windowFlags |= SDL_WINDOW_OPENGL;
+#endif
 
 		if (m_resizable) {
 			windowFlags |= SDL_WINDOW_RESIZABLE;
@@ -57,21 +60,6 @@ namespace engine {
 		const int WINDOWED_MIN_WIDTH = 640;
 		const int WINDOWED_MIN_HEIGHT = 480;
 		SDL_SetWindowMinimumSize(m_handle, WINDOWED_MIN_WIDTH, WINDOWED_MIN_HEIGHT);
-
-		/*
-		m_glContext = SDL_GL_CreateContext(m_handle);
-		if (m_glContext == NULL) {
-			SDL_DestroyWindow(m_handle);
-			SDL_Quit();
-			throw std::runtime_error("Unable to create OpenGL context: " + std::string(SDL_GetError()));
-		}
-
-		if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress)) {
-			SDL_DestroyWindow(m_handle);
-			SDL_Quit();
-			throw std::runtime_error("Unable to initialise GLAD");
-		}
-		*/
 
 		//	onResize(m_winSize.x, m_winSize.y);
 

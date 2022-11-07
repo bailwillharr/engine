@@ -1,5 +1,7 @@
 #include "components/mesh_renderer.hpp"
 
+#include "resources/shader.hpp"
+
 #include "object.hpp"
 
 #include "resource_manager.hpp"
@@ -25,6 +27,10 @@ Renderer::~Renderer()
 
 void Renderer::render(glm::mat4 transform, glm::mat4 view)
 {
+	resources::Shader::UniformBuffer uniformData{};
+	uniformData.color = glm::vec4{ m_color.r, m_color.g, m_color.b, 1.0 };
+	gfxdev->updateUniformBuffer(m_shader->getPipeline(), &uniformData.color, sizeof(uniformData.color), offsetof(resources::Shader::UniformBuffer, color));
+
 	glm::mat4 pushConsts[] = { transform, view };
 	gfxdev->draw(m_shader->getPipeline(), m_mesh->vb, m_mesh->ib, m_mesh->m_vertices.size(), pushConsts, sizeof(glm::mat4) * 2);
 }

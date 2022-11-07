@@ -1175,8 +1175,10 @@ namespace engine {
 
 	void GFXDevice::getViewportSize(uint32_t *w, uint32_t *h)
 	{
-		*w = pimpl->swapchain.extent.width;
-		*h = pimpl->swapchain.extent.height;
+		int width, height;
+		SDL_Vulkan_GetDrawableSize(pimpl->window, &width, &height);
+		*w = (uint32_t)width;
+		*h = (uint32_t)height;
 	}
 
 	void GFXDevice::draw(const gfx::Pipeline* pipeline, const gfx::Buffer* vertexBuffer, const gfx::Buffer* indexBuffer, uint32_t count, const void* pushConstantData, size_t pushConstantSize)
@@ -1600,15 +1602,17 @@ namespace engine {
 		delete pipeline;
 	}
 
-	void GFXDevice::updateUniformBuffer(const gfx::Pipeline* pipeline, void* data)
+	void GFXDevice::updateUniformBuffer(const gfx::Pipeline* pipeline, void* data, size_t size, uint32_t offset)
 	{
+		assert(size <= pipeline->uniformBuffers[0]->size);
+
 		VkResult res;
 
-		void* uniformDest;
 		for (gfx::Buffer* buffer : pipeline->uniformBuffers) {
+			void* uniformDest;
 			res = vmaMapMemory(pimpl->allocator, buffer->allocation, &uniformDest);
 			assert(res == VK_SUCCESS);
-			memcpy(uniformDest, data, buffer->size);
+			memcpy((uint8_t*)uniformDest + offset, data, size);
 			vmaUnmapMemory(pimpl->allocator, buffer->allocation);
 		}
 		

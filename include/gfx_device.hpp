@@ -32,7 +32,7 @@ namespace engine {
 		gfx::Pipeline* createPipeline(const char* vertShaderPath, const char* fragShaderPath, const gfx::VertexFormat& vertexFormat, uint64_t uniformBufferSize);
 		void destroyPipeline(const gfx::Pipeline* pipeline);
 
-		void updateUniformBuffer(const gfx::Pipeline* pipeline, void* data);
+		void updateUniformBuffer(const gfx::Pipeline* pipeline, void* data, size_t size, uint32_t offset);
 
 		gfx::Buffer* createBuffer(gfx::BufferType type, uint64_t size, const void* data);
 		void destroyBuffer(const gfx::Buffer* buffer);

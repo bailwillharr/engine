@@ -38,13 +38,9 @@ void Camera::updateCam(glm::mat4 transform, glm::mat4* viewMatOut)
 
 	glm::mat4 viewMatrix = glm::inverse(transform);
 
-	struct {
-		glm::mat4 view;
-		glm::mat4 proj;
-	} uniformData{};
+	resources::Shader::UniformBuffer uniformData{};
 
-	uniformData.view = viewMatrix;
-	uniformData.proj = m_projMatrix;
+	uniformData.p = m_projMatrix;
 
 	using namespace resources;
 
@@ -54,7 +50,7 @@ void Camera::updateCam(glm::mat4 transform, glm::mat4* viewMatOut)
 		auto lockedPtr = resPtr.lock();
 		auto shader = dynamic_cast<Shader*>(lockedPtr.get());
 		// SET VIEW TRANSFORM HERE
-		gfxdev->updateUniformBuffer(shader->getPipeline(), &uniformData);
+		gfxdev->updateUniformBuffer(shader->getPipeline(), &uniformData.p, sizeof(uniformData.p), offsetof(resources::Shader::UniformBuffer, p));
 	}
 
 	*viewMatOut = viewMatrix;

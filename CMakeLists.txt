@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.8)
 
 # options
+option(ENGINE_BUILD_TEST "Compile the test program" ON)
+option(ENGINE_BUILD_VULKAN "Use Vulkan 1.3 for graphics" ON)
+option(ENGINE_BUILD_OPENGL "Use OpenGL 4.5 for graphics" OFF)
 
 project(engine LANGUAGES CXX
 	VERSION "0.1.0"
@@ -106,7 +109,20 @@ target_include_directories(${PROJECT_NAME} PRIVATE src)
 configure_file(config.h.in config.h)
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
-target_compile_definitions(${PROJECT_NAME} PRIVATE "ENGINE_BUILD_VULKAN")
+# figure out what graphics api to use
+if (ENGINE_BUILD_VULKAN)
+	target_compile_definitions(${PROJECT_NAME} PRIVATE "ENGINE_BUILD_VULKAN")
+elseif(ENGINE_BUILD_OPENGL)
+	target_compile_definitions(${PROJECT_NAME} PRIVATE "ENGINE_BUILD_OPENGL")
+else()
+	target_compile_definitions(${PROJECT_NAME} PRIVATE "ENGINE_BUILD_NULL")
+endif()
+
+# Build the test
+if (ENGINE_BUILD_TEST)
+	add_subdirectory(test)
+	set(CMAKE_RUNTIME_OUTPUT_DIRECTORY $<TARGET_FILE_DIR:enginetest>)
+endif()
 
 # external libraries:
 
@@ -126,7 +142,6 @@ endif()
 set(GLAD_SPEC "gl" CACHE INTERNAL "" FORCE)
 set(BUILD_SHARED_LIBS OFF)
 add_subdirectory(dependencies/glad)
-set_property(TARGET glad PROPERTY POSITION_INDEPENDENT_CODE ON)
 target_link_libraries(${PROJECT_NAME} PUBLIC glad)
 target_include_directories(${PROJECT_NAME} PUBLIC dependencies/glad/include)
 
