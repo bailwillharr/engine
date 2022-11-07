@@ -51,9 +51,10 @@ namespace engine {
 		for (const auto& [c, camt] : compList.cameras) {
 			for (int id : m_activeCameras) {
 				if (c->getID() == id) {
-					c->updateCam(camt);
+					glm::mat4 view{};
+					c->updateCam(camt, &view);
 					for (const auto& [ren, ren_t] : compList.renderers) {
-						ren->render(ren_t);
+						ren->render(ren_t, view);
 					}
 
 					break;

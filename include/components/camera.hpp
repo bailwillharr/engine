@@ -21,7 +21,7 @@ public:
 	~Camera();
 
 	// called every frame, don't call manually
-	void updateCam(glm::mat4 transform);
+	void updateCam(glm::mat4 transform, glm::mat4* viewMatrix);
 
 	void makeActive();
 	bool isActive();

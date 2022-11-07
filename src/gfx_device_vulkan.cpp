@@ -258,7 +258,7 @@ namespace engine {
 			ERROR
 		};
 
-		constexpr MessageSeverity MESSAGE_LEVEL = MessageSeverity::WARNING;
+		constexpr MessageSeverity MESSAGE_LEVEL = MessageSeverity::INFO;
 		switch (MESSAGE_LEVEL) {
 		case MessageSeverity::VERBOSE:
 			debugMessengerInfo.messageSeverity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT;
@@ -419,7 +419,7 @@ namespace engine {
 
 		for (const auto& presMode : presentModes) {
 			if (presMode == VK_PRESENT_MODE_MAILBOX_KHR) {
-				swapchain->presentMode = presMode; // this mode allows uncapped FPS while also avoiding screen tearing
+//				swapchain->presentMode = presMode; // this mode allows uncapped FPS while also avoiding screen tearing
 			}
 		}
 
@@ -1179,11 +1179,12 @@ namespace engine {
 		*h = pimpl->swapchain.extent.height;
 	}
 
-	void GFXDevice::draw(const gfx::Pipeline* pipeline, const gfx::Buffer* vertexBuffer, const gfx::Buffer* indexBuffer, uint32_t count, const void* pushConstantData)
+	void GFXDevice::draw(const gfx::Pipeline* pipeline, const gfx::Buffer* vertexBuffer, const gfx::Buffer* indexBuffer, uint32_t count, const void* pushConstantData, size_t pushConstantSize)
 	{
 		assert(vertexBuffer->type == gfx::BufferType::VERTEX);
 		assert(vertexBuffer != nullptr);
 		assert(indexBuffer == nullptr || indexBuffer->type == gfx::BufferType::INDEX);
+		assert(pushConstantSize <= PUSH_CONSTANT_MAX_SIZE);
 
 		DrawCall call{
 			.vertexBuffer = vertexBuffer,
@@ -1191,7 +1192,7 @@ namespace engine {
 			.count = count,
 		};
 
-		memcpy(call.pushConstantData, pushConstantData, PUSH_CONSTANT_MAX_SIZE);
+		memcpy(call.pushConstantData, pushConstantData, pushConstantSize);
 
 		pimpl->drawQueues[pipeline].push(call);
 
@@ -1275,9 +1276,10 @@ namespace engine {
 					vkCmdBindVertexBuffers(pimpl->commandBuffers[frameIndex], 0, 1, &call.vertexBuffer->buffer, offsets);
 					
 					if (call.indexBuffer == nullptr) {
-						// do a simple draw call
+						// no index buffer
 						vkCmdDraw(pimpl->commandBuffers[frameIndex], call.count, 1, 0, 0);
 					} else {
+						// use index buffer
 						vkCmdBindIndexBuffer(pimpl->commandBuffers[frameIndex], call.indexBuffer->buffer, 0, VK_INDEX_TYPE_UINT32);
 						vkCmdDrawIndexed(pimpl->commandBuffers[frameIndex], call.count, 1, 0, 0, 0);
 					}

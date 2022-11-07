@@ -25,7 +25,7 @@ Camera::~Camera()
 	parent.root.deactivateCam(getID());
 }
 
-void Camera::updateCam(glm::mat4 transform)
+void Camera::updateCam(glm::mat4 transform, glm::mat4* viewMatOut)
 {
 
 	if (parent.win.getWindowResized()) {
@@ -56,6 +56,8 @@ void Camera::updateCam(glm::mat4 transform)
 		// SET VIEW TRANSFORM HERE
 		gfxdev->updateUniformBuffer(shader->getPipeline(), &uniformData);
 	}
+
+	*viewMatOut = viewMatrix;
 
 }
 
