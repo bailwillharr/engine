@@ -23,9 +23,10 @@ Renderer::~Renderer()
 
 }
 
-void Renderer::render(glm::mat4 transform)
+void Renderer::render(glm::mat4 transform, glm::mat4 view)
 {
-	gfxdev->draw(m_shader->getPipeline(), m_mesh->vb, m_mesh->ib, m_mesh->m_vertices.size(), &transform);
+	glm::mat4 pushConsts[] = { transform, view };
+	gfxdev->draw(m_shader->getPipeline(), m_mesh->vb, m_mesh->ib, m_mesh->m_vertices.size(), pushConsts, sizeof(glm::mat4) * 2);
 }
 
 void Renderer::setMesh(const std::string& name)

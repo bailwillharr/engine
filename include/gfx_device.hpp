@@ -23,7 +23,7 @@ namespace engine {
 
 		// adds a draw call to the queue
 		// vertexBuffer is required, indexBuffer can be NULL, uniformData is required
-		void draw(const gfx::Pipeline* pipeline, const gfx::Buffer* vertexBuffer, const gfx::Buffer* indexBuffer, uint32_t count, const void* pushConstantData);
+		void draw(const gfx::Pipeline* pipeline, const gfx::Buffer* vertexBuffer, const gfx::Buffer* indexBuffer, uint32_t count, const void* pushConstantData, size_t pushConstantSize);
 
 		// Call once per frame. Executes all queued draw calls and renders to the screen.
 		void renderFrame();

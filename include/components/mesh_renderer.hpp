@@ -21,7 +21,7 @@ public:
 	~Renderer() override;
 
 	// called every frame, do not call manually
-	void render(glm::mat4 model);
+	void render(glm::mat4 model, glm::mat4 view);
 
 	void setMesh(const std::string& name);
 	void setTexture(const std::string& name);

@@ -40,20 +40,6 @@ void Mesh::initMesh()
 {
 	vb = gfxdev->createBuffer(gfx::BufferType::VERTEX, m_vertices.size() * sizeof(Vertex), m_vertices.data());
 	ib = gfxdev->createBuffer(gfx::BufferType::INDEX, m_indices.size() * sizeof(uint32_t), m_indices.data());
-
-	TRACE("VB PTR in mesh: {}", (void*)vb);
-
-	TRACE("Vertices:");
-
-	for (const auto& v : m_vertices) {
-		TRACE("pos: {}, {}, {}", v.pos.x, v.pos.y, v.pos.z);
-	}
-
-	TRACE("Indices:");
-
-	for (const uint32_t i : m_indices) {
-		TRACE("\t{}", i);
-	}
 }
 
 Mesh::Mesh(const std::vector<Vertex>& vertices) : Resource("", "mesh")
