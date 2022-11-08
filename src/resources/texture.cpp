@@ -1,3 +1,5 @@
+#if 0
+
 #include "resources/texture.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -129,3 +131,4 @@ void Texture::bindTexture() const
 }
 
 }
+#endif

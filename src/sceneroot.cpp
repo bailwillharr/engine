@@ -62,9 +62,10 @@ namespace engine {
 			}
 		}
 
-		for (const auto& [c, t] : compList.uis) {
+/*		for (const auto& [c, t] : compList.uis) {
 			c->render(t);
 		}
+*/
 
 	}
 

@@ -1,3 +1,5 @@
+#if 0
+
 #include "components/text_ui_renderer.hpp"
 
 #include "object.hpp"
@@ -12,8 +14,8 @@ UI::UI(Object* parent) : Component(parent, TypeEnum::UI)
 	m_font = parent->res.get<resources::Font>(FONTFILE);
 	m_shader = parent->res.get<resources::Shader>("shaders/font.glsl");
 
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+//	glEnable(GL_BLEND);
+//	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
 UI::~UI()
@@ -70,7 +72,7 @@ void UI::render(glm::mat4 transform)
 			{{xpos + w,	ypos + h,	0.0f}, {}, {1.0f, 0.0f}},
 		});*/
 
-		glBindTexture(GL_TEXTURE_2D, glyph.textureID);
+//		glBindTexture(GL_TEXTURE_2D, glyph.textureID);
 
 //		mesh.drawMesh(*m_shader);
 
@@ -83,3 +85,5 @@ void UI::render(glm::mat4 transform)
 }
 
 }
+
+#endif

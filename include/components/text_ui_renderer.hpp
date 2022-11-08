@@ -1,5 +1,7 @@
 #pragma once
 
+#if 0
+
 #include "engine_api.h"
 
 #include "component.hpp"
@@ -39,3 +41,4 @@ private:
 };
 
 }
+#endif

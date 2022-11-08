@@ -1,3 +1,4 @@
+#if 0
 #include "resources/font.hpp"
 
 #include <ft2build.h>
@@ -94,3 +95,4 @@ Font::Character Font::getChar(char c)
 }
 
 }
+#endif

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.23)
 
 # options
 option(ENGINE_BUILD_TEST "Compile the test program" ON)
@@ -77,10 +77,8 @@ set(INCLUDE_FILES
 )
 
 add_library(${PROJECT_NAME} STATIC
-
 	${SRC_FILES}
 	${INCLUDE_FILES}
-
 )
 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src" PREFIX "Source" FILES ${SRC_FILES})
@@ -131,30 +129,36 @@ if (MINGW)
 	target_link_libraries(${PROJECT_NAME} PUBLIC mingw32)
 endif()
 
-# GLAD:
-set(GLAD_PROFILE "core" CACHE INTERNAL "" FORCE)
-set(GLAD_API "gl=3.3" CACHE INTERNAL "" FORCE)
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-	set(GLAD_GENERATOR "c-debug" CACHE INTERNAL "" FORCE)
-else()
-	set(GLAD_GENERATOR "c" CACHE INTERNAL "" FORCE)
+if(ENGINE_BUILD_OPENGL)
+	# GLAD:
+	set(GLAD_PROFILE "core" CACHE INTERNAL "" FORCE)
+	set(GLAD_API "gl=3.3" CACHE INTERNAL "" FORCE)
+	if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+		set(GLAD_GENERATOR "c-debug" CACHE INTERNAL "" FORCE)
+	else()
+		set(GLAD_GENERATOR "c" CACHE INTERNAL "" FORCE)
+	endif()
+	set(GLAD_SPEC "gl" CACHE INTERNAL "" FORCE)
+	set(BUILD_SHARED_LIBS OFF)
+	add_subdirectory(dependencies/glad)
+	target_link_libraries(${PROJECT_NAME} PUBLIC glad)
+	target_include_directories(${PROJECT_NAME} PUBLIC dependencies/glad/include)
 endif()
-set(GLAD_SPEC "gl" CACHE INTERNAL "" FORCE)
-set(BUILD_SHARED_LIBS OFF)
-add_subdirectory(dependencies/glad)
-target_link_libraries(${PROJECT_NAME} PUBLIC glad)
-target_include_directories(${PROJECT_NAME} PUBLIC dependencies/glad/include)
 
-# Volk
-set(VOLK_STATIC_DEFINES "")
-set(VOLK_PULL_IN_VULKAN ON)
-set(VOLK_INSTALL OFF)
-set(VOLK_HEADERS_ONLY ON)
-add_subdirectory(dependencies/volk)
-target_link_libraries(${PROJECT_NAME} PRIVATE volk_headers)
+if(ENGINE_BUILD_VULKAN)
 
-# Vulkan Memory Allocator
-target_include_directories(${PROJECT_NAME} PRIVATE dependencies/VulkanMemoryAllocator/include)
+	# Volk
+	set(VOLK_STATIC_DEFINES "")
+	set(VOLK_PULL_IN_VULKAN ON)
+	set(VOLK_INSTALL OFF)
+	set(VOLK_HEADERS_ONLY ON)
+	add_subdirectory(dependencies/volk)
+	target_link_libraries(${PROJECT_NAME} PRIVATE volk_headers)
+	
+	# Vulkan Memory Allocator
+	target_include_directories(${PROJECT_NAME} PRIVATE dependencies/VulkanMemoryAllocator/include)
+
+endif()
 
 # SDL2:
 find_package(SDL2)

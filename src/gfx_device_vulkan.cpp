@@ -18,6 +18,8 @@
 #define VMA_IMPLEMENTATION
 #include <vk_mem_alloc.h>
 
+#include <shaderc/shaderc.hpp>
+
 #include <SDL_vulkan.h>
 
 #include <assert.h>
@@ -144,6 +146,48 @@ namespace engine {
 	}
 
 	// functions
+
+	static VkShaderModule compileShader(VkDevice device, shaderc_shader_kind kind, const std::string& source, const char* filename)
+	{
+
+		shaderc::Compiler compiler;
+		shaderc::CompileOptions options;
+
+		options.SetOptimizationLevel(shaderc_optimization_level_performance);
+
+		// preprocess
+		shaderc::PreprocessedSourceCompilationResult preprocessed = compiler.PreprocessGlsl(source, kind, filename, options);
+
+		if (preprocessed.GetCompilationStatus() != shaderc_compilation_status_success)
+		{
+			throw std::runtime_error(preprocessed.GetErrorMessage());
+		}
+
+		std::string shaderStr = { preprocessed.cbegin(), preprocessed.cend() };
+
+		// compile
+		shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(shaderStr, kind, filename, options);
+
+		if (module.GetCompilationStatus() != shaderc_compilation_status_success)
+		{
+			throw std::runtime_error(module.GetErrorMessage());
+		}
+
+		std::vector<uint32_t> shaderBytecode = { module.cbegin(), module.cend() };// not sure why sample code copy vector like this
+
+		VkShaderModuleCreateInfo createInfo{};
+		createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+		createInfo.codeSize = shaderBytecode.size();
+		createInfo.pCode = shaderBytecode.data();
+
+		VkShaderModule shaderModule;
+		if (vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
+			throw std::runtime_error("failed to create shader module!");
+		}
+
+		return shaderModule;
+
+	}
 
 	static std::vector<char> readFile(const std::string& filename)
 	{
@@ -628,21 +672,6 @@ namespace engine {
 			}
 		}
 
-	}
-
-	static VkShaderModule createShaderModule(VkDevice device, const std::vector<char>& code)
-	{
-		VkShaderModuleCreateInfo createInfo{};
-		createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-		createInfo.codeSize = code.size();
-		createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
-
-		VkShaderModule shaderModule;
-		if (vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
-			throw std::runtime_error("failed to create shader module!");
-		}
-
-		return shaderModule;
 	}
 
 	static void copyBuffer(VkDevice device, VkCommandPool commandPool, VkQueue queue, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
@@ -1135,9 +1164,6 @@ namespace engine {
 		descriptorSetLayoutInfo.pBindings = &pimpl->uboLayoutBinding;
 		res = vkCreateDescriptorSetLayout(pimpl->device, &descriptorSetLayoutInfo, nullptr, &pimpl->uboLayout);
 		assert(res == VK_SUCCESS);
-
-
-
 	}
 
 	GFXDevice::~GFXDevice()
@@ -1426,8 +1452,8 @@ namespace engine {
 		auto fragShaderCode = readFile(fragShaderPath);
 		INFO("Opened shader: {}", std::filesystem::path(vertShaderPath).filename().string());
 
-		VkShaderModule vertShaderModule = createShaderModule(pimpl->device, vertShaderCode);
-		VkShaderModule fragShaderModule = createShaderModule(pimpl->device, fragShaderCode);
+		VkShaderModule vertShaderModule = compileShader(pimpl->device, shaderc_vertex_shader, vertShaderCode.data(), vertShaderPath);
+		VkShaderModule fragShaderModule = compileShader(pimpl->device, shaderc_fragment_shader, fragShaderCode.data(), fragShaderPath);
 
 		VkPipelineShaderStageCreateInfo vertShaderStageInfo{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO };
 		vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;

@@ -35,8 +35,8 @@ Shader::Shader(const std::filesystem::path& resPath) : Resource(resPath, "shader
 	vertexFormat.attributeDescriptions.emplace_back(1, gfx::VertexAttribFormat::VEC3, sizeof(glm::vec3)); // norm
 	vertexFormat.attributeDescriptions.emplace_back(2, gfx::VertexAttribFormat::VEC2, sizeof(glm::vec3) + sizeof(glm::vec3)); // uv
 
-	const std::string vertexShaderPath = (resPath.parent_path()/std::filesystem::path(resPath.stem().string() + ".vert.spv")).string();
-	const std::string fragmentShaderPath = (resPath.parent_path()/std::filesystem::path(resPath.stem().string() + ".frag.spv")).string();
+	const std::string vertexShaderPath = (resPath.parent_path()/std::filesystem::path(resPath.stem().string() + ".vert")).string();
+	const std::string fragmentShaderPath = (resPath.parent_path()/std::filesystem::path(resPath.stem().string() + ".frag")).string();
 
 	m_pipeline = gfxdev->createPipeline(vertexShaderPath.c_str(), fragmentShaderPath.c_str(), vertexFormat, sizeof(UniformBuffer));
 

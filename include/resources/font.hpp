@@ -1,10 +1,10 @@
 #pragma once
 
+#if 0
+
 #include "engine_api.h"
 
 #include "resource.hpp"
-
-#include <glad/glad.h>
 
 #include <glm/vec2.hpp>
 
@@ -33,3 +33,4 @@ public:
 };
 
 }
+#endif
