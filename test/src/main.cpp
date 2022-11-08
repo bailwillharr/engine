@@ -20,9 +20,8 @@ int main(int argc, char *argv[])
 
 		CRITICAL("{}", e.what());
 
-#ifdef NDEBUG
 		engine::Window::errorBox(e.what());
-#else
+#ifndef NDEBUG
 		fputs(e.what(), stderr);
 		fputc('\n', stderr);
 #endif

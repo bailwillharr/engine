@@ -291,7 +291,7 @@ namespace engine {
 
 	void Window::toggleFullscreen()
 	{
-		setFullscreen(!m_fullscreen);
+		setFullscreen(!m_fullscreen, true);
 	}
 
 	bool Window::isFullscreen() const

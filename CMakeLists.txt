@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.23)
+cmake_minimum_required(VERSION 3.24)
 
 # options
 option(ENGINE_BUILD_TEST "Compile the test program" ON)
@@ -147,6 +147,9 @@ endif()
 
 if(ENGINE_BUILD_VULKAN)
 
+	include(FindVulkan)
+	find_package(Vulkan COMPONENTS shaderc_combined)
+
 	# Volk
 	set(VOLK_STATIC_DEFINES "")
 	set(VOLK_PULL_IN_VULKAN ON)
@@ -157,6 +160,10 @@ if(ENGINE_BUILD_VULKAN)
 	
 	# Vulkan Memory Allocator
 	target_include_directories(${PROJECT_NAME} PRIVATE dependencies/VulkanMemoryAllocator/include)
+
+	# shaderc
+	
+	target_link_libraries(${PROJECT_NAME} PRIVATE Vulkan::shaderc_combined)
 
 endif()
 

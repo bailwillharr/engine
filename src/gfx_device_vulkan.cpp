@@ -30,6 +30,7 @@
 #include <optional>
 #include <queue>
 #include <map>
+#include <iostream>
 
 namespace engine {
 
@@ -153,7 +154,12 @@ namespace engine {
 		shaderc::Compiler compiler;
 		shaderc::CompileOptions options;
 
-		options.SetOptimizationLevel(shaderc_optimization_level_performance);
+		options.SetSourceLanguage(shaderc_source_language_glsl);
+		options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_3);
+		options.SetOptimizationLevel(shaderc_optimization_level_size);
+		options.SetTargetSpirv(shaderc_spirv_version_1_6);
+		options.SetAutoBindUniforms(false);
+		options.SetInvertY(false);
 
 		// preprocess
 		shaderc::PreprocessedSourceCompilationResult preprocessed = compiler.PreprocessGlsl(source, kind, filename, options);
@@ -163,10 +169,12 @@ namespace engine {
 			throw std::runtime_error(preprocessed.GetErrorMessage());
 		}
 
+
+
 		std::string shaderStr = { preprocessed.cbegin(), preprocessed.cend() };
 
 		// compile
-		shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(shaderStr, kind, filename, options);
+		shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(shaderStr.data(), kind, filename, options);
 
 		if (module.GetCompilationStatus() != shaderc_compilation_status_success)
 		{
@@ -177,8 +185,8 @@ namespace engine {
 
 		VkShaderModuleCreateInfo createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-		createInfo.codeSize = shaderBytecode.size();
-		createInfo.pCode = shaderBytecode.data();
+		createInfo.codeSize = shaderBytecode.size() * sizeof(uint32_t);
+		createInfo.pCode = module.cbegin();
 
 		VkShaderModule shaderModule;
 		if (vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
@@ -189,9 +197,9 @@ namespace engine {
 
 	}
 
-	static std::vector<char> readFile(const std::string& filename)
+	static std::vector<char> readTextFile(const std::string& filename)
 	{
-		std::ifstream file(filename, std::ios::ate | std::ios::binary);
+		std::ifstream file(filename, std::ios::ate);
 		if (file.is_open() == false) {
 			throw std::runtime_error("Unable to open file " + filename);
 		}
@@ -463,7 +471,7 @@ namespace engine {
 
 		for (const auto& presMode : presentModes) {
 			if (presMode == VK_PRESENT_MODE_MAILBOX_KHR) {
-//				swapchain->presentMode = presMode; // this mode allows uncapped FPS while also avoiding screen tearing
+				swapchain->presentMode = presMode; // this mode allows uncapped FPS while also avoiding screen tearing
 			}
 		}
 
@@ -789,8 +797,6 @@ namespace engine {
 #else
 		useValidation = true; // debug mode
 #endif
-
-
 
 		// get the both the engine and application versions
 		int appVersionMajor = 0, appVersionMinor = 0, appVersionPatch = 0;
@@ -1368,6 +1374,13 @@ namespace engine {
 
 		gfx::Pipeline* pipeline = new gfx::Pipeline;
 
+		auto vertShaderCode = readTextFile(vertShaderPath);
+		auto fragShaderCode = readTextFile(fragShaderPath);
+		INFO("Opened shader: {}", std::filesystem::path(vertShaderPath).filename().string());
+
+		VkShaderModule vertShaderModule = compileShader(pimpl->device, shaderc_vertex_shader, vertShaderCode.data(), vertShaderPath);
+		VkShaderModule fragShaderModule = compileShader(pimpl->device, shaderc_fragment_shader, fragShaderCode.data(), fragShaderPath);
+
 		// create uniform buffers
 		pipeline->uniformBuffers.resize(FRAMES_IN_FLIGHT);
 		for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
@@ -1447,13 +1460,6 @@ namespace engine {
 			vulkanAttribDesc.format = vkinternal::getVertexAttribFormat(desc.format);
 			attribDescs.push_back(vulkanAttribDesc);
 		}
-
-		auto vertShaderCode = readFile(vertShaderPath);
-		auto fragShaderCode = readFile(fragShaderPath);
-		INFO("Opened shader: {}", std::filesystem::path(vertShaderPath).filename().string());
-
-		VkShaderModule vertShaderModule = compileShader(pimpl->device, shaderc_vertex_shader, vertShaderCode.data(), vertShaderPath);
-		VkShaderModule fragShaderModule = compileShader(pimpl->device, shaderc_fragment_shader, fragShaderCode.data(), fragShaderPath);
 
 		VkPipelineShaderStageCreateInfo vertShaderStageInfo{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO };
 		vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
