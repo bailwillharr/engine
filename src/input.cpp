@@ -130,7 +130,6 @@ namespace engine {
 		addInputButtonAsAxis(name, InputDevice::MOUSE, static_cast<int>(high), static_cast<int>(low));
 	}
 
-	// Add a keyboard input (TODO: add KeyboardButton enum class)
 	void Input::addInputButton(const std::string& name, inputs::Key button)
 	{
 		addInputButton(name, InputDevice::KEYBOARD, static_cast<int>(button));

@@ -65,6 +65,12 @@ namespace engine {
 		VkImageView view;
 	};
 
+	struct Texture {
+		VkImage image;
+		VmaAllocation allocation;
+		// TODO
+	};
+
 	struct Swapchain {
 		VkSwapchainKHR swapchain = VK_NULL_HANDLE;
 
@@ -1394,11 +1400,12 @@ namespace engine {
 			bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
 			VmaAllocationCreateInfo allocInfo{};
-			allocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_HOST; // prefer CPU memory for uniforms
+			allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
 			allocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
 			allocInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 
-			res = vmaCreateBuffer(pimpl->allocator, &bufferInfo, &allocInfo, &buf->buffer, &buf->allocation, nullptr);
+			VmaAllocationInfo resultingAlloc;
+			res = vmaCreateBuffer(pimpl->allocator, &bufferInfo, &allocInfo, &buf->buffer, &buf->allocation, &resultingAlloc);
 			assert(res == VK_SUCCESS);
 
 			pipeline->uniformBuffers[i] = buf;

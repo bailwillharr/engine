@@ -23,9 +23,6 @@ set(GAME_SOURCES
 
 if (WIN32)
 	add_executable(${PROJECT_NAME} WIN32 ${GAME_SOURCES} "game.rc")
-
-	file(GLOB_RECURSE RES_FILES "${PROJECT_SOURCE_DIR}/res/*")
-	source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/res" PREFIX "Resources" FILES ${RES_FILES})
 else()
 	add_executable(${PROJECT_NAME} ${GAME_SOURCES})
 endif()
