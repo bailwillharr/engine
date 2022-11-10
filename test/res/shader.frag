@@ -16,7 +16,7 @@ void main() {
 	vec3 lightColor = vec3(1.0, 1.0, 1.0);
 	vec3 ambientColor = vec3(1.0, 1.0, 1.0);
 	float ambientStrength = 0.1;
-	vec3 baseColor = vec3(fragColor.x * snoise(fragUV * 10.0), fragColor.yz);
+	vec3 baseColor = vec3(fragColor.x * snoise(fragUV * 10.0), mod(fragUV.x, 1.0), mod(fragUV.y, 1.0));
 	vec3 emission = vec3(0.0, 0.0, 0.0);
 	
 	// code

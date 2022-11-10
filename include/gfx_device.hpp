@@ -37,6 +37,9 @@ namespace engine {
 		gfx::Buffer* createBuffer(gfx::BufferType type, uint64_t size, const void* data);
 		void destroyBuffer(const gfx::Buffer* buffer);
 
+		gfx::Texture* createTexture(const void* imageData, uint32_t w, uint32_t h);
+		void destroyTexture(const gfx::Texture* texture);
+
 		// wait until all the active GPU queues have finished working
 		void waitIdle();
 

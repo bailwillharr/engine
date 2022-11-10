@@ -9,12 +9,17 @@
 #include "components/camera.hpp"
 #include "components/mesh_renderer.hpp"
 
+#include "resource_manager.hpp"
+#include "resources/texture.hpp"
+
 #include "camera_controller.hpp"
 #include "meshgen.hpp"
 
 #include <glm/gtc/quaternion.hpp>
 
 #include <log.hpp>
+
+#include <string>
 
 void playGame()
 {
@@ -115,8 +120,13 @@ void playGame()
 	};
 	app.scene()->getChild("cube")->createComponent<Spin>();
 
+	auto sphere = app.scene()->createChild("sphere");
 
-	app.scene()->printTree();
+	sphere->transform.position = { 10.0f, 5.0f, 10.0f };
+
+	auto sphereRenderer = sphere->createComponent<engine::components::Renderer>();
+	sphereRenderer->m_mesh = genSphereMesh(5.0f, 100, false);
+	sphereRenderer->setTexture("textures/cobble_stone.png");
 
 	app.gameLoop();
 }

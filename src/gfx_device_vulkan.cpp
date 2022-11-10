@@ -65,12 +65,6 @@ namespace engine {
 		VkImageView view;
 	};
 
-	struct Texture {
-		VkImage image;
-		VmaAllocation allocation;
-		// TODO
-	};
-
 	struct Swapchain {
 		VkSwapchainKHR swapchain = VK_NULL_HANDLE;
 
@@ -120,6 +114,11 @@ namespace engine {
 		std::vector<gfx::Buffer*> uniformBuffers{};
 		VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
 		std::array<VkDescriptorSet, FRAMES_IN_FLIGHT> descriptorSets{};
+	};
+
+	struct gfx::Texture {
+		VkImage image;
+		VmaAllocation alloc;
 	};
 
 
@@ -733,6 +732,86 @@ namespace engine {
 
 		vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
 		
+	}
+
+	VkCommandBuffer beginOneTimeCommands(VkDevice device, VkCommandPool commandPool, VkQueue queue)
+	{
+		VkResult res;
+
+		VkCommandBufferAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
+		allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+		allocInfo.commandPool = commandPool;
+		allocInfo.commandBufferCount = 1;
+
+		VkCommandBuffer commandBuffer;
+		res = vkAllocateCommandBuffers(device, &allocInfo, &commandBuffer);
+		assert(res == VK_SUCCESS);
+
+		VkCommandBufferBeginInfo beginInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+		res = vkBeginCommandBuffer(commandBuffer, &beginInfo);
+		assert(res == VK_SUCCESS);
+
+		return commandBuffer;
+	}
+
+	static void endOneTimeCommands(VkDevice device, VkCommandPool commandPool, VkCommandBuffer commandBuffer, VkQueue queue)
+	{
+		VkResult res;
+		res = vkEndCommandBuffer(commandBuffer);
+		assert(res == VK_SUCCESS);
+
+		VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &commandBuffer;
+
+		res = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
+		assert(res == VK_SUCCESS);
+		res = vkQueueWaitIdle(queue);
+		assert(res == VK_SUCCESS);
+
+		vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
+	}
+
+	static void cmdTransitionImageLayout(VkCommandBuffer commandBuffer, VkImageLayout oldLayout, VkImageLayout newLayout, VkImage image)
+	{
+
+		VkImageMemoryBarrier barrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
+		barrier.oldLayout = oldLayout;
+		barrier.newLayout = newLayout;
+		barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		barrier.image = image;
+		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		barrier.subresourceRange.baseMipLevel = 0;
+		barrier.subresourceRange.levelCount = 1;
+		barrier.subresourceRange.baseArrayLayer = 0;
+		barrier.subresourceRange.layerCount = 1;
+
+		VkPipelineStageFlags sourceStage;
+		VkPipelineStageFlags destinationStage;
+
+		if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+			barrier.srcAccessMask = 0;
+			barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+			sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+			destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+		}
+		else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+			barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+			barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+			sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+			destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+		}
+		else {
+			throw std::invalid_argument("unsupported layout transition!");
+		}
+
+		vkCmdPipelineBarrier(commandBuffer, sourceStage, destinationStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+
 	}
 
 	// class definitions
@@ -1721,6 +1800,102 @@ namespace engine {
 	{
 		vmaDestroyBuffer(pimpl->allocator, buffer->buffer, buffer->allocation);
 		delete buffer;
+	}
+
+	gfx::Texture* GFXDevice::createTexture(const void* imageData, uint32_t w, uint32_t h)
+	{
+		auto out = new gfx::Texture;
+
+		VkResult res;
+
+		size_t imageSize = w * h * 4;
+
+		// first load image into staging buffer
+		VkBuffer stagingBuffer;
+		VmaAllocation stagingAllocation;
+		{
+			VkBufferCreateInfo stagingBufferInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+			stagingBufferInfo.size = imageSize;
+			stagingBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+			stagingBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+			stagingBufferInfo.flags = 0;
+
+			VmaAllocationCreateInfo stagingAllocInfo{};
+			stagingAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+			stagingAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+			stagingAllocInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+
+			res = vmaCreateBuffer(pimpl->allocator, &stagingBufferInfo, &stagingAllocInfo, &stagingBuffer, &stagingAllocation, nullptr);
+			assert(res == VK_SUCCESS);
+
+			void* dataDest;
+			res = vmaMapMemory(pimpl->allocator, stagingAllocation, &dataDest);
+			assert(res == VK_SUCCESS);
+			memcpy(dataDest, imageData, imageSize);
+			vmaUnmapMemory(pimpl->allocator, stagingAllocation);
+		}
+
+		// create the image
+		VkImageCreateInfo imageInfo{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
+		imageInfo.imageType = VK_IMAGE_TYPE_2D;
+		imageInfo.extent.width = w;
+		imageInfo.extent.height = h;
+		imageInfo.extent.depth = 1;
+		imageInfo.mipLevels = 1;
+		imageInfo.arrayLayers = 1;
+		imageInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
+		imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+		imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+		imageInfo.flags = 0;
+
+		VmaAllocationCreateInfo imageAllocInfo{};
+		imageAllocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+
+		res = vmaCreateImage(pimpl->allocator, &imageInfo, &imageAllocInfo, &out->image, &out->alloc, nullptr);
+		assert(res == VK_SUCCESS);
+
+		// transition the image layout
+		{
+			VkCommandBuffer commandBuffer = beginOneTimeCommands(pimpl->device, pimpl->commandPool, pimpl->gfxQueue.handle);
+
+			// begin cmd buffer
+
+			cmdTransitionImageLayout(commandBuffer, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, out->image);
+
+			VkBufferImageCopy region{};
+			region.bufferOffset = 0;
+			region.bufferRowLength = 0;
+			region.bufferImageHeight = 0;
+			region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			region.imageSubresource.mipLevel = 0;
+			region.imageSubresource.baseArrayLayer = 0;
+			region.imageSubresource.layerCount = 1;
+			region.imageOffset = { 0, 0, 0 };
+			region.imageExtent.width = w;
+			region.imageExtent.height = h;
+			region.imageExtent.depth = 1;
+
+			vkCmdCopyBufferToImage(commandBuffer, stagingBuffer, out->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+
+			cmdTransitionImageLayout(commandBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, out->image);
+
+			// end cmd buffer
+			endOneTimeCommands(pimpl->device, pimpl->commandPool, commandBuffer, pimpl->gfxQueue.handle);
+
+		}
+
+		// destroy staging buffer
+		vmaDestroyBuffer(pimpl->allocator, stagingBuffer, stagingAllocation);
+
+		return out;
+	}
+
+	void GFXDevice::destroyTexture(const gfx::Texture* texture)
+	{
+		vmaDestroyImage(pimpl->allocator, texture->image, texture->alloc);
 	}
 
 	void GFXDevice::waitIdle()

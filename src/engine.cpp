@@ -14,6 +14,9 @@
 #include "components/mesh_renderer.hpp"
 #include "components/camera.hpp"
 
+// To allow the FPS-limiter to put the thread to sleep
+#include <thread>
+
 namespace engine {
 
 	Application::Application(const char* appName, const char* appVersion)
@@ -51,6 +54,12 @@ namespace engine {
 		uint64_t lastTick = m_win->getNanos();
 		constexpr int TICKFREQ = 1; // in hz
 
+		constexpr int FPS_LIMIT = 240;
+		constexpr auto FRAMETIME_LIMIT = std::chrono::nanoseconds(1000000000 / FPS_LIMIT);
+
+		auto beginFrame = std::chrono::steady_clock::now();
+		auto endFrame = beginFrame + FRAMETIME_LIMIT;
+
 		// single-threaded game loop
 		while (m_win->isRunning()) {
 
@@ -78,6 +87,12 @@ namespace engine {
 
 			/* poll events */
 			m_win->getInputAndEvents();
+
+			/* fps limiter */
+			std::this_thread::sleep_until(endFrame);
+
+			beginFrame = endFrame;
+			endFrame = beginFrame + FRAMETIME_LIMIT;
 
 		}
 

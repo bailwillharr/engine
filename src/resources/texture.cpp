@@ -1,5 +1,3 @@
-#if 0
-
 #include "resources/texture.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -11,37 +9,25 @@
 
 namespace engine::resources {
 
-// -1 means invalid / no bind
-GLuint Texture::s_binded_texture = -1;
-
-void Texture::invalidate()
-{
-	s_binded_texture = -1;
-}
-
 // returns false if unable to open file
 static bool readPNG(const std::string& path, std::vector<uint8_t>& texbuf, int *width, int *height, bool *isRGBA)
 {
 	int x, y, n;
-	unsigned char *data = stbi_load(path.c_str(), &x, &y, &n, 0);
+	unsigned char *data = stbi_load(path.c_str(), &x, &y, &n, STBI_rgb_alpha);
 
 
 	if (data == nullptr) {
 		return false;
 	}
 
-	const size_t size = (size_t)x * (size_t)y * (size_t)n;
+	const size_t size = (size_t)x * (size_t)y * 4;
 
 	texbuf.resize(size);
 	memcpy(texbuf.data(), data, size);
 
 	*width = x;
 	*height = y;
-	if (n == 4) {
-		*isRGBA = true;
-	} else {
-		*isRGBA = false;
-	}
+	*isRGBA = true;
 
 	stbi_image_free(data);
 
@@ -94,22 +80,12 @@ Texture::Texture(const std::filesystem::path& resPath) : Resource(resPath, "text
 	if (!success) {
 		throw std::runtime_error("Unable to open texture: " + resPath.string());
 	}
-  	
-	glGenTextures(1, &m_texture);
-	
-	bindTexture(); // glBindTexture
-	
-	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	
-	if (isRGBA) {
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, texbuf.data());
-	} else {
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, texbuf.data());
+
+	if (isRGBA == false) {
+		throw std::runtime_error("Currently, only RGBA textures are supported. Size: " + std::to_string(texbuf.size()));
 	}
 
-	glGenerateMipmap(GL_TEXTURE_2D); 
+	m_gpuTexture = gfxdev->createTexture(texbuf.data(), (uint32_t)width, (uint32_t)height);
 
 	DEBUG("loaded texture {} width: {} height: {} size: {}", resPath.filename().string(), width, height, texbuf.size());
 
@@ -117,18 +93,7 @@ Texture::Texture(const std::filesystem::path& resPath) : Resource(resPath, "text
 
 Texture::~Texture()
 {
-	if (s_binded_texture == m_texture) {
-		s_binded_texture = -1;
-	}
-}
-
-void Texture::bindTexture() const
-{
-	if (s_binded_texture != m_texture) {
-		glBindTexture(GL_TEXTURE_2D, m_texture);
-		s_binded_texture = m_texture;
-	}
+	gfxdev->destroyTexture(m_gpuTexture);
 }
 
 }
-#endif

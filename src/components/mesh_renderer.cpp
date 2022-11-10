@@ -42,7 +42,7 @@ void Renderer::setMesh(const std::string& name)
 
 void Renderer::setTexture(const std::string& name)
 {
-//	m_texture = parent.res.get<resources::Texture>(name);
+	m_texture = parent.res.get<resources::Texture>(name);
 }
 
 }
