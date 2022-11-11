@@ -17,7 +17,7 @@ namespace engine::components {
 Renderer::Renderer(Object* parent) : Component(parent, TypeEnum::RENDERER)
 {
 	m_shader = this->parent.res.get<resources::Shader>("shader.glsl");
-//	m_texture = this->parent.res.get<resources::Texture>("textures/missing.png");
+	m_texture = this->parent.res.get<resources::Texture>("textures/missing.png");
 }
 
 Renderer::~Renderer()
@@ -32,7 +32,7 @@ void Renderer::render(glm::mat4 transform, glm::mat4 view)
 	gfxdev->updateUniformBuffer(m_shader->getPipeline(), &uniformData.color, sizeof(uniformData.color), offsetof(resources::Shader::UniformBuffer, color));
 
 	glm::mat4 pushConsts[] = { transform, view };
-	gfxdev->draw(m_shader->getPipeline(), m_mesh->vb, m_mesh->ib, m_mesh->m_vertices.size(), pushConsts, sizeof(glm::mat4) * 2);
+	gfxdev->draw(m_shader->getPipeline(), m_mesh->vb, m_mesh->ib, m_mesh->m_indices.size(), pushConsts, sizeof(glm::mat4) * 2, m_texture->getHandle());
 }
 
 void Renderer::setMesh(const std::string& name)

@@ -77,7 +77,6 @@ void Camera::usePerspective(float fovDeg)
 
 	float fovRad = glm::radians(fovDeg);
 	m_projMatrix = glm::perspectiveFovRH_ZO(fovRad, viewportDim.x, viewportDim.y, NEAR, FAR);
-	m_projMatrix[1][1] *= -1;
 }
 
 void Camera::useOrtho()
@@ -88,7 +87,6 @@ void Camera::useOrtho()
 	float aspect = viewportDim.x / viewportDim.y;
 
 	m_projMatrix = glm::orthoRH_ZO(-10.0f * aspect, 10.0f * aspect, -10.0f, 10.0f, -100.0f, 100.0f);
-	m_projMatrix[1][1] *= -1;
 }
 
 }

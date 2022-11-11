@@ -14,6 +14,8 @@ public:
 	Texture(const std::filesystem::path& resPath);
 	~Texture() override;
 
+	gfx::Texture* getHandle();
+
 private:
 	gfx::Texture* m_gpuTexture;
 };

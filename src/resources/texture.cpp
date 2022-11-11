@@ -10,7 +10,7 @@
 namespace engine::resources {
 
 // returns false if unable to open file
-static bool readPNG(const std::string& path, std::vector<uint8_t>& texbuf, int *width, int *height, bool *isRGBA)
+static bool readPNG(const std::string& path, std::vector<uint8_t>* texbuf, int *width, int *height, bool *isRGBA)
 {
 	int x, y, n;
 	unsigned char *data = stbi_load(path.c_str(), &x, &y, &n, STBI_rgb_alpha);
@@ -22,8 +22,8 @@ static bool readPNG(const std::string& path, std::vector<uint8_t>& texbuf, int *
 
 	const size_t size = (size_t)x * (size_t)y * 4;
 
-	texbuf.resize(size);
-	memcpy(texbuf.data(), data, size);
+	texbuf->resize(size);
+	memcpy(texbuf->data(), data, size);
 
 	*width = x;
 	*height = y;
@@ -35,7 +35,7 @@ static bool readPNG(const std::string& path, std::vector<uint8_t>& texbuf, int *
 
 }
 
-static bool readGLRaw(const std::string& path, std::vector<uint8_t>& texbuf, int *width, int *height, bool *isRGBA)
+static bool readGLRaw(const std::string& path, std::vector<uint8_t>* texbuf, int *width, int *height, bool *isRGBA)
 {
 	FILE *fp = fopen(path.c_str(), "rb");
 	if (!fp) {
@@ -49,9 +49,9 @@ static bool readGLRaw(const std::string& path, std::vector<uint8_t>& texbuf, int
 		fseek(fp, 0L, SEEK_END);
 	uint64_t end = ftell(fp);
 
-	texbuf.resize(end);
+	texbuf->resize(end);
 	fseek(fp, (long)tex_data_offset, SEEK_SET);
-	fread(texbuf.data(), 1, end, fp);
+	fread(texbuf->data(), 1, end, fp);
 
 	fclose(fp);
 
@@ -66,15 +66,15 @@ static bool readGLRaw(const std::string& path, std::vector<uint8_t>& texbuf, int
 Texture::Texture(const std::filesystem::path& resPath) : Resource(resPath, "texture")
 {
 	
-	std::vector<uint8_t> texbuf;
+	auto texbuf = std::make_unique<std::vector<uint8_t>>();
 
 	int width, height;
 	bool isRGBA, success;
 
-	if (resPath.extension() == ".png") {
-		success = readPNG(resPath.string(), texbuf, &width, &height, &isRGBA);
+	if (resPath.extension() == ".png" || resPath.extension() == ".jpg") {
+		success = readPNG(resPath.string(), texbuf.get(), &width, &height, &isRGBA);
 	} else {
-		success = readGLRaw(resPath.string(), texbuf, &width, &height, &isRGBA);
+		success = readGLRaw(resPath.string(), texbuf.get(), &width, &height, &isRGBA);
 	}
 
 	if (!success) {
@@ -82,18 +82,23 @@ Texture::Texture(const std::filesystem::path& resPath) : Resource(resPath, "text
 	}
 
 	if (isRGBA == false) {
-		throw std::runtime_error("Currently, only RGBA textures are supported. Size: " + std::to_string(texbuf.size()));
+		throw std::runtime_error("Currently, only RGBA textures are supported. Size: " + std::to_string(texbuf->size()));
 	}
 
-	m_gpuTexture = gfxdev->createTexture(texbuf.data(), (uint32_t)width, (uint32_t)height);
+	m_gpuTexture = gfxdev->createTexture(texbuf->data(), (uint32_t)width, (uint32_t)height);
 
-	DEBUG("loaded texture {} width: {} height: {} size: {}", resPath.filename().string(), width, height, texbuf.size());
+	DEBUG("loaded texture {} width: {} height: {} size: {}", resPath.filename().string(), width, height, texbuf->size());
 
 }
 
 Texture::~Texture()
 {
 	gfxdev->destroyTexture(m_gpuTexture);
+}
+
+gfx::Texture* Texture::getHandle()
+{
+	return m_gpuTexture;
 }
 
 }

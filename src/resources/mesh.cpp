@@ -31,7 +31,7 @@ static void loadMeshFromFile(const std::filesystem::path& path, std::vector<Vert
 	vertices->resize(header.vertex_count);
 
 	fread(indices->data(), sizeof(uint32_t) * header.index_count, 1, fp);
-	fread(vertices->data(), sizeof(float) * 8 * header.vertex_count, 1, fp);
+	fread(vertices->data(), sizeof(Vertex) * header.vertex_count, 1, fp);
 	fclose(fp);
 
 }

@@ -58,7 +58,6 @@ namespace engine {
 		VkQueue handle;
 	};
 
-
 	struct DepthBuffer {
 		VkImage image;
 		VmaAllocation allocation;
@@ -91,6 +90,7 @@ namespace engine {
 		const gfx::Buffer* indexBuffer = nullptr; // if this is nullptr, don't use indexed
 		uint32_t count = 0;
 		uint8_t pushConstantData[PUSH_CONSTANT_MAX_SIZE];
+		const gfx::Texture* texture = nullptr;
 	};
 
 	enum class QueueFlags : uint32_t {
@@ -119,6 +119,11 @@ namespace engine {
 	struct gfx::Texture {
 		VkImage image;
 		VmaAllocation alloc;
+		VkImageView imageView;
+		VkSampler sampler;
+		VkDescriptorPool pool;
+		std::array<VkDescriptorSet, FRAMES_IN_FLIGHT> descriptorSets{};
+		uint32_t mipLevels;
 	};
 
 
@@ -164,7 +169,6 @@ namespace engine {
 		options.SetOptimizationLevel(shaderc_optimization_level_size);
 		options.SetTargetSpirv(shaderc_spirv_version_1_6);
 		options.SetAutoBindUniforms(false);
-		options.SetInvertY(false);
 
 		// preprocess
 		shaderc::PreprocessedSourceCompilationResult preprocessed = compiler.PreprocessGlsl(source, kind, filename, options);
@@ -774,7 +778,7 @@ namespace engine {
 		vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
 	}
 
-	static void cmdTransitionImageLayout(VkCommandBuffer commandBuffer, VkImageLayout oldLayout, VkImageLayout newLayout, VkImage image)
+	static void cmdTransitionImageLayout(VkCommandBuffer commandBuffer, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels, VkImage image)
 	{
 
 		VkImageMemoryBarrier barrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
@@ -785,7 +789,7 @@ namespace engine {
 		barrier.image = image;
 		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		barrier.subresourceRange.baseMipLevel = 0;
-		barrier.subresourceRange.levelCount = 1;
+		barrier.subresourceRange.levelCount = mipLevels;
 		barrier.subresourceRange.baseArrayLayer = 0;
 		barrier.subresourceRange.layerCount = 1;
 
@@ -812,6 +816,77 @@ namespace engine {
 
 		vkCmdPipelineBarrier(commandBuffer, sourceStage, destinationStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 
+	}
+
+	static void cmdGenerateMipmaps(VkCommandBuffer commandBuffer, VkImage image, int32_t width, int32_t height, uint32_t mipLevels)
+	{
+
+		VkImageMemoryBarrier barrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
+		barrier.image = image;
+		barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		barrier.subresourceRange.baseArrayLayer = 0;
+		barrier.subresourceRange.layerCount = 1;
+		barrier.subresourceRange.levelCount = 1;
+
+		int32_t mipWidth = width;
+		int32_t mipHeight = height;
+		for (uint32_t i = 1; i < mipLevels; i++) {
+			barrier.subresourceRange.baseMipLevel = i - 1;
+			barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+			barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+			barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+			barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+
+			vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
+				0, nullptr,
+				0, nullptr,
+				1, &barrier);
+
+			VkImageBlit blit{};
+			blit.srcOffsets[0] = { 0, 0, 0 };
+			blit.srcOffsets[1] = { mipWidth, mipHeight, 1 };
+			blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			blit.srcSubresource.mipLevel = i - 1;
+			blit.srcSubresource.baseArrayLayer = 0;
+			blit.srcSubresource.layerCount = 1;
+			blit.dstOffsets[0] = { 0, 0, 0 };
+			blit.dstOffsets[1] = { mipWidth > 1 ? mipWidth / 2 : 1, mipHeight > 1 ? mipHeight / 2 : 1, 1 };
+			blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			blit.dstSubresource.mipLevel = i;
+			blit.dstSubresource.baseArrayLayer = 0;
+			blit.dstSubresource.layerCount = 1;
+
+			vkCmdBlitImage(commandBuffer, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit, VK_FILTER_LINEAR);
+
+			barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+			barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+			barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+			vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+				0,
+				0, nullptr,
+				0, nullptr,
+				1, &barrier);
+
+			if (mipWidth > 1) mipWidth /= 2;
+			if (mipHeight > 1) mipHeight /= 2;
+
+		}
+
+		barrier.subresourceRange.baseMipLevel = mipLevels - 1;
+		barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+		barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+		vkCmdPipelineBarrier(commandBuffer,
+			VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
+			0, nullptr,
+			0, nullptr,
+			1, &barrier);
 	}
 
 	// class definitions
@@ -845,7 +920,10 @@ namespace engine {
 		std::map<const gfx::Pipeline*, std::queue<DrawCall>> drawQueues{};
 
 		VkDescriptorSetLayoutBinding uboLayoutBinding{};
-		VkDescriptorSetLayout uboLayout{};
+		VkDescriptorSetLayout descriptorSetLayout{};
+
+		VkDescriptorSetLayoutBinding samplerLayoutBinding{};
+		VkDescriptorSetLayout samplerSetLayout{};
 
 	};
 
@@ -1032,6 +1110,19 @@ namespace engine {
 					continue;
 				}
 
+				// check for some features:
+				VkPhysicalDeviceFeatures devFeatures;
+				vkGetPhysicalDeviceFeatures(dev, &devFeatures);
+				// anisotropic filtering is needed
+				if (devFeatures.samplerAnisotropy == VK_FALSE) continue;
+
+				// check for linear filtering for mipmaps
+				VkFormatProperties formatProperties{};
+				vkGetPhysicalDeviceFormatProperties(dev, VK_FORMAT_R8G8B8A8_SRGB, &formatProperties);
+				if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)) {
+					continue;
+				}
+
 				pimpl->physicalDevice = dev;
 				break;
 
@@ -1127,6 +1218,9 @@ namespace engine {
 				throw std::runtime_error("The selected queue family does not support this surface");
 			}
 
+			VkPhysicalDeviceFeatures deviceFeatures{};
+			deviceFeatures.samplerAnisotropy = VK_TRUE;
+
 			VkDeviceCreateInfo deviceCreateInfo{
 				.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
 				.pNext = nullptr,
@@ -1137,7 +1231,7 @@ namespace engine {
 				// IGNORED: .ppEnabledLayerNames
 				.enabledExtensionCount = (uint32_t)requiredDeviceExtensions.size(),
 				.ppEnabledExtensionNames = requiredDeviceExtensions.data(),
-				.pEnabledFeatures = nullptr,
+				.pEnabledFeatures = &deviceFeatures,
 			};
 
 			res = vkCreateDevice(pimpl->physicalDevice, &deviceCreateInfo, nullptr, &pimpl->device);
@@ -1244,24 +1338,41 @@ namespace engine {
 			assert(res == VK_SUCCESS);
 		}
 
-		// create uniform buffer stuff
+		// create uniform buffer descriptor set layout
 		pimpl->uboLayoutBinding.binding = 0;
 		pimpl->uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		pimpl->uboLayoutBinding.descriptorCount = 1;
 		pimpl->uboLayoutBinding.stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS;
 		pimpl->uboLayoutBinding.pImmutableSamplers = nullptr;
+
 		VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
 		descriptorSetLayoutInfo.bindingCount = 1;
 		descriptorSetLayoutInfo.pBindings = &pimpl->uboLayoutBinding;
-		res = vkCreateDescriptorSetLayout(pimpl->device, &descriptorSetLayoutInfo, nullptr, &pimpl->uboLayout);
+		res = vkCreateDescriptorSetLayout(pimpl->device, &descriptorSetLayoutInfo, nullptr, &pimpl->descriptorSetLayout);
 		assert(res == VK_SUCCESS);
+
+		// create texture sampler descriptor set layout
+		pimpl->samplerLayoutBinding.binding = 0;
+		pimpl->samplerLayoutBinding.descriptorCount = 1;
+		pimpl->samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		pimpl->samplerLayoutBinding.pImmutableSamplers = nullptr;
+		pimpl->samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+		VkDescriptorSetLayoutCreateInfo samplerSetLayoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+		samplerSetLayoutInfo.bindingCount = 1;
+		samplerSetLayoutInfo.pBindings = &pimpl->samplerLayoutBinding;
+		res = vkCreateDescriptorSetLayout(pimpl->device, &samplerSetLayoutInfo, nullptr, &pimpl->samplerSetLayout);
+		assert(res == VK_SUCCESS);
+
+
 	}
 
 	GFXDevice::~GFXDevice()
 	{
 		TRACE("Destroying GFXDevice...");
 
-		vkDestroyDescriptorSetLayout(pimpl->device, pimpl->uboLayout, nullptr);
+		vkDestroyDescriptorSetLayout(pimpl->device, pimpl->samplerSetLayout, nullptr);
+		vkDestroyDescriptorSetLayout(pimpl->device, pimpl->descriptorSetLayout, nullptr);
 
 		for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
 
@@ -1298,7 +1409,7 @@ namespace engine {
 		*h = (uint32_t)height;
 	}
 
-	void GFXDevice::draw(const gfx::Pipeline* pipeline, const gfx::Buffer* vertexBuffer, const gfx::Buffer* indexBuffer, uint32_t count, const void* pushConstantData, size_t pushConstantSize)
+	void GFXDevice::draw(const gfx::Pipeline* pipeline, const gfx::Buffer* vertexBuffer, const gfx::Buffer* indexBuffer, uint32_t count, const void* pushConstantData, size_t pushConstantSize, const gfx::Texture* texture)
 	{
 		assert(vertexBuffer->type == gfx::BufferType::VERTEX);
 		assert(vertexBuffer != nullptr);
@@ -1312,6 +1423,8 @@ namespace engine {
 		};
 
 		memcpy(call.pushConstantData, pushConstantData, pushConstantSize);
+
+		call.texture = texture; // will be ignored if nullptr
 
 		pimpl->drawQueues[pipeline].push(call);
 
@@ -1367,9 +1480,9 @@ namespace engine {
 
 			VkViewport viewport{};
 			viewport.x = 0.0f;
-			viewport.y = 0.0f;
+			viewport.y = (float)pimpl->swapchain.extent.height;
 			viewport.width = (float)pimpl->swapchain.extent.width;
-			viewport.height = (float)pimpl->swapchain.extent.height;
+			viewport.height = -(float)pimpl->swapchain.extent.height;
 			viewport.minDepth = 0.0f;
 			viewport.maxDepth = 1.0f;
 			vkCmdSetViewport(pimpl->commandBuffers[frameIndex], 0, 1, &viewport);
@@ -1389,6 +1502,8 @@ namespace engine {
 				while (queue.empty() == false) {
 
 					DrawCall call = queue.front();
+
+					vkCmdBindDescriptorSets(pimpl->commandBuffers[frameIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->layout, 1, 1, &call.texture->descriptorSets[frameIndex], 0, nullptr);
 
 					vkCmdPushConstants(pimpl->commandBuffers[frameIndex], pipeline->layout, VK_SHADER_STAGE_VERTEX_BIT, 0, PUSH_CONSTANT_MAX_SIZE, call.pushConstantData);
 
@@ -1465,7 +1580,7 @@ namespace engine {
 
 		VkShaderModule vertShaderModule = compileShader(pimpl->device, shaderc_vertex_shader, vertShaderCode.data(), vertShaderPath);
 		VkShaderModule fragShaderModule = compileShader(pimpl->device, shaderc_fragment_shader, fragShaderCode.data(), fragShaderPath);
-
+		
 		// create uniform buffers
 		pipeline->uniformBuffers.resize(FRAMES_IN_FLIGHT);
 		for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
@@ -1490,10 +1605,11 @@ namespace engine {
 			pipeline->uniformBuffers[i] = buf;
 		}
 
-		// create descriptor pool for uniform buffers
+		// create descriptor pools
 		VkDescriptorPoolSize poolSize{};
 		poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		poolSize.descriptorCount = FRAMES_IN_FLIGHT;
+		
 		VkDescriptorPoolCreateInfo poolInfo{};
 		poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 		poolInfo.poolSizeCount = 1;
@@ -1503,19 +1619,21 @@ namespace engine {
 		assert(res == VK_SUCCESS);
 
 		std::array<VkDescriptorSetLayout, FRAMES_IN_FLIGHT> layouts;
-		layouts.fill(pimpl->uboLayout);
+		layouts.fill(pimpl->descriptorSetLayout);
 		VkDescriptorSetAllocateInfo dSetAllocInfo{};
 		dSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 		dSetAllocInfo.descriptorPool = pipeline->descriptorPool;
 		dSetAllocInfo.descriptorSetCount = FRAMES_IN_FLIGHT;
 		dSetAllocInfo.pSetLayouts = layouts.data();
 		res = vkAllocateDescriptorSets(pimpl->device, &dSetAllocInfo, pipeline->descriptorSets.data());
+		assert(res == VK_SUCCESS);
 
 		for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
 			VkDescriptorBufferInfo bufferInfo{};
 			bufferInfo.buffer = pipeline->uniformBuffers[i]->buffer;
 			bufferInfo.offset = 0;
 			bufferInfo.range = uniformBufferSize;
+
 			VkWriteDescriptorSet descriptorWrite{};
 			descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 			descriptorWrite.dstSet = pipeline->descriptorSets[i];
@@ -1576,9 +1694,9 @@ namespace engine {
 
 		VkViewport viewport{};
 		viewport.x = 0.0f;
-		viewport.y = 0.0f;
+		viewport.y = (float)pimpl->swapchain.extent.height;
 		viewport.width = (float)pimpl->swapchain.extent.width;
-		viewport.height = (float)pimpl->swapchain.extent.height;
+		viewport.height = -(float)pimpl->swapchain.extent.height;
 		viewport.minDepth = 0.0f;
 		viewport.maxDepth = 1.0f;
 
@@ -1667,10 +1785,12 @@ namespace engine {
 		pushConstantRange.size = PUSH_CONSTANT_MAX_SIZE;
 		pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
+		std::array<VkDescriptorSetLayout, 2> setLayouts{ pimpl->descriptorSetLayout, pimpl->samplerSetLayout};
+
 		VkPipelineLayoutCreateInfo layoutInfo{};
 		layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		layoutInfo.setLayoutCount = 1;
-		layoutInfo.pSetLayouts = &pimpl->uboLayout;
+		layoutInfo.setLayoutCount = setLayouts.size();
+		layoutInfo.pSetLayouts = setLayouts.data();
 		layoutInfo.pushConstantRangeCount = 1;
 		layoutInfo.pPushConstantRanges = &pushConstantRange;
 
@@ -1810,6 +1930,8 @@ namespace engine {
 
 		size_t imageSize = w * h * 4;
 
+		out->mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(w, h)))) + 1;
+
 		// first load image into staging buffer
 		VkBuffer stagingBuffer;
 		VmaAllocation stagingAllocation;
@@ -1841,12 +1963,12 @@ namespace engine {
 		imageInfo.extent.width = w;
 		imageInfo.extent.height = h;
 		imageInfo.extent.depth = 1;
-		imageInfo.mipLevels = 1;
+		imageInfo.mipLevels = out->mipLevels;
 		imageInfo.arrayLayers = 1;
 		imageInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
 		imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 		imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+		imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 		imageInfo.flags = 0;
@@ -1863,7 +1985,7 @@ namespace engine {
 
 			// begin cmd buffer
 
-			cmdTransitionImageLayout(commandBuffer, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, out->image);
+			cmdTransitionImageLayout(commandBuffer, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, out->mipLevels, out->image);
 
 			VkBufferImageCopy region{};
 			region.bufferOffset = 0;
@@ -1880,7 +2002,8 @@ namespace engine {
 
 			vkCmdCopyBufferToImage(commandBuffer, stagingBuffer, out->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
-			cmdTransitionImageLayout(commandBuffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, out->image);
+			// Mipmap generation handles the transition to SHADER_READ_ONLY_OPTIMAL
+			cmdGenerateMipmaps(commandBuffer, out->image, w, h, out->mipLevels);
 
 			// end cmd buffer
 			endOneTimeCommands(pimpl->device, pimpl->commandPool, commandBuffer, pimpl->gfxQueue.handle);
@@ -1890,11 +2013,101 @@ namespace engine {
 		// destroy staging buffer
 		vmaDestroyBuffer(pimpl->allocator, stagingBuffer, stagingAllocation);
 
+		// create image view
+		VkImageViewCreateInfo imageViewInfo{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
+		imageViewInfo.image = out->image;
+		imageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		imageViewInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
+		imageViewInfo.subresourceRange = {
+			.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+			.baseMipLevel = 0,
+			.levelCount = out->mipLevels,
+			.baseArrayLayer = 0,
+			.layerCount = 1
+		};
+		
+		res = vkCreateImageView(pimpl->device, &imageViewInfo, nullptr, &out->imageView);
+		assert(res == VK_SUCCESS);
+
+		// create texture sampler
+		{
+			VkSamplerCreateInfo samplerInfo{ VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
+			samplerInfo.magFilter = VK_FILTER_LINEAR;
+			samplerInfo.minFilter = VK_FILTER_LINEAR;
+			samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+			samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+			samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+			samplerInfo.anisotropyEnable = VK_TRUE;
+			// Find max anisotropic filtering level
+			{
+				VkPhysicalDeviceProperties properties{};
+				vkGetPhysicalDeviceProperties(pimpl->physicalDevice, &properties);
+
+				INFO("Anisotropic filtering level: {}", properties.limits.maxSamplerAnisotropy);
+				samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
+			}
+			samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+			samplerInfo.unnormalizedCoordinates = VK_FALSE;
+			samplerInfo.compareEnable = VK_FALSE;
+			samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+			samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+			samplerInfo.minLod = 0.0f;
+			samplerInfo.maxLod = static_cast<float>(out->mipLevels);
+			samplerInfo.mipLodBias = 0.0f;
+
+			res = vkCreateSampler(pimpl->device, &samplerInfo, nullptr, &out->sampler);
+			assert(res == VK_SUCCESS);
+		}
+
+		// create descriptor pools
+		VkDescriptorPoolSize poolSize{};
+		poolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		poolSize.descriptorCount = FRAMES_IN_FLIGHT;
+
+		VkDescriptorPoolCreateInfo poolInfo{};
+		poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+		poolInfo.poolSizeCount = 1;
+		poolInfo.pPoolSizes = &poolSize;
+		poolInfo.maxSets = FRAMES_IN_FLIGHT;
+		res = vkCreateDescriptorPool(pimpl->device, &poolInfo, nullptr, &out->pool);
+		assert(res == VK_SUCCESS);
+
+		std::array<VkDescriptorSetLayout, FRAMES_IN_FLIGHT> layouts{};
+		layouts.fill(pimpl->samplerSetLayout);
+		VkDescriptorSetAllocateInfo dSetAllocInfo{};
+		dSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+		dSetAllocInfo.descriptorPool = out->pool;
+		dSetAllocInfo.descriptorSetCount = FRAMES_IN_FLIGHT;
+		dSetAllocInfo.pSetLayouts = layouts.data();
+		res = vkAllocateDescriptorSets(pimpl->device, &dSetAllocInfo, out->descriptorSets.data());
+		assert(res == VK_SUCCESS);
+
+		for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
+			VkDescriptorImageInfo imageInfo{};
+			imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			imageInfo.imageView = out->imageView;
+			imageInfo.sampler = out->sampler;
+
+			VkWriteDescriptorSet descriptorWrite{};
+			descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrite.dstSet = out->descriptorSets[i];
+			descriptorWrite.dstBinding = 0;
+			descriptorWrite.dstArrayElement = 0;
+			descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			descriptorWrite.descriptorCount = 1;
+			descriptorWrite.pImageInfo = &imageInfo;
+
+			vkUpdateDescriptorSets(pimpl->device, 1, &descriptorWrite, 0, nullptr);
+		}
+
 		return out;
 	}
 
 	void GFXDevice::destroyTexture(const gfx::Texture* texture)
 	{
+		vkDestroyDescriptorPool(pimpl->device, texture->pool, nullptr);
+		vkDestroySampler(pimpl->device, texture->sampler, nullptr);
+		vkDestroyImageView(pimpl->device, texture->imageView, nullptr);
 		vmaDestroyImage(pimpl->allocator, texture->image, texture->alloc);
 	}
 

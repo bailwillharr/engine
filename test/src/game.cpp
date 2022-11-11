@@ -56,8 +56,8 @@ void playGame()
 	auto camCamera = cam->createComponent<engine::components::Camera>();
 	camCamera->usePerspective(70.0f);
 	cam->createComponent<CameraController>();
-	cam->createComponent<engine::components::Renderer>()->m_mesh = genSphereMesh(0.2f, 20);
-	cam->getComponent<engine::components::Renderer>()->setTexture("textures/cobble_stone.png");
+	//cam->createComponent<engine::components::Renderer>()->m_mesh = genSphereMesh(0.2f, 20);
+	//cam->getComponent<engine::components::Renderer>()->setTexture("textures/cobble_stone.png");
 
 	auto gun = cam->createChild("gun");
 	gun->transform.position = glm::vec3{ 0.2f, -0.1f, -0.15f };
@@ -76,7 +76,7 @@ void playGame()
 	auto floor = app.scene()->createChild("floor");
 	auto floorRenderer = floor->createComponent<engine::components::Renderer>();
 	floor->transform.position = glm::vec3{ 0.0f, 0.0f, 0.0f };
-	floorRenderer->setTexture("textures/stone_bricks.png");
+	floorRenderer->setTexture("textures/grass.jpg");
 	floorRenderer->m_mesh = std::make_unique<engine::resources::Mesh>(std::vector<Vertex>{
 		{ { -16.0f, 0.0f,  16.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f,			GRASS_DENSITY	} },
 		{ {  16.0f, 0.0f, -16.0f }, { 0.0f, 1.0f, 0.0f }, { GRASS_DENSITY,	0.0f			} },
@@ -127,6 +127,31 @@ void playGame()
 	auto sphereRenderer = sphere->createComponent<engine::components::Renderer>();
 	sphereRenderer->m_mesh = genSphereMesh(5.0f, 100, false);
 	sphereRenderer->setTexture("textures/cobble_stone.png");
+
+	/* castle */
+	auto castle = app.scene()->createChild("castle");
+	castle->transform.scale = { 0.01f, 0.01f, 0.01f };
+	std::vector<engine::Object*> castleParts(6);
+	for (int i = 0; i < castleParts.size(); i++) {
+		if (i == 2) continue;
+		castleParts[i] = castle->createChild(std::to_string(i));
+		auto ren = castleParts[i]->createComponent<engine::components::Renderer>();
+		ren->setMesh("meshes/castle_" + std::to_string(i) + ".mesh");
+		ren->setTexture("textures/rock.jpg");
+
+		if (i == 5) {
+			ren->setTexture("textures/metal.jpg");
+		}
+		if (i == 4) {
+			ren->setTexture("textures/door.jpg");
+		}
+	}
+
+	// boundary
+	auto bounds = app.scene()->createChild("bounds");
+	auto boundsRen = bounds->createComponent<engine::components::Renderer>();
+	boundsRen->m_mesh = genSphereMesh(100.0f, 100, true);
+	boundsRen->setTexture("textures/metal.jpg");
 
 	app.gameLoop();
 }

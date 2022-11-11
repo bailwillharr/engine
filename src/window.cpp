@@ -276,12 +276,19 @@ namespace engine {
 
 	void Window::setFullscreen(bool fullscreen, bool exclusive)
 	{
+
 		if (m_resizable) {
+
+			SDL_DisplayMode mode;
+			SDL_GetDesktopDisplayMode(SDL_GetWindowDisplayIndex(m_handle), &mode);
+			SDL_SetWindowDisplayMode(m_handle, &mode);
+
 			if (SDL_SetWindowFullscreen(m_handle, fullscreen ? (exclusive ? SDL_WINDOW_FULLSCREEN : SDL_WINDOW_FULLSCREEN_DESKTOP) : 0) != 0) {
 				throw std::runtime_error("Unable to set window to fullscreen/windowed");
 			}
 			m_fullscreen = fullscreen;
 			if (fullscreen) {
+
 				int width, height;
 				SDL_GetWindowSize(m_handle, &width, &height);
 				onResize(width, height);
@@ -291,7 +298,7 @@ namespace engine {
 
 	void Window::toggleFullscreen()
 	{
-		setFullscreen(!m_fullscreen, false);
+		setFullscreen(!m_fullscreen, true);
 	}
 
 	bool Window::isFullscreen() const
