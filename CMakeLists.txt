@@ -146,10 +146,6 @@ if(ENGINE_BUILD_OPENGL)
 endif()
 
 if(ENGINE_BUILD_VULKAN)
-
-	include(FindVulkan)
-	find_package(Vulkan COMPONENTS shaderc_combined)
-
 	# Volk
 	set(VOLK_STATIC_DEFINES "")
 	set(VOLK_PULL_IN_VULKAN ON)
@@ -163,7 +159,13 @@ if(ENGINE_BUILD_VULKAN)
 
 	# shaderc
 	
-	target_link_libraries(${PROJECT_NAME} PRIVATE Vulkan::shaderc_combined)
+	if (MSVC)
+		include(FindVulkan)
+		find_package(Vulkan COMPONENTS shaderc_combined)
+		target_link_libraries(${PROJECT_NAME} PRIVATE Vulkan::shaderc_combined)
+	else()
+		target_link_libraries(${PROJECT_NAME} PRIVATE shaderc_shared)
+	endif()
 
 endif()
 

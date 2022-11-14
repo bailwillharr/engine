@@ -166,7 +166,7 @@ namespace engine {
 
 		options.SetSourceLanguage(shaderc_source_language_glsl);
 		options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_3);
-		options.SetOptimizationLevel(shaderc_optimization_level_size);
+		options.SetOptimizationLevel(shaderc_optimization_level_zero);
 		options.SetTargetSpirv(shaderc_spirv_version_1_6);
 		options.SetAutoBindUniforms(false);
 
@@ -175,27 +175,26 @@ namespace engine {
 
 		if (preprocessed.GetCompilationStatus() != shaderc_compilation_status_success)
 		{
-			throw std::runtime_error(preprocessed.GetErrorMessage());
+			throw std::runtime_error("PREPROCESS ERR " + preprocessed.GetErrorMessage());
 		}
 
-
-
-		std::string shaderStr = { preprocessed.cbegin(), preprocessed.cend() };
+		std::string shaderStr{preprocessed.cbegin(), preprocessed.cend()};
 
 		// compile
-		shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(shaderStr.data(), kind, filename, options);
+		shaderc::SpvCompilationResult compiledShader = compiler.CompileGlslToSpv(shaderStr.c_str(), kind, filename, options);
 
-		if (module.GetCompilationStatus() != shaderc_compilation_status_success)
+
+		if (compiledShader.GetCompilationStatus() != shaderc_compilation_status_success)
 		{
-			throw std::runtime_error(module.GetErrorMessage());
+			throw std::runtime_error("COMPILE ERR " + compiledShader.GetErrorMessage());
 		}
 
-		std::vector<uint32_t> shaderBytecode = { module.cbegin(), module.cend() };// not sure why sample code copy vector like this
+		std::vector<uint32_t> shaderBytecode = { compiledShader.cbegin(), compiledShader.cend() };// not sure why sample code copy vector like this
 
 		VkShaderModuleCreateInfo createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
 		createInfo.codeSize = shaderBytecode.size() * sizeof(uint32_t);
-		createInfo.pCode = module.cbegin();
+		createInfo.pCode = compiledShader.cbegin();
 
 		VkShaderModule shaderModule;
 		if (vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
@@ -216,6 +215,7 @@ namespace engine {
 		file.seekg(0);
 		file.read(buffer.data(), buffer.size());
 		file.close();
+
 		return buffer;
 	}
 

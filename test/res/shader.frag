@@ -36,3 +36,4 @@ void main() {
 	vec3 lighting = min(diffuse + ambient + specular, 1.0);
 	outColor = min( ( vec4(baseColor, 1.0) ) * vec4(lighting + emission, 1.0), vec4(1.0));
 }
+
