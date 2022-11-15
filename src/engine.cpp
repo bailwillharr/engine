@@ -9,11 +9,6 @@
 
 #include "gfx_device.hpp"
 
-#include "resources/mesh.hpp"
-
-#include "components/mesh_renderer.hpp"
-#include "components/camera.hpp"
-
 // To allow the FPS-limiter to put the thread to sleep
 #include <thread>
 
@@ -64,7 +59,6 @@ namespace engine {
 		while (m_win->isRunning()) {
 
 			/* logic */
-
 			if (m_win->getLastFrameStamp() >= lastTick + (BILLION / TICKFREQ)) {
 				lastTick = m_win->getLastFrameStamp();
 
@@ -90,13 +84,13 @@ namespace engine {
 
 			/* fps limiter */
 			std::this_thread::sleep_until(endFrame);
-
 			beginFrame = endFrame;
 			endFrame = beginFrame + FRAMETIME_LIMIT;
 
 		}
 
 		gfxdev->waitIdle();
+
 	}
 
 }

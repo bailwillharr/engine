@@ -29,3 +29,4 @@ void main() {
 	fragLightPos = vec3(constants.view * vec4(lightPos, 1.0));
 	fragColor = ubo.color.rgb;
 }
+
