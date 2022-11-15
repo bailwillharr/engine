@@ -154,6 +154,17 @@ namespace engine {
 			throw std::runtime_error("Unknown buffer type");
 		}
 
+		static VkFilter getTextureFilter(gfx::TextureFilter filter)
+		{
+			switch(filter) {
+			case gfx::TextureFilter::LINEAR:
+				return VK_FILTER_LINEAR;
+			case gfx::TextureFilter::NEAREST:
+				return VK_FILTER_NEAREST;
+			}
+			throw std::runtime_error("Unknown texture filter");
+		}
+
 	}
 
 	// functions
@@ -1922,7 +1933,7 @@ namespace engine {
 		delete buffer;
 	}
 
-	gfx::Texture* GFXDevice::createTexture(const void* imageData, uint32_t w, uint32_t h)
+	gfx::Texture* GFXDevice::createTexture(const void* imageData, uint32_t w, uint32_t h, gfx::TextureFilter minFilter, gfx::TextureFilter magFilter)
 	{
 		auto out = new gfx::Texture;
 
@@ -2031,9 +2042,13 @@ namespace engine {
 
 		// create texture sampler
 		{
+
+			VkFilter minFilterInternal = vkinternal::getTextureFilter(minFilter);
+			VkFilter magFilterInternal = vkinternal::getTextureFilter(magFilter);
+
 			VkSamplerCreateInfo samplerInfo{ VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
-			samplerInfo.magFilter = VK_FILTER_LINEAR;
-			samplerInfo.minFilter = VK_FILTER_LINEAR;
+			samplerInfo.magFilter = VK_FILTER_NEAREST;
+			samplerInfo.minFilter = VK_FILTER_NEAREST;
 			samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 			samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 			samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;

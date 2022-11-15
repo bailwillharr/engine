@@ -85,7 +85,12 @@ Texture::Texture(const std::filesystem::path& resPath) : Resource(resPath, "text
 		throw std::runtime_error("Currently, only RGBA textures are supported. Size: " + std::to_string(texbuf->size()));
 	}
 
-	m_gpuTexture = gfxdev->createTexture(texbuf->data(), (uint32_t)width, (uint32_t)height);
+	gfx::TextureFilter filter = gfx::TextureFilter::LINEAR;
+	if (width <= 8 || height <= 8) {
+		filter = gfx::TextureFilter::NEAREST;
+	}
+
+	m_gpuTexture = gfxdev->createTexture(texbuf->data(), (uint32_t)width, (uint32_t)height, gfx::TextureFilter::LINEAR, filter);
 
 	DEBUG("loaded texture {} width: {} height: {} size: {}", resPath.filename().string(), width, height, texbuf->size());
 

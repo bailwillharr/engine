@@ -30,6 +30,11 @@ namespace engine::gfx {
 		VEC3,
 	};
 
+	enum class TextureFilter {
+		LINEAR,
+		NEAREST,
+	};
+
 	struct VertexBufferDesc {
 		uint64_t size;
 	};
