@@ -73,9 +73,9 @@ void Camera::usePerspective(float fovDeg)
 	m_mode = Modes::PERSPECTIVE;
 	m_fovDeg = fovDeg;
 
-	glm::vec2 viewportDim = getViewportSize();
-
 	float fovRad = glm::radians(fovDeg);
+
+	glm::vec2 viewportDim = getViewportSize();
 	m_projMatrix = glm::perspectiveFovRH_ZO(fovRad, viewportDim.x, viewportDim.y, NEAR, FAR);
 }
 

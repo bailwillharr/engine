@@ -203,10 +203,18 @@ set(FT_DISABLE_BZIP2 TRUE CACHE INTERNAL "" FORCE)
 set(FT_DISABLE_PNG TRUE CACHE INTERNAL "" FORCE)
 set(FT_DISABLE_HARFBUZZ TRUE CACHE INTERNAL "" FORCE)
 set(FT_DISABLE_BROTLI TRUE CACHE INTERNAL "" FORCE)
-set(BUILD_SHARED_LIBS ON)
+set(BUILD_SHARED_LIBS OFF CACHE INTERNAL "" FORCE)
 add_subdirectory(dependencies/freetype)
 target_link_libraries(${PROJECT_NAME} PRIVATE freetype)
 target_include_directories(${PROJECT_NAME} PRIVATE dependencies/freetype/include)
 
 # stb
 target_include_directories(${PROJECT_NAME} PRIVATE dependencies/stb)
+
+# assimp
+set(BUILD_SHARED_LIBS OFF CACHE INTERNAL "" FORCE)
+set(ASSIMP_BUILD_TESTS OFF CACHE INTERNAL "" FORCE)
+set(ASSIMP_INSTALL OFF CACHE INTERNAL "" FORCE)
+add_subdirectory(dependencies/assimp)
+target_include_directories(${PROJECT_NAME} PRIVATE dependencies/assimp/include)
+target_link_libraries(${PROJECT_NAME} PRIVATE assimp)

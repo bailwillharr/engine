@@ -500,11 +500,12 @@ namespace engine {
 
 	static VkSampleCountFlagBits getMaxSampleCount(VkPhysicalDevice physicalDevice)
 	{
+
 		VkPhysicalDeviceProperties physicalDeviceProperties;
 		vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
 
 		VkSampleCountFlags counts = physicalDeviceProperties.limits.framebufferColorSampleCounts & physicalDeviceProperties.limits.framebufferDepthSampleCounts;
-		counts %= VK_SAMPLE_COUNT_8_BIT; // restricts it to 8
+		//counts %= VK_SAMPLE_COUNT_8_BIT; // restricts it to 8
 		if (counts & VK_SAMPLE_COUNT_64_BIT) { INFO("64"); return VK_SAMPLE_COUNT_64_BIT; }
 		if (counts & VK_SAMPLE_COUNT_32_BIT) { INFO("32"); return VK_SAMPLE_COUNT_32_BIT; }
 		if (counts & VK_SAMPLE_COUNT_16_BIT) { INFO("16"); return VK_SAMPLE_COUNT_16_BIT; }
@@ -542,7 +543,30 @@ namespace engine {
 		res = vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &surfacePresentModeCount, presentModes.data());
 		assert(res == VK_SUCCESS);
 
+		VkExtent2D oldExtent = swapchain->extent;
 
+		if (caps.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
+			swapchain->extent = caps.currentExtent;
+		}
+		else {
+			// if fb size isn't already found, get it from SDL
+			int width, height;
+			SDL_Vulkan_GetDrawableSize(window, &width, &height);
+
+			swapchain->extent.width = static_cast<uint32_t>(width);
+			swapchain->extent.height = static_cast<uint32_t>(height);
+
+			swapchain->extent.width = std::clamp(
+				swapchain->extent.width,
+				caps.minImageExtent.width, caps.maxImageExtent.width);
+			swapchain->extent.height = std::clamp(
+				swapchain->extent.height,
+				caps.minImageExtent.height, caps.maxImageExtent.height);
+		}
+
+		if (swapchain->extent.width == 0 || swapchain->extent.height == 0) {
+			swapchain->extent = oldExtent;
+		}
 
 		// delete old framebuffers
 		for (VkFramebuffer fb : swapchain->framebuffers) {
@@ -568,27 +592,6 @@ namespace engine {
 			if (presMode == VK_PRESENT_MODE_MAILBOX_KHR) {
 				swapchain->presentMode = presMode; // this mode allows uncapped FPS while also avoiding screen tearing
 			}
-		}
-
-		VkExtent2D oldExtent = swapchain->extent;
-
-		if (caps.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
-			swapchain->extent = caps.currentExtent;
-		}
-		else {
-			// if fb size isn't already found, get it from SDL
-			int width, height;
-			SDL_Vulkan_GetDrawableSize(window, &width, &height);
-
-			swapchain->extent.width = static_cast<uint32_t>(width);
-			swapchain->extent.height = static_cast<uint32_t>(height);
-
-			swapchain->extent.width = std::clamp(
-				swapchain->extent.width,
-				caps.minImageExtent.width, caps.maxImageExtent.width);
-			swapchain->extent.height = std::clamp(
-				swapchain->extent.height,
-				caps.minImageExtent.height, caps.maxImageExtent.height);
 		}
 
 		uint32_t imageCount = caps.minImageCount + 1;
@@ -1507,8 +1510,15 @@ namespace engine {
 	{
 		int width, height;
 		SDL_Vulkan_GetDrawableSize(pimpl->window, &width, &height);
-		*w = (uint32_t)width;
-		*h = (uint32_t)height;
+		if (width == 0 || height == 0) {
+			*w = (uint32_t)pimpl->swapchain.extent.width;
+			*h = (uint32_t)pimpl->swapchain.extent.height;
+		}
+		else {
+			*w = (uint32_t)width;
+			*h = (uint32_t)height;
+		}
+		
 	}
 
 	void GFXDevice::draw(const gfx::Pipeline* pipeline, const gfx::Buffer* vertexBuffer, const gfx::Buffer* indexBuffer, uint32_t count, const void* pushConstantData, size_t pushConstantSize, const gfx::Texture* texture)

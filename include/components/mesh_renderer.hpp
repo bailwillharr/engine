@@ -24,7 +24,7 @@ public:
 	void render(glm::mat4 model, glm::mat4 view);
 
 	void setMesh(const std::string& name);
-	void setTexture(const std::string& name);
+	void setTexture(const std::string& name, bool invertV = false);
 
 	std::shared_ptr<resources::Mesh> m_mesh = nullptr;
 	std::shared_ptr<resources::Texture> m_texture;

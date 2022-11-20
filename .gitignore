@@ -3,6 +3,7 @@
 .vs/
 out/
 build/
+/build*/
 Debug/
 Release/
 MinSizeRel/

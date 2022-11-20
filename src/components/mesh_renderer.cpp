@@ -40,9 +40,15 @@ void Renderer::setMesh(const std::string& name)
 	m_mesh = parent.res.get<resources::Mesh>(name);
 }
 
-void Renderer::setTexture(const std::string& name)
+void Renderer::setTexture(const std::string& name, bool invertV)
 {
-	m_texture = parent.res.get<resources::Texture>(name);
+	if (invertV) {
+		// append a special character to file name
+		m_texture = parent.res.get<resources::Texture>(name + "_");
+	}
+	else {
+		m_texture = parent.res.get<resources::Texture>(name);
+	}
 }
 
 }

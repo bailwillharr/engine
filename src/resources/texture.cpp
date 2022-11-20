@@ -63,8 +63,17 @@ static bool readGLRaw(const std::string& path, std::vector<uint8_t>* texbuf, int
 
 }
 
-Texture::Texture(const std::filesystem::path& resPath) : Resource(resPath, "texture")
+Texture::Texture(const std::filesystem::path& originalResPath) : Resource(originalResPath, "texture")
 {
+
+	std::string resString = originalResPath.string();
+	bool flipV = false;
+	if (resString.back() == '_') {
+		flipV = true;
+		resString.pop_back();
+	}
+
+	std::filesystem::path resPath{ resString };
 	
 	auto texbuf = std::make_unique<std::vector<uint8_t>>();
 

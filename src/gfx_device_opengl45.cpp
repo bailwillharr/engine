@@ -127,7 +127,7 @@ namespace engine {
 		*h = (uint32_t)height;
 	}
 
-	void GFXDevice::draw(const gfx::Pipeline* pipeline, const gfx::Buffer* vertexBuffer, const gfx::Buffer* indexBuffer, uint32_t count, const void* pushConstantData, size_t pushConstantSize)
+	void draw(const gfx::Pipeline* pipeline, const gfx::Buffer* vertexBuffer, const gfx::Buffer* indexBuffer, uint32_t count, const void* pushConstantData, size_t pushConstantSize, const gfx::Texture* texture)
 	{
 		assert(vertexBuffer->type == gfx::BufferType::VERTEX);
 		assert(vertexBuffer != nullptr);

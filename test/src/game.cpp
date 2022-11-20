@@ -153,5 +153,10 @@ void playGame()
 	boundsRen->m_mesh = genSphereMesh(100.0f, 100, true);
 	boundsRen->setTexture("textures/metal.jpg");
 
+	auto pyramid = app.scene()->createChild("pyramid");
+	auto pyramidRen = pyramid->createComponent<engine::components::Renderer>();
+	pyramidRen->setMesh("meshes/pyramid.mesh");
+	pyramidRen->setTexture("textures/pyramid.png");
+
 	app.gameLoop();
 }
