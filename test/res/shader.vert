@@ -2,7 +2,6 @@
 
 layout(binding = 0) uniform UBO {
 	mat4 proj;
-	vec4 color;
 } ubo;
 
 layout( push_constant ) uniform Constants {
@@ -18,7 +17,6 @@ layout(location = 0) out vec3 fragPos;
 layout(location = 1) out vec3 fragNorm;
 layout(location = 2) out vec2 fragUV;
 layout(location = 3) out vec3 fragLightPos;
-layout(location = 4) out vec3 fragColor;
 
 void main() {
 	gl_Position = ubo.proj * constants.view * constants.model * vec4(inPosition, 1.0);
@@ -27,6 +25,5 @@ void main() {
 	fragUV = inUV;
 	vec3 lightPos = vec3(-5.0, 20.0, 5.0);
 	fragLightPos = vec3(constants.view * vec4(lightPos, 1.0));
-	fragColor = ubo.color.rgb;
 }
 

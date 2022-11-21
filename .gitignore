@@ -10,6 +10,5 @@ MinSizeRel/
 CMakeSettings.json
 compile_commands.json
 runme
-res
 
 *.log

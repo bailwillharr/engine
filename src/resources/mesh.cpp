@@ -12,11 +12,8 @@ struct MeshFileHeader {
 	int32_t material;
 };
 
-static void loadMeshFromFile(const std::filesystem::path& path, std::vector<Vertex>* vertices, std::vector<uint32_t>* indices)
+static void loadCustomMeshFromFile(const std::filesystem::path& path, std::vector<Vertex>* vertices, std::vector<uint32_t>* indices)
 {
-
-	// TODO
-	// Replace this aberation with something that's readable and doesn't use FILE*
 
 	struct MeshFileHeader header{};
 
@@ -62,7 +59,13 @@ Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& ind
 // To be used with the resource manager
 Mesh::Mesh(const std::filesystem::path& resPath) : Resource(resPath, "mesh")
 {
-	loadMeshFromFile(resPath, &m_vertices, &m_indices);
+	if (resPath.extension() == ".mesh") {
+		loadCustomMeshFromFile(resPath, &m_vertices, &m_indices);
+	}
+	else {
+		throw std::runtime_error("Mesh load error, unknown file type");
+	}
+	
 	initMesh();
 }
 

@@ -30,6 +30,8 @@ set(SRC_FILES
 	"src/resources/texture.cpp"
 	"src/resources/font.cpp"
 
+	"src/util/model_loader.cpp"
+
 	"src/resource_manager.cpp"
 
 	"src/gfx_device_vulkan.cpp"
@@ -69,6 +71,8 @@ set(INCLUDE_FILES
 	"include/resources/shader.hpp"
 	"include/resources/texture.hpp"
 	"include/resources/font.hpp"
+
+	"include/util/model_loader.hpp"
 
 	"include/resource_manager.hpp"
 
@@ -214,6 +218,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE dependencies/stb)
 # assimp
 set(BUILD_SHARED_LIBS OFF CACHE INTERNAL "" FORCE)
 set(ASSIMP_BUILD_TESTS OFF CACHE INTERNAL "" FORCE)
+set(ASSIMP_NO_EXPORT OFF CACHE INTERNAL "" FORCE)
 set(ASSIMP_INSTALL OFF CACHE INTERNAL "" FORCE)
 add_subdirectory(dependencies/assimp)
 target_include_directories(${PROJECT_NAME} PRIVATE dependencies/assimp/include)

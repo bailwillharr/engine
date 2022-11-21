@@ -29,9 +29,6 @@ public:
 	std::shared_ptr<resources::Mesh> m_mesh = nullptr;
 	std::shared_ptr<resources::Texture> m_texture;
 
-	glm::vec3 m_color = { 1.0f, 1.0f, 1.0f };
-	glm::vec3 m_emission = { 0.0f, 0.0f, 0.0f };
-
 private:
 
 	std::shared_ptr<resources::Shader> m_shader;

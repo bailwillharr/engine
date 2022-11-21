@@ -23,7 +23,6 @@ public:
 
 	struct UniformBuffer {
 		glm::mat4 p;
-		glm::vec4 color;
 	};
 
 	gfx::Pipeline* getPipeline()

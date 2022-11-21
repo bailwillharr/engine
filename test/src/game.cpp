@@ -12,6 +12,8 @@
 #include "resource_manager.hpp"
 #include "resources/texture.hpp"
 
+#include "util/model_loader.hpp"
+
 #include "camera_controller.hpp"
 #include "meshgen.hpp"
 
@@ -68,7 +70,6 @@ void playGame()
 	auto gunRenderer = gun->createComponent<engine::components::Renderer>();
 	gunRenderer->setMesh("meshes/gun.mesh");
 	gunRenderer->setTexture("textures/gun.png");
-	gunRenderer->m_color = { 0.2f, 0.3f, 0.2f };
 
 	// FLOOR
 
@@ -86,12 +87,10 @@ void playGame()
 		{ { -16.0f, 0.0f,  16.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f,			GRASS_DENSITY	} }
 	});
 	floor->transform.scale = { 100.0f, 1.0f, 100.0f };
-	floorRenderer->m_color = { 0.1f, 0.9f, 0.1f };
 
 	auto cube = app.scene()->createChild("cube");
 	auto cubeRen = cube->createComponent<engine::components::Renderer>();
 	cubeRen->setMesh("meshes/cube.mesh");
-	cubeRen->m_color = { 0.8f, 0.2f, 0.05f };
 
 	cube->transform.position = glm::vec3{ -5.0f, 1.0f, 0.0f };
 	class Spin : public engine::components::CustomComponent {
@@ -112,6 +111,14 @@ void playGame()
 			yawQuat.z = 0.0f;
 			yawQuat.w = glm::cos(halfYaw);
 			parent.transform.rotation = yawQuat;
+
+			constexpr float halfPitch = -glm::half_pi<float>() / 2.0f;
+			glm::quat pitchQuat{};
+			pitchQuat.x = glm::sin(halfPitch);
+			pitchQuat.y = 0.0f;
+			pitchQuat.z = 0.0f;
+			pitchQuat.w = glm::cos(halfPitch);
+			parent.transform.rotation *= pitchQuat;
 		}
 
 	private:
@@ -128,35 +135,26 @@ void playGame()
 	sphereRenderer->m_mesh = genSphereMesh(5.0f, 100, false);
 	sphereRenderer->setTexture("textures/cobble_stone.png");
 
-	/* castle */
-	auto castle = app.scene()->createChild("castle");
-	castle->transform.scale = { 0.01f, 0.01f, 0.01f };
-	std::vector<engine::Object*> castleParts(6);
-	for (int i = 0; i < castleParts.size(); i++) {
-		if (i == 2) continue;
-		castleParts[i] = castle->createChild(std::to_string(i));
-		auto ren = castleParts[i]->createComponent<engine::components::Renderer>();
-		ren->setMesh("meshes/castle_" + std::to_string(i) + ".mesh");
-		ren->setTexture("textures/rock.jpg");
-
-		if (i == 5) {
-			ren->setTexture("textures/metal.jpg");
-		}
-		if (i == 4) {
-			ren->setTexture("textures/door.jpg");
-		}
-	}
-
 	// boundary
 	auto bounds = app.scene()->createChild("bounds");
 	auto boundsRen = bounds->createComponent<engine::components::Renderer>();
 	boundsRen->m_mesh = genSphereMesh(100.0f, 100, true);
 	boundsRen->setTexture("textures/metal.jpg");
 
-	auto pyramid = app.scene()->createChild("pyramid");
-	auto pyramidRen = pyramid->createComponent<engine::components::Renderer>();
-	pyramidRen->setMesh("meshes/pyramid.mesh");
-	pyramidRen->setTexture("textures/pyramid.png");
+	auto myModel = engine::util::loadAssimpMeshFromFile(app.scene(), app.resources()->getFilePath("models/pyramid/pyramid.dae").string());
+
+	auto myRoom = engine::util::loadAssimpMeshFromFile(app.scene(), app.resources()->getFilePath("models/room/room.dae").string());
+
+	auto astronaut = engine::util::loadAssimpMeshFromFile(app.scene(), app.resources()->getFilePath("models/astronaut/astronaut.dae").string());
+	astronaut->transform.position.z += 5.0f;
+	astronaut->createComponent<Spin>();
+
+	auto plane = engine::util::loadAssimpMeshFromFile(app.scene(), app.resources()->getFilePath("models/plane/plane.dae").string());
+	plane->transform.position = { -30.0f, 2.0f, 10.0f };
+
+	// END TESTING
+
+	app.scene()->printTree();
 
 	app.gameLoop();
 }
