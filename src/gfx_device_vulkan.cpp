@@ -8,6 +8,7 @@
 #include "util.hpp"
 #include "config.h"
 #include "log.hpp"
+#include "util/files.hpp"
 
 #define VOLK_IMPLEMENTATION
 #include <volk.h>
@@ -222,20 +223,6 @@ namespace engine {
 
 		return shaderModule;
 
-	}
-
-	static std::vector<char> readTextFile(const std::string& filename)
-	{
-		std::ifstream file(filename, std::ios::ate);
-		if (file.is_open() == false) {
-			throw std::runtime_error("Unable to open file " + filename);
-		}
-		std::vector<char> buffer(file.tellg());
-		file.seekg(0);
-		file.read(buffer.data(), buffer.size());
-		file.close();
-
-		return buffer;
 	}
 
 	static std::vector<const char*> getRequiredVulkanExtensions(SDL_Window* window)
@@ -1686,12 +1673,12 @@ namespace engine {
 
 		gfx::Pipeline* pipeline = new gfx::Pipeline;
 
-		auto vertShaderCode = readTextFile(vertShaderPath);
-		auto fragShaderCode = readTextFile(fragShaderPath);
+		auto vertShaderCode = util::readTextFile(vertShaderPath);
+		auto fragShaderCode = util::readTextFile(fragShaderPath);
 		INFO("Opened shader: {}", std::filesystem::path(vertShaderPath).filename().string());
 
-		VkShaderModule vertShaderModule = compileShader(pimpl->device, shaderc_vertex_shader, vertShaderCode.data(), vertShaderPath);
-		VkShaderModule fragShaderModule = compileShader(pimpl->device, shaderc_fragment_shader, fragShaderCode.data(), fragShaderPath);
+		VkShaderModule vertShaderModule = compileShader(pimpl->device, shaderc_vertex_shader, vertShaderCode->data(), vertShaderPath);
+		VkShaderModule fragShaderModule = compileShader(pimpl->device, shaderc_fragment_shader, fragShaderCode->data(), fragShaderPath);
 		
 		// create uniform buffers
 		pipeline->uniformBuffers.resize(FRAMES_IN_FLIGHT);

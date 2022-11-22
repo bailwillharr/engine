@@ -26,4 +26,3 @@ void main() {
 	vec3 lightPos = vec3(-5.0, 20.0, 5.0);
 	fragLightPos = vec3(constants.view * vec4(lightPos, 1.0));
 }
-

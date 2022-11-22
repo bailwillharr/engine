@@ -31,6 +31,7 @@ set(SRC_FILES
 	"src/resources/font.cpp"
 
 	"src/util/model_loader.cpp"
+	"src/util/files.cpp"
 
 	"src/resource_manager.cpp"
 
@@ -73,6 +74,7 @@ set(INCLUDE_FILES
 	"include/resources/font.hpp"
 
 	"include/util/model_loader.hpp"
+	"include/util/files.hpp"
 
 	"include/resource_manager.hpp"
 
@@ -202,15 +204,15 @@ target_link_libraries(${PROJECT_NAME} PUBLIC spdlog)
 target_include_directories(${PROJECT_NAME} PUBLIC dependencies/spdlog/include)
 
 # freetype
-set(FT_DISABLE_ZLIB TRUE CACHE INTERNAL "" FORCE)
-set(FT_DISABLE_BZIP2 TRUE CACHE INTERNAL "" FORCE)
-set(FT_DISABLE_PNG TRUE CACHE INTERNAL "" FORCE)
-set(FT_DISABLE_HARFBUZZ TRUE CACHE INTERNAL "" FORCE)
-set(FT_DISABLE_BROTLI TRUE CACHE INTERNAL "" FORCE)
-set(BUILD_SHARED_LIBS OFF CACHE INTERNAL "" FORCE)
-add_subdirectory(dependencies/freetype)
-target_link_libraries(${PROJECT_NAME} PRIVATE freetype)
-target_include_directories(${PROJECT_NAME} PRIVATE dependencies/freetype/include)
+#set(FT_DISABLE_ZLIB TRUE CACHE INTERNAL "" FORCE)
+#set(FT_DISABLE_BZIP2 TRUE CACHE INTERNAL "" FORCE)
+#set(FT_DISABLE_PNG TRUE CACHE INTERNAL "" FORCE)
+#set(FT_DISABLE_HARFBUZZ TRUE CACHE INTERNAL "" FORCE)
+#set(FT_DISABLE_BROTLI TRUE CACHE INTERNAL "" FORCE)
+#set(BUILD_SHARED_LIBS OFF CACHE INTERNAL "" FORCE)
+#add_subdirectory(dependencies/freetype)
+#target_link_libraries(${PROJECT_NAME} PRIVATE freetype)
+#target_include_directories(${PROJECT_NAME} PRIVATE dependencies/freetype/include)
 
 # stb
 target_include_directories(${PROJECT_NAME} PRIVATE dependencies/stb)
@@ -218,6 +220,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE dependencies/stb)
 # assimp
 set(BUILD_SHARED_LIBS OFF CACHE INTERNAL "" FORCE)
 set(ASSIMP_BUILD_TESTS OFF CACHE INTERNAL "" FORCE)
+set(ASSIMP_BUILD_ZLIB ON CACHE INTERNAL "" FORCE)
 set(ASSIMP_NO_EXPORT OFF CACHE INTERNAL "" FORCE)
 set(ASSIMP_INSTALL OFF CACHE INTERNAL "" FORCE)
 add_subdirectory(dependencies/assimp)
