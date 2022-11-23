@@ -55,6 +55,8 @@ namespace engine {
 		auto beginFrame = std::chrono::steady_clock::now();
 		auto endFrame = beginFrame + FRAMETIME_LIMIT;
 
+		//m_enableFrameLimiter = false;
+
 		// single-threaded game loop
 		while (m_win->isRunning()) {
 
@@ -83,7 +85,9 @@ namespace engine {
 			m_win->getInputAndEvents();
 
 			/* fps limiter */
-			std::this_thread::sleep_until(endFrame);
+			if (m_enableFrameLimiter) {
+				std::this_thread::sleep_until(endFrame);
+			}
 			beginFrame = endFrame;
 			endFrame = beginFrame + FRAMETIME_LIMIT;
 

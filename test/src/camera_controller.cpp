@@ -49,6 +49,7 @@ void CameraController::onUpdate(glm::mat4 t)
 			isJumping = false;
 			dy = 0.0f;
 			parent.transform.position.y = standingHeight;
+
 		}
 	}
 
@@ -83,6 +84,16 @@ void CameraController::onUpdate(glm::mat4 t)
 	const glm::vec3 d2zRotated = glm::rotateY(glm::vec3{ 0.0f, 0.0f, dz }, m_yaw);
 	parent.transform.position += (d2xRotated + d2zRotated) * dt;
 	parent.transform.position.y += dy * dt;
+
+	constexpr float MAX_DISTANCE_FROM_ORIGIN = 1000.0f;
+
+	if (glm::length(parent.transform.position) > MAX_DISTANCE_FROM_ORIGIN) {
+		parent.transform.position = { 0.0f, standingHeight, 0.0f };
+		dy = 0.0f;
+		isJumping = false;
+	}
+
+	/* ROTATION STUFF */
 
 	// pitch quaternion
 	const float halfPitch = m_pitch / 2.0f;

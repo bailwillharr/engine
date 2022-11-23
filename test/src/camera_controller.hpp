@@ -14,11 +14,11 @@ private:
 	float m_yaw = 0.0f;
 	float m_pitch = 0.0f;
 
-	float walk_speed = 4.0f;
+	const float walk_speed = 4.0f;
 	
 	bool isJumping = false;
 	float dy = 0.0f;
 	float standingHeight = 0.0f;
-	float thrust = 25.0f;
+	const float thrust = 25.0f;
 
 };

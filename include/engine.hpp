@@ -48,6 +48,8 @@ namespace engine {
 		Input* m_input;
 		ResourceManager* m_res;
 		SceneRoot* m_scene;
+
+		bool m_enableFrameLimiter = true;
 	};
 
 }

@@ -30,8 +30,6 @@ void playGame()
 	// configure window
 	app.window()->setRelativeMouseMode(true);
 
-
-
 	// input config
 	
 	// game buttons
@@ -56,20 +54,21 @@ void playGame()
 	constexpr float EYE_LEVEL = (HEIGHT_INCHES - 4.5f) * 25.4f / 1000.0f;
 	cam->transform.position = { 0.0f, EYE_LEVEL, 0.0f };
 	auto camCamera = cam->createComponent<engine::components::Camera>();
-	camCamera->usePerspective(70.0f);
+	camCamera->usePerspective(130.0f);
 	cam->createComponent<CameraController>();
-	//cam->createComponent<engine::components::Renderer>()->m_mesh = genSphereMesh(0.2f, 20);
-	//cam->getComponent<engine::components::Renderer>()->setTexture("textures/cobble_stone.png");
+	cam->createComponent<engine::components::Renderer>()->m_mesh = genSphereMesh(0.2f, 20);
+	cam->getComponent<engine::components::Renderer>()->setTexture("textures/cobble_stone.png");
 
+	/*
 	auto gun = cam->createChild("gun");
 	gun->transform.position = glm::vec3{ 0.2f, -0.1f, -0.15f };
 	gun->transform.rotation = glm::angleAxis(glm::pi<float>(), glm::vec3{ 0.0f, 1.0f, 0.0f });
 	float GUN_SCALE = 9.0f / 560.0f;
-	GUN_SCALE *= 1.0f;
 	gun->transform.scale *= GUN_SCALE;
 	auto gunRenderer = gun->createComponent<engine::components::Renderer>();
 	gunRenderer->setMesh("meshes/gun.mesh");
 	gunRenderer->setTexture("textures/gun.png");
+	*/
 
 	// FLOOR
 
@@ -138,12 +137,14 @@ void playGame()
 	// boundary
 	auto bounds = app.scene()->createChild("bounds");
 	auto boundsRen = bounds->createComponent<engine::components::Renderer>();
-	boundsRen->m_mesh = genSphereMesh(100.0f, 100, true);
+	boundsRen->m_mesh = genSphereMesh(100.0f, 36, true);
 	boundsRen->setTexture("textures/metal.jpg");
 
 	auto myModel = engine::util::loadAssimpMeshFromFile(app.scene(), app.resources()->getFilePath("models/pyramid/pyramid.dae").string());
+	myModel->transform.position = { -5.0f, 2.0f, 7.0f };
 
 	auto myRoom = engine::util::loadAssimpMeshFromFile(app.scene(), app.resources()->getFilePath("models/room/room.dae").string());
+	myRoom->transform.position = { 9.0f, 0.1f, 3.0f };
 
 	auto astronaut = engine::util::loadAssimpMeshFromFile(app.scene(), app.resources()->getFilePath("models/astronaut/astronaut.dae").string());
 	astronaut->transform.position.z += 5.0f;
@@ -151,6 +152,10 @@ void playGame()
 
 	auto plane = engine::util::loadAssimpMeshFromFile(app.scene(), app.resources()->getFilePath("models/plane/plane.dae").string());
 	plane->transform.position = { -30.0f, 2.0f, 10.0f };
+
+	auto lego = engine::util::loadAssimpMeshFromFile(app.scene(), app.resources()->getFilePath("models/lego/lego.dae").string());
+	lego->transform.position = { 30.0f, -2.0f, 30.0f };
+	lego->transform.scale = { 0.1f, 0.1f, 0.1f };
 
 	// END TESTING
 

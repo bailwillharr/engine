@@ -11,6 +11,8 @@
 
 #include "log.hpp"
 
+#include <glm/ext/matrix_clip_space.hpp>
+
 namespace engine::components {
 
 glm::vec4 Camera::s_clearColor{-999.0f, -999.0f, -999.0f, -999.0f};
@@ -76,7 +78,11 @@ void Camera::usePerspective(float fovDeg)
 	float fovRad = glm::radians(fovDeg);
 
 	glm::vec2 viewportDim = getViewportSize();
-	m_projMatrix = glm::perspectiveFovRH_ZO(fovRad, viewportDim.x, viewportDim.y, NEAR, FAR);
+	float aspect = viewportDim.x / viewportDim.y;
+
+	float fovY = fovRad / aspect;
+
+	m_projMatrix = glm::perspectiveZO(fovY, aspect, NEAR, FAR);
 }
 
 void Camera::useOrtho()
