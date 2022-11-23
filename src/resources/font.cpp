@@ -6,6 +6,8 @@
 #include "util/files.hpp"
 #include "gfx_device.hpp"
 
+#include "log.hpp"
+
 namespace engine::resources {
 
 Font::Font(const std::filesystem::path& resPath) : Resource(resPath, "font")
@@ -16,7 +18,7 @@ Font::Font(const std::filesystem::path& resPath) : Resource(resPath, "font")
 
 	stbtt_fontinfo info{};
 	int res = stbtt_InitFont(&info, fontBuffer->data(), 0);
-	if (res != 0) {
+	if (!res) {
 		throw std::runtime_error("Failed to read font file: " + resPath.string());
 	}
 
@@ -31,10 +33,16 @@ Font::Font(const std::filesystem::path& resPath) : Resource(resPath, "font")
 		int32_t w, h, yoff;
 		const uint8_t* bitmap = stbtt_GetCodepointBitmap(&info, scale, scale, c, &w, &h, &xoff, &yoff);
 
+		DEBUG("char width: {} char height: {}", w, h);
+
 		auto colorBuffer = std::make_unique<std::vector<uint32_t>>(w * h);
 		int i = 0;
 		for (uint32_t& col : *colorBuffer) {
-			col = bitmap[i];
+			if (bitmap[i] == 0) {
+				col = 0;
+			} else {
+				col = 0xFFFFFFFF;
+			}
 			i++;
 		}
 

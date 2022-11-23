@@ -11,6 +11,7 @@
 
 #include "resource_manager.hpp"
 #include "resources/texture.hpp"
+#include "resources/font.hpp"
 
 #include "util/model_loader.hpp"
 
@@ -157,9 +158,9 @@ void playGame()
 	lego->transform.position = { 30.0f, -2.0f, 30.0f };
 	lego->transform.scale = { 0.1f, 0.1f, 0.1f };
 
-	// END TESTING
-
 	app.scene()->printTree();
+
+	auto myFont = app.resources()->get<engine::resources::Font>("fonts/LiberationMono-Regular.ttf");
 
 	app.gameLoop();
 }
