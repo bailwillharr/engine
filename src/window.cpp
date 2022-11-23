@@ -9,7 +9,7 @@ const uint64_t BILLION = 1000000000;
 
 namespace engine {
 
-	Window::Window(const std::string& title, bool resizable) : m_title(title), m_resizable(resizable)
+	Window::Window(const std::string& title, bool resizable, bool fullscreen) : m_title(title), m_resizable(resizable), m_fullscreen(fullscreen)
 	{
 
 		// init SDL
@@ -37,6 +37,10 @@ namespace engine {
 
 		if (m_resizable) {
 			windowFlags |= SDL_WINDOW_RESIZABLE;
+		}
+
+		if (m_fullscreen) {
+			windowFlags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
 		}
 
 		// create the window

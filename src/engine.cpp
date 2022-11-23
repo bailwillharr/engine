@@ -16,7 +16,7 @@ namespace engine {
 
 	Application::Application(const char* appName, const char* appVersion)
 	{
-		m_win = new Window(appName, true);
+		m_win = new Window(appName, true, true);
 
 		gfxdev = new GFXDevice(appName, appVersion, m_win->getHandle());
 

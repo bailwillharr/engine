@@ -1,87 +1,58 @@
-#if 0
 #include "resources/font.hpp"
 
-#include <ft2build.h>
-#include FT_FREETYPE_H
+#define STB_TRUETYPE_IMPLEMENTATION
+#include <stb_truetype.h>
+
+#include "util/files.hpp"
+#include "gfx_device.hpp"
 
 namespace engine::resources {
 
 Font::Font(const std::filesystem::path& resPath) : Resource(resPath, "font")
 {
 
-	FT_Library library;
-	FT_Face face;
-	int err;
+	// TODO: load font
+	auto fontBuffer = util::readBinaryFile(resPath);
 
-	err = FT_Init_FreeType(&library);
-	if (err) {
-		throw std::runtime_error("Failed to initialise freetype library");
+	stbtt_fontinfo info{};
+	int res = stbtt_InitFont(&info, fontBuffer->data(), 0);
+	if (res != 0) {
+		throw std::runtime_error("Failed to read font file: " + resPath.string());
 	}
 
-	err = FT_New_Face(library, resPath.string().c_str(), 0, &face);
-	if (err == FT_Err_Unknown_File_Format) {
-		FT_Done_FreeType(library);
-		throw std::runtime_error("Unknown file format for font '" + resPath.string() + "'");
-	}
-	else if (err != 0) {
-		FT_Done_FreeType(library);
-		throw std::runtime_error("Unable to open font '" + resPath.string() + "'");
-	}
-
-	err = FT_Set_Pixel_Sizes(face, 0, 64);
-	if (err) {
-		FT_Done_Face(face);
-		FT_Done_FreeType(library);
-		throw std::runtime_error("Attempt to set pixel size to one unavailable in the font");
-	}
-
-	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+	float scale = stbtt_ScaleForPixelHeight(&info, 64);
 
 	for (unsigned char c = 0; c < 128; c++) {
 
-		err = FT_Load_Char(face, c, FT_LOAD_RENDER);
-		if (err) {
-			FT_Done_Face(face);
-			FT_Done_FreeType(library);
-			throw std::runtime_error("Unable to load char glyph");
+		// TODO: get character bitmap buffer, size, offsets, advance
+		int32_t advance = 0, xoff = 0;
+		stbtt_GetCodepointHMetrics(&info, c, &advance, &xoff);
+
+		int32_t w, h, yoff;
+		const uint8_t* bitmap = stbtt_GetCodepointBitmap(&info, scale, scale, c, &w, &h, &xoff, &yoff);
+
+		auto colorBuffer = std::make_unique<std::vector<uint32_t>>(w * h);
+		int i = 0;
+		for (uint32_t& col : *colorBuffer) {
+			col = bitmap[i];
+			i++;
 		}
 
 		// generate texture
-		unsigned int texture;
-		glGenTextures(1, &texture);
-		glBindTexture(GL_TEXTURE_2D, texture);
-		glTexImage2D(
-				GL_TEXTURE_2D,
-				0,
-				GL_RED,
-				face->glyph->bitmap.width,
-				face->glyph->bitmap.rows,
-				0,
-				GL_RED,
-				GL_UNSIGNED_BYTE,
-				face->glyph->bitmap.buffer
-		);
-
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		gfx::Texture* texture = gfxdev->createTexture(colorBuffer->data(), w, h, gfx::TextureFilter::LINEAR, gfx::TextureFilter::LINEAR);
 
 		Character character = {
 			texture,
-			glm::ivec2{face->glyph->bitmap.width, face->glyph->bitmap.rows},	// Size of Glyph
-			glm::ivec2{face->glyph->bitmap_left, face->glyph->bitmap_top},		// Offset from baseline (bottom-left) to top-left of glyph
-			face->glyph->advance.x
+			glm::ivec2{w, h},	// Size of Glyph
+			glm::ivec2{xoff, yoff},		// Offset from baseline (bottom-left) to top-left of glyph
+			advance
 		};
 
 		m_characters.insert(std::make_pair(c, character));
 
 	}
 
-	glPixelStorei(GL_UNPACK_ALIGNMENT, 4); // reset alignment settings
-
-	FT_Done_Face(face);
-	FT_Done_FreeType(library);
+	// TODO clean up resources
 
 }
 
@@ -95,4 +66,3 @@ Font::Character Font::getChar(char c)
 }
 
 }
-#endif

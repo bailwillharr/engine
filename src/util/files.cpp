@@ -30,4 +30,23 @@ namespace engine::util {
 		return buffer;
 	}
 
+	std::unique_ptr<std::vector<uint8_t>> readBinaryFile(const std::string& path)
+	{
+		std::ifstream file(path, std::ios::ate | std::ios::binary);
+		if (file.is_open() == false) {
+			throw std::runtime_error("Unable to open file " + path);
+		}
+
+		auto buffer = std::make_unique<std::vector<uint8_t>>(file.tellg());
+		
+		file.seekg(0);
+
+		file.read((char*)buffer->data(), buffer->size());
+
+		file.close();
+
+		return buffer;
+	}
+
 }
+

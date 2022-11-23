@@ -22,7 +22,7 @@ namespace engine {
 	class ENGINE_API Window {
 
 	public:
-		Window(const std::string& title, bool resizable = true);
+		Window(const std::string& title, bool resizable = true, bool fullscreen = true);
 		Window(const Window&) = delete;
 		Window& operator=(const Window&) = delete;
 		~Window();
