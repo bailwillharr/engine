@@ -57,15 +57,15 @@ namespace engine {
 						ren->render(ren_t, view);
 					}
 
+
+					for (const auto& [textRen, textRen_t] : compList.uis) {
+						textRen->render(textRen_t, view);
+					}
+
 					break;
 				}
 			}
 		}
-
-/*		for (const auto& [c, t] : compList.uis) {
-			c->render(t);
-		}
-*/
 
 	}
 

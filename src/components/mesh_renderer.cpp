@@ -16,7 +16,7 @@ namespace engine::components {
 
 Renderer::Renderer(Object* parent) : Component(parent, TypeEnum::RENDERER)
 {
-	m_shader = this->parent.res.get<resources::Shader>("shader.glsl");
+	m_shader = this->parent.res.get<resources::Shader>("shaders/texture.glsl");
 	m_texture = this->parent.res.get<resources::Texture>("textures/white.png");
 }
 

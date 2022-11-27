@@ -1,7 +1,5 @@
 #pragma once
 
-#if 0
-
 #include "engine_api.h"
 
 #include "component.hpp"
@@ -14,31 +12,32 @@
 
 namespace engine::components {
 
-class ENGINE_API UI : public Component {
+	class ENGINE_API UI : public Component {
 
-public:
-	UI(Object*);
-	~UI() override;
+	public:
+		UI(Object*);
+		~UI() override;
 
-	// called every frame, do not call manually
-	void render(glm::mat4 transform);
+		// called every frame, do not call manually
+		void render(glm::mat4 transform, glm::mat4 view);
 
-	std::string m_text = "hello world";
-	glm::vec3 m_color = {1.0f, 1.0f, 1.0f};
+		std::string m_text = "hello world";
+		glm::vec3 m_color = { 1.0f, 1.0f, 1.0f };
 
-	enum class Alignment {
-		NONE = 0,
-		LEFT = 1,
-		RIGHT = 2
+		enum class Alignment {
+			NONE = 0,
+			LEFT = 1,
+			RIGHT = 2
+		};
+		Alignment m_alignment = Alignment::LEFT;
+		bool m_scaled = true;
+
+	private:
+		std::shared_ptr<resources::Font> m_font;
+		std::shared_ptr<resources::Shader> m_shader;
+
+		std::unique_ptr<resources::Mesh> m_atlasMesh;
+
 	};
-	Alignment m_alignment = Alignment::LEFT;
-	bool m_scaled = true;
-
-private:
-	std::shared_ptr<resources::Font> m_font;
-	std::shared_ptr<resources::Shader> m_shader;
-
-};
 
 }
-#endif

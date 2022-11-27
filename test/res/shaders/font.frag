@@ -1,14 +1,12 @@
-#version 330
+#version 450
 
-uniform vec3 textColor;
+layout(location = 0) in vec2 fragUV;
 
-uniform sampler2D tex;
+layout(location = 0) out vec4 outColor;
 
-in vec2 f_UV;
+layout(set = 1, binding = 0) uniform sampler2D texSampler;
 
-out vec4 FragColor;
-
-void main()
-{
-	FragColor = vec4(textColor, texture(tex, f_UV).r);
+void main() {
+	outColor = texture(texSampler, fragUV);
 }
+

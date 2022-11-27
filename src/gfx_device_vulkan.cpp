@@ -1570,7 +1570,7 @@ namespace engine {
 			renderPassInfo.renderArea.extent = pimpl->swapchain.extent;
 
 			std::array<VkClearValue, 2> clearValues{};
-			clearValues[0].color = { {0.0f, 0.0f, 0.0f, 1.0f} };
+			clearValues[0].color = { {0.1f, 0.1f, 0.8f, 1.0f} };
 			clearValues[1].depthStencil = { 1.0f, 0 };
 			renderPassInfo.clearValueCount = (uint32_t)clearValues.size();
 			renderPassInfo.pClearValues = clearValues.data();
@@ -1666,7 +1666,7 @@ namespace engine {
 		pimpl->FRAMECOUNT++;
 	}
 	
-	gfx::Pipeline* GFXDevice::createPipeline(const char* vertShaderPath, const char* fragShaderPath, const gfx::VertexFormat& vertexFormat, uint64_t uniformBufferSize)
+	gfx::Pipeline* GFXDevice::createPipeline(const char* vertShaderPath, const char* fragShaderPath, const gfx::VertexFormat& vertexFormat, uint64_t uniformBufferSize, bool alphaBlending, bool backfaceCulling)
 	{
 
 		VkResult res;
@@ -1826,7 +1826,12 @@ namespace engine {
 		rasterizer.rasterizerDiscardEnable = VK_FALSE;
 		rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
 		rasterizer.lineWidth = 1.0f;
-		rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+		if (backfaceCulling == true) {
+			rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+		}
+		else {
+			rasterizer.cullMode = VK_CULL_MODE_NONE;
+		}
 		rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 		rasterizer.depthBiasEnable = VK_FALSE;
 		rasterizer.depthBiasConstantFactor = 0.0f; // ignored
@@ -1848,14 +1853,19 @@ namespace engine {
 			VK_COLOR_COMPONENT_G_BIT |
 			VK_COLOR_COMPONENT_B_BIT |
 			VK_COLOR_COMPONENT_A_BIT;
-		colorBlendAttachment.blendEnable = VK_FALSE;
-		colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE; // ignored
-		colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO; // ignored
-		colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD; // ignored
-		colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE; // ignored
-		colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO; // ignored
-		colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD; // ignored
-
+		if (alphaBlending) {
+			colorBlendAttachment.blendEnable = VK_TRUE;
+			colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+			colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+			colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+			colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+			colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+			colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+		}
+		else {
+			colorBlendAttachment.blendEnable = VK_FALSE;
+		}
+		
 		VkPipelineColorBlendStateCreateInfo colorBlending{};
 		colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
 		colorBlending.logicOpEnable = VK_FALSE;

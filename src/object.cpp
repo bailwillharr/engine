@@ -123,8 +123,7 @@ namespace engine {
 				compList.renderers.emplace_back(dynamic_cast<Renderer*>(comp), newTransform);
 				break;
 			case Component::TypeEnum::UI:
-//				compList.uis.emplace_back(dynamic_cast<UI*>(comp), newTransform);
-				throw std::runtime_error("UI is currently not supported");
+				compList.uis.emplace_back(dynamic_cast<UI*>(comp), newTransform);
 				break;
 			case Component::TypeEnum::CUSTOM:
 				compList.customs.emplace_back(dynamic_cast<CustomComponent*>(comp), newTransform);

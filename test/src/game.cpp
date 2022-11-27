@@ -8,6 +8,7 @@
 
 #include "components/camera.hpp"
 #include "components/mesh_renderer.hpp"
+#include "components/text_ui_renderer.hpp"
 
 #include "resource_manager.hpp"
 #include "resources/texture.hpp"
@@ -73,6 +74,7 @@ void playGame()
 
 	// FLOOR
 
+	/*
 	constexpr float GRASS_DENSITY = 128.0f * 20.0f;
 	auto floor = app.scene()->createChild("floor");
 	auto floorRenderer = floor->createComponent<engine::components::Renderer>();
@@ -87,11 +89,12 @@ void playGame()
 		{ { -16.0f, 0.0f,  16.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f,			GRASS_DENSITY	} }
 	});
 	floor->transform.scale = { 100.0f, 1.0f, 100.0f };
+	*/
 
+	/*
 	auto cube = app.scene()->createChild("cube");
 	auto cubeRen = cube->createComponent<engine::components::Renderer>();
 	cubeRen->setMesh("meshes/cube.mesh");
-
 	cube->transform.position = glm::vec3{ -5.0f, 1.0f, 0.0f };
 	class Spin : public engine::components::CustomComponent {
 
@@ -126,12 +129,13 @@ void playGame()
 
 	};
 	app.scene()->getChild("cube")->createComponent<Spin>();
+	*/
 
-	auto sphere = app.scene()->createChild("sphere");
-
+	/*auto sphere = app.scene()->createChild("sphere");
 	sphere->transform.position = { 10.0f, 5.0f, 10.0f };
+	*/
 
-	auto sphereRenderer = sphere->createComponent<engine::components::Renderer>();
+	/*auto sphereRenderer = sphere->createComponent<engine::components::Renderer>();
 	sphereRenderer->m_mesh = genSphereMesh(5.0f, 100, false);
 	sphereRenderer->setTexture("textures/cobble_stone.png");
 
@@ -140,7 +144,13 @@ void playGame()
 	auto boundsRen = bounds->createComponent<engine::components::Renderer>();
 	boundsRen->m_mesh = genSphereMesh(100.0f, 36, true);
 	boundsRen->setTexture("textures/metal.jpg");
+	*/
 
+	auto message = app.scene()->createChild("message");
+	message->transform.position = { 0.0f, 2.0f, 0.0f };
+	auto messageUI = message->createComponent<engine::components::UI>();
+
+	/*
 	auto myModel = engine::util::loadAssimpMeshFromFile(app.scene(), app.resources()->getFilePath("models/pyramid/pyramid.dae").string());
 	myModel->transform.position = { -5.0f, 2.0f, 7.0f };
 
@@ -153,14 +163,12 @@ void playGame()
 
 	auto plane = engine::util::loadAssimpMeshFromFile(app.scene(), app.resources()->getFilePath("models/plane/plane.dae").string());
 	plane->transform.position = { -30.0f, 2.0f, 10.0f };
+	*/
 
 	auto lego = engine::util::loadAssimpMeshFromFile(app.scene(), app.resources()->getFilePath("models/lego/lego.dae").string());
-	lego->transform.position = { 30.0f, -2.0f, 30.0f };
-	lego->transform.scale = { 0.1f, 0.1f, 0.1f };
+	lego->transform.position = { -30.0f, -33.0f, -30.0f };
 
 	app.scene()->printTree();
-
-	auto myFont = app.resources()->get<engine::resources::Font>("fonts/LiberationMono-Regular.ttf");
 
 	app.gameLoop();
 }

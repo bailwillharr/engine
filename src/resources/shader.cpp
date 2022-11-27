@@ -4,25 +4,7 @@
 
 #include "gfx_device.hpp"
 
-#include <string>
-#include <fstream>
 #include <vector>
-#include <span>
-
-static std::unique_ptr<std::vector<char>> readFile(const char * path)
-{
-	std::ifstream file(path, std::ios::binary | std::ios::ate);
-	//file.exceptions(std::ifstream::failbit); // throw exception if file cannot be opened
-	if (file.fail()) {
-		throw std::runtime_error("Failed to open file for reading: " + std::string(path));
-	}
-	size_t size = file.tellg();
-	file.seekg(0, std::ios::beg);
-	auto buf = std::make_unique<std::vector<char>>();
-	buf->resize(size);
-	file.rdbuf()->sgetn(buf->data(), size);
-	return buf;
-}
 
 namespace engine::resources {
 
@@ -38,7 +20,7 @@ Shader::Shader(const std::filesystem::path& resPath) : Resource(resPath, "shader
 	const std::string vertexShaderPath = (resPath.parent_path()/std::filesystem::path(resPath.stem().string() + ".vert")).string();
 	const std::string fragmentShaderPath = (resPath.parent_path()/std::filesystem::path(resPath.stem().string() + ".frag")).string();
 
-	m_pipeline = gfxdev->createPipeline(vertexShaderPath.c_str(), fragmentShaderPath.c_str(), vertexFormat, sizeof(UniformBuffer));
+	m_pipeline = gfxdev->createPipeline(vertexShaderPath.c_str(), fragmentShaderPath.c_str(), vertexFormat, sizeof(UniformBuffer), true, true);
 
 }
 

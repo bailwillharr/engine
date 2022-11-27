@@ -1,25 +1,18 @@
-#version 330
+#version 450
 
-uniform vec2 windowSize;
-uniform bool textScaling; // true means keep text aspect ratio
+layout( push_constant ) uniform Constants {
+	mat4 model;
+	vec2 offset;
+	vec2 size;
+} constants;
 
-layout (location = 0) in vec3 v_Position;
-layout (location = 2) in vec2 v_UV;
+layout(location = 0) in vec3 inPosition;
+layout(location = 1) in vec3 inNorm;
+layout(location = 2) in vec2 inUV;
 
-uniform mat4 modelMat;
+layout(location = 0) out vec2 fragUV;
 
-out vec2 f_UV;
-
-void main()
-{
-	float aspect = windowSize.y / windowSize.x;
-	
-	vec3 pos = v_Position;
-
-	if (textScaling) {
-		pos.x *= aspect;
-	}
-
-	gl_Position = modelMat * vec4(pos, 1.0);
-	f_UV = v_UV;
+void main() {
+	gl_Position = constants.model * vec4(inPosition, 1.0);
+	fragUV = inUV;
 }
