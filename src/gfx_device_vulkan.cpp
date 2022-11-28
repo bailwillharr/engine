@@ -504,7 +504,7 @@ namespace engine {
 	}
 
 	// This is called not just on initialisation, but also when the window is resized.
-	static void createSwapchain(VkDevice device, VkPhysicalDevice physicalDevice, VmaAllocator allocator, std::vector<Queue> queues, SDL_Window* window, VkSurfaceKHR surface, Swapchain* swapchain)
+	static void createSwapchain(VkDevice device, VkPhysicalDevice physicalDevice, VmaAllocator allocator, std::vector<Queue> queues, SDL_Window* window, VkSurfaceKHR surface, Swapchain* swapchain, bool vsync)
 	{
 		VkResult res;
 
@@ -575,13 +575,14 @@ namespace engine {
 		}
 
 		swapchain->presentMode = VK_PRESENT_MODE_FIFO_KHR; // This mode is always available
-
-		for (const auto& presMode : presentModes) {
-			if (presMode == VK_PRESENT_MODE_MAILBOX_KHR) {
-				swapchain->presentMode = presMode; // this mode allows uncapped FPS while also avoiding screen tearing
+		if (vsync == false) {
+			for (const auto& presMode : presentModes) {
+				if (presMode == VK_PRESENT_MODE_MAILBOX_KHR) {
+					swapchain->presentMode = presMode; // this mode allows uncapped FPS while also avoiding screen tearing
+				}
 			}
 		}
-
+		
 		uint32_t imageCount = caps.minImageCount + 1;
 		if (caps.maxImageCount > 0 && imageCount > caps.maxImageCount) {
 			imageCount = caps.maxImageCount;
@@ -1005,6 +1006,8 @@ namespace engine {
 
 		VmaAllocator allocator = nullptr;
 
+		bool vsync = false;
+
 		Swapchain swapchain{};
 
 		uint64_t FRAMECOUNT = 0;
@@ -1022,7 +1025,7 @@ namespace engine {
 
 	};
 
-	GFXDevice::GFXDevice(const char* appName, const char* appVersion, SDL_Window* window)
+	GFXDevice::GFXDevice(const char* appName, const char* appVersion, SDL_Window* window, bool vsync)
 	{
 		if (gfxdev != nullptr) {
 			throw std::runtime_error("There can only be one graphics device");
@@ -1034,6 +1037,7 @@ namespace engine {
 		VkResult res;
 
 		pimpl->window = window;
+		pimpl->vsync = vsync;
 
 		// initialise vulkan
 
@@ -1420,7 +1424,7 @@ namespace engine {
 
 
 		// Now make the swapchain
-		createSwapchain(pimpl->device, pimpl->physicalDevice, pimpl->allocator, pimpl->queues, window, pimpl->surface, &pimpl->swapchain);
+		createSwapchain(pimpl->device, pimpl->physicalDevice, pimpl->allocator, pimpl->queues, window, pimpl->surface, &pimpl->swapchain, pimpl->vsync);
 
 
 
@@ -1548,7 +1552,7 @@ namespace engine {
 		if (res == VK_ERROR_OUT_OF_DATE_KHR) {
 			// recreate swapchain
 			waitIdle();
-			createSwapchain(pimpl->device, pimpl->physicalDevice, pimpl->allocator, pimpl->queues, pimpl->window, pimpl->surface, &pimpl->swapchain);
+			createSwapchain(pimpl->device, pimpl->physicalDevice, pimpl->allocator, pimpl->queues, pimpl->window, pimpl->surface, &pimpl->swapchain, &pimpl->vsync);
 			return;
 		}
 		else {
@@ -1677,7 +1681,7 @@ namespace engine {
 		if (res == VK_SUBOPTIMAL_KHR || res == VK_ERROR_OUT_OF_DATE_KHR) {
 			// recreate swapchain
 			waitIdle();
-			createSwapchain(pimpl->device, pimpl->physicalDevice, pimpl->allocator, pimpl->queues, pimpl->window, pimpl->surface, &pimpl->swapchain);
+			createSwapchain(pimpl->device, pimpl->physicalDevice, pimpl->allocator, pimpl->queues, pimpl->window, pimpl->surface, &pimpl->swapchain, &pimpl->vsync);
 		}
 		else {
 			assert(res == VK_SUCCESS);

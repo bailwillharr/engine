@@ -90,7 +90,7 @@ namespace engine {
 
 	};
 
-	GFXDevice::GFXDevice(const char* appName, const char* appVersion, SDL_Window* window)
+	GFXDevice::GFXDevice(const char* appName, const char* appVersion, SDL_Window* window, bool vsync)
 	{
 		if (gfxdev != nullptr) {
 			throw std::runtime_error("There can only be one graphics device");

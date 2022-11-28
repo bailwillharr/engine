@@ -27,7 +27,7 @@ namespace engine {
 
 	};
 
-	GFXDevice::GFXDevice(const char* appName, const char* appVersion, SDL_Window* window)
+	GFXDevice::GFXDevice(const char* appName, const char* appVersion, SDL_Window* window, bool vsync)
 	{
 		pimpl = std::make_unique<Impl>();
 	}

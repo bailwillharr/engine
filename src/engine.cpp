@@ -18,7 +18,7 @@ namespace engine {
 	{
 		m_win = new Window(appName, true, true);
 
-		gfxdev = new GFXDevice(appName, appVersion, m_win->getHandle());
+		gfxdev = new GFXDevice(appName, appVersion, m_win->getHandle(), false);
 
 		m_input = new Input(*m_win);
 		m_res = new ResourceManager();
@@ -46,12 +46,8 @@ namespace engine {
 	{
 		TRACE("Begin game loop...");
 
-		uint64_t lastTick = m_win->getNanos();
-		constexpr int TICKFREQ = 1; // in hz
-
 		constexpr int FPS_LIMIT = 240;
 		constexpr auto FRAMETIME_LIMIT = std::chrono::nanoseconds(1000000000 / FPS_LIMIT);
-
 		auto beginFrame = std::chrono::steady_clock::now();
 		auto endFrame = beginFrame + FRAMETIME_LIMIT;
 
@@ -59,22 +55,6 @@ namespace engine {
 
 		// single-threaded game loop
 		while (m_win->isRunning()) {
-
-			/* logic */
-			if (m_win->getLastFrameStamp() >= lastTick + (BILLION / TICKFREQ)) {
-				lastTick = m_win->getLastFrameStamp();
-
-				// do tick stuff here
-				m_win->setTitle("frame time: " + std::to_string(m_win->dt() * 1000.0f) + " ms, " + std::to_string(m_win->getAvgFPS()) + " fps");
-				m_win->resetAvgFPS();
-			}
-
-			if (m_win->getKeyPress(inputs::Key::F11)) {
-				m_win->toggleFullscreen();
-			}
-			if (m_win->getKeyPress(inputs::Key::ESCAPE)) {
-				m_win->setCloseFlag();
-			}
 
 			m_scene->updateStuff();
 
