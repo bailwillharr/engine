@@ -58,8 +58,6 @@ void playGame()
 	auto camCamera = cam->createComponent<engine::components::Camera>();
 	camCamera->usePerspective(130.0f);
 	cam->createComponent<CameraController>();
-	cam->createComponent<engine::components::Renderer>()->m_mesh = genSphereMesh(0.2f, 20);
-	cam->getComponent<engine::components::Renderer>()->setTexture("textures/cobble_stone.png");
 
 	/*
 	auto gun = cam->createChild("gun");
@@ -73,8 +71,6 @@ void playGame()
 	*/
 
 	// FLOOR
-
-	/*
 	constexpr float GRASS_DENSITY = 128.0f * 20.0f;
 	auto floor = app.scene()->createChild("floor");
 	auto floorRenderer = floor->createComponent<engine::components::Renderer>();
@@ -89,15 +85,12 @@ void playGame()
 		{ { -16.0f, 0.0f,  16.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f,			GRASS_DENSITY	} }
 	});
 	floor->transform.scale = { 100.0f, 1.0f, 100.0f };
-	*/
 
-	/*
 	auto cube = app.scene()->createChild("cube");
 	auto cubeRen = cube->createComponent<engine::components::Renderer>();
 	cubeRen->setMesh("meshes/cube.mesh");
 	cube->transform.position = glm::vec3{ -5.0f, 1.0f, 0.0f };
 	class Spin : public engine::components::CustomComponent {
-
 	public:
 		Spin(engine::Object* parent) : CustomComponent(parent)
 		{
@@ -123,32 +116,34 @@ void playGame()
 			pitchQuat.w = glm::cos(halfPitch);
 			parent.transform.rotation *= pitchQuat;
 		}
-
 	private:
 		float m_yaw = 0.0f;
-
 	};
-	app.scene()->getChild("cube")->createComponent<Spin>();
-	*/
-
-	/*auto sphere = app.scene()->createChild("sphere");
-	sphere->transform.position = { 10.0f, 5.0f, 10.0f };
-	*/
-
-	/*auto sphereRenderer = sphere->createComponent<engine::components::Renderer>();
-	sphereRenderer->m_mesh = genSphereMesh(5.0f, 100, false);
-	sphereRenderer->setTexture("textures/cobble_stone.png");
+	cube->createComponent<Spin>();
 
 	// boundary
 	auto bounds = app.scene()->createChild("bounds");
 	auto boundsRen = bounds->createComponent<engine::components::Renderer>();
 	boundsRen->m_mesh = genSphereMesh(100.0f, 36, true);
 	boundsRen->setTexture("textures/metal.jpg");
-	*/
 
 	auto message = app.scene()->createChild("message");
-	message->transform.position = { 0.0f, 2.0f, 0.0f };
+	message->transform.position = { -1.0f, 0.95f, 0.0f };
+	message->transform.scale *= 0.5f;
 	auto messageUI = message->createComponent<engine::components::UI>();
+	class FPSTextUpdater : public engine::components::CustomComponent {
+		engine::components::UI* textUI = nullptr;
+	public:
+		FPSTextUpdater(engine::Object* parent) : CustomComponent(parent)
+		{
+			textUI = parent->getComponent<engine::components::UI>();
+		}
+		void onUpdate(glm::mat4 t) override
+		{
+			textUI->m_text = std::to_string(parent.win.dt() * 1000.0f) + " ms";
+		}
+	};
+	message->createComponent<FPSTextUpdater>();
 
 	/*
 	auto myModel = engine::util::loadAssimpMeshFromFile(app.scene(), app.resources()->getFilePath("models/pyramid/pyramid.dae").string());
@@ -156,16 +151,10 @@ void playGame()
 
 	auto myRoom = engine::util::loadAssimpMeshFromFile(app.scene(), app.resources()->getFilePath("models/room/room.dae").string());
 	myRoom->transform.position = { 9.0f, 0.1f, 3.0f };
-
+	*/
 	auto astronaut = engine::util::loadAssimpMeshFromFile(app.scene(), app.resources()->getFilePath("models/astronaut/astronaut.dae").string());
 	astronaut->transform.position.z += 5.0f;
 	astronaut->createComponent<Spin>();
-
-	auto plane = engine::util::loadAssimpMeshFromFile(app.scene(), app.resources()->getFilePath("models/plane/plane.dae").string());
-	plane->transform.position = { -30.0f, 2.0f, 10.0f };
-	*/
-
-	auto van = engine::util::loadAssimpMeshFromFile(app.scene(), app.resources()->getFilePath("models/van/van.dae").string());
 
 /*
 	auto lego = engine::util::loadAssimpMeshFromFile(app.scene(), app.resources()->getFilePath("models/lego/lego.dae").string());

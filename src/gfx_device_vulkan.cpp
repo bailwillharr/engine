@@ -95,6 +95,7 @@ namespace engine {
 	};
 
 	struct DrawCall {
+		const gfx::Pipeline* pipeline = nullptr; // for performance, keep this the same for consecutive draw calls
 		const gfx::Buffer* vertexBuffer = nullptr;
 		const gfx::Buffer* indexBuffer = nullptr; // if this is nullptr, don't use indexed
 		uint32_t count = 0;
@@ -1011,8 +1012,8 @@ namespace engine {
 		std::array<VkCommandBuffer, FRAMES_IN_FLIGHT> commandBuffers{};
 		std::array<VkFence, FRAMES_IN_FLIGHT> inFlightFences{};
 
-		std::map<const gfx::Pipeline*, std::queue<DrawCall>> drawQueues{};
-
+		std::queue<DrawCall> drawQueue{};
+		
 		VkDescriptorSetLayoutBinding uboLayoutBinding{};
 		VkDescriptorSetLayout descriptorSetLayout{};
 
@@ -1510,12 +1511,14 @@ namespace engine {
 
 	void GFXDevice::draw(const gfx::Pipeline* pipeline, const gfx::Buffer* vertexBuffer, const gfx::Buffer* indexBuffer, uint32_t count, const void* pushConstantData, size_t pushConstantSize, const gfx::Texture* texture)
 	{
-		assert(vertexBuffer->type == gfx::BufferType::VERTEX);
+		assert(pipeline != nullptr);
 		assert(vertexBuffer != nullptr);
+		assert(vertexBuffer->type == gfx::BufferType::VERTEX);
 		assert(indexBuffer == nullptr || indexBuffer->type == gfx::BufferType::INDEX);
 		assert(pushConstantSize <= PUSH_CONSTANT_MAX_SIZE);
 
 		DrawCall call{
+			.pipeline = pipeline,
 			.vertexBuffer = vertexBuffer,
 			.indexBuffer = indexBuffer, // will be ignored if nullptr
 			.count = count,
@@ -1525,7 +1528,7 @@ namespace engine {
 
 		call.texture = texture; // will be ignored if nullptr
 
-		pimpl->drawQueues[pipeline].push(call);
+		pimpl->drawQueue.push(call);
 
 	}
 
@@ -1570,7 +1573,7 @@ namespace engine {
 			renderPassInfo.renderArea.extent = pimpl->swapchain.extent;
 
 			std::array<VkClearValue, 2> clearValues{};
-			clearValues[0].color = { {0.1f, 0.1f, 0.8f, 1.0f} };
+			clearValues[0].color = { {0.0f, 0.0f, 0.0f, 1.0f} };
 			clearValues[1].depthStencil = { 1.0f, 0 };
 			renderPassInfo.clearValueCount = (uint32_t)clearValues.size();
 			renderPassInfo.pClearValues = clearValues.data();
@@ -1595,33 +1598,50 @@ namespace engine {
 
 			VkDeviceSize offsets[] = { 0 };
 
-			for (auto& [pipeline, queue] : pimpl->drawQueues) {
-				vkCmdBindPipeline(pimpl->commandBuffers[frameIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->handle);
-				vkCmdBindDescriptorSets(pimpl->commandBuffers[frameIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->layout, 0, 1, &pipeline->descriptorSets[frameIndex], 0, nullptr);
-				while (queue.empty() == false) {
+			const gfx::Pipeline* lastPipeline = nullptr;
+			const gfx::Texture* lastTexture = nullptr;
+			const gfx::Buffer* lastVertexBuffer = nullptr;
+			const gfx::Buffer* lastIndexBuffer = nullptr;
+			while (pimpl->drawQueue.empty() == false) {
+				
+				DrawCall call = pimpl->drawQueue.front();
 
-					DrawCall call = queue.front();
-
-					vkCmdBindDescriptorSets(pimpl->commandBuffers[frameIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->layout, 1, 1, &call.texture->descriptorSets[frameIndex], 0, nullptr);
-
-					vkCmdPushConstants(pimpl->commandBuffers[frameIndex], pipeline->layout, VK_SHADER_STAGE_VERTEX_BIT, 0, PUSH_CONSTANT_MAX_SIZE, call.pushConstantData);
-
-					vkCmdBindVertexBuffers(pimpl->commandBuffers[frameIndex], 0, 1, &call.vertexBuffer->buffer, offsets);
-					
-					if (call.indexBuffer == nullptr) {
-						// no index buffer
-						vkCmdDraw(pimpl->commandBuffers[frameIndex], call.count, 1, 0, 0);
-					} else {
-						// use index buffer
-						vkCmdBindIndexBuffer(pimpl->commandBuffers[frameIndex], call.indexBuffer->buffer, 0, VK_INDEX_TYPE_UINT32);
-						vkCmdDrawIndexed(pimpl->commandBuffers[frameIndex], call.count, 1, 0, 0, 0);
-					}
-
-					queue.pop();
+				if (call.pipeline != lastPipeline) {
+					vkCmdBindPipeline(pimpl->commandBuffers[frameIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, call.pipeline->handle);
+					// bind pipeline uniform-buffer
+					vkCmdBindDescriptorSets(pimpl->commandBuffers[frameIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, call.pipeline->layout, 0, 1, &call.pipeline->descriptorSets[frameIndex], 0, nullptr);
 				}
-			}
+					
+				if (call.texture != lastTexture) {
+					// set the texture
+					vkCmdBindDescriptorSets(pimpl->commandBuffers[frameIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, call.pipeline->layout, 1, 1, &call.texture->descriptorSets[frameIndex], 0, nullptr);
+				}
+					
+				// like uniforms but faster
+				vkCmdPushConstants(pimpl->commandBuffers[frameIndex], call.pipeline->layout, VK_SHADER_STAGE_VERTEX_BIT, 0, PUSH_CONSTANT_MAX_SIZE, call.pushConstantData);
 
-			pimpl->drawQueues.clear();
+				if (call.vertexBuffer != lastVertexBuffer) {
+					vkCmdBindVertexBuffers(pimpl->commandBuffers[frameIndex], 0, 1, &call.vertexBuffer->buffer, offsets);
+				}
+				if (call.indexBuffer == nullptr) {
+					// no index buffer
+					vkCmdDraw(pimpl->commandBuffers[frameIndex], call.count, 1, 0, 0);
+				} else {
+					// use index buffer
+					if (call.indexBuffer != lastIndexBuffer) {
+						vkCmdBindIndexBuffer(pimpl->commandBuffers[frameIndex], call.indexBuffer->buffer, 0, VK_INDEX_TYPE_UINT32);
+					}
+					vkCmdDrawIndexed(pimpl->commandBuffers[frameIndex], call.count, 1, 0, 0, 0);
+				}
+
+				lastPipeline = call.pipeline;
+				lastTexture = call.texture;
+				lastVertexBuffer = call.vertexBuffer;
+				lastIndexBuffer = call.indexBuffer;
+
+				pimpl->drawQueue.pop();
+				
+			}
 
 			vkCmdEndRenderPass(pimpl->commandBuffers[frameIndex]);
 
@@ -1783,7 +1803,7 @@ namespace engine {
 		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 		vertexInputInfo.vertexBindingDescriptionCount = 1;
 		vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-		vertexInputInfo.vertexAttributeDescriptionCount = attribDescs.size();
+		vertexInputInfo.vertexAttributeDescriptionCount = (uint32_t)attribDescs.size();
 		vertexInputInfo.pVertexAttributeDescriptions = attribDescs.data();
 
 		VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
@@ -1810,7 +1830,7 @@ namespace engine {
 
 		VkPipelineDynamicStateCreateInfo dynamicState{};
 		dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-		dynamicState.dynamicStateCount = dynamicStates.size();
+		dynamicState.dynamicStateCount = (uint32_t)dynamicStates.size();
 		dynamicState.pDynamicStates = dynamicStates.data();
 
 		VkPipelineViewportStateCreateInfo viewportState{};
@@ -1898,7 +1918,7 @@ namespace engine {
 
 		VkPipelineLayoutCreateInfo layoutInfo{};
 		layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		layoutInfo.setLayoutCount = setLayouts.size();
+		layoutInfo.setLayoutCount = (uint32_t)setLayouts.size();
 		layoutInfo.pSetLayouts = setLayouts.data();
 		layoutInfo.pushConstantRangeCount = 1;
 		layoutInfo.pPushConstantRanges = &pushConstantRange;

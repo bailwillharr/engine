@@ -13,12 +13,13 @@ UI::UI(Object* parent) : Component(parent, TypeEnum::UI)
 	m_shader = parent->res.get<resources::Shader>("shaders/font.glsl");
 
 	m_atlasMesh = std::make_unique<resources::Mesh>(std::vector<Vertex>{
-		{ { 1.0f, 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 0.0f } },
-		{ { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f } },
-		{ { 0.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f } },
-		{ { 1.0f, 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 0.0f } },
-		{ { 0.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f } },
-		{ { 1.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 1.0f } }
+		{ { 0.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f } },
+		{ { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f } },
+		{ { 1.0f, 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 1.0f } },
+		
+		{ { 1.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 0.0f } },
+		{ { 0.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f } },
+		{ { 1.0f, 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 1.0f } },
 	});
 }
 
@@ -38,14 +39,15 @@ void UI::render(glm::mat4 transform, glm::mat4 view)
 		glm::vec2 size;
 	} pushConsts{};
 
-	int advance = 0;
-
+	float advance = 0.0f;
 	for (char c : m_text) {
 		auto charData = m_font->getCharData(c);
-		pushConsts.m = glm::mat4{1.0f};
+		charData.char_top_left.y *= -1;
+		pushConsts.m = transform;
 		pushConsts.atlas_top_left = charData.atlas_top_left;
 		pushConsts.atlas_bottom_right = charData.atlas_bottom_right;
-		pushConsts.offset = charData.offset;
+		pushConsts.size = (charData.char_bottom_right - charData.char_top_left);
+		pushConsts.offset = glm::vec2{ charData.char_top_left.x + advance, charData.char_top_left.y };
 		gfxdev->draw(
 				m_shader->getPipeline(), m_atlasMesh->vb, m_atlasMesh->ib, m_atlasMesh->m_indices.size(),
 				&pushConsts, sizeof(pushConsts), m_font->getAtlasTexture());

@@ -22,7 +22,8 @@ public:
 	struct CharData {
 		glm::vec2 atlas_top_left{};
 		glm::vec2 atlas_bottom_right{};
-		glm::vec2 offset{};
+		glm::vec2 char_top_left{};
+		glm::vec2 char_bottom_right{};
 		float xAdvance{};
 	};
 
