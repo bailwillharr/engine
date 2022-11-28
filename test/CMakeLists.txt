@@ -9,15 +9,8 @@ project(enginetest LANGUAGES CXX
 set(GAME_SOURCES
 	
 	src/main.cpp
-
 	src/game.cpp
 	src/game.hpp
-	src/meshgen.cpp
-	src/meshgen.hpp
-	src/terrain.cpp
-	src/terrain.hpp
-	src/camera_controller.cpp
-	src/camera_controller.hpp
 	
 )
 

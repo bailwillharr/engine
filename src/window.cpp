@@ -15,9 +15,6 @@ namespace engine {
 		// init SDL
 		if (SDL_Init(SDL_INIT_VIDEO) != 0) {
 			const std::string errMsg("Unable to initialise SDL: " + std::string(SDL_GetError()));
-			if (SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "SDL error", errMsg.c_str(), NULL) != 0) {
-				std::cerr << errMsg << "\nAre you in a graphical environment?\n";
-			}
 			throw std::runtime_error(errMsg);
 		}
 

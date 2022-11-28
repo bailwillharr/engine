@@ -1,16 +1,12 @@
 #pragma once
 
-#include <memory>
-
 namespace engine {
 
 	class Window;
+	class GFXDevice;
 	class Input;
-	class ResourceManager;
-	class SceneRoot;
 
 	class Application {
-
 	public:
 		Application(const char* appName, const char* appVersion);
 
@@ -21,35 +17,15 @@ namespace engine {
 
 		void gameLoop();
 
-		Window* window()
-		{
-			return m_win;
-		}
-
-		Input* input()
-		{
-			return m_input;
-		}
-
-		ResourceManager* resources()
-		{
-			return m_res;
-		}
-
-		SceneRoot* scene()
-		{
-			return m_scene;
-		}
-
-
+		Window* window() { return m_win; }
+		GFXDevice* gfx() { return m_gfx; }
+		Input* input() { return m_input; }
 
 	private:
 		Window* m_win;
+		GFXDevice* m_gfx;
 		Input* m_input;
-		ResourceManager* m_res;
-		SceneRoot* m_scene;
 
-		bool m_enableFrameLimiter = true;
 	};
 
 }

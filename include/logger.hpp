@@ -1,10 +1,12 @@
 #pragma once
 
-#include <filesystem>
-
 #include "log.hpp"
+
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/sinks/basic_file_sink.h>
+
+#include <filesystem>
+#include <memory>
 
 namespace engine {
 

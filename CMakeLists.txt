@@ -12,74 +12,24 @@ project(engine LANGUAGES CXX
 set(SRC_FILES
 	"src/engine.cpp"
 	"src/window.cpp"
-	"src/input.cpp"	#TODO make input_manager
-
-	"src/object.cpp"
-	"src/sceneroot.cpp"
-
-	"src/components/component.cpp"
-	 # TODO move functionality into "Object" class
-	"src/components/camera.cpp"
-	"src/components/mesh_renderer.cpp"
-	"src/components/text_ui_renderer.cpp"
-	"src/components/custom.cpp"
-
-	"src/resources/resource.cpp"
-	"src/resources/mesh.cpp"
-	"src/resources/shader.cpp"
-	"src/resources/texture.cpp"
-	"src/resources/font.cpp"
-
-	"src/util/model_loader.cpp"
-	"src/util/files.cpp"
-
-	"src/resource_manager.cpp"
-
+	"src/input.cpp"
 	"src/gfx_device_vulkan.cpp"
-	"src/gfx_device_null.cpp"
-	"src/gfx_device_opengl45.cpp"
+	"src/util/files.cpp"
 )
 
 set(INCLUDE_FILES
-
 	"include/engine_api.h"
-
 	"include/engine.hpp"
-
 	"include/util.hpp"
-
 	"include/log.hpp"
-
+	"include/logger.hpp"
 	"include/window.hpp"
-
 	"include/inputs/keyboard.hpp"
 	"include/inputs/mouse.hpp"
-
 	"include/input.hpp"
-
-	"include/transform.hpp"
-	"include/object.hpp"
-	"include/sceneroot.hpp"
-
-	"include/components/component.hpp"
-	"include/components/camera.hpp"
-	"include/components/mesh_renderer.hpp"
-	"include/components/text_ui_renderer.hpp"
-	"include/components/custom.hpp"
-
-	"include/resources/resource.hpp"
-	"include/resources/mesh.hpp"
-	"include/resources/shader.hpp"
-	"include/resources/texture.hpp"
-	"include/resources/font.hpp"
-
-	"include/util/model_loader.hpp"
-	"include/util/files.hpp"
-
-	"include/resource_manager.hpp"
-
 	"include/gfx.hpp"
 	"include/gfx_device.hpp"
+	"include/util/files.hpp"
 )
 
 add_library(${PROJECT_NAME} STATIC

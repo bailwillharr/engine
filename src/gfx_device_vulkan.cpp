@@ -35,9 +35,6 @@
 
 namespace engine {
 
-	// EXTERNED GLOBAL VARIABLE
-	GFXDevice* gfxdev = nullptr;
-
 	static constexpr uint32_t FRAMES_IN_FLIGHT = 2; // This improved FPS by 5x! (on Intel IGPU)
 
 	static constexpr size_t PUSH_CONSTANT_MAX_SIZE = 128; // bytes
@@ -1027,10 +1024,6 @@ namespace engine {
 
 	GFXDevice::GFXDevice(const char* appName, const char* appVersion, SDL_Window* window, bool vsync)
 	{
-		if (gfxdev != nullptr) {
-			throw std::runtime_error("There can only be one graphics device");
-		}
-		gfxdev = this;
 
 		pimpl = std::make_unique<Impl>();
 

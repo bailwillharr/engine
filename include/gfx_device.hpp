@@ -13,7 +13,7 @@ namespace engine {
 	class ENGINE_API GFXDevice {
 
 	public:
-		GFXDevice(const char* appName, const char* appVersion, SDL_Window* window, bool vsync);
+		GFXDevice(const char* appName, const char* appVersion, SDL_Window* window, bool vsync = false);
 
 		GFXDevice(const GFXDevice&) = delete;
 		GFXDevice& operator=(const GFXDevice&) = delete;
@@ -48,7 +48,5 @@ namespace engine {
 		std::unique_ptr<Impl> pimpl;
 
 	};
-
-	extern GFXDevice* gfxdev;
 
 }

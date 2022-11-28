@@ -29,18 +29,12 @@ namespace engine {
 		class CustomComponent;
 	}
 
-	struct GameIO {
-		Window* win;
-		Input* input;
-		ResourceManager* resMan;
-	};
-
 	// This object lives until it is deleted by its parent(s) or finally when the "Scene" is destroyed.
 	// Therefore it is safe to return raw pointers
 	class ENGINE_API Object {
 
 	public:
-		Object(std::string name, Object* parent, SceneRoot& root, struct GameIO things);
+		Object(std::string name, Object* parent, SceneRoot& root);
 		Object(const Object&) = delete;
 		Object& operator=(const Object&) = delete;
 		~Object();

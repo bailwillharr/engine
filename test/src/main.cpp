@@ -1,4 +1,5 @@
 #include "config.h"
+
 #include "game.hpp"
 
 #include "logger.hpp"

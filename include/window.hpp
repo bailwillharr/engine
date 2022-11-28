@@ -5,15 +5,12 @@
 #include "inputs/keyboard.hpp"
 #include "inputs/mouse.hpp"
 
-#pragma warning (push, 0)
 #include <SDL.h>
-#pragma warning (pop)
 
 #include <glm/vec2.hpp>
 
 #include <array>
 #include <string>
-#include <vector>
 
 ENGINE_API extern const uint64_t BILLION;
 
