@@ -7,6 +7,8 @@
 
 #include "components/mesh_renderer.hpp"
 
+#include "resource_manager.hpp"
+
 #include <assimp/Importer.hpp>
 #include <assimp/LogStream.hpp>
 #include <assimp/Logger.hpp>
@@ -16,6 +18,7 @@
 #include <assimp/scene.h>
 
 #include <glm/gtc/quaternion.hpp>
+
 
 #include <map>
 
@@ -162,7 +165,11 @@ namespace engine::util {
 				std::filesystem::path absPath = path;
 				absPath = absPath.parent_path();
 				absPath /= texPath.C_Str();
-				textures[i] = std::make_shared<resources::Texture>(absPath);
+				try {
+					textures[i] = std::make_shared<resources::Texture>(absPath);
+				} catch (const std::runtime_error& e) {
+					textures[i] = parent->res.get<resources::Texture>("textures/white.png");
+				}
 			}
 		}
 

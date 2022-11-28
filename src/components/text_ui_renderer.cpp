@@ -20,7 +20,6 @@ UI::UI(Object* parent) : Component(parent, TypeEnum::UI)
 		{ { 0.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f } },
 		{ { 1.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 1.0f } }
 	});
-
 }
 
 UI::~UI()
@@ -33,13 +32,25 @@ void UI::render(glm::mat4 transform, glm::mat4 view)
 
 	struct {
 		glm::mat4 m;
+		glm::vec2 atlas_top_left;
+		glm::vec2 atlas_bottom_right;
 		glm::vec2 offset;
 		glm::vec2 size;
 	} pushConsts{};
 
-	pushConsts.m = glm::mat4{1.0f};
+	int advance = 0;
 
-	gfxdev->draw(m_shader->getPipeline(), m_atlasMesh->vb, m_atlasMesh->ib, m_atlasMesh->m_indices.size(), &pushConsts, sizeof(pushConsts), m_font->getAtlasTexture());
+	for (char c : m_text) {
+		auto charData = m_font->getCharData(c);
+		pushConsts.m = glm::mat4{1.0f};
+		pushConsts.atlas_top_left = charData.atlas_top_left;
+		pushConsts.atlas_bottom_right = charData.atlas_bottom_right;
+		pushConsts.offset = charData.offset;
+		gfxdev->draw(
+				m_shader->getPipeline(), m_atlasMesh->vb, m_atlasMesh->ib, m_atlasMesh->m_indices.size(),
+				&pushConsts, sizeof(pushConsts), m_font->getAtlasTexture());
+		advance += charData.xAdvance;
+	}
 
 }
 

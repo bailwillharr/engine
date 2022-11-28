@@ -165,8 +165,12 @@ void playGame()
 	plane->transform.position = { -30.0f, 2.0f, 10.0f };
 	*/
 
+	auto van = engine::util::loadAssimpMeshFromFile(app.scene(), app.resources()->getFilePath("models/van/van.dae").string());
+
+/*
 	auto lego = engine::util::loadAssimpMeshFromFile(app.scene(), app.resources()->getFilePath("models/lego/lego.dae").string());
 	lego->transform.position = { -30.0f, -33.0f, -30.0f };
+*/
 
 	app.scene()->printTree();
 
