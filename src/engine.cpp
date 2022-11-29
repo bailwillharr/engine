@@ -4,7 +4,8 @@
 
 #include "window.hpp"
 #include "gfx_device.hpp"
-#include "input.hpp"
+#include "input_manager.hpp"
+#include "scene_manager.hpp"
 
 // To allow the FPS-limiter to put the thread to sleep
 #include <thread>
@@ -13,17 +14,13 @@ namespace engine {
 
 	Application::Application(const char* appName, const char* appVersion)
 	{
-		m_win = new Window(appName, true, true);
-		m_gfx = new GFXDevice(appName, appVersion, m_win->getHandle());
-		m_input = new Input(*m_win);
+		m_window = std::make_unique<Window>(appName, true, true);
+		m_gfx = std::make_unique<GFXDevice>(appName, appVersion, m_window->getHandle());
+		m_inputManager = std::make_unique<InputManager>(window());
+		m_sceneManager = std::make_unique<SceneManager>();
 	}
 
-	Application::~Application()
-	{
-		delete m_input;
-		delete m_gfx;
-		delete m_win;
-	}
+	Application::~Application() {}
 
 	void Application::gameLoop()
 	{
@@ -35,7 +32,7 @@ namespace engine {
 		auto endFrame = beginFrame + FRAMETIME_LIMIT;
 
 		// single-threaded game loop
-		while (m_win->isRunning()) {
+		while (m_window->isRunning()) {
 
 			/* logic */
 
@@ -43,7 +40,7 @@ namespace engine {
 			m_gfx->renderFrame();
 
 			/* poll events */
-			m_win->getInputAndEvents();
+			m_window->getInputAndEvents();
 
 			/* fps limiter */
 			std::this_thread::sleep_until(endFrame);

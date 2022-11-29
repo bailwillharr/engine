@@ -12,8 +12,10 @@ project(engine LANGUAGES CXX
 set(SRC_FILES
 	"src/engine.cpp"
 	"src/window.cpp"
-	"src/input.cpp"
+	"src/input_manager.cpp"
+	"src/scene_manager.cpp"
 	"src/gfx_device_vulkan.cpp"
+
 	"src/util/files.cpp"
 )
 
@@ -26,7 +28,8 @@ set(INCLUDE_FILES
 	"include/window.hpp"
 	"include/inputs/keyboard.hpp"
 	"include/inputs/mouse.hpp"
-	"include/input.hpp"
+	"include/input_manager.hpp"
+	"include/scene_manager.hpp"
 	"include/gfx.hpp"
 	"include/gfx_device.hpp"
 	"include/util/files.hpp"

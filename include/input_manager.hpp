@@ -21,15 +21,15 @@ namespace engine {
 	};
 
 	// This class should be used to get platform/input-device independent input
-	class ENGINE_API Input {
+	class ENGINE_API InputManager {
 
 	public:
 
 		// requires a window reference to get input from
-		Input(const Window& win);
-		Input(const Input&) = delete;
-		Input& operator=(const Input&) = delete;
-		~Input();
+		InputManager(const Window* win);
+		InputManager(const InputManager&) = delete;
+		InputManager& operator=(const InputManager&) = delete;
+		~InputManager();
 
 		// Add a mouse input
 		void addInputButton(const std::string& name, inputs::MouseButton button);
@@ -68,7 +68,7 @@ namespace engine {
 			int low;
 		};
 
-		const Window& m_win;
+		const Window* const m_win;
 
 		std::vector<struct ButtonEntry> m_buttonEntries;
 		std::vector<struct AxisEntry> m_axisEntries;
