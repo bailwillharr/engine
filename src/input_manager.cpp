@@ -12,11 +12,9 @@ namespace engine {
 		m_enabledDevices.fill(true);
 	}
 
-	InputManager::~InputManager()
-	{
-	}
+	InputManager::~InputManager() {}
 
-	// private methods
+	/* private methods */
 
 	float InputManager::getDeviceAxis(enum InputDevice device, int axis) const
 	{
@@ -114,7 +112,6 @@ namespace engine {
 
 	// OVERLOADS:
 
-	// Add a mouse input
 	void InputManager::addInputButton(const std::string& name, inputs::MouseButton button)
 	{
 		addInputButton(name, InputDevice::MOUSE, static_cast<int>(button));
@@ -179,7 +176,6 @@ namespace engine {
 			}
 		}
 		return 0.0f; // instead of throwing an exception, just return nothing
-	//	throw std::runtime_error("Unable to find mapping in input table");
 	}
 
 	bool InputManager::getButton(const std::string& buttonName) const

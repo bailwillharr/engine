@@ -1,46 +1,23 @@
 #include "object.hpp"
 
-#include "components/camera.hpp"
-#include "components/mesh_renderer.hpp"
-#include "components/text_ui_renderer.hpp"
-#include "components/custom.hpp"
-
-#include <log.hpp>
-
-#include <glm/gtc/quaternion.hpp>
+#include "log.hpp"
 
 namespace engine {
 
-	int Object::s_object_count = 0;
+	int Object::s_next_id = 1000;
 
-	Object::Object(std::string name, Object* parent, SceneRoot& root, struct GameIO things)
-		: m_name(name), m_parent(parent), root(root),
-		m_gameIO(things),
-		win(*things.win),
-		inp(*things.input),
-		res(*things.resMan)
+	Object::Object(const std::string& name, Object* parent, Scene* scene)
+		: name(name), parent(parent), scene(scene)
 	{
-		s_object_count++;
+		s_next_id++;
 	}
 
-	Object::~Object()
-	{
-	}
+	Object::~Object() {}
 
-	std::string Object::getName()
-	{
-		return m_name;
-	}
-
-	Object* Object::getParent()
-	{
-		return m_parent;
-	}
-
-	Object* Object::getChild(std::string name)
+	Object* Object::getChild(const std::string& name)
 	{
 		for (const auto& child : m_children) {
-			if (name == child->getName()) {
+			if (name == child->name) {
 				return child.get();
 			}
 		}
@@ -56,24 +33,25 @@ namespace engine {
 		return newVector;
 	}
 
-	Object* Object::createChild(std::string name)
+	Object* Object::createChild(const std::string& name)
 	{
 		if (getChild(name) != nullptr) {
-			throw std::runtime_error("Attempt to create child object with existing name");
+			ERROR("Attempt to create child object with existing name");
+			return nullptr;
 		}
-		m_children.emplace_back(std::make_unique<Object>(name, this, root, m_gameIO));
+		m_children.emplace_back(std::make_unique<Object>(name, this, scene));
 		return m_children.back().get();
 	}
 
-	void Object::deleteChild(std::string name)
+	bool Object::deleteChild(const std::string& name)
 	{
 		for (auto itr = m_children.begin(); itr != m_children.end(); ++itr) {
-			if ((*itr)->getName() == name) {
+			if ((*itr)->name == name) {
 				m_children.erase(itr);
-				return;
+				return true;
 			}
 		}
-		throw std::runtime_error("Unable to delete child '" + name + "' as it does not exist");
+		return false;
 	}
 
 	void Object::printTree(int level)
@@ -87,17 +65,16 @@ namespace engine {
 				buf += "        ";
 			}
 		}
-		buf += m_name;
-		INFO(buf);
+		buf += name;
+		INFO("{}", buf);
 		for (const auto& child : this->getChildren()) {
 			child->printTree(level + 1);
 		}
 	}
 
+/*
 	void Object::getAllSubComponents(struct CompList& compList, glm::mat4 parentTransform)
 	{
-		using namespace components;
-
 		glm::mat4 objTransform{ 1.0f };
 
 		auto t = transform;
@@ -136,5 +113,6 @@ namespace engine {
 			child->getAllSubComponents(compList, newTransform);
 		}
 	}
+*/
 
 }

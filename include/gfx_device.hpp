@@ -1,16 +1,14 @@
 #pragma once
 
-#include "engine_api.h"
-
 #include "gfx.hpp"
 
 #include <memory>
 
-struct SDL_Window;
+struct SDL_Window; // <SDL_video.h>
 
 namespace engine {
 	
-	class ENGINE_API GFXDevice {
+	class GFXDevice {
 
 	public:
 		GFXDevice(const char* appName, const char* appVersion, SDL_Window* window, bool vsync = false);

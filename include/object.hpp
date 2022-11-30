@@ -2,105 +2,79 @@
 
 #include "engine_api.h"
 
+#include "log.hpp"
+
 #include <glm/mat4x4.hpp>
-
-#include "transform.hpp"
-
-#include "components/component.hpp"
+#include <glm/gtc/quaternion.hpp>
 
 #include <list>
 #include <vector>
 #include <string>
 #include <memory>
-#include <stdexcept>
 
 namespace engine {
-	class Window;
-	class Input;
-	class ResourceManager;
 
-	class SceneRoot;
-	class Component;
+	/* forward declarations */
+	class Scene;
 
-	namespace components {
-		class Camera;
-		class Renderer;
-		class UI;
-		class CustomComponent;
-	}
+	class Component {
 
-	// This object lives until it is deleted by its parent(s) or finally when the "Scene" is destroyed.
-	// Therefore it is safe to return raw pointers
-	class ENGINE_API Object {
+	};
+
+	struct Transform {
+		// Scale, rotate (XYZ), translate
+		glm::vec3 position{ 0.0f };
+		glm::quat rotation{};
+		glm::vec3 scale{ 1.0f };
+	};
+
+	class Object {
 
 	public:
-		Object(std::string name, Object* parent, SceneRoot& root);
+		Object(const std::string& name, Object* parent, Scene* scene);
 		Object(const Object&) = delete;
 		Object& operator=(const Object&) = delete;
 		~Object();
 
-		Window& win;
-		Input& inp;
-		ResourceManager& res;
+		/* methods */
 
-
-		SceneRoot& root;
-
-		std::string getName();
-
-		Object* getParent();
-
-		Object* getChild(std::string name);
+		Object* getChild(const std::string& name);
 		std::vector<Object*> getChildren();
-
-		Object* createChild(std::string name);
-		void deleteChild(std::string name);
+		Object* createChild(const std::string& name);
+		bool deleteChild(const std::string& name);
 
 		void printTree(int level = 0);
 
 		// Returns the component of type T
 		// Returns nullptr if the component is not found.
 		template<class T> T* getComponent();
-
-		// returns the component added
 		template<class T> T* createComponent();
+		template<class T> bool deleteComponent();
 
-		template<class T> void deleteComponent();
+		/* public member variables */
 
-		struct CompList {
-			std::vector<std::pair<components::Camera*, glm::mat4>> cameras;
-			std::vector<std::pair<components::Renderer*, glm::mat4>> renderers;
-			std::vector<std::pair<components::UI*, glm::mat4>> uis;
-			std::vector<std::pair<components::CustomComponent*, glm::mat4>> customs;
-		};
-
-		// Adds to the provided vector all components of this object and of its children recursively.
-		// Ignores 'Transform'
-		void getAllSubComponents(struct CompList& compList, glm::mat4 t);
+		const std::string name;
+		
+		Object* const parent;
+		Scene* const scene;
 
 		Transform transform;
 
 	private:
-		static int s_object_count;
-		int m_id = s_object_count;
-		std::string m_name;
+		static int s_next_id;
+		int m_id = s_next_id;
 
+		// If nullptr, this is the root object
 		std::list<std::unique_ptr<Object>> m_children{};
 		std::list<std::unique_ptr<Component>> m_components{};
 
-		// If nullptr, this is the root object
-		Object* const m_parent;
-		struct GameIO m_gameIO;
 
 	};
 
-	// implementation of template functions
+	/* implementation of template functions */
 
 	template<class T> T* Object::getComponent()
 	{
-		if (std::is_base_of<Component, T>::value == false) {
-			throw std::runtime_error("getComponent() error: specified type is not a subclass of 'Component'");
-		}
 		for (const auto& component : m_components) {
 			T* derived = dynamic_cast<T*>(component.get());
 			if (derived != nullptr) {
@@ -113,27 +87,26 @@ namespace engine {
 	template <class T> T* Object::createComponent()
 	{
 		if (std::is_base_of<Component, T>::value == false) {
-			throw std::runtime_error("addComponent() error: specified type is not a subclass of 'Component'");
+			ERROR("Object::createComponent(): attempt to create a component with a non-component class");
+			return nullptr;
 		}
 		if (getComponent<T>() != nullptr) {
-			throw std::runtime_error("addComponent() error: attempt to add component of a type already present");
+			ERROR("Object::createComponent(): attempt to create a component that already exists on an object");
+			return nullptr;
 		}
 		m_components.emplace_back(std::make_unique<T>(this));
 		return dynamic_cast<T*>(m_components.back().get());
 	}
 
-	template<class T> void Object::deleteComponent()
+	template<class T> bool Object::deleteComponent()
 	{
-		if (std::is_base_of<Component, T>::value == false) {
-			throw std::runtime_error("deleteComponent() error: specified type is not a subclass of 'Component'");
-		}
 		for (auto itr = m_components.begin(); itr != m_components.end(); ++itr) {
 			if (dynamic_cast<T*>((*itr).get()) != nullptr) {
 				m_components.erase(itr);
-				return;
+				return true;
 			}
 		}
-		throw std::runtime_error("deleteComponent() error: attempt to delete component that is not present.");
+		return false;
 	}
 
 }

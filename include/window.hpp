@@ -12,8 +12,6 @@
 #include <array>
 #include <string>
 
-ENGINE_API extern const uint64_t BILLION;
-
 namespace engine {
 
 	class ENGINE_API Window {

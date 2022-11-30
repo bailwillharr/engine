@@ -1,5 +1,4 @@
 // The implementation of the graphics layer using Vulkan 1.3.
-// This uses SDL specific code
 
 //#undef ENGINE_BUILD_VULKAN
 #ifdef ENGINE_BUILD_VULKAN
@@ -355,7 +354,7 @@ namespace engine {
 		return surface;
 	}
 
-	// returns the index of the queue supporting the requested flags
+	// returns the queue supporting the requested flags
 	static Queue getQueueSupporting(const std::vector<Queue> queues, QueueFlags flags)
 	{
 		uint32_t bitmask = static_cast<uint32_t>(flags);

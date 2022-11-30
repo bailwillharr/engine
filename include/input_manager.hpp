@@ -11,7 +11,7 @@
 
 namespace engine {
 
-	class Window;
+	class Window; // "window.hpp"
 
 	enum class InputDevice : int {
 		MOUSE,

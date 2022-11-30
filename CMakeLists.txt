@@ -16,6 +16,9 @@ set(SRC_FILES
 	"src/scene_manager.cpp"
 	"src/gfx_device_vulkan.cpp"
 
+	"src/scene.cpp"
+	"src/object.cpp"
+
 	"src/util/files.cpp"
 )
 
@@ -32,6 +35,10 @@ set(INCLUDE_FILES
 	"include/scene_manager.hpp"
 	"include/gfx.hpp"
 	"include/gfx_device.hpp"
+
+	"include/scene.hpp"
+	"include/object.hpp"
+
 	"include/util/files.hpp"
 )
 

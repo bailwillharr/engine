@@ -5,11 +5,12 @@
 #include <iostream>
 #include <stdexcept>
 
-const uint64_t BILLION = 1000000000;
+static const uint64_t BILLION = 1000000000;
 
 namespace engine {
 
-	Window::Window(const std::string& title, bool resizable, bool fullscreen) : m_title(title), m_resizable(resizable), m_fullscreen(fullscreen)
+	Window::Window(const std::string& title, bool resizable, bool fullscreen)
+		: m_title(title), m_resizable(resizable), m_fullscreen(fullscreen)
 	{
 
 		// init SDL
@@ -62,7 +63,7 @@ namespace engine {
 		const int WINDOWED_MIN_HEIGHT = 480;
 		SDL_SetWindowMinimumSize(m_handle, WINDOWED_MIN_WIDTH, WINDOWED_MIN_HEIGHT);
 
-		//	onResize(m_winSize.x, m_winSize.y);
+		// onResize(m_winSize.x, m_winSize.y);
 
 	}
 

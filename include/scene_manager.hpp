@@ -1,6 +1,11 @@
 #pragma once
 
+#include <list>
+#include <memory>
+
 namespace engine {
+
+	class Scene; // "scene.hpp"
 
 	class SceneManager {
 
@@ -11,6 +16,8 @@ namespace engine {
 		SceneManager& operator=(const SceneManager&) = delete;
 
 	private:
+		std::list<std::unique_ptr<Scene>> m_scenes;
+		std::list<std::unique_ptr<Scene>>::iterator m_activeScene{};
 
 	};
 

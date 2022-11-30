@@ -4,10 +4,10 @@
 
 namespace engine {
 
-	class Window;
-	class GFXDevice;
-	class InputManager;
-	class SceneManager;
+	class Window; // "window.hpp"
+	class GFXDevice; // "gfx_device.hpp"
+	class InputManager; // "input_manager.hpp"
+	class SceneManager; // "scene_manager.hpp"
 
 	class Application {
 
