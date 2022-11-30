@@ -10,7 +10,7 @@ namespace engine {
 		Scene();
 		Scene(const Scene&) = delete;
 		Scene& operator=(const Scene&) = delete;
-		~Scene() = delete;
+		~Scene();
 
 	private:
 

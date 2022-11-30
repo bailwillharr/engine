@@ -1,6 +1,6 @@
 #include "config.h"
 
-#include "engine.hpp"
+#include "application.hpp"
 #include "window.hpp"
 
 void playGame()

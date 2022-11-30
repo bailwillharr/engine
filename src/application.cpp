@@ -1,4 +1,4 @@
-#include "engine.hpp"
+#include "application.hpp"
 
 #include "log.hpp"
 
@@ -7,6 +7,8 @@
 #include "input_manager.hpp"
 #include "scene_manager.hpp"
 
+#include "scene.hpp"
+
 // To allow the FPS-limiter to put the thread to sleep
 #include <thread>
 
@@ -14,10 +16,13 @@ namespace engine {
 
 	Application::Application(const char* appName, const char* appVersion)
 	{
-		m_window = std::make_unique<Window>(appName, true, true);
+		m_window = std::make_unique<Window>(appName, true, false);
 		m_gfx = std::make_unique<GFXDevice>(appName, appVersion, m_window->getHandle());
 		m_inputManager = std::make_unique<InputManager>(window());
 		m_sceneManager = std::make_unique<SceneManager>();
+
+		auto myScene = std::make_unique<Scene>();
+		m_sceneManager->createScene(std::move(myScene));
 	}
 
 	Application::~Application() {}
@@ -35,6 +40,7 @@ namespace engine {
 		while (m_window->isRunning()) {
 
 			/* logic */
+			m_sceneManager->updateActiveScene();
 
 			/* draw */
 			m_gfx->renderFrame();

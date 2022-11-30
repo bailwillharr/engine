@@ -10,7 +10,7 @@ project(engine LANGUAGES CXX
 )
 
 set(SRC_FILES
-	"src/engine.cpp"
+	"src/application.cpp"
 	"src/window.cpp"
 	"src/input_manager.cpp"
 	"src/scene_manager.cpp"
@@ -24,7 +24,7 @@ set(SRC_FILES
 
 set(INCLUDE_FILES
 	"include/engine_api.h"
-	"include/engine.hpp"
+	"include/application.hpp"
 	"include/util.hpp"
 	"include/log.hpp"
 	"include/logger.hpp"

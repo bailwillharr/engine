@@ -8,4 +8,6 @@ namespace engine {
 
 	}
 
+	Scene::~Scene() {}
+
 }

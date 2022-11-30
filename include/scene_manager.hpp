@@ -1,6 +1,6 @@
 #pragma once
 
-#include <list>
+#include <vector>
 #include <memory>
 
 namespace engine {
@@ -15,9 +15,13 @@ namespace engine {
 		SceneManager(const SceneManager&) = delete;
 		SceneManager& operator=(const SceneManager&) = delete;
 
+		void createScene(std::unique_ptr<Scene>&& scene);
+
+		void updateActiveScene();
+
 	private:
-		std::list<std::unique_ptr<Scene>> m_scenes;
-		std::list<std::unique_ptr<Scene>>::iterator m_activeScene{};
+		std::vector<std::unique_ptr<Scene>> m_scenes;
+		int m_activeSceneIndex = -1;
 
 	};
 
