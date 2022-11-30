@@ -44,3 +44,9 @@ add_custom_command(
 	TARGET ${PROJECT_NAME} POST_BUILD
 	COMMAND ${CMAKE_COMMAND} -E create_symlink
 	${PROJECT_SOURCE_DIR}/res $<TARGET_FILE_DIR:enginetest>/res)
+
+get_target_property(ENGINE_SOURCE_DIR engine SOURCE_DIR)	
+add_custom_command(
+	TARGET ${PROJECT_NAME} POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E create_symlink
+	${ENGINE_SOURCE_DIR}/res/engine $<TARGET_FILE_DIR:enginetest>/res/engine)

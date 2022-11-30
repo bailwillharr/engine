@@ -12,3 +12,5 @@ compile_commands.json
 runme
 
 *.log
+/test/res/engine
+/test/res/engine/
