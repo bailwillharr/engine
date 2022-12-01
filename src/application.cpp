@@ -56,7 +56,6 @@ namespace engine {
 		}
 
 		m_gfx->waitIdle();
-
 	}
 
 }

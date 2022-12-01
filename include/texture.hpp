@@ -1,3 +1,4 @@
+#if 0
 #pragma once
 
 #include "engine_api.h"
@@ -21,3 +22,4 @@ private:
 };
 
 }
+#endif

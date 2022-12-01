@@ -3,7 +3,6 @@ cmake_minimum_required(VERSION 3.24)
 # options
 option(ENGINE_BUILD_TEST "Compile the test program" ON)
 option(ENGINE_BUILD_VULKAN "Use Vulkan 1.3 for graphics" ON)
-option(ENGINE_BUILD_OPENGL "Use OpenGL 4.5 for graphics" OFF)
 
 project(engine LANGUAGES CXX
 	VERSION "0.1.0"
@@ -12,8 +11,12 @@ project(engine LANGUAGES CXX
 set(SRC_FILES
 	"src/application.cpp"
 	"src/window.cpp"
+
 	"src/input_manager.cpp"
 	"src/scene_manager.cpp"
+	"src/texture_manager.cpp"
+	"src/texture.cpp"
+
 	"src/gfx_device_vulkan.cpp"
 
 	"src/scene.cpp"
@@ -31,8 +34,14 @@ set(INCLUDE_FILES
 	"include/window.hpp"
 	"include/inputs/keyboard.hpp"
 	"include/inputs/mouse.hpp"
+
 	"include/input_manager.hpp"
 	"include/scene_manager.hpp"
+	"include/resource_manager.hpp"
+	"include/texture_manager.hpp"
+	"include/texture.hpp"
+	
+
 	"include/gfx.hpp"
 	"include/gfx_device.hpp"
 
@@ -76,8 +85,6 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 # figure out what graphics api to use
 if (ENGINE_BUILD_VULKAN)
 	target_compile_definitions(${PROJECT_NAME} PRIVATE "ENGINE_BUILD_VULKAN")
-elseif(ENGINE_BUILD_OPENGL)
-	target_compile_definitions(${PROJECT_NAME} PRIVATE "ENGINE_BUILD_OPENGL")
 else()
 	target_compile_definitions(${PROJECT_NAME} PRIVATE "ENGINE_BUILD_NULL")
 endif()
@@ -119,12 +126,9 @@ if(ENGINE_BUILD_VULKAN)
 	set(VOLK_HEADERS_ONLY ON)
 	add_subdirectory(dependencies/volk)
 	target_link_libraries(${PROJECT_NAME} PRIVATE volk_headers)
-	
 	# Vulkan Memory Allocator
 	target_include_directories(${PROJECT_NAME} PRIVATE dependencies/VulkanMemoryAllocator/include)
-
 	# shaderc
-	
 	if (MSVC)
 		include(FindVulkan)
 		find_package(Vulkan COMPONENTS shaderc_combined)
@@ -132,7 +136,6 @@ if(ENGINE_BUILD_VULKAN)
 	else()
 		target_link_libraries(${PROJECT_NAME} PRIVATE shaderc_shared)
 	endif()
-
 endif()
 
 # SDL2:

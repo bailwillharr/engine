@@ -8,7 +8,7 @@ void playGame()
 	engine::Application app(PROJECT_NAME, PROJECT_VERSION);
 
 	// configure window
-	app.window()->setRelativeMouseMode(true);
+	app.window()->setRelativeMouseMode(false);
 
 	app.gameLoop();
 }

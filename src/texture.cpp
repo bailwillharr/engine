@@ -1,3 +1,5 @@
+#if 0
+
 #include "resources/texture.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -116,3 +118,5 @@ gfx::Texture* Texture::getHandle()
 }
 
 }
+
+#endif

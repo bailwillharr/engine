@@ -1,6 +1,5 @@
 // The implementation of the graphics layer using Vulkan 1.3.
 
-//#undef ENGINE_BUILD_VULKAN
 #ifdef ENGINE_BUILD_VULKAN
 
 #include "gfx_device.hpp"
@@ -1569,7 +1568,7 @@ namespace engine {
 			renderPassInfo.renderArea.extent = pimpl->swapchain.extent;
 
 			std::array<VkClearValue, 2> clearValues{};
-			clearValues[0].color = { {0.0f, 0.0f, 0.0f, 1.0f} };
+			clearValues[0].color = { {0.1f, 0.1f, 0.1f, 1.0f} };
 			clearValues[1].depthStencil = { 1.0f, 0 };
 			renderPassInfo.clearValueCount = (uint32_t)clearValues.size();
 			renderPassInfo.pClearValues = clearValues.data();
