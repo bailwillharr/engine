@@ -23,7 +23,6 @@ namespace engine {
 	void SceneManager::updateActiveScene()
 	{
 		if (m_activeSceneIndex >= 0) {
-			INFO("updating scene: {}", m_scenes[m_activeSceneIndex]->name);
 		}
 	}
 

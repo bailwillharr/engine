@@ -20,7 +20,6 @@ set(SRC_FILES
 	"src/gfx_device_vulkan.cpp"
 
 	"src/scene.cpp"
-	"src/object.cpp"
 
 	"src/util/files.cpp"
 )
@@ -46,7 +45,6 @@ set(INCLUDE_FILES
 	"include/gfx_device.hpp"
 
 	"include/scene.hpp"
-	"include/object.hpp"
 
 	"include/util/files.hpp"
 )

@@ -321,7 +321,7 @@ namespace engine {
 			ERROR
 		};
 
-		constexpr MessageSeverity MESSAGE_LEVEL = MessageSeverity::INFO;
+		constexpr MessageSeverity MESSAGE_LEVEL = MessageSeverity::WARNING;
 		switch (MESSAGE_LEVEL) {
 		case MessageSeverity::VERBOSE:
 			debugMessengerInfo.messageSeverity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT;
