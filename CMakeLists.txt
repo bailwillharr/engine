@@ -15,7 +15,7 @@ set(SRC_FILES
 	"src/input_manager.cpp"
 	"src/scene_manager.cpp"
 
-	"src/texture.cpp"
+	"src/resources/texture.cpp"
 
 	"src/gfx_device_vulkan.cpp"
 
@@ -38,13 +38,14 @@ set(INCLUDE_FILES
 	"include/scene_manager.hpp"
 
 	"include/resource_manager.hpp"
-	"include/texture.hpp"
+	"include/resources/texture.hpp"
 
 	"include/gfx.hpp"
 	"include/gfx_device.hpp"
 
 	"include/scene.hpp"
-	"include/ecs_system.hpp"
+	"include/ecs/ecs_system.hpp"
+	"include/ecs/mesh_renderer.hpp"
 
 	"include/util/files.hpp"
 )

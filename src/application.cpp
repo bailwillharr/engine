@@ -12,6 +12,43 @@
 // To allow the FPS-limiter to put the thread to sleep
 #include <thread>
 
+#ifdef _MSC_VER
+#include <windows.h>
+#include <direct.h>
+#define MAX_PATH 260
+#endif
+
+static std::filesystem::path getResourcesPath()
+{
+	std::filesystem::path resourcesPath{};
+
+#ifdef _MSC_VER
+	CHAR exeDirBuf[MAX_PATH + 1];
+	GetModuleFileNameA(NULL, exeDirBuf, MAX_PATH + 1);
+	std::filesystem::path cwd = std::filesystem::path(exeDirBuf).parent_path();
+	(void)_chdir((const char*)std::filesystem::absolute(cwd).c_str());
+#else
+	std::filesystem::path cwd = std::filesystem::current_path();
+#endif
+
+	if (std::filesystem::is_directory(cwd / "res")) {
+		resourcesPath = cwd / "res";
+	}
+	else {
+		resourcesPath = cwd.parent_path() / "share" / "sdltest";
+	}
+
+	if (std::filesystem::is_directory(resourcesPath) == false) {
+		resourcesPath = cwd.root_path() / "usr" / "local" / "share" / "sdltest";
+	}
+
+	if (std::filesystem::is_directory(resourcesPath) == false) {
+		throw std::runtime_error("Unable to determine resources location. CWD: " + cwd.string());
+	}
+
+	return resourcesPath;
+}
+
 namespace engine {
 
 	Application::Application(const char* appName, const char* appVersion)
@@ -20,6 +57,9 @@ namespace engine {
 		m_gfx = std::make_unique<GFXDevice>(appName, appVersion, m_window->getHandle());
 		m_inputManager = std::make_unique<InputManager>(window());
 		m_sceneManager = std::make_unique<SceneManager>();
+
+		// get base path for resources
+		m_resourcesPath = getResourcesPath();
 	}
 
 	Application::~Application() {}

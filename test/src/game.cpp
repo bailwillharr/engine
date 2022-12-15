@@ -4,7 +4,7 @@
 #include "window.hpp"
 #include "scene_manager.hpp"
 #include "scene.hpp"
-#include "components/mesh_renderer.hpp"
+#include "ecs/mesh_renderer.hpp"
 
 void playGame()
 {
@@ -17,7 +17,16 @@ void playGame()
 
 	auto entity1 = myScene->createEntity();
 
-	myScene->m_renderSystem->m_components.emplace(entity1, engine::components::MeshRenderer());
+	auto myTexture = std::make_unique<engine::resources::Texture>(app.gfx(), app.getResourcePath("textures/grass.jpg"));
+
+	app.sceneManager()->getTextureManager()->add("GRASS", std::move(myTexture));
+	myScene->m_renderSystem->m_components.emplace(
+		entity1,
+		engine::ecs::MeshRendererComponent{
+			.number = 69,
+			.texture = app.sceneManager()->getTextureManager()->get("GRASS"),
+		}
+	);
 
 	app.sceneManager()->createScene(std::move(myScene));
 

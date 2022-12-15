@@ -1,7 +1,7 @@
 #include "scene_manager.hpp"
 
 #include "scene.hpp"
-#include "log.hpp"
+#include "resources/texture.hpp"
 
 #include <assert.h>
 
@@ -9,6 +9,7 @@ namespace engine {
 
 	SceneManager::SceneManager()
 	{
+		m_textureManager = std::make_unique<ResourceManager<resources::Texture>>();
 	}
 
 	SceneManager::~SceneManager() {}

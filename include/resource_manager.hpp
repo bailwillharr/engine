@@ -16,32 +16,27 @@ namespace engine {
 		ResourceManager(const ResourceManager&) = delete;
 		ResourceManager& operator=(const ResourceManager&) = delete;
 
-		std::shared_ptr<T> add(const std::string& name, std::unique_ptr<T>&& resource)
+		T* add(const std::string& name, std::unique_ptr<T>&& resource)
 		{
 			if (m_resources.contains(name) == false) {
-				std::shared_ptr<T> ptr = std::move(resource);
-				m_resources.emplace(name, ptr);
+				m_resources.emplace(name, std::move(resource));
 			}
 			else {
 				throw std::runtime_error("Cannot add a resource which already exists");
 			}
-			return m_resources.at(name).lock();
+			return m_resources.at(name).get();
 		}
 
-		std::shared_ptr<T> get(const std::string& name)
+		T* get(const std::string& name)
 		{
 			if (m_resources.contains(name)) {
-				std::weak_ptr<T> resource = m_resources.at(name);
-				if (resource.expired() == false) {
-					return resource.lock();
-				}
+				return m_resources.at(name).get();
 			}
 			return {};
 		}
 
 	private:
-		// weak ptrs are used to check a resource's use count. If the use count of a resource hits 0, the resource can safely be deleted.
-		std::unordered_map<std::string, std::weak_ptr<T>> m_resources{};
+		std::unordered_map<std::string, std::unique_ptr<T>> m_resources{};
 
 	};
 

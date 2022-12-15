@@ -8,6 +8,9 @@
 namespace engine {
 
 	class Scene; // "scene.hpp"
+	namespace resources {
+		class Texture;
+	}
 
 	class SceneManager {
 
@@ -21,11 +24,14 @@ namespace engine {
 
 		void updateActiveScene(float ts);
 
+		/* getters */
+		ResourceManager<resources::Texture>* getTextureManager() { return m_textureManager.get(); }
+
 	private:
 		std::vector<std::unique_ptr<Scene>> m_scenes;
 		int m_activeSceneIndex = -1;
 
-//		const std::unique_ptr<ResourceManager<Texture>> m_textureManager;
+		std::unique_ptr<ResourceManager<resources::Texture>> m_textureManager;
 
 	};
 

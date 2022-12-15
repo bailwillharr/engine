@@ -1,5 +1,8 @@
 #include "util/files.hpp"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 #include <fstream>
 
 namespace engine::util {
@@ -44,6 +47,29 @@ namespace engine::util {
 		file.read((char*)buffer->data(), buffer->size());
 
 		file.close();
+
+		return buffer;
+	}
+
+	// returns false if unable to open file
+	std::unique_ptr<std::vector<uint8_t>> readImageFile(const std::string& path, int *width, int *height)
+	{
+		int x, y, n;
+		unsigned char *data = stbi_load(path.c_str(), &x, &y, &n, STBI_rgb_alpha);
+
+		if (data == nullptr) {
+			throw std::runtime_error("Unable to open file " + path);
+		}
+
+		const size_t size = (size_t)x * (size_t)y * 4;
+
+		auto buffer = std::make_unique<std::vector<uint8_t>>(size);
+		memcpy(buffer->data(), data, buffer->size());
+
+		*width = x;
+		*height = y;
+
+		stbi_image_free(data);
 
 		return buffer;
 	}

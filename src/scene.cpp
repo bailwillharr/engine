@@ -1,12 +1,10 @@
 #include "scene.hpp"
 
-#include "components/mesh_renderer.hpp"
-
 namespace engine {
 
 	Scene::Scene()
 	{
-		m_renderSystem = std::make_unique<RendererSystem>();
+		m_renderSystem = std::make_unique<ecs::RendererSystem>();
 	}
 
 	Scene::~Scene() {}

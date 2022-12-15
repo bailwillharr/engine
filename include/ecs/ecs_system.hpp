@@ -3,10 +3,10 @@
 #include <map>
 #include <memory>
 
-namespace engine::ecs {
+namespace engine {
 
 	template <class T>
-	class System {
+	class EcsSystem {
 	
 	public:
 		std::map<uint32_t, T> m_components{};
