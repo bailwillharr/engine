@@ -20,9 +20,6 @@ namespace engine {
 		m_gfx = std::make_unique<GFXDevice>(appName, appVersion, m_window->getHandle());
 		m_inputManager = std::make_unique<InputManager>(window());
 		m_sceneManager = std::make_unique<SceneManager>();
-
-		auto myScene = std::make_unique<Scene>();
-		m_sceneManager->createScene(std::move(myScene));
 	}
 
 	Application::~Application() {}
@@ -40,7 +37,7 @@ namespace engine {
 		while (m_window->isRunning()) {
 
 			/* logic */
-			m_sceneManager->updateActiveScene();
+			m_sceneManager->updateActiveScene(m_window->dt());
 
 			/* draw */
 			m_gfx->renderFrame();

@@ -12,7 +12,7 @@ namespace engine {
 
 	public:
 		ResourceManager() {}
-		virtual ~ResourceManager() {}
+		~ResourceManager() {}
 		ResourceManager(const ResourceManager&) = delete;
 		ResourceManager& operator=(const ResourceManager&) = delete;
 

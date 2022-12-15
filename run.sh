@@ -1,3 +1,3 @@
 #!/bin/sh
-cd "Release/test"
+cd "Debug/test"
 ./enginetest
