@@ -1,17 +1,21 @@
 #pragma once
 
-#include "ecs/mesh_renderer.hpp"
-
 #include "log.hpp"
 
 #include <cstdint>
 
 namespace engine {
 
+	class Application;
+
+	namespace ecs {
+		class RendererSystem;
+	}
+
 	class Scene {
 	
 	public:
-		Scene();
+		Scene(Application* app);
 		Scene(const Scene&) = delete;
 		Scene& operator=(const Scene&) = delete;
 		~Scene();
@@ -25,7 +29,10 @@ namespace engine {
 	
 		std::unique_ptr<ecs::RendererSystem> m_renderSystem;
 
+		Application* app() { return m_app; }
+
 	private:
+		Application* const m_app;
 		uint32_t m_nextEntityID = 1000;
 
 	};

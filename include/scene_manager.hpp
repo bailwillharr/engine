@@ -7,6 +7,7 @@
 
 namespace engine {
 
+	class Application;
 	class Scene; // "scene.hpp"
 	namespace resources {
 		class Texture;
@@ -15,12 +16,12 @@ namespace engine {
 	class SceneManager {
 
 	public:
-		SceneManager();
+		SceneManager(Application* app);
 		~SceneManager();
 		SceneManager(const SceneManager&) = delete;
 		SceneManager& operator=(const SceneManager&) = delete;
 
-		Scene* createScene(std::unique_ptr<Scene>&& scene);
+		Scene* createScene();
 
 		void updateActiveScene(float ts);
 
@@ -28,6 +29,8 @@ namespace engine {
 		ResourceManager<resources::Texture>* getTextureManager() { return m_textureManager.get(); }
 
 	private:
+		Application* const m_app;
+
 		std::vector<std::unique_ptr<Scene>> m_scenes;
 		int m_activeSceneIndex = -1;
 

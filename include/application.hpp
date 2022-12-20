@@ -22,6 +22,8 @@ namespace engine {
 		/* methods */
 		void gameLoop();
 
+		void setFrameLimiter(bool on) { m_enableFrameLimiter = on; }
+
 		/* getters */
 		Window* window() { return m_window.get(); }
 		GFXDevice* gfx() { return m_gfx.get(); }
@@ -37,6 +39,8 @@ namespace engine {
 		std::unique_ptr<SceneManager> m_sceneManager;
 
 		std::filesystem::path m_resourcesPath;
+
+		bool m_enableFrameLimiter = true;
 
 	};
 

@@ -56,7 +56,7 @@ namespace engine {
 		m_window = std::make_unique<Window>(appName, true, false);
 		m_gfx = std::make_unique<GFXDevice>(appName, appVersion, m_window->getHandle());
 		m_inputManager = std::make_unique<InputManager>(window());
-		m_sceneManager = std::make_unique<SceneManager>();
+		m_sceneManager = std::make_unique<SceneManager>(this);
 
 		// get base path for resources
 		m_resourcesPath = getResourcesPath();
@@ -79,6 +79,10 @@ namespace engine {
 			/* logic */
 			m_sceneManager->updateActiveScene(m_window->dt());
 
+			if(m_window->getKeyPress(inputs::Key::K_L)) {
+				m_enableFrameLimiter = !m_enableFrameLimiter;
+			}
+
 			/* draw */
 			m_gfx->renderFrame();
 
@@ -86,7 +90,9 @@ namespace engine {
 			m_window->getInputAndEvents();
 
 			/* fps limiter */
-			std::this_thread::sleep_until(endFrame);
+			if (m_enableFrameLimiter) {
+				std::this_thread::sleep_until(endFrame);
+			}
 			beginFrame = endFrame;
 			endFrame = beginFrame + FRAMETIME_LIMIT;
 

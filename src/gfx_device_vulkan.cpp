@@ -182,7 +182,7 @@ namespace engine {
 
 		options.SetSourceLanguage(shaderc_source_language_glsl);
 		options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_3);
-		options.SetOptimizationLevel(shaderc_optimization_level_zero);
+		options.SetOptimizationLevel(shaderc_optimization_level_performance);
 		options.SetTargetSpirv(shaderc_spirv_version_1_6);
 		options.SetAutoBindUniforms(false);
 
@@ -198,7 +198,6 @@ namespace engine {
 
 		// compile
 		shaderc::SpvCompilationResult compiledShader = compiler.CompileGlslToSpv(shaderStr.c_str(), kind, filename, options);
-
 
 		if (compiledShader.GetCompilationStatus() != shaderc_compilation_status_success)
 		{
@@ -568,6 +567,8 @@ namespace engine {
 				swapchain->surfaceFormat = format; // prefer using srgb non linear colors
 			}
 		}
+		INFO("surface format: {}", swapchain->surfaceFormat.format);
+		INFO("surface colorspace: {}", swapchain->surfaceFormat.colorSpace);
 
 		swapchain->presentMode = VK_PRESENT_MODE_FIFO_KHR; // This mode is always available
 		if (vsync == false) {

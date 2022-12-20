@@ -16,6 +16,7 @@ set(SRC_FILES
 	"src/scene_manager.cpp"
 
 	"src/resources/texture.cpp"
+	"src/resources/material.cpp"
 
 	"src/gfx_device_vulkan.cpp"
 
@@ -38,7 +39,10 @@ set(INCLUDE_FILES
 	"include/scene_manager.hpp"
 
 	"include/resource_manager.hpp"
+	"include/resources/material.hpp"
 	"include/resources/texture.hpp"
+	"include/resources/shader.hpp"
+	"include/resources/mesh.hpp"
 
 	"include/gfx.hpp"
 	"include/gfx_device.hpp"

@@ -16,27 +16,31 @@ namespace engine {
 		ResourceManager(const ResourceManager&) = delete;
 		ResourceManager& operator=(const ResourceManager&) = delete;
 
-		T* add(const std::string& name, std::unique_ptr<T>&& resource)
+		std::shared_ptr<T> add(const std::string& name, std::unique_ptr<T>&& resource)
 		{
 			if (m_resources.contains(name) == false) {
-				m_resources.emplace(name, std::move(resource));
+				std::shared_ptr<T> resourceSharedPtr(std::move(resource));
+				m_resources.emplace(name, resourceSharedPtr);
+				return resourceSharedPtr;
 			}
 			else {
 				throw std::runtime_error("Cannot add a resource which already exists");
 			}
-			return m_resources.at(name).get();
 		}
 
-		T* get(const std::string& name)
+		std::shared_ptr<T> get(const std::string& name)
 		{
 			if (m_resources.contains(name)) {
-				return m_resources.at(name).get();
+				std::weak_ptr<T> ptr = m_resources.at(name);
+				if (ptr.expired() == false) {
+					return ptr.lock();
+				}
 			}
 			return {};
 		}
 
 	private:
-		std::unordered_map<std::string, std::unique_ptr<T>> m_resources{};
+		std::unordered_map<std::string, std::weak_ptr<T>> m_resources{};
 
 	};
 
