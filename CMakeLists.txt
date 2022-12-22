@@ -49,6 +49,7 @@ set(INCLUDE_FILES
 
 	"include/scene.hpp"
 	"include/ecs/ecs_system.hpp"
+	"include/ecs/transform.hpp"
 	"include/ecs/mesh_renderer.hpp"
 
 	"include/util/files.hpp"

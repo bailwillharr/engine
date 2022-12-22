@@ -5,6 +5,7 @@
 namespace engine::resources {
 
 	class Shader;
+	class Texture;
 
 	class Material {
 
@@ -14,7 +15,9 @@ namespace engine::resources {
 		Material(const Material&) = delete;
 		Material& operator=(const Material&) = delete;
 
-		Shader* getShader() { return m_shader.get(); }
+		auto getShader() { return m_shader.get(); }
+
+		std::shared_ptr<Texture> m_texture;
 
 	private:
 		const std::shared_ptr<Shader> m_shader;

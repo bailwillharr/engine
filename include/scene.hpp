@@ -9,6 +9,7 @@ namespace engine {
 	class Application;
 
 	namespace ecs {
+		class TransformSystem;
 		class RendererSystem;
 	}
 
@@ -27,6 +28,7 @@ namespace engine {
 			return m_nextEntityID++;
 		}
 	
+		std::unique_ptr<ecs::TransformSystem> m_transformSystem;
 		std::unique_ptr<ecs::RendererSystem> m_renderSystem;
 
 		Application* app() { return m_app; }
