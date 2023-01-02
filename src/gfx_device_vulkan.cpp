@@ -567,8 +567,6 @@ namespace engine {
 				swapchain->surfaceFormat = format; // prefer using srgb non linear colors
 			}
 		}
-		INFO("surface format: {}", swapchain->surfaceFormat.format);
-		INFO("surface colorspace: {}", swapchain->surfaceFormat.colorSpace);
 
 		swapchain->presentMode = VK_PRESENT_MODE_FIFO_KHR; // This mode is always available
 		if (vsync == false) {
@@ -1244,18 +1242,14 @@ namespace engine {
 				VkQueueFamilyProperties family = queueFamilies[i];
 				if (family.queueCount > 0) {
 					if (graphicsFamilyIndex.has_value() == false && family.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-						TRACE("GRAPHICS:");
 						graphicsFamilyIndex = i;
 					}
 					if (transferFamilyIndex.has_value() == false && family.queueFlags & VK_QUEUE_TRANSFER_BIT) {
-						TRACE("TRANSFER:");
 						transferFamilyIndex = i;
 					}
 					if (computeFamilyIndex.has_value() == false && family.queueFlags & VK_QUEUE_COMPUTE_BIT) {
-						TRACE("COMPUTE:");
 						computeFamilyIndex = i;
 					}
-					TRACE("\t\ti = {}\t\tcount = {}", i, family.queueCount);
 				}
 			}
 			if (graphicsFamilyIndex.has_value() == false ||
@@ -1288,7 +1282,6 @@ namespace engine {
 				if (transferFamilyIndex == family) newQueue.supportsTransfer = true;
 				if (computeFamilyIndex == family) newQueue.supportsCompute = true;
 
-				TRACE("Creating queue from family {}", family);
 				VkDeviceQueueCreateInfo queueCreateInfo{
 					.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
 					.pNext = nullptr,
@@ -1460,8 +1453,6 @@ namespace engine {
 
 	GFXDevice::~GFXDevice()
 	{
-		TRACE("Destroying GFXDevice...");
-
 		vkDestroyDescriptorSetLayout(pimpl->device, pimpl->samplerSetLayout, nullptr);
 		vkDestroyDescriptorSetLayout(pimpl->device, pimpl->descriptorSetLayout, nullptr);
 

@@ -9,50 +9,54 @@ project(engine LANGUAGES CXX
 )
 
 set(SRC_FILES
+	"src/ecs_system.cpp"
 	"src/application.cpp"
-	"src/window.cpp"
 
-	"src/input_manager.cpp"
-	"src/scene_manager.cpp"
-
-	"src/resources/texture.cpp"
 	"src/resources/material.cpp"
-
-	"src/gfx_device_vulkan.cpp"
+	"src/resources/texture.cpp"
 
 	"src/scene.cpp"
+	"src/gfx_device_vulkan.cpp"
 
 	"src/util/files.cpp"
+
+	"src/scene_manager.cpp"
+	"src/input_manager.cpp"
+	"src/window.cpp"
 )
 
 set(INCLUDE_FILES
-	"include/engine_api.h"
-	"include/application.hpp"
-	"include/util.hpp"
-	"include/log.hpp"
-	"include/logger.hpp"
-	"include/window.hpp"
-	"include/inputs/keyboard.hpp"
-	"include/inputs/mouse.hpp"
-
-	"include/input_manager.hpp"
-	"include/scene_manager.hpp"
-
-	"include/resource_manager.hpp"
-	"include/resources/material.hpp"
-	"include/resources/texture.hpp"
-	"include/resources/shader.hpp"
-	"include/resources/mesh.hpp"
-
-	"include/gfx.hpp"
+	"include/ecs_system.hpp"
 	"include/gfx_device.hpp"
 
-	"include/scene.hpp"
-	"include/ecs/ecs_system.hpp"
-	"include/ecs/transform.hpp"
-	"include/ecs/mesh_renderer.hpp"
+	"include/inputs/mouse.hpp"
+	"include/inputs/keyboard.hpp"
+	"include/input_manager.hpp"
+
+	"include/systems/transform.hpp"
+	"include/systems/render.hpp"
+
+	"include/resources/shader.hpp"
+	"include/resources/material.hpp"
+	"include/resources/mesh.hpp"
+	"include/resources/texture.hpp"
+
+	"include/engine_api.h"
 
 	"include/util/files.hpp"
+
+	"include/util.hpp"
+	"include/logger.hpp"
+	"include/scene_manager.hpp"
+	"include/gfx.hpp"
+	"include/scene.hpp"
+	"include/window.hpp"
+	"include/log.hpp"
+	"include/resource_manager.hpp"
+	"include/application.hpp"
+
+	"include/components/transform.hpp"
+	"include/components/renderable.hpp"
 )
 
 add_library(${PROJECT_NAME} STATIC

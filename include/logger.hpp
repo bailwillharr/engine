@@ -33,7 +33,7 @@ namespace engine {
 		sinks.emplace_back(std::make_shared<spdlog::sinks::stdout_color_sink_mt>());
 #endif
 
-		auto logger = std::make_shared<spdlog::logger>("sdltest", sinks.begin(), sinks.end());
+		auto logger = std::make_shared<spdlog::logger>(appName, sinks.begin(), sinks.end());
 
 		logger->set_level(spdlog::level::trace);
 

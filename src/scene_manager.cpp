@@ -10,12 +10,11 @@ namespace engine {
 	SceneManager::SceneManager(Application* app)
 		: m_app(app)
 	{
-		m_textureManager = std::make_unique<ResourceManager<resources::Texture>>();
 	}
 
 	SceneManager::~SceneManager() {}
 
-	Scene* SceneManager::createScene()
+	Scene* SceneManager::createEmptyScene()
 	{
 		auto scene = std::make_unique<Scene>(m_app);
 		m_scenes.emplace_back(std::move(scene));

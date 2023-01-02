@@ -11,6 +11,9 @@ namespace engine {
 	class Scene; // "scene.hpp"
 	namespace resources {
 		class Texture;
+		class Shader;
+		class Mesh;
+		class Material;
 	}
 
 	class SceneManager {
@@ -21,20 +24,16 @@ namespace engine {
 		SceneManager(const SceneManager&) = delete;
 		SceneManager& operator=(const SceneManager&) = delete;
 
-		Scene* createScene();
+		// creates an empty scene and sets it as active
+		Scene* createEmptyScene();
 
 		void updateActiveScene(float ts);
-
-		/* getters */
-		ResourceManager<resources::Texture>* getTextureManager() { return m_textureManager.get(); }
 
 	private:
 		Application* const m_app;
 
 		std::vector<std::unique_ptr<Scene>> m_scenes;
 		int m_activeSceneIndex = -1;
-
-		std::unique_ptr<ResourceManager<resources::Texture>> m_textureManager;
 
 	};
 
