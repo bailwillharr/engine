@@ -12,6 +12,8 @@ set(SRC_FILES
 	"src/ecs_system.cpp"
 	"src/application.cpp"
 
+	"src/systems/render.cpp"
+
 	"src/resources/material.cpp"
 	"src/resources/texture.cpp"
 

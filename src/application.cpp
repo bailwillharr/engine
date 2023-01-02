@@ -80,7 +80,8 @@ namespace engine {
 			m_sceneManager->updateActiveScene(m_window->dt());
 
 			if(m_window->getKeyPress(inputs::Key::K_L)) {
-				m_enableFrameLimiter = !m_enableFrameLimiter;
+//				m_enableFrameLimiter = !m_enableFrameLimiter;
+				m_window->infoBox("fps", std::to_string(m_window->getFPS()) + " fps " + std::to_string(m_window->dt() * 1000.0f) + " ms");
 			}
 
 			/* draw */

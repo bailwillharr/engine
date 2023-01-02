@@ -17,17 +17,7 @@ namespace engine {
 		{
 		}
 
-		void onUpdate(float ts) override
-		{
-			for (uint32_t entity : m_entities) {
-
-				auto t = m_scene->getComponent<TransformComponent>(entity);
-
-				TRACE("rendering {}", t->tag);
-
-			}
-
-		}
+		void onUpdate(float ts) override;
 
 	};
 

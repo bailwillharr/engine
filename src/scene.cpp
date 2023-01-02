@@ -25,6 +25,11 @@ namespace engine {
 		m_signatures.emplace(id, std::bitset<MAX_COMPONENTS>{});
 
 		auto t = addComponent<TransformComponent>(id);
+
+		t->position = {0.0f, 0.0f, 0.0f};
+		t->rotation = {};
+		t->scale = {1.0f, 1.0f, 1.0f};
+
 		t->tag = tag;
 		t->parent = parent;
 

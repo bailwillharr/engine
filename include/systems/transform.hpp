@@ -28,7 +28,7 @@ namespace engine {
 
 				auto t = m_scene->getComponent<TransformComponent>(entity);
 
-				TRACE("tag is {}", t->tag);
+//				TRACE("tag is {}", t->tag);
 
 				glm::mat4 transform;
 				
