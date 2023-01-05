@@ -114,7 +114,7 @@ namespace engine {
 
 		// returns the number of frames elapsed since window creation
 		uint64_t getFrameCount() const;
-		uint64_t getStartTime() const;;
+		uint64_t getStartTime() const;
 		float dt() const; // returns delta time in seconds
 		uint64_t getFPS() const;
 		uint64_t getAvgFPS() const;

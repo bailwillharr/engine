@@ -73,6 +73,8 @@ namespace engine {
 		auto beginFrame = std::chrono::steady_clock::now();
 		auto endFrame = beginFrame + FRAMETIME_LIMIT;
 
+		auto lastTick = m_window->getNanos();
+
 		// single-threaded game loop
 		while (m_window->isRunning()) {
 
@@ -91,6 +93,12 @@ namespace engine {
 			m_window->getInputAndEvents();
 
 			/* fps limiter */
+			uint64_t now = m_window->getNanos();
+			if (now - lastTick >= 1000000000LL * 10LL) {
+				lastTick = now;
+				m_window->setTitle(std::to_string(m_window->getAvgFPS()));
+				m_window->resetAvgFPS();
+			}
 			if (m_enableFrameLimiter) {
 				std::this_thread::sleep_until(endFrame);
 			}

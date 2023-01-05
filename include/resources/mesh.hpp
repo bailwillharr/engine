@@ -29,9 +29,16 @@ public:
 		m_vb = m_gfx->createBuffer(gfx::BufferType::VERTEX, vertices.size() * sizeof(Vertex), vertices.data());
 
 		std::vector<uint32_t> indices(m_count);
-		for (int i = 0; i < m_count; i++) {
+		for (uint32_t i = 0; i < m_count; i++) {
 			indices[i] = i;
 		}
+		m_ib = m_gfx->createBuffer(gfx::BufferType::INDEX, indices.size() * sizeof(uint32_t), indices.data());
+	}
+	Mesh(GFXDevice* gfx, const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices)
+		: m_gfx(gfx)
+	{
+		m_count = vertices.size();
+		m_vb = m_gfx->createBuffer(gfx::BufferType::VERTEX, vertices.size() * sizeof(Vertex), vertices.data());
 		m_ib = m_gfx->createBuffer(gfx::BufferType::INDEX, indices.size() * sizeof(uint32_t), indices.data());
 	}
 	~Mesh()

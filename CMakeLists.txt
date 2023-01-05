@@ -12,6 +12,7 @@ set(SRC_FILES
 	"src/ecs_system.cpp"
 	"src/application.cpp"
 
+	"src/systems/transform.cpp"
 	"src/systems/render.cpp"
 
 	"src/resources/material.cpp"
@@ -21,6 +22,7 @@ set(SRC_FILES
 	"src/gfx_device_vulkan.cpp"
 
 	"src/util/files.cpp"
+	"src/util/model_loader.cpp"
 
 	"src/scene_manager.cpp"
 	"src/input_manager.cpp"
@@ -46,6 +48,7 @@ set(INCLUDE_FILES
 	"include/engine_api.h"
 
 	"include/util/files.hpp"
+	"include/util/model_loader.hpp"
 
 	"include/util.hpp"
 	"include/logger.hpp"
@@ -81,8 +84,9 @@ set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
 if (MSVC)
 	target_compile_options(${PROJECT_NAME} PRIVATE /W3)
 	target_compile_options(${PROJECT_NAME} PRIVATE /MP)
-
 	target_compile_definitions(${PROJECT_NAME} PRIVATE _CRT_SECURE_NO_WARNINGS)
+else()
+	target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Werror -pedantic)
 endif()
 
 target_include_directories(${PROJECT_NAME} PUBLIC include)
@@ -125,7 +129,7 @@ if(ENGINE_BUILD_OPENGL)
 	set(BUILD_SHARED_LIBS OFF)
 	add_subdirectory(dependencies/glad)
 	target_link_libraries(${PROJECT_NAME} PUBLIC glad)
-	target_include_directories(${PROJECT_NAME} PUBLIC dependencies/glad/include)
+	target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC dependencies/glad/include)
 endif()
 
 if(ENGINE_BUILD_VULKAN)
@@ -137,7 +141,7 @@ if(ENGINE_BUILD_VULKAN)
 	add_subdirectory(dependencies/volk)
 	target_link_libraries(${PROJECT_NAME} PRIVATE volk_headers)
 	# Vulkan Memory Allocator
-	target_include_directories(${PROJECT_NAME} PRIVATE dependencies/VulkanMemoryAllocator/include)
+	target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE dependencies/VulkanMemoryAllocator/include)
 	# shaderc
 	if (MSVC)
 		include(FindVulkan)
@@ -151,7 +155,7 @@ endif()
 # SDL2:
 find_package(SDL2)
 if (SDL2_FOUND)
-	target_include_directories(${PROJECT_NAME} PUBLIC ${SDL2_INCLUDE_DIRS})
+	target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${SDL2_INCLUDE_DIRS})
 else()
 	set(SDL2_DISABLE_INSTALL ON CACHE INTERNAL "" FORCE)
 	set(SDL_SHARED ON CACHE INTERNAL "" FORCE)
@@ -159,7 +163,7 @@ else()
 	set(SDL_TEST OFF CACHE INTERNAL "" FORCE)
 	set(BUILD_SHARED_LIBS ON)
 	add_subdirectory(dependencies/SDL)
-	target_include_directories(${PROJECT_NAME} PUBLIC dependencies/SDL/include)
+	target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC dependencies/SDL/include)
 endif()
 target_link_libraries(${PROJECT_NAME} PUBLIC SDL2::SDL2)
 target_link_libraries(${PROJECT_NAME} PUBLIC SDL2::SDL2main)
@@ -167,14 +171,14 @@ target_link_libraries(${PROJECT_NAME} PUBLIC SDL2::SDL2main)
 # GLM:
 set(BUILD_SHARED_LIBS OFF)
 add_subdirectory(dependencies/glm)
-target_include_directories(${PROJECT_NAME} PUBLIC dependencies/glm)
+target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC dependencies/glm)
 
 # spdlog
 set(SPDLOG_BUILD_SHARED OFF CACHE INTERNAL "" FORCE)
 set(BUILD_SHARED_LIBS OFF)
 add_subdirectory(dependencies/spdlog)
 target_link_libraries(${PROJECT_NAME} PUBLIC spdlog)
-target_include_directories(${PROJECT_NAME} PUBLIC dependencies/spdlog/include)
+target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC dependencies/spdlog/include)
 
 # freetype
 #set(FT_DISABLE_ZLIB TRUE CACHE INTERNAL "" FORCE)
@@ -188,7 +192,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC dependencies/spdlog/include)
 #target_include_directories(${PROJECT_NAME} PRIVATE dependencies/freetype/include)
 
 # stb
-target_include_directories(${PROJECT_NAME} PRIVATE dependencies/stb)
+target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE dependencies/stb)
 
 # assimp
 set(BUILD_SHARED_LIBS OFF CACHE INTERNAL "" FORCE)
@@ -197,5 +201,5 @@ set(ASSIMP_BUILD_ZLIB ON CACHE INTERNAL "" FORCE)
 set(ASSIMP_NO_EXPORT ON CACHE INTERNAL "" FORCE)
 set(ASSIMP_INSTALL OFF CACHE INTERNAL "" FORCE)
 add_subdirectory(dependencies/assimp)
-target_include_directories(${PROJECT_NAME} PRIVATE dependencies/assimp/include)
+target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE dependencies/assimp/include)
 target_link_libraries(${PROJECT_NAME} PRIVATE assimp)

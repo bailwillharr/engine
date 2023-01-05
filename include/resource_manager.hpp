@@ -7,15 +7,15 @@
 
 namespace engine {
 
+	class IResourceManager {
+	public:
+		virtual ~IResourceManager() = default;
+	};
+
 	template <class T>
-	class ResourceManager {
+	class ResourceManager : public IResourceManager {
 
 	public:
-		ResourceManager() {}
-		~ResourceManager() {}
-		ResourceManager(const ResourceManager&) = delete;
-		ResourceManager& operator=(const ResourceManager&) = delete;
-
 		std::shared_ptr<T> add(const std::string& name, std::unique_ptr<T>&& resource)
 		{
 			if (m_resources.contains(name) == false) {
@@ -34,8 +34,12 @@ namespace engine {
 				std::weak_ptr<T> ptr = m_resources.at(name);
 				if (ptr.expired() == false) {
 					return ptr.lock();
+				} else {
+					m_resources.erase(name);
 				}
 			}
+			// resource doesn't exist:
+			throw std::runtime_error("Resource doesn't exist: " + name);
 			return {};
 		}
 

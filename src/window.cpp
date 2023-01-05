@@ -53,17 +53,15 @@ namespace engine {
 			throw std::runtime_error("Unable to create window: " + std::string(SDL_GetError()));
 		}
 
-		// get window size
-		int winWidth, winHeight;
-		SDL_GetWindowSize(m_handle, &winWidth, &winHeight);
-		m_winSize.x = winWidth;
-		m_winSize.y = winHeight;
-
 		const int WINDOWED_MIN_WIDTH = 640;
 		const int WINDOWED_MIN_HEIGHT = 480;
 		SDL_SetWindowMinimumSize(m_handle, WINDOWED_MIN_WIDTH, WINDOWED_MIN_HEIGHT);
 
-		// onResize(m_winSize.x, m_winSize.y);
+		// get window size
+		int winWidth, winHeight;
+		SDL_GetWindowSize(m_handle, &winWidth, &winHeight);
+
+		onResize(winWidth, winHeight);
 
 	}
 

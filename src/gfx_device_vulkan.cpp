@@ -155,8 +155,9 @@ namespace engine {
 				return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 			case gfx::BufferType::INDEX:
 				return VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+			default:
+				throw std::runtime_error("This buffer type does not have usage bits");
 			}
-			throw std::runtime_error("Unknown buffer type");
 		}
 
 		static VkFilter getTextureFilter(gfx::TextureFilter filter)
@@ -222,7 +223,7 @@ namespace engine {
 
 	static std::vector<const char*> getRequiredVulkanExtensions(SDL_Window* window)
 	{
-		SDL_bool res;
+		[[maybe_unused]] SDL_bool res;
 
 		unsigned int sdlExtensionCount = 0;
 		res = SDL_Vulkan_GetInstanceExtensions(window, &sdlExtensionCount, nullptr);
@@ -239,7 +240,7 @@ namespace engine {
 		constexpr const char* VALIDATION_LAYER_NAME = "VK_LAYER_KHRONOS_validation";
 
 		LayerInfo info;
-		VkResult res;
+		[[maybe_unused]] VkResult res;
 
 		uint32_t layerCount;
 		res = vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
@@ -269,6 +270,7 @@ namespace engine {
 		const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
 		void* pUserData)
 	{
+		(void)pUserData;
 
 		std::string msgType{};
 
@@ -357,7 +359,7 @@ namespace engine {
 	{
 		uint32_t bitmask = static_cast<uint32_t>(flags);
 
-		for (int i = 0; i < queues.size(); i++) {
+		for (size_t i = 0; i < queues.size(); i++) {
 
 			if (bitmask & static_cast<uint32_t>(QueueFlags::GRAPHICS)) {
 				if (queues[i].supportsGraphics == false) continue;
@@ -382,7 +384,7 @@ namespace engine {
 	{
 		Swapchain::MSTarget target{};
 
-		VkResult res;
+		[[maybe_unused]] VkResult res;
 
 		VkImageCreateInfo imageInfo{};
 		imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -408,7 +410,8 @@ namespace engine {
 		res = vmaCreateImage(allocator, &imageInfo, &allocInfo, &target.colorImage, &target.colorImageAllocation, nullptr);
 		assert(res == VK_SUCCESS);
 
-		VkImageViewCreateInfo imageViewInfo{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
+		VkImageViewCreateInfo imageViewInfo{};
+		imageViewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		imageViewInfo.image = target.colorImage;
 		imageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 		imageViewInfo.format = colorFormat;
@@ -433,7 +436,7 @@ namespace engine {
 	{
 		DepthBuffer db{};
 
-		VkResult res;
+		[[maybe_unused]] VkResult res;
 
 		VkImageCreateInfo imageInfo{};
 		imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -459,7 +462,8 @@ namespace engine {
 		res = vmaCreateImage(allocator, &imageInfo, &allocInfo, &db.image, &db.allocation, nullptr);
 		assert(res == VK_SUCCESS);
 
-		VkImageViewCreateInfo imageViewInfo{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
+		VkImageViewCreateInfo imageViewInfo{};
+		imageViewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		imageViewInfo.image = db.image;
 		imageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 		imageViewInfo.format = VK_FORMAT_D32_SFLOAT;
@@ -498,9 +502,9 @@ namespace engine {
 	}
 
 	// This is called not just on initialisation, but also when the window is resized.
-	static void createSwapchain(VkDevice device, VkPhysicalDevice physicalDevice, VmaAllocator allocator, std::vector<Queue> queues, SDL_Window* window, VkSurfaceKHR surface, Swapchain* swapchain, bool vsync)
+	static void createSwapchain(VkDevice device, VkPhysicalDevice physicalDevice, VmaAllocator allocator, std::vector<Queue> queues, SDL_Window* window, VkSurfaceKHR surface, bool vsync, Swapchain* swapchain)
 	{
-		VkResult res;
+		[[maybe_unused]] VkResult res;
 
 		// get surface capabilities
 		VkSurfaceCapabilitiesKHR caps;
@@ -576,7 +580,7 @@ namespace engine {
 				}
 			}
 		}
-		
+
 		uint32_t imageCount = caps.minImageCount + 1;
 		if (caps.maxImageCount > 0 && imageCount > caps.maxImageCount) {
 			imageCount = caps.maxImageCount;
@@ -723,7 +727,7 @@ namespace engine {
 
 		swapchain->imageViews.resize(swapchain->images.size());
 		swapchain->framebuffers.resize(swapchain->images.size());
-		for (int i = 0; i < swapchain->images.size(); i++) {
+		for (size_t i = 0; i < swapchain->images.size(); i++) {
 
 			VkImageViewCreateInfo createInfo{};
 			createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -783,7 +787,7 @@ namespace engine {
 
 	static void copyBuffer(VkDevice device, VkCommandPool commandPool, VkQueue queue, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
 	{
-		VkResult res;
+		[[maybe_unused]] VkResult res;
 
 		VkCommandBufferAllocateInfo allocInfo{};
 		allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -828,11 +832,12 @@ namespace engine {
 		
 	}
 
-	VkCommandBuffer beginOneTimeCommands(VkDevice device, VkCommandPool commandPool, VkQueue queue)
+	VkCommandBuffer beginOneTimeCommands(VkDevice device, VkCommandPool commandPool)
 	{
-		VkResult res;
+		[[maybe_unused]] VkResult res;
 
-		VkCommandBufferAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
+		VkCommandBufferAllocateInfo allocInfo{};
+		allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 		allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 		allocInfo.commandPool = commandPool;
 		allocInfo.commandBufferCount = 1;
@@ -841,7 +846,8 @@ namespace engine {
 		res = vkAllocateCommandBuffers(device, &allocInfo, &commandBuffer);
 		assert(res == VK_SUCCESS);
 
-		VkCommandBufferBeginInfo beginInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+		VkCommandBufferBeginInfo beginInfo{};
+		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
 		res = vkBeginCommandBuffer(commandBuffer, &beginInfo);
@@ -852,11 +858,12 @@ namespace engine {
 
 	static void endOneTimeCommands(VkDevice device, VkCommandPool commandPool, VkCommandBuffer commandBuffer, VkQueue queue)
 	{
-		VkResult res;
+		[[maybe_unused]] VkResult res;
 		res = vkEndCommandBuffer(commandBuffer);
 		assert(res == VK_SUCCESS);
 
-		VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
+		VkSubmitInfo submitInfo{};
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &commandBuffer;
 
@@ -871,7 +878,8 @@ namespace engine {
 	static void cmdTransitionImageLayout(VkCommandBuffer commandBuffer, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels, VkImage image)
 	{
 
-		VkImageMemoryBarrier barrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
+		VkImageMemoryBarrier barrier{};
+		barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 		barrier.oldLayout = oldLayout;
 		barrier.newLayout = newLayout;
 		barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -911,7 +919,8 @@ namespace engine {
 	static void cmdGenerateMipmaps(VkCommandBuffer commandBuffer, VkImage image, int32_t width, int32_t height, uint32_t mipLevels)
 	{
 
-		VkImageMemoryBarrier barrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
+		VkImageMemoryBarrier barrier{};
+		barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 		barrier.image = image;
 		barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 		barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -1052,9 +1061,9 @@ namespace engine {
 
 		// get the both the engine and application versions
 		int appVersionMajor = 0, appVersionMinor = 0, appVersionPatch = 0;
-		assert(versionFromCharArray(appVersion, &appVersionMajor, &appVersionMinor, &appVersionPatch));
+		versionFromCharArray(appVersion, &appVersionMajor, &appVersionMinor, &appVersionPatch);
 		int engineVersionMajor = 0, engineVersionMinor = 0, engineVersionPatch = 0;
-		assert(versionFromCharArray(ENGINE_VERSION, &engineVersionMajor, &engineVersionMinor, &engineVersionPatch));
+		versionFromCharArray(ENGINE_VERSION, &engineVersionMajor, &engineVersionMinor, &engineVersionPatch);
 
 		VkApplicationInfo applicationInfo{
 			.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
@@ -1134,7 +1143,8 @@ namespace engine {
 		{
 			VkDebugUtilsMessengerCreateInfoEXT createInfo = getDebugMessengerCreateInfo();
 
-			VkResult res = vkCreateDebugUtilsMessengerEXT(pimpl->instance, &createInfo, nullptr, &pimpl->debugMessenger);
+			[[maybe_unused]] VkResult res;
+			res = vkCreateDebugUtilsMessengerEXT(pimpl->instance, &createInfo, nullptr, &pimpl->debugMessenger);
 			assert(res == VK_SUCCESS);
 		}
 
@@ -1311,8 +1321,8 @@ namespace engine {
 				.flags = 0,
 				.queueCreateInfoCount = (uint32_t)queueCreateInfos.size(),
 				.pQueueCreateInfos = queueCreateInfos.data(),
-				// IGNORED: .enabledLayerCount
-				// IGNORED: .ppEnabledLayerNames
+				.enabledLayerCount = 0,
+				.ppEnabledLayerNames = nullptr,
 				.enabledExtensionCount = (uint32_t)requiredDeviceExtensions.size(),
 				.ppEnabledExtensionNames = requiredDeviceExtensions.data(),
 				.pEnabledFeatures = &deviceFeatures,
@@ -1335,8 +1345,9 @@ namespace engine {
 
 			VkCommandPoolCreateInfo gfxCmdPoolInfo{
 				.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+				.pNext = nullptr,
 				.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-				.queueFamilyIndex = pimpl->gfxQueue.familyIndex,
+				.queueFamilyIndex = pimpl->gfxQueue.familyIndex
 			};
 
 			res = vkCreateCommandPool(pimpl->device, &gfxCmdPoolInfo, nullptr, &pimpl->commandPool);
@@ -1344,12 +1355,13 @@ namespace engine {
 
 			VkCommandBufferAllocateInfo gfxCmdBufInfo{
 				.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+				.pNext = nullptr,
 				.commandPool = pimpl->commandPool,
 				.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
 				.commandBufferCount = 1
 			};
 
-			for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
+			for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
 				res = vkAllocateCommandBuffers(pimpl->device, &gfxCmdBufInfo, &pimpl->commandBuffers[i]);
 				assert(res == VK_SUCCESS);
 			}
@@ -1402,14 +1414,15 @@ namespace engine {
 				.pTypeExternalMemoryHandleTypes = nullptr
 			};
 
-			VkResult res = vmaCreateAllocator(&createInfo, &pimpl->allocator);
+			[[maybe_unused]] VkResult res;
+			res = vmaCreateAllocator(&createInfo, &pimpl->allocator);
 			assert(res == VK_SUCCESS);
 		}
 
 
 
 		// Now make the swapchain
-		createSwapchain(pimpl->device, pimpl->physicalDevice, pimpl->allocator, pimpl->queues, window, pimpl->surface, &pimpl->swapchain, pimpl->vsync);
+		createSwapchain(pimpl->device, pimpl->physicalDevice, pimpl->allocator, pimpl->queues, window, pimpl->surface, pimpl->vsync, &pimpl->swapchain);
 
 
 
@@ -1417,7 +1430,7 @@ namespace engine {
 		fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 		fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 		fenceInfo.pNext = nullptr;
-		for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
+		for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
 			res = vkCreateFence(pimpl->device, &fenceInfo, nullptr, &pimpl->inFlightFences[i]);
 			assert(res == VK_SUCCESS);
 		}
@@ -1429,7 +1442,8 @@ namespace engine {
 		pimpl->uboLayoutBinding.stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS;
 		pimpl->uboLayoutBinding.pImmutableSamplers = nullptr;
 
-		VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+		VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo{};
+		descriptorSetLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 		descriptorSetLayoutInfo.bindingCount = 1;
 		descriptorSetLayoutInfo.pBindings = &pimpl->uboLayoutBinding;
 		res = vkCreateDescriptorSetLayout(pimpl->device, &descriptorSetLayoutInfo, nullptr, &pimpl->descriptorSetLayout);
@@ -1442,7 +1456,8 @@ namespace engine {
 		pimpl->samplerLayoutBinding.pImmutableSamplers = nullptr;
 		pimpl->samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-		VkDescriptorSetLayoutCreateInfo samplerSetLayoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+		VkDescriptorSetLayoutCreateInfo samplerSetLayoutInfo{};
+		samplerSetLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 		samplerSetLayoutInfo.bindingCount = 1;
 		samplerSetLayoutInfo.pBindings = &pimpl->samplerLayoutBinding;
 		res = vkCreateDescriptorSetLayout(pimpl->device, &samplerSetLayoutInfo, nullptr, &pimpl->samplerSetLayout);
@@ -1456,7 +1471,7 @@ namespace engine {
 		vkDestroyDescriptorSetLayout(pimpl->device, pimpl->samplerSetLayout, nullptr);
 		vkDestroyDescriptorSetLayout(pimpl->device, pimpl->descriptorSetLayout, nullptr);
 
-		for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
+		for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
 			vkDestroyFence(pimpl->device, pimpl->inFlightFences[i], nullptr);
 			vkDestroySemaphore(pimpl->device, pimpl->swapchain.releaseSemaphores[i], nullptr);
 			vkDestroySemaphore(pimpl->device, pimpl->swapchain.acquireSemaphores[i], nullptr);
@@ -1509,6 +1524,7 @@ namespace engine {
 			.vertexBuffer = vertexBuffer,
 			.indexBuffer = indexBuffer, // will be ignored if nullptr
 			.count = count,
+			.pushConstantData{}
 		};
 
 		memcpy(call.pushConstantData, pushConstantData, pushConstantSize);
@@ -1535,7 +1551,7 @@ namespace engine {
 		if (res == VK_ERROR_OUT_OF_DATE_KHR) {
 			// recreate swapchain
 			waitIdle();
-			createSwapchain(pimpl->device, pimpl->physicalDevice, pimpl->allocator, pimpl->queues, pimpl->window, pimpl->surface, &pimpl->swapchain, &pimpl->vsync);
+			createSwapchain(pimpl->device, pimpl->physicalDevice, pimpl->allocator, pimpl->queues, pimpl->window, pimpl->surface, pimpl->vsync, &pimpl->swapchain);
 			return;
 		}
 		else {
@@ -1547,13 +1563,15 @@ namespace engine {
 		
 		// now record command buffer
 		{
-			VkCommandBufferBeginInfo beginInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+			VkCommandBufferBeginInfo beginInfo{};
+			beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 			beginInfo.flags = 0;
 			beginInfo.pInheritanceInfo = nullptr;
 			res = vkBeginCommandBuffer(pimpl->commandBuffers[frameIndex], &beginInfo);
 			assert(res == VK_SUCCESS);
 
-			VkRenderPassBeginInfo renderPassInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
+			VkRenderPassBeginInfo renderPassInfo{};
+			renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 			renderPassInfo.renderPass = pimpl->swapchain.renderpass;
 			renderPassInfo.framebuffer = pimpl->swapchain.framebuffers[imageIndex];
 			renderPassInfo.renderArea.offset = { 0, 0 };
@@ -1636,7 +1654,8 @@ namespace engine {
 			assert(res == VK_SUCCESS);
 		}
 
-		VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
+		VkSubmitInfo submitInfo{};
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
 		VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 		submitInfo.waitSemaphoreCount = 1;
@@ -1650,7 +1669,8 @@ namespace engine {
 		res = vkQueueSubmit(pimpl->gfxQueue.handle, 1, &submitInfo, pimpl->inFlightFences[frameIndex]);
 		assert(res == VK_SUCCESS);
 
-		VkPresentInfoKHR presentInfo{ VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
+		VkPresentInfoKHR presentInfo{};
+		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 		presentInfo.waitSemaphoreCount = 1;
 		presentInfo.pWaitSemaphores = &pimpl->swapchain.releaseSemaphores[frameIndex];
 
@@ -1664,7 +1684,7 @@ namespace engine {
 		if (res == VK_SUBOPTIMAL_KHR || res == VK_ERROR_OUT_OF_DATE_KHR) {
 			// recreate swapchain
 			waitIdle();
-			createSwapchain(pimpl->device, pimpl->physicalDevice, pimpl->allocator, pimpl->queues, pimpl->window, pimpl->surface, &pimpl->swapchain, &pimpl->vsync);
+			createSwapchain(pimpl->device, pimpl->physicalDevice, pimpl->allocator, pimpl->queues, pimpl->window, pimpl->surface, pimpl->vsync, &pimpl->swapchain);
 		}
 		else {
 			assert(res == VK_SUCCESS);
@@ -1676,7 +1696,7 @@ namespace engine {
 	gfx::Pipeline* GFXDevice::createPipeline(const char* vertShaderPath, const char* fragShaderPath, const gfx::VertexFormat& vertexFormat, uint64_t uniformBufferSize, bool alphaBlending, bool backfaceCulling)
 	{
 
-		VkResult res;
+		[[maybe_unused]] VkResult res;
 
 		gfx::Pipeline* pipeline = new gfx::Pipeline;
 
@@ -1689,12 +1709,13 @@ namespace engine {
 		
 		// create uniform buffers
 		pipeline->uniformBuffers.resize(FRAMES_IN_FLIGHT);
-		for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
+		for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
 			auto buf = new gfx::Buffer{};
 			buf->size = uniformBufferSize;
 			buf->type = gfx::BufferType::UNIFORM;
 
-			VkBufferCreateInfo bufferInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+			VkBufferCreateInfo bufferInfo{};
+			bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 			bufferInfo.size = buf->size;
 			bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 			bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -1734,7 +1755,7 @@ namespace engine {
 		res = vkAllocateDescriptorSets(pimpl->device, &dSetAllocInfo, pipeline->descriptorSets.data());
 		assert(res == VK_SUCCESS);
 
-		for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
+		for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
 			VkDescriptorBufferInfo bufferInfo{};
 			bufferInfo.buffer = pipeline->uniformBuffers[i]->buffer;
 			bufferInfo.offset = 0;
@@ -1771,13 +1792,15 @@ namespace engine {
 			attribDescs.push_back(vulkanAttribDesc);
 		}
 
-		VkPipelineShaderStageCreateInfo vertShaderStageInfo{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO };
+		VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
+		vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 		vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
 		vertShaderStageInfo.module = vertShaderModule;
 		vertShaderStageInfo.pName = "main";
 		vertShaderStageInfo.pSpecializationInfo = nullptr;
 
-		VkPipelineShaderStageCreateInfo fragShaderStageInfo{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO };
+		VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
+		fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 		fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
 		fragShaderStageInfo.module = fragShaderModule;
 		fragShaderStageInfo.pName = "main";
@@ -1949,21 +1972,21 @@ namespace engine {
 
 		vkDestroyDescriptorPool(pimpl->device, pipeline->descriptorPool, nullptr);
 
-		for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
+		for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
 			destroyBuffer(pipeline->uniformBuffers[i]);
 		}
 
 		delete pipeline;
 	}
 
-	void GFXDevice::updateUniformBuffer(const gfx::Pipeline* pipeline, void* data, size_t size, uint32_t offset)
+	void GFXDevice::updateUniformBuffer(const gfx::Pipeline* pipeline, const void* data, size_t size, uint32_t offset)
 	{
 		assert(size <= pipeline->uniformBuffers[0]->size);
 
-		VkResult res;
+		[[maybe_unused]] VkResult res;
 
 		for (gfx::Buffer* buffer : pipeline->uniformBuffers) {
-			void* uniformDest;
+			void* uniformDest = nullptr;
 			res = vmaMapMemory(pimpl->allocator, buffer->allocation, &uniformDest);
 			assert(res == VK_SUCCESS);
 			memcpy((uint8_t*)uniformDest + offset, data, size);
@@ -1974,7 +1997,7 @@ namespace engine {
 
 	gfx::Buffer* GFXDevice::createBuffer(gfx::BufferType type, uint64_t size, const void* data)
 	{
-		VkResult res;
+		[[maybe_unused]] VkResult res;
 
 		auto out = new gfx::Buffer{};
 		out->size = size;
@@ -1986,7 +2009,8 @@ namespace engine {
 
 		// first create the staging buffer
 		{
-			VkBufferCreateInfo stagingBufferInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+			VkBufferCreateInfo stagingBufferInfo{};
+			stagingBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 			stagingBufferInfo.size = out->size;
 			stagingBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 			stagingBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -2009,7 +2033,8 @@ namespace engine {
 
 		// create the actual buffer on the GPU
 		{
-			VkBufferCreateInfo gpuBufferInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+			VkBufferCreateInfo gpuBufferInfo{};
+			gpuBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 			gpuBufferInfo.size = out->size;
 			gpuBufferInfo.usage = vkinternal::getBufferUsageFlag(type) | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 			gpuBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -2042,7 +2067,7 @@ namespace engine {
 	{
 		auto out = new gfx::Texture;
 
-		VkResult res;
+		[[maybe_unused]] VkResult res;
 
 		size_t imageSize = w * h * 4;
 
@@ -2052,7 +2077,8 @@ namespace engine {
 		VkBuffer stagingBuffer;
 		VmaAllocation stagingAllocation;
 		{
-			VkBufferCreateInfo stagingBufferInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+			VkBufferCreateInfo stagingBufferInfo{};
+			stagingBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 			stagingBufferInfo.size = imageSize;
 			stagingBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 			stagingBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -2074,7 +2100,8 @@ namespace engine {
 		}
 
 		// create the image
-		VkImageCreateInfo imageInfo{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
+		VkImageCreateInfo imageInfo{};
+		imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 		imageInfo.imageType = VK_IMAGE_TYPE_2D;
 		imageInfo.extent.width = w;
 		imageInfo.extent.height = h;
@@ -2097,7 +2124,7 @@ namespace engine {
 
 		// transition the image layout
 		{
-			VkCommandBuffer commandBuffer = beginOneTimeCommands(pimpl->device, pimpl->commandPool, pimpl->gfxQueue.handle);
+			VkCommandBuffer commandBuffer = beginOneTimeCommands(pimpl->device, pimpl->commandPool);
 
 			// begin cmd buffer
 
@@ -2130,7 +2157,8 @@ namespace engine {
 		vmaDestroyBuffer(pimpl->allocator, stagingBuffer, stagingAllocation);
 
 		// create image view
-		VkImageViewCreateInfo imageViewInfo{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
+		VkImageViewCreateInfo imageViewInfo{};
+		imageViewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		imageViewInfo.image = out->image;
 		imageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 		imageViewInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
@@ -2151,7 +2179,8 @@ namespace engine {
 			VkFilter magFilterInternal = vkinternal::getTextureFilter(magFilter);
 			VkFilter minFilterInternal = vkinternal::getTextureFilter(minFilter);
 
-			VkSamplerCreateInfo samplerInfo{ VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
+			VkSamplerCreateInfo samplerInfo{};
+			samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 			samplerInfo.magFilter = magFilterInternal;
 			samplerInfo.minFilter = minFilterInternal;
 			samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
@@ -2201,7 +2230,7 @@ namespace engine {
 		res = vkAllocateDescriptorSets(pimpl->device, &dSetAllocInfo, out->descriptorSets.data());
 		assert(res == VK_SUCCESS);
 
-		for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
+		for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
 			VkDescriptorImageInfo imageInfo{};
 			imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 			imageInfo.imageView = out->imageView;

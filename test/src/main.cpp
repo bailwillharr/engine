@@ -7,7 +7,7 @@
 
 #include <exception>
 
-int main(int argc, char *argv[])
+int main(int, char *[])
 {
 
 	engine::setupLog(PROJECT_NAME);

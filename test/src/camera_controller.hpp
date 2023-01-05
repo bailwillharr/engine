@@ -1,16 +1,10 @@
 #pragma once
 
-#include "components/custom.hpp"
+#include "ecs_system.hpp"
 
-class CameraController : public engine::components::CustomComponent {
-
-public:
-	CameraController(engine::Object* parent);
-	void onUpdate(glm::mat4 t) override;
-
+struct CameraControllerComponent {
 	float m_cameraSensitivity = 0.007f;
 
-private:
 	float m_yaw = 0.0f;
 	float m_pitch = 0.0f;
 
@@ -20,5 +14,12 @@ private:
 	float dy = 0.0f;
 	float standingHeight = 0.0f;
 	const float thrust = 25.0f;
+};
 
+class CameraControllerSystem : public engine::System {
+
+public:
+	CameraControllerSystem(engine::Scene* scene);
+
+	void onUpdate(float ts) override;
 };
