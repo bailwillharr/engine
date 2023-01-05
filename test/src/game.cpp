@@ -87,7 +87,7 @@ void playGame()
 	myScene->registerResourceManager<engine::resources::Texture>();
 
 	auto camera = myScene->createEntity("camera");
-	myScene->addComponent<CameraControllerComponent>(camera);
+	myScene->addComponent<CameraControllerComponent>(camera)->standingHeight = myScene->getComponent<engine::TransformComponent>(camera)->position.y = 2.0f;
 	myScene->getSystem<engine::RenderSystem>()->setCameraEntity(camera);
 
 	engine::resources::Shader::VertexParams vertParams{};
@@ -108,7 +108,7 @@ void playGame()
 	auto keepTexture = myScene->addResource<engine::resources::Texture>("whiteTexture", std::move(whiteTexture));
 	auto keepShader = myScene->addResource<engine::resources::Shader>("theShader", std::move(theShader));
 
-	engine::util::loadMeshFromFile(myScene, app.getResourcePath("models/lego/lego.dae"));
+	engine::util::loadMeshFromFile(myScene, app.getResourcePath("models/astronaut/astronaut.dae"));
 
 	app.gameLoop();
 
