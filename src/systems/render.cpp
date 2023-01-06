@@ -48,11 +48,12 @@ namespace engine {
 
 		for (uint32_t entity : m_entities) {
 
-
 			auto t = m_scene->getComponent<TransformComponent>(entity);
 			auto r = m_scene->getComponent<RenderableComponent>(entity);
 
-			DEBUG("rendering mesh: {}, parent: {}", t->tag, t->parent);
+			assert(r->material != nullptr);
+			assert(r->mesh != nullptr);
+			assert(r->material->m_texture != nullptr);
 
 			gfx->updateUniformBuffer(r->material->getShader()->getPipeline(), &projMatrix, sizeof(projMatrix), 0);
 

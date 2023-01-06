@@ -4,15 +4,13 @@
 #include <glm/ext.hpp>
 #include <glm/trigonometric.hpp>
 
-#include <iostream>
+#include <stdexcept>
 
-#include <thread>
-
-std::unique_ptr<engine::resources::Mesh> genSphereMesh(float r, int detail, bool windInside)
+std::unique_ptr<engine::resources::Mesh> genSphereMesh(engine::GFXDevice* gfx, float r, int detail, bool windInside, bool flipNormals)
 {
 	using namespace glm;
 
-	std::vector<Vertex> vertices{};
+	std::vector<engine::Vertex> vertices{};
 
 	float angleStep = two_pi<float>() / (float)detail;
 
@@ -66,13 +64,16 @@ std::unique_ptr<engine::resources::Mesh> genSphereMesh(float r, int detail, bool
 
 			}
 			
-			glm::vec3 vector1 = (vertices.end() - 1)->pos - (vertices.end() - 2)->pos;
-			glm::vec3 vector2 = (vertices.end() - 2)->pos - (vertices.end() - 3)->pos;
-			glm::vec3 norm = glm::normalize(glm::cross(vector1, vector2));
+			vec3 vector1 = (vertices.end() - 1)->pos - (vertices.end() - 2)->pos;
+			vec3 vector2 = (vertices.end() - 2)->pos - (vertices.end() - 3)->pos;
+			vec3 norm = normalize(cross(vector1, vector2));
 
 
 			// TODO: FIX NORMALS
 			if (!windInside)
+				norm = -norm;
+
+			if (flipNormals)
 				norm = -norm;
 
 			for (auto it = vertices.end() - 6; it != vertices.end(); it++) {
@@ -82,54 +83,68 @@ std::unique_ptr<engine::resources::Mesh> genSphereMesh(float r, int detail, bool
 		}
 	}
 
-	return std::make_unique<engine::resources::Mesh>(vertices);
+	return std::make_unique<engine::resources::Mesh>(gfx, vertices);
 }
 
-std::unique_ptr<engine::resources::Mesh> genCuboidMesh(float x, float y, float z)
+std::unique_ptr<engine::resources::Mesh> genCuboidMesh(engine::GFXDevice* gfx, float x, float y, float z)
 {
 
 	// x goes ->
 	// y goes ^
 	// z goes into the screen
 
-	using glm::vec3;
+	using namespace glm;
 
-	std::vector<Vertex> v{};
+	std::vector<engine::Vertex> v{};
 
-	// 0 top_left_front
-	v.push_back({{ 0.0f,	y,		0.0f	}, {}, {}});
-	// 1 bottom_left_front
-	v.push_back({{ 0.0f,	0.0f,	0.0f	}, {}, {}});
-	// 2 top_right_front
-	v.push_back({{ x,		y,		0.0f	}, {}, {}});
-	// 3 bottom_right_front
-	v.push_back({{ x,		0.0f,	0.0f	}, {}, {}});
+	// front
+	v.push_back({{x,	0.0f,	0.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 0.0f}});
+	v.push_back({{0.0f,	0.0f,	0.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 0.0f}});
+	v.push_back({{0.0f,	y,		0.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 0.0f}});
+	v.push_back({{x,	0.0f,	0.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 0.0f}});
+	v.push_back({{0.0f,	y,		0.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 0.0f}});
+	v.push_back({{x,	y,		0.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 0.0f}});
 
-	// 4 top_left_back
-	v.push_back({{ 0.0f,	y,		z		}, {}, {}});
-	// 5 bottom_left_back
-	v.push_back({{ 0.0f,	0.0f,	z		}, {}, {}});
-	// 6 top_right_back
-	v.push_back({{ x,		y,		z		}, {}, {}});
-	// 7 bottom_right_back
-	v.push_back({{ x,		0.0f,	z		}, {}, {}});
+	// back
+	v.push_back({{0.0f,	0.0f,	z}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}});
+	v.push_back({{x,	0.0f,	z}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}});
+	v.push_back({{0.0f,	y,		z}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}});
+	v.push_back({{x,	0.0f,	z}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}});
+	v.push_back({{x,	y,		z}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}});
+	v.push_back({{0.0f,	y,		z}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}});
 
-	// front quad
-	std::vector<unsigned int> indices{
-		// front
-		0, 1, 3, 2, 0, 3,
-		// back
-		4, 5, 7, 6, 4, 7,
-		// bottom
-		5, 1, 3, 7, 5, 3,
-		// top
-		4, 0, 2, 6, 4, 2,
-		// left
-		4, 5, 1, 0, 4, 1,
-		// right
-		2, 3, 7, 6, 2, 7
-	};
+	// left
+	v.push_back({{0.0f,	0.0f,	0.0f},	{-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}});
+	v.push_back({{0.0f,	0.0f,	x},		{-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}});
+	v.push_back({{0.0f,	y,		0.0f},	{-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}});
+	v.push_back({{0.0f,	0.0f,	x},		{-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}});
+	v.push_back({{0.0f,	y,		x},		{-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}});
+	v.push_back({{0.0f,	y,		0.0f},	{-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}});
 
-	return std::make_unique<engine::resources::Mesh>(v, indices);
+	// right
+	v.push_back({{x,	y,		0.0f},	{1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}});
+	v.push_back({{x,	0.0f,	x},		{1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}});
+	v.push_back({{x,	0.0f,	0.0f},	{1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}});
+	v.push_back({{x,	y,		0.0f},	{1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}});
+	v.push_back({{x,	y,		x},		{1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}});
+	v.push_back({{x,	0.0f,	x},		{1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}});
+
+	// bottom
+	v.push_back({{0.0f,	0.0f,	z},		{0.0f, -1.0f, 0.0f}, {0.0f, 0.0f}});
+	v.push_back({{0.0f,	0.0f,	0.0f},	{0.0f, -1.0f, 0.0f}, {0.0f, 0.0f}});
+	v.push_back({{x,	0.0f,	0.0f},	{0.0f, -1.0f, 0.0f}, {0.0f, 0.0f}});
+	v.push_back({{x,	0.0f,	z},		{0.0f, -1.0f, 0.0f}, {0.0f, 0.0f}});
+	v.push_back({{0.0f,	0.0f,	z},		{0.0f, -1.0f, 0.0f}, {0.0f, 0.0f}});
+	v.push_back({{x,	0.0f,	0.0f},	{0.0f, -1.0f, 0.0f}, {0.0f, 0.0f}});
+
+	// top
+	v.push_back({{x,	y,	0.0f},	{0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}});
+	v.push_back({{0.0f,	y,	0.0f},	{0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}});
+	v.push_back({{0.0f,	y,	z},		{0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}});
+	v.push_back({{x,	y,	0.0f},	{0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}});
+	v.push_back({{0.0f,	y,	z},		{0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}});
+	v.push_back({{x,	y,	z},		{0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}});
+
+	return std::make_unique<engine::resources::Mesh>(gfx, v);
 
 }

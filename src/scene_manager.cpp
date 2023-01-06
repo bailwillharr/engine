@@ -24,7 +24,7 @@ namespace engine {
 
 	void SceneManager::updateActiveScene(float ts)
 	{
-		if (m_activeSceneIndex >= 0) {
+		if (m_activeSceneIndex >= 0) [[likely]] {
 			assert((size_t)m_activeSceneIndex < m_scenes.size());
 			m_scenes[m_activeSceneIndex]->update(ts);
 		}

@@ -23,6 +23,6 @@ void main() {
 	fragPos = vec3(constants.view * constants.model * vec4(inPosition, 1.0));
 	fragNorm = mat3(transpose(inverse(constants.view * constants.model))) * inNorm;
 	fragUV = inUV;
-	vec3 lightPos = vec3(-500.0, 500.0, 40.0);
+	vec3 lightPos = vec3(-10.0, 10.0, 10.0);
 	fragLightPos = vec3(constants.view * vec4(lightPos, 1.0));
 }

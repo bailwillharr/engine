@@ -105,7 +105,7 @@ namespace engine::util {
 		public:
 			void write(const char* message) override {
 				(void)message;
-				DEBUG("ASSIMP: {}", message);
+				TRACE("ASSIMP: {}", message);
 			}
 		};
 
@@ -160,23 +160,23 @@ namespace engine::util {
 		assert(scene->HasLights() == false);
 		assert(scene->hasSkeletons() == false);
 
-		INFO("material count: {}, mesh count: {}", scene->mNumMaterials, scene->mNumMeshes);
+		TRACE("material count: {}, mesh count: {}", scene->mNumMaterials, scene->mNumMeshes);
 
 		std::map<int, std::shared_ptr<resources::Texture>> textures{};
 
 		for (uint32_t i = 0; i < scene->mNumMaterials; i++) {
 			const aiMaterial* m = scene->mMaterials[i];
-			INFO("Material {}:", i);
-			INFO("  Name: {}", m->GetName().C_Str());
+			TRACE("Material {}:", i);
+			TRACE("  Name: {}", m->GetName().C_Str());
 			for (uint32_t j = 0; j < m->mNumProperties; j++) {
-				const aiMaterialProperty* p = m->mProperties[j];
-				INFO("  prop {}, key: {}", j, p->mKey.C_Str());
+				[[maybe_unused]] const aiMaterialProperty* p = m->mProperties[j];
+				TRACE("  prop {}, key: {}", j, p->mKey.C_Str());
 			}
 			
 			if (aiGetMaterialTextureCount(m, aiTextureType_DIFFUSE) >= 1) {
 				aiString texPath{};
 				aiGetMaterialTexture(m, aiTextureType_DIFFUSE, 0, &texPath);
-				INFO("  Diffuse tex: {}", texPath.C_Str());
+				TRACE("  Diffuse tex: {}", texPath.C_Str());
 				std::filesystem::path absPath = path;
 				absPath = absPath.parent_path();
 				absPath /= texPath.C_Str();
@@ -195,8 +195,8 @@ namespace engine::util {
 			meshMaterialIndices.push_back(m->mMaterialIndex);
 			std::vector<Vertex> vertices(m->mNumVertices);
 			std::vector<uint32_t> indices(m->mNumFaces * 3);
-			INFO("Mesh {}: vertex count {}", i, vertices.size());
-			INFO("Mesh {}: index count {}", i, indices.size());
+			TRACE("Mesh {}: vertex count {}", i, vertices.size());
+			TRACE("Mesh {}: index count {}", i, indices.size());
 
 			for (uint32_t j = 0; j < vertices.size(); j++) {
 				Vertex v{};
@@ -227,6 +227,8 @@ namespace engine::util {
 		uint32_t obj = parent->createEntity(scene->GetShortFilename(path.c_str()));
 
 		buildGraph(textures, meshes, meshMaterialIndices, scene->mRootNode, parent, obj);
+
+		INFO("Loaded model: {}, meshes: {}, textures: {}", scene->GetShortFilename(path.c_str()), meshes.size(), textures.size());
 
 		Assimp::DefaultLogger::kill();
 		return obj;

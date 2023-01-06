@@ -1,5 +1,7 @@
 #pragma once
 
+#include "log.hpp"
+
 #include "gfx.hpp"
 #include "gfx_device.hpp"
 
@@ -65,6 +67,8 @@ public:
 		vertFormat.stride = stride;
 
 		m_pipeline = m_gfx->createPipeline(vertPath, fragPath, vertFormat, sizeof(glm::mat4), alphaBlending, cullBackFace);
+
+		INFO("Loaded shader: {}, vertex attribs: {}", vertPath, vertFormat.attributeDescriptions.size());
 	}
 	~Shader()
 	{

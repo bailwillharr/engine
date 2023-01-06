@@ -81,9 +81,15 @@ namespace engine {
 			/* logic */
 			m_sceneManager->updateActiveScene(m_window->dt());
 
-			if(m_window->getKeyPress(inputs::Key::K_L)) {
-//				m_enableFrameLimiter = !m_enableFrameLimiter;
+			if(m_window->getKeyPress(inputs::Key::K_F)) [[unlikely]] {
 				m_window->infoBox("fps", std::to_string(m_window->getFPS()) + " fps " + std::to_string(m_window->dt() * 1000.0f) + " ms");
+			}
+
+			uint64_t now = m_window->getNanos();
+			if (now - lastTick >= 1000000000LL * 5LL) [[unlikely]] {
+				lastTick = now;
+				INFO("fps: {}", m_window->getAvgFPS());
+				m_window->resetAvgFPS();
 			}
 
 			/* draw */
@@ -93,12 +99,6 @@ namespace engine {
 			m_window->getInputAndEvents();
 
 			/* fps limiter */
-			uint64_t now = m_window->getNanos();
-			if (now - lastTick >= 1000000000LL * 10LL) {
-				lastTick = now;
-				m_window->setTitle(std::to_string(m_window->getAvgFPS()));
-				m_window->resetAvgFPS();
-			}
 			if (m_enableFrameLimiter) {
 				std::this_thread::sleep_until(endFrame);
 			}

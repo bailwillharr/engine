@@ -1,5 +1,7 @@
 #pragma once
 
+#include "log.hpp"
+
 #include "gfx.hpp"
 #include "gfx_device.hpp"
 
@@ -24,22 +26,16 @@ public:
 	Mesh(GFXDevice* gfx, const std::vector<Vertex>& vertices)
 		: m_gfx(gfx)
 	{
-		m_vb = m_gfx->createBuffer(gfx::BufferType::VERTEX, vertices.size() * sizeof(Vertex), vertices.data());
-
-		std::vector<uint32_t> indices(m_count);
-		for (uint32_t i = 0; i < m_count; i++) {
+		std::vector<uint32_t> indices(vertices.size());
+		for (uint32_t i = 0; i < indices.size(); i++) {
 			indices[i] = i;
 		}
-		m_ib = m_gfx->createBuffer(gfx::BufferType::INDEX, indices.size() * sizeof(uint32_t), indices.data());
-
-		m_count = indices.size();
+		initMesh(vertices, indices);
 	}
 	Mesh(GFXDevice* gfx, const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices)
 		: m_gfx(gfx)
 	{
-		m_vb = m_gfx->createBuffer(gfx::BufferType::VERTEX, vertices.size() * sizeof(Vertex), vertices.data());
-		m_ib = m_gfx->createBuffer(gfx::BufferType::INDEX, indices.size() * sizeof(uint32_t), indices.data());
-		m_count = indices.size();
+		initMesh(vertices, indices);
 	}
 	~Mesh()
 	{
@@ -59,6 +55,14 @@ private:
 	const gfx::Buffer* m_vb;
 	const gfx::Buffer* m_ib;
 	uint32_t m_count;
+
+	void initMesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices)
+	{
+		m_vb = m_gfx->createBuffer(gfx::BufferType::VERTEX, vertices.size() * sizeof(Vertex), vertices.data());
+		m_ib = m_gfx->createBuffer(gfx::BufferType::INDEX, indices.size() * sizeof(uint32_t), indices.data());
+		m_count = indices.size();
+		INFO("Loaded mesh, vertices: {}, indices: {}", vertices.size(), indices.size());
+	}
 
 };
 

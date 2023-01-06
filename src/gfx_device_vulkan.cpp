@@ -283,7 +283,7 @@ namespace engine {
 
 		switch (messageSeverity) {
 		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
-			TRACE("VULKAN MESSAGE{}: ID: {} MSG: {}", msgType, pCallbackData->pMessageIdName, pCallbackData->pMessage);
+			DEBUG("VULKAN MESSAGE{}: ID: {} MSG: {}", msgType, pCallbackData->pMessageIdName, pCallbackData->pMessage);
 			break;
 		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
 			INFO("VULKAN MESSAGE{}: ID: {} MSG: {}", msgType, pCallbackData->pMessageIdName, pCallbackData->pMessage);
@@ -1233,7 +1233,7 @@ namespace engine {
 
 			VkPhysicalDeviceProperties devProps;
 			vkGetPhysicalDeviceProperties(pimpl->physicalDevice, &devProps);
-			INFO("Selected physical device: {}", devProps.deviceName);
+			DEBUG("Selected physical device: {}", devProps.deviceName);
 
 
 
@@ -1702,7 +1702,6 @@ namespace engine {
 
 		auto vertShaderCode = util::readTextFile(vertShaderPath);
 		auto fragShaderCode = util::readTextFile(fragShaderPath);
-		INFO("Opened shader: {}", std::filesystem::path(vertShaderPath).filename().string());
 
 		VkShaderModule vertShaderModule = compileShader(pimpl->device, shaderc_vertex_shader, vertShaderCode->data(), vertShaderPath);
 		VkShaderModule fragShaderModule = compileShader(pimpl->device, shaderc_fragment_shader, fragShaderCode->data(), fragShaderPath);

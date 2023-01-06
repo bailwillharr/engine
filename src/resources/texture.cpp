@@ -21,7 +21,7 @@ Texture::Texture(GFXDevice* gfxDevice, const std::string& path)
 
 	m_gpuTexture = m_gfxDevice->createTexture(texbuf->data(), (uint32_t)width, (uint32_t)height, gfx::TextureFilter::LINEAR, filter);
 
-	DEBUG("loaded texture {}, width: {} height: {} size: {}", path, width, height, texbuf->size());
+	INFO("Loaded texture: {}, width: {} height: {}", path, width, height);
 
 }
 

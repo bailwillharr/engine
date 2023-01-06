@@ -1,6 +1,7 @@
 #include "config.h"
 
 #include "camera_controller.hpp"
+#include "meshgen.hpp"
 
 #include "application.hpp"
 #include "window.hpp"
@@ -108,7 +109,27 @@ void playGame()
 	auto keepTexture = myScene->addResource<engine::resources::Texture>("whiteTexture", std::move(whiteTexture));
 	auto keepShader = myScene->addResource<engine::resources::Shader>("theShader", std::move(theShader));
 
-	engine::util::loadMeshFromFile(myScene, app.getResourcePath("models/astronaut/astronaut.dae"));
+//	uint32_t astronaut = engine::util::loadMeshFromFile(myScene, app.getResourcePath("models/astronaut/astronaut.dae"));
+//	myScene->addComponent<RotateComponent>(astronaut);
+
+	uint32_t sphere = myScene->createEntity("sphere");
+	auto sphereRenderable = myScene->addComponent<engine::RenderableComponent>(sphere);
+	sphereRenderable->material = std::make_unique<engine::resources::Material>(keepShader);
+	sphereRenderable->material->m_texture = keepTexture;
+	sphereRenderable->mesh = genSphereMesh(app.gfx(), 100.0f, 100, true);
+
+	uint32_t light = myScene->createEntity("light");
+	myScene->getComponent<engine::TransformComponent>(light)->position = glm::vec3{-10.0f, 10.0f, 10.0f};
+	auto lightRenderable = myScene->addComponent<engine::RenderableComponent>(light);
+	lightRenderable->material = sphereRenderable->material;
+	lightRenderable->mesh = genSphereMesh(app.gfx(), 0.5f, 10, false, true);
+
+	uint32_t floor = myScene->createEntity("floor");
+//	myScene->getComponent<engine::TransformComponent>(floor)->position = glm::vec3{-50.0f, -0.5f, -50.0f};
+	auto floorRenderable = myScene->addComponent<engine::RenderableComponent>(floor);
+	floorRenderable->material = sphereRenderable->material;
+	floorRenderable->mesh = genCuboidMesh(app.gfx(), 1.0f, 1.0f, 1.0f);
+	myScene->addComponent<RotateComponent>(floor);
 
 	app.gameLoop();
 

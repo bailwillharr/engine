@@ -13,6 +13,8 @@ set(GAME_SOURCES
 	src/game.hpp
 	src/camera_controller.cpp
 	src/camera_controller.hpp
+	src/meshgen.cpp
+	src/meshgen.hpp
 	
 )
 
