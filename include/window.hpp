@@ -63,10 +63,7 @@ namespace engine {
 		// Returns true if the window was just resized during the previous frame
 		bool getWindowResized() const;
 		// Set the window resized flag (to recalculate aspect ratios and such)
-		inline void setResizedFlag()
-		{
-			m_justResized = true;
-		}
+		void setResizedFlag();
 
 		// keyboard events
 

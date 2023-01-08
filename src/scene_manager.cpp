@@ -18,7 +18,7 @@ namespace engine {
 	{
 		auto scene = std::make_unique<Scene>(m_app);
 		m_scenes.emplace_back(std::move(scene));
-		m_activeSceneIndex = m_scenes.size() - 1;
+		m_activeSceneIndex = (int)m_scenes.size() - 1;
 		return m_scenes.back().get();
 	}
 

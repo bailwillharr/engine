@@ -79,5 +79,10 @@ namespace engine {
 
 	}
 
+	void RenderSystem::setCameraEntity(uint32_t entity)
+	{
+		{ m_camera.camEntity = entity; }
+	}
+
 }
 

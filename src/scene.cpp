@@ -41,6 +41,11 @@ namespace engine {
 		return getSystem<TransformSystem>()->getChildEntity(parent, tag);
 	}
 
+	size_t Scene::getComponentSignaturePosition(size_t hash)
+	{
+		return m_componentSignaturePositions.at(hash);
+	}
+
 	void Scene::update(float ts)
 	{
 

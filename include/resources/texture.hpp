@@ -2,6 +2,8 @@
 
 #include "gfx_device.hpp"
 
+#include <string>
+
 namespace engine::resources {
 
 class Texture {

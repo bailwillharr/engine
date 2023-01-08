@@ -16,7 +16,7 @@ namespace engine {
 
 		void onUpdate(float ts) override;
 
-		void setCameraEntity(uint32_t entity) { m_camera.camEntity = entity; }
+		void setCameraEntity(uint32_t entity);
 
 	private:
 		struct {

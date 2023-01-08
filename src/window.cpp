@@ -243,6 +243,11 @@ namespace engine {
 		return m_justResized;
 	}
 
+	void Window::setResizedFlag()
+	{
+		m_justResized = true;
+	}
+
 	void Window::show()
 	{
 		SDL_ShowWindow(m_handle);

@@ -56,10 +56,7 @@ namespace engine {
 		
 		uint32_t getEntity(const std::string& tag, uint32_t parent = 0);
 
-		size_t getComponentSignaturePosition(size_t hash)
-		{
-			return m_componentSignaturePositions.at(hash);
-		}
+		size_t getComponentSignaturePosition(size_t hash);
 		
 		template <typename T>
 		void registerComponent()

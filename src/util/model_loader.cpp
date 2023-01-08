@@ -181,8 +181,8 @@ namespace engine::util {
 				absPath = absPath.parent_path();
 				absPath /= texPath.C_Str();
 				try {
-					textures[i] = std::make_shared<resources::Texture>(parent->app()->gfx(), absPath);
-				} catch (const std::runtime_error& e) {
+					textures[i] = std::make_shared<resources::Texture>(parent->app()->gfx(), absPath.string());
+				} catch (const std::runtime_error&) {
 					textures[i] = parent->getResource<resources::Texture>("textures/white.png");
 				}
 			}

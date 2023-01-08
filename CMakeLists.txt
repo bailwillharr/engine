@@ -12,10 +12,14 @@ set(SRC_FILES
 	"src/ecs_system.cpp"
 	"src/application.cpp"
 
+	"src/libs/stb_image.cpp"
+
 	"src/systems/transform.cpp"
 	"src/systems/render.cpp"
 
+	"src/resources/shader.cpp"
 	"src/resources/material.cpp"
+	"src/resources/mesh.cpp"
 	"src/resources/texture.cpp"
 
 	"src/scene.cpp"
