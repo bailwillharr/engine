@@ -3,6 +3,7 @@
 #include "stb_image.h"
 
 #include <fstream>
+#include <cstring>
 
 namespace engine::util {
 
