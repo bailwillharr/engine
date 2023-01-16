@@ -7,12 +7,13 @@ namespace engine::resources {
 	class Shader;
 	class Texture;
 
+	// copyable
 	class Material {
 
 	public:
 		Material(std::shared_ptr<Shader> shader);
-		~Material();
-		Material(const Material&) = delete;
+		~Material() = default;
+		Material(const Material&);
 		Material& operator=(const Material&) = delete;
 
 		auto getShader() { return m_shader.get(); }

@@ -10,7 +10,8 @@ namespace engine::resources {
 
 	}
 
-	Material::~Material()
+	Material::Material(const Material& original)
+		:	m_texture(original.m_texture), m_shader(original.m_shader)
 	{
 
 	}

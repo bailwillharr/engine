@@ -125,11 +125,15 @@ void playGame()
 	lightRenderable->mesh = genSphereMesh(app.gfx(), 0.5f, 10, false, true);
 
 	uint32_t floor = myScene->createEntity("floor");
-//	myScene->getComponent<engine::TransformComponent>(floor)->position = glm::vec3{-50.0f, -0.5f, -50.0f};
+	myScene->getComponent<engine::TransformComponent>(floor)->position = glm::vec3{-50.0f, -0.1f, -50.0f};
 	auto floorRenderable = myScene->addComponent<engine::RenderableComponent>(floor);
-	floorRenderable->material = sphereRenderable->material;
-	floorRenderable->mesh = genCuboidMesh(app.gfx(), 1.0f, 1.0f, 1.0f);
-	myScene->addComponent<RotateComponent>(floor);
+	floorRenderable->material = std::make_shared<engine::resources::Material>(*sphereRenderable->material);
+	auto grassTexture = std::make_unique<engine::resources::Texture>(
+		app.gfx(),
+		app.getResourcePath("textures/grass.jpg")
+	);
+	floorRenderable->material->m_texture = std::move(grassTexture);
+	floorRenderable->mesh = genCuboidMesh(app.gfx(), 100.0f, 0.1f, 100.0f);
 
 	app.gameLoop();
 
