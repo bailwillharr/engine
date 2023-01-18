@@ -48,8 +48,10 @@ namespace engine {
 
 		for (uint32_t entity : m_entities) {
 
-			auto t = m_scene->getComponent<TransformComponent>(entity);
 			auto r = m_scene->getComponent<RenderableComponent>(entity);
+			if (r->shown == false) continue;
+
+			auto t = m_scene->getComponent<TransformComponent>(entity);
 
 			assert(r->material != nullptr);
 			assert(r->mesh != nullptr);

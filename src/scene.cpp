@@ -2,8 +2,10 @@
 
 #include "components/transform.hpp"
 #include "components/renderable.hpp"
+#include "components/collider.hpp"
 #include "systems/transform.hpp"
 #include "systems/render.hpp"
+#include "systems/physics.hpp"
 
 namespace engine {
 
@@ -12,7 +14,11 @@ namespace engine {
 	{
 		registerComponent<TransformComponent>();
 		registerComponent<RenderableComponent>();
+		registerComponent<ColliderComponent>();
+
+		// Order here matters:
 		registerSystem<TransformSystem>();
+		registerSystem<PhysicsSystem>();
 		registerSystem<RenderSystem>();
 	}
 

@@ -10,6 +10,7 @@
 #include "scene.hpp"
 
 #include "components/transform.hpp"
+#include "components/collider.hpp"
 #include "components/renderable.hpp"
 
 #include "systems/transform.hpp"
@@ -76,6 +77,9 @@ void playGame()
 
 
 
+
+	// scene setup
+
 	auto myScene = app.sceneManager()->createEmptyScene();
 
 	myScene->registerComponent<RotateComponent>();
@@ -87,8 +91,13 @@ void playGame()
 	myScene->registerResourceManager<engine::resources::Shader>();
 	myScene->registerResourceManager<engine::resources::Texture>();
 
+
+
+
+
 	auto camera = myScene->createEntity("camera");
 	myScene->addComponent<CameraControllerComponent>(camera)->standingHeight = myScene->getComponent<engine::TransformComponent>(camera)->position.y = 2.0f;
+	myScene->addComponent<engine::ColliderComponent>(camera)->r = 1.0f;
 	myScene->getSystem<engine::RenderSystem>()->setCameraEntity(camera);
 
 	engine::resources::Shader::VertexParams vertParams{};
@@ -110,7 +119,22 @@ void playGame()
 	auto keepShader = myScene->addResource<engine::resources::Shader>("theShader", std::move(theShader));
 
 //	uint32_t astronaut = engine::util::loadMeshFromFile(myScene, app.getResourcePath("models/astronaut/astronaut.dae"));
-//	myScene->addComponent<RotateComponent>(astronaut);
+
+	auto grassTexture = std::make_shared<engine::resources::Texture>(
+		app.gfx(),
+		app.getResourcePath("textures/grass.jpg")
+	);
+
+	uint32_t enemy = myScene->createEntity("enemy");
+	auto enemyRenderable = myScene->addComponent<engine::RenderableComponent>(enemy);
+	enemyRenderable->material = std::make_unique<engine::resources::Material>(keepShader);
+	enemyRenderable->material->m_texture = grassTexture;
+	enemyRenderable->mesh = genSphereMesh(app.gfx(), 2.0f, 30, false);
+	auto enemyT = myScene->getComponent<engine::TransformComponent>(enemy);
+	enemyT->position.x += 5.0f;
+	enemyT->position.y += 2.0f;
+	enemyT->position.z += 3.0f;
+	myScene->addComponent<engine::ColliderComponent>(enemy)->r = 10.0f;
 
 	uint32_t sphere = myScene->createEntity("sphere");
 	auto sphereRenderable = myScene->addComponent<engine::RenderableComponent>(sphere);
@@ -122,18 +146,15 @@ void playGame()
 	myScene->getComponent<engine::TransformComponent>(light)->position = glm::vec3{-10.0f, 10.0f, 10.0f};
 	auto lightRenderable = myScene->addComponent<engine::RenderableComponent>(light);
 	lightRenderable->material = sphereRenderable->material;
-	lightRenderable->mesh = genSphereMesh(app.gfx(), 0.5f, 10, false, true);
+	lightRenderable->mesh = genSphereMesh(app.gfx(), 0.5f, 40, false, true);
 
 	uint32_t floor = myScene->createEntity("floor");
 	myScene->getComponent<engine::TransformComponent>(floor)->position = glm::vec3{-50.0f, -0.1f, -50.0f};
 	auto floorRenderable = myScene->addComponent<engine::RenderableComponent>(floor);
 	floorRenderable->material = std::make_shared<engine::resources::Material>(*sphereRenderable->material);
-	auto grassTexture = std::make_unique<engine::resources::Texture>(
-		app.gfx(),
-		app.getResourcePath("textures/grass.jpg")
-	);
-	floorRenderable->material->m_texture = std::move(grassTexture);
+	floorRenderable->material->m_texture = grassTexture;
 	floorRenderable->mesh = genCuboidMesh(app.gfx(), 100.0f, 0.1f, 100.0f);
+
 
 	app.gameLoop();
 

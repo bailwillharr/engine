@@ -12,6 +12,7 @@ namespace engine {
 	struct RenderableComponent {
 		std::shared_ptr<resources::Mesh> mesh;
 		std::shared_ptr<resources::Material> material;
+		bool shown = true;
 	};
 
 }

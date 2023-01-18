@@ -16,6 +16,7 @@ set(SRC_FILES
 
 	"src/systems/transform.cpp"
 	"src/systems/render.cpp"
+	"src/systems/physics.cpp"
 
 	"src/resources/shader.cpp"
 	"src/resources/material.cpp"
@@ -43,6 +44,7 @@ set(INCLUDE_FILES
 
 	"include/systems/transform.hpp"
 	"include/systems/render.hpp"
+	"include/systems/physics.hpp"
 
 	"include/resources/shader.hpp"
 	"include/resources/material.hpp"
@@ -66,6 +68,7 @@ set(INCLUDE_FILES
 
 	"include/components/transform.hpp"
 	"include/components/renderable.hpp"
+	"include/components/collider.hpp"
 )
 
 add_library(${PROJECT_NAME} STATIC
