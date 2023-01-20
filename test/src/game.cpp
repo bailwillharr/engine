@@ -52,7 +52,7 @@ void playGame()
 {
 	engine::Application app(PROJECT_NAME, PROJECT_VERSION);
 
-	app.setFrameLimiter(true);
+	app.setFrameLimiter(false);
 
 	// configure window
 	app.window()->setRelativeMouseMode(true);
