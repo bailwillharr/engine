@@ -1,6 +1,7 @@
 #pragma once
 
 #include <unordered_map>
+#include <vector>
 #include <string>
 #include <memory>
 #include <stdexcept>
@@ -28,6 +29,11 @@ namespace engine {
 			}
 		}
 
+		void addPersistent(const std::string& name, std::unique_ptr<T>&& resource)
+		{
+			m_persistentResources.push_back(add(name, std::move(resource)));
+		}
+
 		std::shared_ptr<T> get(const std::string& name)
 		{
 			if (m_resources.contains(name)) {
@@ -45,6 +51,7 @@ namespace engine {
 
 	private:
 		std::unordered_map<std::string, std::weak_ptr<T>> m_resources{};
+		std::vector<std::shared_ptr<T>> m_persistentResources{}; // This array owns persistent resources
 
 	};
 

@@ -66,12 +66,34 @@ namespace engine {
 		// get base path for resources
 		m_resourcesPath = getResourcesPath();
 
-		// initialise some basic resources
-		registerResourceManager<engine::resources::Mesh>();
-		registerResourceManager<engine::resources::Material>();
-		registerResourceManager<engine::resources::Shader>();
+		// register resource managers
 		registerResourceManager<engine::resources::Texture>();
+		registerResourceManager<engine::resources::Shader>();
+		registerResourceManager<engine::resources::Material>();
+		registerResourceManager<engine::resources::Mesh>();
 
+		// default resources
+		{
+			resources::Shader::VertexParams vertParams{};
+			vertParams.hasNormal = true;
+			vertParams.hasUV0 = true;
+			auto texturedShader = std::make_unique<engine::resources::Shader>(
+				gfx(),
+				getResourcePath("engine/shaders/texture.vert").c_str(),
+				getResourcePath("engine/shaders/texture.frag").c_str(),
+				vertParams,
+				false,
+				true
+			);
+			getResourceManager<engine::resources::Shader>()->addPersistent("engine.textured", std::move(texturedShader));
+		}
+		{
+			auto whiteTexture = std::make_unique<engine::resources::Texture>(
+				gfx(),
+				getResourcePath("engine/textures/white.png")
+			);
+			getResourceManager<engine::resources::Texture>()->addPersistent("engine.white", std::move(whiteTexture));
+		}
 	}
 
 	Application::~Application() {}

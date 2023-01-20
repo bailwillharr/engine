@@ -14,6 +14,11 @@ namespace engine {
 	class GFXDevice; // "gfx_device.hpp"
 	class InputManager; // "input_manager.hpp"
 	class SceneManager; // "scene_manager.hpp"
+	
+	namespace resources {
+		class Shader;
+		class Texture;
+	}
 
 	class Application {
 

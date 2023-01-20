@@ -1,5 +1,7 @@
 #include "meshgen.hpp"
 
+#include "resources/mesh.hpp"
+
 #include <glm/gtc/constants.hpp>
 #include <glm/ext.hpp>
 #include <glm/trigonometric.hpp>
