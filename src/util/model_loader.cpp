@@ -77,11 +77,11 @@ namespace engine::util {
 			auto child = scene->createEntity("_mesh" + std::to_string(i), parentObj);
 			auto childRenderer = scene->addComponent<RenderableComponent>(child);
 			childRenderer->mesh = meshes[parentNode->mMeshes[i]];
-			childRenderer->material = std::make_shared<resources::Material>(scene->getResource<resources::Shader>("theShader"));
+			childRenderer->material = std::make_shared<resources::Material>(scene->app()->getResource<resources::Shader>("engine.textured"));
 			if (textures.contains(meshTextureIndices[parentNode->mMeshes[i]])) {
 				childRenderer->material->m_texture = textures.at(meshTextureIndices[parentNode->mMeshes[i]]);
 			} else {
-				childRenderer->material->m_texture = scene->getResource<resources::Texture>("whiteTexture");
+				childRenderer->material->m_texture = scene->app()->getResource<resources::Texture>("engine.white");
 			}
 		}
 
@@ -183,7 +183,7 @@ namespace engine::util {
 				try {
 					textures[i] = std::make_shared<resources::Texture>(parent->app()->gfx(), absPath.string());
 				} catch (const std::runtime_error&) {
-					textures[i] = parent->getResource<resources::Texture>("textures/white.png");
+					textures[i] = parent->app()->getResource<resources::Texture>("engine.white");
 				}
 			}
 		}

@@ -20,9 +20,11 @@ layout(location = 3) out vec3 fragLightPos;
 
 void main() {
 	gl_Position = ubo.proj * constants.view * constants.model * vec4(inPosition, 1.0);
+
 	fragPos = vec3(constants.view * constants.model * vec4(inPosition, 1.0));
 	fragNorm = mat3(transpose(inverse(constants.view * constants.model))) * inNorm;
 	fragUV = inUV;
+
 	vec3 lightPos = vec3(-10.0, 10.0, 10.0);
 	fragLightPos = vec3(constants.view * vec4(lightPos, 1.0));
 }

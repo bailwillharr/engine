@@ -140,10 +140,12 @@ namespace engine {
 		static VkFormat getVertexAttribFormat(gfx::VertexAttribFormat fmt)
 		{
 			switch (fmt) {
-			case gfx::VertexAttribFormat::VEC2:
+			case gfx::VertexAttribFormat::FLOAT2:
 				return VK_FORMAT_R32G32_SFLOAT;
-			case gfx::VertexAttribFormat::VEC3:
+			case gfx::VertexAttribFormat::FLOAT3:
 				return VK_FORMAT_R32G32B32_SFLOAT;
+			case gfx::VertexAttribFormat::FLOAT4:
+				return VK_FORMAT_R32G32B32A32_SFLOAT;
 			}
 			throw std::runtime_error("Unknown vertex attribute format");
 		}

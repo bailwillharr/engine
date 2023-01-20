@@ -15,36 +15,24 @@ namespace engine::resources {
 		uint32_t stride = 0;
 		gfx::VertexFormat vertFormat{};
 
-		vertFormat.attributeDescriptions.emplace_back(index++, gfx::VertexAttribFormat::VEC3, stride);
+		vertFormat.attributeDescriptions.emplace_back(index++, gfx::VertexAttribFormat::FLOAT3, stride);
 		stride += 3 * sizeof(float);
 
 		if (vertexParams.hasNormal) {
-			vertFormat.attributeDescriptions.emplace_back(index++, gfx::VertexAttribFormat::VEC3, stride);
+			vertFormat.attributeDescriptions.emplace_back(index++, gfx::VertexAttribFormat::FLOAT3, stride);
 			stride += 3 * sizeof(float);
-		}
-		if (vertexParams.hasUV0) {
-			vertFormat.attributeDescriptions.emplace_back(index++, gfx::VertexAttribFormat::VEC2, stride);
-			stride += 2 * sizeof(float);
-		}
-		if (vertexParams.hasUV1) {
-			vertFormat.attributeDescriptions.emplace_back(index++, gfx::VertexAttribFormat::VEC2, stride);
-			stride += 2 * sizeof(float);
-		}
-		if (vertexParams.hasUV2) {
-			vertFormat.attributeDescriptions.emplace_back(index++, gfx::VertexAttribFormat::VEC2, stride);
-			stride += 2 * sizeof(float);
-		}
-		if (vertexParams.hasUV3) {
-			vertFormat.attributeDescriptions.emplace_back(index++, gfx::VertexAttribFormat::VEC2, stride);
-			stride += 2 * sizeof(float);
 		}
 		if (vertexParams.hasTangent) {
-			vertFormat.attributeDescriptions.emplace_back(index++, gfx::VertexAttribFormat::VEC3, stride);
-			stride += 3 * sizeof(float);
+			vertFormat.attributeDescriptions.emplace_back(index++, gfx::VertexAttribFormat::FLOAT4, stride);
+			stride += 4 * sizeof(float);
 		}
 		if (vertexParams.hasColor) {
-			vertFormat.attributeDescriptions.emplace_back(index++, gfx::VertexAttribFormat::VEC3, stride);
-			stride += 3 * sizeof(float);
+			vertFormat.attributeDescriptions.emplace_back(index++, gfx::VertexAttribFormat::FLOAT4, stride);
+			stride += 4 * sizeof(float);
+		}
+		if (vertexParams.hasUV0) {
+			vertFormat.attributeDescriptions.emplace_back(index++, gfx::VertexAttribFormat::FLOAT2, stride);
+			stride += 2 * sizeof(float);
 		}
 		vertFormat.stride = stride;
 

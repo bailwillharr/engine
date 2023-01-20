@@ -75,9 +75,6 @@ void playGame()
 	app.inputManager()->addInputAxis("lookx", engine::inputs::MouseAxis::X);
 	app.inputManager()->addInputAxis("looky", engine::inputs::MouseAxis::Y);
 
-
-
-
 	// scene setup
 
 	auto myScene = app.sceneManager()->createEmptyScene();
@@ -87,9 +84,6 @@ void playGame()
 
 	myScene->registerSystem<RotateSystem>();
 	myScene->registerSystem<CameraControllerSystem>();
-
-	myScene->registerResourceManager<engine::resources::Shader>();
-	myScene->registerResourceManager<engine::resources::Texture>();
 
 
 
@@ -115,10 +109,11 @@ void playGame()
 		app.gfx(),
 		app.getResourcePath("engine/textures/white.png")
 	);
-	auto keepTexture = myScene->addResource<engine::resources::Texture>("whiteTexture", std::move(whiteTexture));
-	auto keepShader = myScene->addResource<engine::resources::Shader>("theShader", std::move(theShader));
+	auto keepTexture = app.addResource<engine::resources::Texture>("engine.white", std::move(whiteTexture));
+	auto keepShader = app.addResource<engine::resources::Shader>("engine.textured", std::move(theShader));
 
-//	uint32_t astronaut = engine::util::loadMeshFromFile(myScene, app.getResourcePath("models/astronaut/astronaut.dae"));
+	uint32_t astronaut = engine::util::loadMeshFromFile(myScene, app.getResourcePath("models/astronaut/astronaut.dae"));
+	(void)astronaut;
 
 	auto grassTexture = std::make_shared<engine::resources::Texture>(
 		app.gfx(),

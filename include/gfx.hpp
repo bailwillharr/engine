@@ -25,8 +25,9 @@ namespace engine::gfx {
 	};
 
 	enum class VertexAttribFormat {
-		VEC2,
-		VEC3,
+		FLOAT2,
+		FLOAT3,
+		FLOAT4
 	};
 
 	enum class TextureFilter {

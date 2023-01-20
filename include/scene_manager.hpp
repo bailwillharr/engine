@@ -9,12 +9,6 @@ namespace engine {
 
 	class Application;
 	class Scene; // "scene.hpp"
-	namespace resources {
-		class Texture;
-		class Shader;
-		class Mesh;
-		class Material;
-	}
 
 	class SceneManager {
 

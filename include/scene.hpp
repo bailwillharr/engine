@@ -2,7 +2,6 @@
 
 #include "log.hpp"
 
-#include "resource_manager.hpp"
 #include "ecs_system.hpp"
 
 #include <map>
@@ -25,30 +24,6 @@ namespace engine {
 		void update(float ts);
 
 		Application* app() { return m_app; }
-
-		/* resource stuff */
-
-		template <typename T>
-		void registerResourceManager()
-		{
-			size_t hash = typeid(T).hash_code();
-			assert(m_resourceManagers.contains(hash) == false && "Registering resource manager type more than once.");
-			m_resourceManagers.emplace(hash, std::make_unique<ResourceManager<T>>());
-		}
-
-		template <typename T>
-		std::shared_ptr<T> addResource(const std::string& name, std::unique_ptr<T>&& resource)
-		{
-			auto resourceManager = getResourceManager<T>();
-			return resourceManager->add(name, std::move(resource));
-		}
-
-		template <typename T>
-		std::shared_ptr<T> getResource(const std::string& name)
-		{
-			auto resourceManager = getResourceManager<T>();
-			return resourceManager->get(name);
-		}
 
 		/* ecs stuff */
 
@@ -126,24 +101,6 @@ namespace engine {
 	private:
 		Application* const m_app;
 		uint32_t m_nextEntityID = 1000;
-
-		/* resource stuff */
-
-		std::map<size_t, std::unique_ptr<IResourceManager>> m_resourceManagers{};
-
-		template <typename T>
-		ResourceManager<T>* getResourceManager()
-		{
-			size_t hash = typeid(T).hash_code();
-			auto it = m_resourceManagers.find(hash);
-			if (it == m_resourceManagers.end()) {
-				throw std::runtime_error("Cannot find resource manager.");
-			}
-			auto ptr = it->second.get();
-			auto castedPtr = dynamic_cast<ResourceManager<T>*>(ptr);
-			assert(castedPtr != nullptr);
-			return castedPtr;
-		}
 
 		/* ecs stuff */
 

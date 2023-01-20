@@ -9,6 +9,11 @@
 
 #include "scene.hpp"
 
+#include "resources/mesh.hpp"
+#include "resources/material.hpp"
+#include "resources/shader.hpp"
+#include "resources/texture.hpp"
+
 // To allow the FPS-limiter to put the thread to sleep
 #include <thread>
 
@@ -60,6 +65,13 @@ namespace engine {
 
 		// get base path for resources
 		m_resourcesPath = getResourcesPath();
+
+		// initialise some basic resources
+		registerResourceManager<engine::resources::Mesh>();
+		registerResourceManager<engine::resources::Material>();
+		registerResourceManager<engine::resources::Shader>();
+		registerResourceManager<engine::resources::Texture>();
+
 	}
 
 	Application::~Application() {}
