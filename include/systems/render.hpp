@@ -22,7 +22,7 @@ namespace engine {
 		struct {
 			// only uses transform component, which is required for all entities anyway
 			uint32_t camEntity = 0;
-			float horizontalFovDegrees = 70.0f;
+			float verticalFovDegrees = 70.0f;
 			float clipNear = 0.1f;
 			float clipFar = 1000.0f;
 		} m_camera;

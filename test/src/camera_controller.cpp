@@ -6,6 +6,7 @@
 #include "scene.hpp"
 
 #include "components/transform.hpp"
+#include "components/collider.hpp"
 
 #include <glm/trigonometric.hpp>
 #include <glm/gtc/constants.hpp>
@@ -23,14 +24,17 @@ void CameraControllerSystem::onUpdate(float ts)
 {
 
 	engine::TransformComponent* t = nullptr;
+	engine::ColliderComponent* col = nullptr;
 	CameraControllerComponent* c = nullptr;
 	for (uint32_t entity : m_entities) {
 		t = m_scene->getComponent<engine::TransformComponent>(entity);
+		col = m_scene->getComponent<engine::ColliderComponent>(entity);
 		c = m_scene->getComponent<CameraControllerComponent>(entity);
 		break;
 	}
 	if (t == nullptr) return;
 	if (c == nullptr) return;
+	if (col == nullptr) return;
 
 	// calculate new position
 
@@ -48,23 +52,26 @@ void CameraControllerSystem::onUpdate(float ts)
 	if (m_scene->app()->inputManager()->getButton("jump") && c->isJumping == false) {
 		c->isJumping = true;
 		c->dy = JUMPVEL;
-		//standingHeight = tcomp->position.y;
 		
 	}
 
 	if (c->isJumping) {
 		c->dy -= G * dt;
-		t->position.y += c->dy * dt;
-		if (t->position.y < c->standingHeight) {
+		if (col->getIsColliding()) {
 			c->isJumping = false;
 			c->dy = 0.0f;
-			t->position.y = c->standingHeight;
-
+		}
+	} else {
+		if (col->getIsColliding()) {
+			c->dy = -c->dy;
 		}
 	}
+	if (col->getJustUncollided()) {
+		c->isJumping = true;
+	}
+//	c->dy -= c->dy * dt; // damp velocity
 
 	if (m_scene->app()->window()->getButton(engine::inputs::MouseButton::M_LEFT)) {
-		//standingHeight = tcomp->position.y;
 		c->dy += dt * c->thrust;
 		c->isJumping = true;
 	}
@@ -98,9 +105,9 @@ void CameraControllerSystem::onUpdate(float ts)
 	constexpr float MAX_DISTANCE_FROM_ORIGIN = 1000.0f;
 
 	if (glm::length(t->position) > MAX_DISTANCE_FROM_ORIGIN) {
-		t->position = { 0.0f, c->standingHeight, 0.0f };
+		t->position = { 0.0f, 5.0f, 0.0f };
 		c->dy = 0.0f;
-		c->isJumping = false;
+		c->isJumping = true;
 	}
 
 	/* ROTATION STUFF */

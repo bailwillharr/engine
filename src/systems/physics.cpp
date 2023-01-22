@@ -54,36 +54,64 @@ namespace engine {
 		}
 
 		for (size_t i = 0; i < entityColliders.size(); i++) {
+			auto* ec1 = &entityColliders[i];
+
 			for (size_t j = i + 1; j < entityColliders.size(); j++) {
-				const vec3 v = entityColliders[i].pos - entityColliders[j].pos;
-				const float distanceSquared = v.x * v.x + v.y * v.y + v.z * v.z;
-				const float sumOfRadii = entityColliders[i].c->r + entityColliders[j].c->r;
-				const float sumOfRadiiSquared = sumOfRadii * sumOfRadii;
 
-				if (distanceSquared < sumOfRadiiSquared) {
-					entityColliders[i].c->m_isColliding = true;
-					entityColliders[j].c->m_isColliding = true;
-				}
-			}
+				auto* ec2 = &entityColliders[j];
 
-			if (entityColliders[i].wasColliding != entityColliders[i].c->getIsColliding()) {
-				if (entityColliders[i].c->getIsColliding()) {
-					entityColliders[i].c->m_justCollided = true;
+				if (	ec1->c->colliderType == ColliderType::SPHERE &&
+						ec2->c->colliderType == ColliderType::SPHERE		) {
+					const vec3 v = ec1->pos - ec2->pos;
+					const float distanceSquared = v.x * v.x + v.y * v.y + v.z * v.z;
+					const float sumOfRadii = ec1->c->colliders.sphereCollider.r + ec2->c->colliders.sphereCollider.r;
+					const float sumOfRadiiSquared = sumOfRadii * sumOfRadii;
+					if (distanceSquared < sumOfRadiiSquared) {
+						ec1->c->m_isColliding = true;
+						ec2->c->m_isColliding = true;
+					}
+
+				} else if (		(ec1->c->colliderType == ColliderType::PLANE &&
+								 ec2->c->colliderType == ColliderType::SPHERE) ||
+								(ec1->c->colliderType == ColliderType::SPHERE &&
+								 ec2->c->colliderType == ColliderType::PLANE)) {
+					CollisionInfo *plane, *sphere;
+					if (ec1->c->colliderType == ColliderType::PLANE) {
+						plane = ec1;
+						sphere = ec2;
+					} else {
+						sphere = ec1;
+						plane = ec2;
+					}
+					float distance = plane->pos.y - sphere->pos.y;
+					if (distance < 0.0f) distance = -distance; // make positive
+					if (distance < sphere->c->colliders.sphereCollider.r) {
+						plane->c->m_isColliding = true;
+						sphere->c->m_isColliding = true;
+					}
 				} else {
-					entityColliders[i].c->m_justUncollided = true;
+					throw std::runtime_error("Collision combination not supported!");
 				}
+
 			}
 
-			if (entityColliders[i].c->getJustCollided()) {
-				TRACE("'{}' has collided!", entityColliders[i].t->tag);
-				auto r = m_scene->getComponent<RenderableComponent>(entityColliders[i].entity);
+			if (ec1->wasColliding != ec1->c->getIsColliding()) {
+				if (ec1->c->getIsColliding()) {
+					ec1->c->m_justCollided = true;
+				} else {
+					ec1->c->m_justUncollided = true;
+				}
+			}
+			if (ec1->c->getJustCollided()) {
+				TRACE("'{}' has collided!", ec1->t->tag);
+				auto r = m_scene->getComponent<RenderableComponent>(ec1->entity);
 				if (r != nullptr) {
 					r->shown = true;
 				}
 			}
-			if (entityColliders[i].c->getJustUncollided()) {
-				TRACE("'{}' has stopped colliding!", entityColliders[i].t->tag);
-				auto r = m_scene->getComponent<RenderableComponent>(entityColliders[i].entity);
+			if (ec1->c->getJustUncollided()) {
+				TRACE("'{}' has stopped colliding!", ec1->t->tag);
+				auto r = m_scene->getComponent<RenderableComponent>(ec1->entity);
 				if (r != nullptr) {
 					r->shown = false;
 				}

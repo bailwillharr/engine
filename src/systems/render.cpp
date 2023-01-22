@@ -40,9 +40,10 @@ namespace engine {
 			gfx->getViewportSize(&w, &h);
 			m_viewportAspectRatio = (float)w / (float)h;
 		}
-		const float horizontalFovRadians = glm::radians(m_camera.horizontalFovDegrees);
-		const float verticalFov = glm::atan( glm::tan(horizontalFovRadians / 2.0f) / m_viewportAspectRatio ) * 2.0f;
-		const glm::mat4 projMatrix = glm::perspectiveZO(verticalFov, m_viewportAspectRatio, m_camera.clipNear, m_camera.clipFar);
+		const float verticalFovRadians = glm::radians(m_camera.verticalFovDegrees);
+//		const float horizontalFovRadians = glm::radians(m_camera.horizontalFovDegrees);
+//		const float verticalFov = glm::atan( glm::tan(horizontalFovRadians / 2.0f) / m_viewportAspectRatio ) * 2.0f;
+		const glm::mat4 projMatrix = glm::perspectiveZO(verticalFovRadians, m_viewportAspectRatio, m_camera.clipNear, m_camera.clipFar);
 
 		/* render all renderable entities */
 

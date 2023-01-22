@@ -53,8 +53,11 @@ void playGame()
 	myScene->registerSystem<CameraControllerSystem>();
 
 	auto camera = myScene->createEntity("camera");
-	myScene->addComponent<CameraControllerComponent>(camera)->standingHeight = myScene->getComponent<engine::TransformComponent>(camera)->position.y = 2.0f;
-	myScene->addComponent<engine::ColliderComponent>(camera)->r = 1.0f;
+	myScene->getComponent<engine::TransformComponent>(camera)->position.y = 2.0f;
+	auto cameraCollider = myScene->addComponent<engine::ColliderComponent>(camera);
+	cameraCollider->colliderType = engine::ColliderType::SPHERE;
+	cameraCollider->colliders.sphereCollider.r = 1.8f;
+	myScene->addComponent<CameraControllerComponent>(camera);
 
 	myScene->getSystem<engine::RenderSystem>()->setCameraEntity(camera);
 
@@ -69,12 +72,14 @@ void playGame()
 	auto enemyRenderable = myScene->addComponent<engine::RenderableComponent>(enemy);
 	enemyRenderable->material = std::make_unique<engine::resources::Material>(app.getResource<engine::resources::Shader>("engine.textured"));
 	enemyRenderable->material->m_texture = grassTexture;
-	enemyRenderable->mesh = genSphereMesh(app.gfx(), 2.0f, 30, false);
+	enemyRenderable->mesh = genSphereMesh(app.gfx(), 5.0f, 50, false);
 	auto enemyT = myScene->getComponent<engine::TransformComponent>(enemy);
 	enemyT->position.x += 5.0f;
 	enemyT->position.y += 2.0f;
 	enemyT->position.z += 3.0f;
-	myScene->addComponent<engine::ColliderComponent>(enemy)->r = 10.0f;
+	auto enemyCollider = myScene->addComponent<engine::ColliderComponent>(enemy);
+	enemyCollider->colliderType = engine::ColliderType::SPHERE;
+	enemyCollider->colliders.sphereCollider.r = 5.0f;
 
 	uint32_t sphere = myScene->createEntity("sphere");
 	auto sphereRenderable = myScene->addComponent<engine::RenderableComponent>(sphere);
@@ -94,6 +99,7 @@ void playGame()
 	floorRenderable->material = std::make_shared<engine::resources::Material>(*sphereRenderable->material);
 	floorRenderable->material->m_texture = grassTexture;
 	floorRenderable->mesh = genCuboidMesh(app.gfx(), 100.0f, 0.1f, 100.0f);
+	myScene->addComponent<engine::ColliderComponent>(floor)->colliderType = engine::ColliderType::PLANE;
 
 	app.gameLoop();
 

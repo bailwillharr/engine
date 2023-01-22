@@ -4,10 +4,21 @@ namespace engine {
 
 	class PhysicsSystem;
 
+	enum class ColliderType {
+		SPHERE,
+		PLANE,
+	};
+
 	struct ColliderComponent  {
 		friend PhysicsSystem;
 
-		float r;
+		ColliderType colliderType;
+
+		union {
+			struct {
+				float r;
+			} sphereCollider;
+		} colliders;
 
 		bool getIsColliding() { return m_isColliding; }
 		bool getJustCollided() { return m_justCollided; }

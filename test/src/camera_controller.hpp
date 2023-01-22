@@ -14,6 +14,7 @@ struct CameraControllerComponent {
 	float dy = 0.0f;
 	float standingHeight = 0.0f;
 	const float thrust = 25.0f;
+
 };
 
 class CameraControllerSystem : public engine::System {
