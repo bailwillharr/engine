@@ -61,7 +61,7 @@ void playGame()
 
 	myScene->getSystem<engine::RenderSystem>()->setCameraEntity(camera);
 
-	engine::util::loadMeshFromFile(myScene, app.getResourcePath("models/astronaut/astronaut.dae"));
+//	engine::util::loadMeshFromFile(myScene, app.getResourcePath("models/astronaut/astronaut.dae"));
 
 	auto grassTexture = std::make_shared<engine::resources::Texture>(
 		app.gfx(),
