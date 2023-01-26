@@ -79,9 +79,9 @@ void playGame()
 	enemyRenderable->material->m_texture = app.getResource<engine::resources::Texture>("engine.white");
 	enemyRenderable->mesh = genSphereMesh(app.gfx(), 5.0f, 500, false);
 	auto enemyT = myScene->getComponent<engine::TransformComponent>(enemy);
-	enemyT->position.x += 5.0f;
+	enemyT->position.x += 10.0f;
 	enemyT->position.y += 2.0f;
-	enemyT->position.z += 3.0f;
+	enemyT->position.z += 14.0f;
 	auto enemyCollider = myScene->addComponent<engine::ColliderComponent>(enemy);
 	enemyCollider->colliderType = engine::ColliderType::SPHERE;
 	enemyCollider->colliders.sphereCollider.r = 5.0f;

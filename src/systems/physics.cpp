@@ -53,6 +53,7 @@ namespace engine {
 			i++;
 		}
 
+		// compares every entity to every other entity, but pairs are never repeated
 		for (size_t i = 0; i < entityColliders.size(); i++) {
 			auto* ec1 = &entityColliders[i];
 
@@ -62,15 +63,18 @@ namespace engine {
 
 				if (	ec1->c->colliderType == ColliderType::SPHERE &&
 						ec2->c->colliderType == ColliderType::SPHERE		) {
-					const vec3 v = ec1->pos - ec2->pos;
+					const vec3 v = ec2->pos - ec1->pos;
 					const float distanceSquared = v.x * v.x + v.y * v.y + v.z * v.z;
 					const float sumOfRadii = ec1->c->colliders.sphereCollider.r + ec2->c->colliders.sphereCollider.r;
 					const float sumOfRadiiSquared = sumOfRadii * sumOfRadii;
 					if (distanceSquared < sumOfRadiiSquared) {
 						ec1->c->m_isColliding = true;
+						ec1->c->m_lastEntityCollided = ec2->entity;
+						ec1->c->m_lastCollisionNormal = glm::normalize(v);
 						ec2->c->m_isColliding = true;
+						ec2->c->m_lastEntityCollided = ec1->entity;
+						ec2->c->m_lastCollisionNormal = -ec1->c->m_lastCollisionNormal;
 					}
-
 				} else if (		(ec1->c->colliderType == ColliderType::PLANE &&
 								 ec2->c->colliderType == ColliderType::SPHERE) ||
 								(ec1->c->colliderType == ColliderType::SPHERE &&
@@ -87,7 +91,10 @@ namespace engine {
 					if (distance < 0.0f) distance = -distance; // make positive
 					if (distance < sphere->c->colliders.sphereCollider.r) {
 						plane->c->m_isColliding = true;
+						plane->c->m_lastEntityCollided = sphere->entity;
 						sphere->c->m_isColliding = true;
+						sphere->c->m_lastEntityCollided = plane->entity;
+						sphere->c->m_lastCollisionNormal = {0.0f, 1.0f, 0.0f};
 					}
 				} else {
 					throw std::runtime_error("Collision combination not supported!");

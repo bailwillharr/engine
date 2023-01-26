@@ -1,5 +1,8 @@
 #pragma once
 
+#include <glm/vec3.hpp>
+#include <cstdint>
+
 namespace engine {
 
 	class PhysicsSystem;
@@ -20,14 +23,18 @@ namespace engine {
 			} sphereCollider;
 		} colliders;
 
-		bool getIsColliding() { return m_isColliding; }
-		bool getJustCollided() { return m_justCollided; }
-		bool getJustUncollided() { return m_justUncollided; }
+		auto getIsColliding() { return m_isColliding; }
+		auto getJustCollided() { return m_justCollided; }
+		auto getJustUncollided() { return m_justUncollided; }
+		auto getLastEntityCollided() { return m_lastEntityCollided; }
+		auto getLastCollisionNormal() { return m_lastCollisionNormal; }
 
 	private:
 		bool m_isColliding;
 		bool m_justCollided;
 		bool m_justUncollided;
+		uint32_t m_lastEntityCollided;
+		glm::vec3 m_lastCollisionNormal;
 	};
 
 }

@@ -42,34 +42,37 @@ void CameraControllerSystem::onUpdate(float ts)
 
 	const float dt = ts;
 
-	// jumping
 	constexpr float G = 9.8f;
-//	constexpr float JUMPHEIGHT = 16.0f * 25.4f / 1000.0f; // 16 inches
-	constexpr float JUMPVEL = (float)2.82231110971133017648; //std::sqrt(2 * G * JUMPHEIGHT);
-	//constexpr float JUMPDURATION = 0.5f;
-	//constexpr float JUMPVEL = G * JUMPDURATION / 2.0f;
+	constexpr float MAX_SLOPE_ANGLE = glm::radians(20.0f);
 
-	if (m_scene->app()->inputManager()->getButton("jump") && c->isJumping == false) {
-		c->isJumping = true;
-		c->dy = JUMPVEL;
-		
-	}
+	glm::vec3 norm = col->getLastCollisionNormal();
 
-	if (c->isJumping) {
-		c->dy -= G * dt;
-		if (col->getIsColliding()) {
-			c->isJumping = false;
+	norm.y = 0.0f;
+
+	glm::vec3 dir = glm::normalize(glm::rotateY(glm::vec3{ 1.0f, 0.0f, 0.0f }, c->m_yaw) + glm::rotateY(glm::vec3{ 0.0f, 0.0f, 1.0f }, c->m_yaw));
+	const float slope = glm::half_pi<float>() - glm::acos(glm::dot(dir, norm));
+
+	bool isSliding = false;
+
+	if (col->getIsColliding()) {
+		if (c->dy != 0.0f && slope <= MAX_SLOPE_ANGLE) {
+			t->position.y = m_scene->getComponent<engine::TransformComponent>(col->getLastEntityCollided())->worldMatrix[3][1] + 1.8f;
 			c->dy = 0.0f;
+		} else {
+			// slide across wall
+			isSliding = true;
 		}
 	} else {
-		if (col->getIsColliding()) {
-			c->dy = -c->dy;
-		}
+		c->dy -= G * dt;
 	}
-	if (col->getJustUncollided()) {
-		c->isJumping = true;
+	
+
+	// jumping
+	constexpr float JUMPVEL = (float)2.82231110971133017648; //std::sqrt(2 * G * JUMPHEIGHT);
+	if (m_scene->app()->inputManager()->getButton("jump") && c->isJumping == false) {
+		if (col->getIsColliding())
+			c->dy = JUMPVEL;
 	}
-//	c->dy -= c->dy * dt; // damp velocity
 
 	if (m_scene->app()->window()->getButton(engine::inputs::MouseButton::M_LEFT)) {
 		c->dy += dt * c->thrust;
@@ -81,8 +84,8 @@ void CameraControllerSystem::onUpdate(float ts)
 	float SPEED = c->walk_speed;
 	if (m_scene->app()->inputManager()->getButton("sprint")) SPEED *= 10.0f;
 
-	const float dx = m_scene->app()->inputManager()->getAxis("movex") * SPEED;
-	const float dz = (-m_scene->app()->inputManager()->getAxis("movey")) * SPEED;
+	float dx = m_scene->app()->inputManager()->getAxis("movex");
+	float dz = (-m_scene->app()->inputManager()->getAxis("movey"));
 
 	// calculate new pitch and yaw
 
@@ -99,7 +102,12 @@ void CameraControllerSystem::onUpdate(float ts)
 	// update position relative to camera direction in xz plane
 	const glm::vec3 d2xRotated = glm::rotateY(glm::vec3{ dx, 0.0f, 0.0f }, c->m_yaw);
 	const glm::vec3 d2zRotated = glm::rotateY(glm::vec3{ 0.0f, 0.0f, dz }, c->m_yaw);
-	t->position += (d2xRotated + d2zRotated) * dt;
+	glm::vec3 hVel = (d2xRotated + d2zRotated);
+	if (isSliding) {
+		hVel = glm::vec3{norm.z, 0.0f, norm.x};
+	}
+	hVel *= SPEED;
+	t->position += hVel * dt;
 	t->position.y += c->dy * dt;
 
 	constexpr float MAX_DISTANCE_FROM_ORIGIN = 1000.0f;
@@ -141,7 +149,8 @@ void CameraControllerSystem::onUpdate(float ts)
 			" y: " + std::to_string(t->position.y) +
 			" z: " + std::to_string(t->position.z)
 		};
-		m_scene->app()->window()->infoBox("POSITION", pos_string);
+//		m_scene->app()->window()->infoBox("POSITION", pos_string);
+		m_scene->app()->window()->infoBox("POSITION", std::to_string(slope));
 		INFO("position: " + pos_string);
 	}
 
