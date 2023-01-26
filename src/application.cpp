@@ -67,17 +67,17 @@ namespace engine {
 		m_resourcesPath = getResourcesPath();
 
 		// register resource managers
-		registerResourceManager<engine::resources::Texture>();
-		registerResourceManager<engine::resources::Shader>();
-		registerResourceManager<engine::resources::Material>();
-		registerResourceManager<engine::resources::Mesh>();
+		registerResourceManager<resources::Texture>();
+		registerResourceManager<resources::Shader>();
+		registerResourceManager<resources::Material>();
+		registerResourceManager<resources::Mesh>();
 
 		// default resources
 		{
 			resources::Shader::VertexParams vertParams{};
 			vertParams.hasNormal = true;
 			vertParams.hasUV0 = true;
-			auto texturedShader = std::make_unique<engine::resources::Shader>(
+			auto texturedShader = std::make_unique<resources::Shader>(
 				gfx(),
 				getResourcePath("engine/shaders/texture.vert").c_str(),
 				getResourcePath("engine/shaders/texture.frag").c_str(),
@@ -85,14 +85,17 @@ namespace engine {
 				false,
 				true
 			);
-			getResourceManager<engine::resources::Shader>()->addPersistent("engine.textured", std::move(texturedShader));
+			getResourceManager<resources::Shader>()->addPersistent("engine.textured", std::move(texturedShader));
 		}
 		{
-			auto whiteTexture = std::make_unique<engine::resources::Texture>(
+			auto whiteTexture = std::make_unique<resources::Texture>(
 				gfx(),
-				getResourcePath("engine/textures/white.png")
+				getResourcePath("engine/textures/white.png"),
+				resources::Texture::Filtering::OFF,
+				false,
+				false
 			);
-			getResourceManager<engine::resources::Texture>()->addPersistent("engine.white", std::move(whiteTexture));
+			getResourceManager<resources::Texture>()->addPersistent("engine.white", std::move(whiteTexture));
 		}
 	}
 

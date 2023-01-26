@@ -9,7 +9,14 @@ namespace engine::resources {
 class Texture {
 
 public:
-	Texture(GFXDevice* gfxDevice, const std::string& path);
+	enum class Filtering {
+		OFF,
+		BILINEAR,
+		TRILINEAR,
+		ANISOTROPIC,
+	};
+
+	Texture(GFXDevice* gfxDevice, const std::string& path, Filtering filtering, bool useMipmaps, bool useLinearMagFilter);
 	~Texture();
 	Texture(const Texture&) = delete;
 	Texture& operator=(const Texture&) = delete;

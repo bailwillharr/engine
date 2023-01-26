@@ -42,6 +42,8 @@ void playGame()
 {
 	engine::Application app(PROJECT_NAME, PROJECT_VERSION);
 
+	app.setFrameLimiter(true);
+
 	// configure window
 	app.window()->setRelativeMouseMode(true);
 	
@@ -61,11 +63,14 @@ void playGame()
 
 	myScene->getSystem<engine::RenderSystem>()->setCameraEntity(camera);
 
-//	engine::util::loadMeshFromFile(myScene, app.getResourcePath("models/astronaut/astronaut.dae"));
+	engine::util::loadMeshFromFile(myScene, app.getResourcePath("models/van/van.dae"));
 
 	auto grassTexture = std::make_shared<engine::resources::Texture>(
 		app.gfx(),
-		app.getResourcePath("textures/grass.jpg")
+		app.getResourcePath("textures/grass.jpg"),
+		engine::resources::Texture::Filtering::ANISOTROPIC,
+		true,
+		true
 	);
 
 	uint32_t enemy = myScene->createEntity("enemy");

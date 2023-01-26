@@ -35,7 +35,14 @@ namespace engine {
 		gfx::Buffer* createBuffer(gfx::BufferType type, uint64_t size, const void* data);
 		void destroyBuffer(const gfx::Buffer* buffer);
 
-		gfx::Texture* createTexture(const void* imageData, uint32_t w, uint32_t h, gfx::TextureFilter minFilter, gfx::TextureFilter magFilter);
+		gfx::Texture* createTexture(
+			const void* imageData,
+			uint32_t width,
+			uint32_t height,
+			gfx::TextureFilter minFilter,
+			gfx::TextureFilter magFilter,
+			gfx::MipmapSetting mipmapSetting,
+			bool useAnisotropy = false);
 		void destroyTexture(const gfx::Texture* texture);
 
 		// wait until all the active GPU queues have finished working

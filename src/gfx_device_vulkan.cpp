@@ -488,7 +488,6 @@ namespace engine {
 
 	static VkSampleCountFlagBits getMaxSampleCount(VkPhysicalDevice physicalDevice)
 	{
-
 		VkPhysicalDeviceProperties physicalDeviceProperties;
 		vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
 
@@ -500,7 +499,7 @@ namespace engine {
 		if (counts & VK_SAMPLE_COUNT_8_BIT) { return VK_SAMPLE_COUNT_8_BIT; }
 		if (counts & VK_SAMPLE_COUNT_4_BIT) { return VK_SAMPLE_COUNT_4_BIT; }
 		if (counts & VK_SAMPLE_COUNT_2_BIT) { return VK_SAMPLE_COUNT_2_BIT; }
-		return VK_SAMPLE_COUNT_1_BIT;
+		throw std::runtime_error("MSAA is not supported");
 	}
 
 	// This is called not just on initialisation, but also when the window is resized.
@@ -636,6 +635,7 @@ namespace engine {
 		res = vkGetSwapchainImagesKHR(device, swapchain->swapchain, &swapchainImageCount, swapchain->images.data());
 		assert(res == VK_SUCCESS);
 
+		// Use multisample anti-aliasing
 		swapchain->msaaSamples = getMaxSampleCount(physicalDevice);
 
 		// create depth buffer if old depth buffer is wrong size.
@@ -1004,6 +1004,8 @@ namespace engine {
 		VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 		VkDevice device = VK_NULL_HANDLE;
 		
+		Swapchain swapchain{};
+
 		std::vector<Queue> queues{};
 		Queue gfxQueue{};
 		Queue presentQueue{};
@@ -1011,20 +1013,17 @@ namespace engine {
 
 		VmaAllocator allocator = nullptr;
 
+		// device settings
 		bool vsync = false;
+		float maxSamplerAnisotropy;
 
-		Swapchain swapchain{};
-
+		// render loop
 		uint64_t FRAMECOUNT = 0;
-
 		std::array<VkCommandBuffer, FRAMES_IN_FLIGHT> commandBuffers{};
 		std::array<VkFence, FRAMES_IN_FLIGHT> inFlightFences{};
-
 		std::queue<DrawCall> drawQueue{};
-		
 		VkDescriptorSetLayoutBinding uboLayoutBinding{};
 		VkDescriptorSetLayout descriptorSetLayout{};
-
 		VkDescriptorSetLayoutBinding samplerLayoutBinding{};
 		VkDescriptorSetLayout samplerSetLayout{};
 
@@ -1043,14 +1042,13 @@ namespace engine {
 		// initialise vulkan
 
 		res = volkInitialize();
-		if (res == VK_ERROR_INITIALIZATION_FAILED) {
+		if (res != VK_SUCCESS) {
 			throw std::runtime_error("Unable to load vulkan, is it installed?");
 		}
 
-		assert(res == VK_SUCCESS);
-
 		uint32_t vulkanVersion = volkGetInstanceVersion();
-		if (vulkanVersion < VK_MAKE_VERSION(1, 3, 0)) {
+		assert(vulkanVersion != 0);
+		if (vulkanVersion < VK_API_VERSION_1_3) {
 			throw std::runtime_error("The loaded Vulkan version must be at least 1.3");
 		}
 
@@ -1122,17 +1120,16 @@ namespace engine {
 
 
 
-#ifndef NDEBUG
 		for (const char* ext : extensions) {
-			TRACE("Using Vulkan instance extension: {}", ext);
+			DEBUG("Using Vulkan instance extension: {}", ext);
 		}
-#endif
 
 		res = vkCreateInstance(&instanceInfo, nullptr, &pimpl->instance);
 		if (res == VK_ERROR_INCOMPATIBLE_DRIVER) {
 			throw std::runtime_error("The graphics driver is incompatible with vulkan");
+		} else if (res != VK_SUCCESS) {
+			throw std::runtime_error("vkCreateInstance failed: " + std::to_string(res));
 		}
-		assert(res == VK_SUCCESS);
 
 
 
@@ -1145,9 +1142,11 @@ namespace engine {
 		{
 			VkDebugUtilsMessengerCreateInfoEXT createInfo = getDebugMessengerCreateInfo();
 
-			[[maybe_unused]] VkResult res;
+			VkResult res;
 			res = vkCreateDebugUtilsMessengerEXT(pimpl->instance, &createInfo, nullptr, &pimpl->debugMessenger);
-			assert(res == VK_SUCCESS);
+			if (res != VK_SUCCESS) {
+				throw std::runtime_error("vkCreateDebugUtilsMessengerExt failed: " + std::to_string(res));
+			}
 		}
 
 
@@ -1188,7 +1187,7 @@ namespace engine {
 				res = vkEnumerateDeviceExtensionProperties(dev, nullptr, &extensionCount, availableExtensions.data());
 				assert(res == VK_SUCCESS);
 
-				for (const auto& extToFind : requiredDeviceExtensions) {
+				for (const char* extToFind : requiredDeviceExtensions) {
 					bool extFound = false;
 					for (const auto& ext : availableExtensions) {
 						if (strcmp(extToFind, ext.extensionName) == 0) {
@@ -1216,6 +1215,7 @@ namespace engine {
 				vkGetPhysicalDeviceFeatures(dev, &devFeatures);
 				// anisotropic filtering is needed
 				if (devFeatures.samplerAnisotropy == VK_FALSE) continue;
+				pimpl->maxSamplerAnisotropy = devProps.limits.maxSamplerAnisotropy;
 
 				// check for linear filtering for mipmaps
 				VkFormatProperties formatProperties{};
@@ -1342,7 +1342,6 @@ namespace engine {
 			}
 
 			pimpl->presentQueue = getQueueSupporting(pimpl->queues, QueueFlags::TRANSFER);
-
 			pimpl->gfxQueue = getQueueSupporting(pimpl->queues, QueueFlags::GRAPHICS);
 
 			VkCommandPoolCreateInfo gfxCmdPoolInfo{
@@ -2064,15 +2063,26 @@ namespace engine {
 		delete buffer;
 	}
 
-	gfx::Texture* GFXDevice::createTexture(const void* imageData, uint32_t w, uint32_t h, gfx::TextureFilter minFilter, gfx::TextureFilter magFilter)
+	gfx::Texture* GFXDevice::createTexture(
+		const void* imageData,
+		uint32_t width,
+		uint32_t height,
+		gfx::TextureFilter minFilter,
+		gfx::TextureFilter magFilter,
+		gfx::MipmapSetting mipmapSetting,
+		bool useAnisotropy)
 	{
 		auto out = new gfx::Texture;
 
 		[[maybe_unused]] VkResult res;
 
-		size_t imageSize = w * h * 4;
+		size_t imageSize = width * height * 4;
 
-		out->mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(w, h)))) + 1;
+		if (mipmapSetting == gfx::MipmapSetting::OFF) {
+			out->mipLevels = 1;
+		} else {
+			out->mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(width, height)))) + 1;
+		}
 
 		// first load image into staging buffer
 		VkBuffer stagingBuffer;
@@ -2104,8 +2114,8 @@ namespace engine {
 		VkImageCreateInfo imageInfo{};
 		imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 		imageInfo.imageType = VK_IMAGE_TYPE_2D;
-		imageInfo.extent.width = w;
-		imageInfo.extent.height = h;
+		imageInfo.extent.width = width;
+		imageInfo.extent.height = height;
 		imageInfo.extent.depth = 1;
 		imageInfo.mipLevels = out->mipLevels;
 		imageInfo.arrayLayers = 1;
@@ -2140,14 +2150,14 @@ namespace engine {
 			region.imageSubresource.baseArrayLayer = 0;
 			region.imageSubresource.layerCount = 1;
 			region.imageOffset = { 0, 0, 0 };
-			region.imageExtent.width = w;
-			region.imageExtent.height = h;
+			region.imageExtent.width = width;
+			region.imageExtent.height = height;
 			region.imageExtent.depth = 1;
 
 			vkCmdCopyBufferToImage(commandBuffer, stagingBuffer, out->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
 			// Mipmap generation handles the transition to SHADER_READ_ONLY_OPTIMAL
-			cmdGenerateMipmaps(commandBuffer, out->image, w, h, out->mipLevels);
+			cmdGenerateMipmaps(commandBuffer, out->image, width, height, out->mipLevels);
 
 			// end cmd buffer
 			endOneTimeCommands(pimpl->device, pimpl->commandPool, commandBuffer, pimpl->gfxQueue.handle);
@@ -2174,11 +2184,11 @@ namespace engine {
 		res = vkCreateImageView(pimpl->device, &imageViewInfo, nullptr, &out->imageView);
 		assert(res == VK_SUCCESS);
 
+		VkFilter magFilterInternal = vkinternal::getTextureFilter(magFilter);
+		VkFilter minFilterInternal = vkinternal::getTextureFilter(minFilter);
+
 		// create texture sampler
 		{
-
-			VkFilter magFilterInternal = vkinternal::getTextureFilter(magFilter);
-			VkFilter minFilterInternal = vkinternal::getTextureFilter(minFilter);
 
 			VkSamplerCreateInfo samplerInfo{};
 			samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -2187,19 +2197,21 @@ namespace engine {
 			samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 			samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 			samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-			samplerInfo.anisotropyEnable = VK_FALSE;
-			if (magFilterInternal == VK_FILTER_LINEAR && minFilterInternal == VK_FILTER_LINEAR) {
-				// Find max anisotropic filtering level
-				VkPhysicalDeviceProperties properties{};
-				vkGetPhysicalDeviceProperties(pimpl->physicalDevice, &properties);
+			if (useAnisotropy) {
 				samplerInfo.anisotropyEnable = VK_TRUE;
-				samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
+			} else {
+				samplerInfo.anisotropyEnable = VK_FALSE;
 			}
+			samplerInfo.maxAnisotropy = pimpl->maxSamplerAnisotropy;
 			samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
 			samplerInfo.unnormalizedCoordinates = VK_FALSE;
 			samplerInfo.compareEnable = VK_FALSE;
 			samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-			samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+			if (mipmapSetting == gfx::MipmapSetting::LINEAR) {
+				samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+			} else {
+				samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+			}
 			samplerInfo.minLod = 0.0f;
 			samplerInfo.maxLod = static_cast<float>(out->mipLevels);
 			samplerInfo.mipLodBias = 0.0f;

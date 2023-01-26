@@ -148,11 +148,11 @@ namespace engine::util {
 
 		const char* errString = importer.GetErrorString();
 		if (errString[0] != '\0' || scene == nullptr) {
-			throw std::runtime_error(errString);
+			throw std::runtime_error("assimp error: " + std::string(errString));
 		}
 
 		if (scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) {
-			throw std::runtime_error(errString);
+			throw std::runtime_error("assimp error (incomplete): " + std::string(errString));
 		}
 		
 		assert(scene->HasAnimations() == false);
@@ -181,7 +181,9 @@ namespace engine::util {
 				absPath = absPath.parent_path();
 				absPath /= texPath.C_Str();
 				try {
-					textures[i] = std::make_shared<resources::Texture>(parent->app()->gfx(), absPath.string());
+					textures[i] = std::make_shared<resources::Texture>(
+						parent->app()->gfx(), absPath.string(),
+						resources::Texture::Filtering::TRILINEAR, true, true);
 				} catch (const std::runtime_error&) {
 					textures[i] = parent->app()->getResource<resources::Texture>("engine.white");
 				}

@@ -7,19 +7,54 @@
 
 namespace engine::resources {
 
-Texture::Texture(GFXDevice* gfxDevice, const std::string& path)
+Texture::Texture(GFXDevice* gfxDevice, const std::string& path, Filtering filtering, bool useMipmaps, bool useLinearMagFilter)
 	: m_gfxDevice(gfxDevice)
 {
 
 	int width, height;
 	auto texbuf = util::readImageFile(path, &width, &height);
 
-	gfx::TextureFilter filter = gfx::TextureFilter::LINEAR;
-	if (width <= 8 || height <= 8) {
-		filter = gfx::TextureFilter::NEAREST;
+	gfx::TextureFilter minFilter, magFilter;
+	gfx::MipmapSetting mipmapSetting;
+	bool anisotropyEnable;
+
+	if (useLinearMagFilter) {
+		magFilter = gfx::TextureFilter::LINEAR;
+	} else {
+		magFilter = gfx::TextureFilter::NEAREST;
 	}
 
-	m_gpuTexture = m_gfxDevice->createTexture(texbuf->data(), (uint32_t)width, (uint32_t)height, gfx::TextureFilter::LINEAR, filter);
+	switch (filtering) {
+		case Filtering::OFF:
+			minFilter = gfx::TextureFilter::NEAREST;
+			mipmapSetting = gfx::MipmapSetting::NEAREST;
+			anisotropyEnable = false;
+			break;
+		case Filtering::BILINEAR:
+			minFilter = gfx::TextureFilter::LINEAR;
+			mipmapSetting = gfx::MipmapSetting::NEAREST;
+			anisotropyEnable = false;
+			break;
+		case Filtering::TRILINEAR:
+			minFilter = gfx::TextureFilter::LINEAR;
+			mipmapSetting = gfx::MipmapSetting::LINEAR;
+			anisotropyEnable = false;
+			break;
+		case Filtering::ANISOTROPIC:
+			minFilter = gfx::TextureFilter::LINEAR;
+			mipmapSetting = gfx::MipmapSetting::LINEAR;
+			anisotropyEnable = true;
+	}
+
+	if (useMipmaps == false) {
+		mipmapSetting = gfx::MipmapSetting::OFF;
+	}
+
+	m_gpuTexture = m_gfxDevice->createTexture(
+		texbuf->data(), (uint32_t)width, (uint32_t)height,
+		minFilter, magFilter,
+		mipmapSetting,
+		anisotropyEnable);
 
 	INFO("Loaded texture: {}, width: {} height: {}", path, width, height);
 

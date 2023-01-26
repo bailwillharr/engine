@@ -35,6 +35,12 @@ namespace engine::gfx {
 		NEAREST,
 	};
 
+	enum class MipmapSetting {
+		OFF,
+		NEAREST,
+		LINEAR,
+	};
+
 	struct VertexBufferDesc {
 		uint64_t size;
 	};
