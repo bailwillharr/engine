@@ -1120,7 +1120,7 @@ namespace engine {
 
 
 
-		for (const char* ext : extensions) {
+		for ([[maybe_unused]] const char* ext : extensions) {
 			DEBUG("Using Vulkan instance extension: {}", ext);
 		}
 

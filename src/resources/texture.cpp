@@ -14,9 +14,10 @@ Texture::Texture(GFXDevice* gfxDevice, const std::string& path, Filtering filter
 	int width, height;
 	auto texbuf = util::readImageFile(path, &width, &height);
 
-	gfx::TextureFilter minFilter, magFilter;
-	gfx::MipmapSetting mipmapSetting;
-	bool anisotropyEnable;
+	gfx::TextureFilter minFilter = gfx::TextureFilter::NEAREST;
+	gfx::TextureFilter magFilter = gfx::TextureFilter::NEAREST;
+	gfx::MipmapSetting mipmapSetting = gfx::MipmapSetting::OFF;
+	bool anisotropyEnable = false;
 
 	if (useLinearMagFilter) {
 		magFilter = gfx::TextureFilter::LINEAR;

@@ -79,8 +79,8 @@ namespace engine {
 			vertParams.hasUV0 = true;
 			auto texturedShader = std::make_unique<resources::Shader>(
 				gfx(),
-				getResourcePath("engine/shaders/texture.vert").c_str(),
-				getResourcePath("engine/shaders/texture.frag").c_str(),
+				getResourcePath("engine/shaders/textured.vert").c_str(),
+				getResourcePath("engine/shaders/textured.frag").c_str(),
 				vertParams,
 				false,
 				true

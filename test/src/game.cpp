@@ -76,8 +76,8 @@ void playGame()
 	uint32_t enemy = myScene->createEntity("enemy");
 	auto enemyRenderable = myScene->addComponent<engine::RenderableComponent>(enemy);
 	enemyRenderable->material = std::make_unique<engine::resources::Material>(app.getResource<engine::resources::Shader>("engine.textured"));
-	enemyRenderable->material->m_texture = grassTexture;
-	enemyRenderable->mesh = genSphereMesh(app.gfx(), 5.0f, 50, false);
+	enemyRenderable->material->m_texture = app.getResource<engine::resources::Texture>("engine.white");
+	enemyRenderable->mesh = genSphereMesh(app.gfx(), 5.0f, 500, false);
 	auto enemyT = myScene->getComponent<engine::TransformComponent>(enemy);
 	enemyT->position.x += 5.0f;
 	enemyT->position.y += 2.0f;

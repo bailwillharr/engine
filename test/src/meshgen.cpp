@@ -68,11 +68,9 @@ std::unique_ptr<engine::resources::Mesh> genSphereMesh(engine::GFXDevice* gfx, f
 			
 			vec3 vector1 = (vertices.end() - 1)->pos - (vertices.end() - 2)->pos;
 			vec3 vector2 = (vertices.end() - 2)->pos - (vertices.end() - 3)->pos;
-			vec3 norm = normalize(cross(vector1, vector2));
+			vec3 norm = normalize(cross(vector2, vector1));
 
-			// TODO: FIX NORMALS
-			if (!windInside)
-				norm = -norm;
+			// NORMALS HAVE BEEN FIXED
 
 			if (flipNormals)
 				norm = -norm;
