@@ -55,7 +55,7 @@ void playGame()
 	myScene->registerSystem<CameraControllerSystem>();
 
 	auto camera = myScene->createEntity("camera");
-	myScene->getComponent<engine::TransformComponent>(camera)->position.y = 2.0f;
+	myScene->getComponent<engine::TransformComponent>(camera)->position.y = 8.0f;
 	auto cameraCollider = myScene->addComponent<engine::ColliderComponent>(camera);
 	cameraCollider->colliderType = engine::ColliderType::SPHERE;
 	cameraCollider->colliders.sphereCollider.r = 1.8f;

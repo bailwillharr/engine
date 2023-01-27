@@ -55,17 +55,16 @@ void CameraControllerSystem::onUpdate(float ts)
 	bool isSliding = false;
 
 	if (col->getIsColliding()) {
-		if (c->dy != 0.0f && slope <= MAX_SLOPE_ANGLE) {
-			t->position.y = m_scene->getComponent<engine::TransformComponent>(col->getLastEntityCollided())->worldMatrix[3][1] + 1.8f;
+		if (c->dy < 0.0f && slope <= MAX_SLOPE_ANGLE) {
+			// in the ground, push up a bit
+			t->position.y += dt;
 			c->dy = 0.0f;
 		} else {
 			// slide across wall
 			isSliding = true;
 		}
-	} else {
-		c->dy -= G * dt;
 	}
-	
+	c->dy -= G * dt;
 
 	// jumping
 	constexpr float JUMPVEL = (float)2.82231110971133017648; //std::sqrt(2 * G * JUMPHEIGHT);
