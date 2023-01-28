@@ -43,39 +43,50 @@ void CameraControllerSystem::onUpdate(float ts)
 	const float dt = ts;
 
 	constexpr float G = 9.8f;
-	constexpr float MAX_SLOPE_ANGLE = glm::radians(20.0f);
+//	constexpr float MAX_SLOPE_ANGLE = glm::radians(20.0f);
+	constexpr float MAX_SLOPE_ANGLE = glm::radians(1000.0f); // treat every collider as a floor, (TODO: get wall collisions working so this can be removed)
+	constexpr float FLOOR_SINK_LEVEL = 0.05f; // how far into the floor to ground the player
 
 	glm::vec3 norm = col->getLastCollisionNormal();
 
 	norm.y = 0.0f;
 
 	glm::vec3 dir = glm::normalize(glm::rotateY(glm::vec3{ 1.0f, 0.0f, 0.0f }, c->m_yaw) + glm::rotateY(glm::vec3{ 0.0f, 0.0f, 1.0f }, c->m_yaw));
-	const float slope = glm::half_pi<float>() - glm::acos(glm::dot(dir, norm));
+	const float slope = glm::length(glm::half_pi<float>() - glm::acos(glm::dot(dir, norm)));
 
 	bool isSliding = false;
 
 	if (col->getIsColliding()) {
-		if (c->dy < 0.0f && slope <= MAX_SLOPE_ANGLE) {
-			// in the ground, push up a bit
-			t->position.y += dt;
-			c->dy = 0.0f;
-		} else {
+		if (slope > MAX_SLOPE_ANGLE) {
 			// slide across wall
 			isSliding = true;
+		} else {
+			if (c->dy < 0.0f && c->isGrounded == false) {
+				// in the ground, push up a bit
+				float floorY = col->getLastCollisionPoint().y;
+				t->position.y = floorY + col->colliders.sphereCollider.r - FLOOR_SINK_LEVEL;
+				c->dy = 0.0f;
+				c->isGrounded = true;
+			}
 		}
 	}
-	c->dy -= G * dt;
+
+	if (col->getJustUncollided() && slope <= MAX_SLOPE_ANGLE) {
+		// just stopped colliding with a floor collider
+		c->isGrounded = false;
+	}
+
+	if (c->isGrounded == false)
+		c->dy -= G * dt;
 
 	// jumping
 	constexpr float JUMPVEL = (float)2.82231110971133017648; //std::sqrt(2 * G * JUMPHEIGHT);
-	if (m_scene->app()->inputManager()->getButton("jump") && c->isJumping == false) {
-		if (col->getIsColliding())
-			c->dy = JUMPVEL;
+	if (m_scene->app()->inputManager()->getButton("jump") && c->isGrounded == true) {
+		c->dy = JUMPVEL;
 	}
 
 	if (m_scene->app()->window()->getButton(engine::inputs::MouseButton::M_LEFT)) {
 		c->dy += dt * c->thrust;
-		c->isJumping = true;
 	}
 
 	// in metres per second
@@ -103,7 +114,7 @@ void CameraControllerSystem::onUpdate(float ts)
 	const glm::vec3 d2zRotated = glm::rotateY(glm::vec3{ 0.0f, 0.0f, dz }, c->m_yaw);
 	glm::vec3 hVel = (d2xRotated + d2zRotated);
 	if (isSliding) {
-		hVel = glm::vec3{norm.z, 0.0f, norm.x};
+		hVel = glm::vec3{norm.z, 0.0f, -norm.x};
 	}
 	hVel *= SPEED;
 	t->position += hVel * dt;
@@ -114,7 +125,6 @@ void CameraControllerSystem::onUpdate(float ts)
 	if (glm::length(t->position) > MAX_DISTANCE_FROM_ORIGIN) {
 		t->position = { 0.0f, 5.0f, 0.0f };
 		c->dy = 0.0f;
-		c->isJumping = true;
 	}
 
 	/* ROTATION STUFF */

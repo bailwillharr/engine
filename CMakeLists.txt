@@ -16,7 +16,7 @@ set(SRC_FILES
 
 	"src/systems/transform.cpp"
 	"src/systems/render.cpp"
-	"src/systems/physics.cpp"
+	"src/systems/collisions.cpp"
 
 	"src/resources/shader.cpp"
 	"src/resources/material.cpp"
@@ -44,7 +44,7 @@ set(INCLUDE_FILES
 
 	"include/systems/transform.hpp"
 	"include/systems/render.hpp"
-	"include/systems/physics.hpp"
+	"include/systems/collisions.hpp"
 
 	"include/resources/shader.hpp"
 	"include/resources/material.hpp"

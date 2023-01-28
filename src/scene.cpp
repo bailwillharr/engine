@@ -5,7 +5,7 @@
 #include "components/collider.hpp"
 #include "systems/transform.hpp"
 #include "systems/render.hpp"
-#include "systems/physics.hpp"
+#include "systems/collisions.hpp"
 
 namespace engine {
 

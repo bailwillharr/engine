@@ -1,4 +1,4 @@
-#include "systems/physics.hpp"
+#include "systems/collisions.hpp"
 
 #include "components/transform.hpp"
 #include "components/collider.hpp"
@@ -71,9 +71,11 @@ namespace engine {
 						ec1->c->m_isColliding = true;
 						ec1->c->m_lastEntityCollided = ec2->entity;
 						ec1->c->m_lastCollisionNormal = glm::normalize(v);
+						ec1->c->m_lastCollisionPoint = ec1->pos + (v * ec1->c->colliders.sphereCollider.r / glm::sqrt(distanceSquared));
 						ec2->c->m_isColliding = true;
 						ec2->c->m_lastEntityCollided = ec1->entity;
 						ec2->c->m_lastCollisionNormal = -ec1->c->m_lastCollisionNormal;
+						ec2->c->m_lastCollisionPoint = ec1->c->m_lastCollisionPoint;
 					}
 				} else if (		(ec1->c->colliderType == ColliderType::PLANE &&
 								 ec2->c->colliderType == ColliderType::SPHERE) ||
@@ -92,9 +94,12 @@ namespace engine {
 					if (distance < sphere->c->colliders.sphereCollider.r) {
 						plane->c->m_isColliding = true;
 						plane->c->m_lastEntityCollided = sphere->entity;
+						plane->c->m_lastCollisionNormal = {0.0f, -1.0f, 0.0f};
+						plane->c->m_lastCollisionPoint = {sphere->pos.x, plane->pos.y, sphere->pos.z};
 						sphere->c->m_isColliding = true;
 						sphere->c->m_lastEntityCollided = plane->entity;
 						sphere->c->m_lastCollisionNormal = {0.0f, 1.0f, 0.0f};
+						sphere->c->m_lastCollisionPoint = plane->c->m_lastCollisionPoint;
 					}
 				} else {
 					throw std::runtime_error("Collision combination not supported!");

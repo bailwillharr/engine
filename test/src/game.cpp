@@ -63,7 +63,7 @@ void playGame()
 
 	myScene->getSystem<engine::RenderSystem>()->setCameraEntity(camera);
 
-	engine::util::loadMeshFromFile(myScene, app.getResourcePath("models/van/van.dae"));
+//	engine::util::loadMeshFromFile(myScene, app.getResourcePath("models/van/van.dae"));
 
 	auto grassTexture = std::make_shared<engine::resources::Texture>(
 		app.gfx(),
@@ -77,7 +77,7 @@ void playGame()
 	auto enemyRenderable = myScene->addComponent<engine::RenderableComponent>(enemy);
 	enemyRenderable->material = std::make_unique<engine::resources::Material>(app.getResource<engine::resources::Shader>("engine.textured"));
 	enemyRenderable->material->m_texture = app.getResource<engine::resources::Texture>("engine.white");
-	enemyRenderable->mesh = genSphereMesh(app.gfx(), 5.0f, 500, false);
+	enemyRenderable->mesh = genSphereMesh(app.gfx(), 5.0f, 50, false);
 	auto enemyT = myScene->getComponent<engine::TransformComponent>(enemy);
 	enemyT->position.x += 10.0f;
 	enemyT->position.y += 2.0f;
@@ -90,7 +90,7 @@ void playGame()
 	auto sphereRenderable = myScene->addComponent<engine::RenderableComponent>(sphere);
 	sphereRenderable->material = std::make_unique<engine::resources::Material>(app.getResource<engine::resources::Shader>("engine.textured"));
 	sphereRenderable->material->m_texture = app.getResource<engine::resources::Texture>("engine.white");
-	sphereRenderable->mesh = genSphereMesh(app.gfx(), 100.0f, 100, true);
+	sphereRenderable->mesh = genSphereMesh(app.gfx(), 100.0f, 50, true);
 
 	uint32_t light = myScene->createEntity("light");
 	myScene->getComponent<engine::TransformComponent>(light)->position = glm::vec3{-10.0f, 10.0f, 10.0f};

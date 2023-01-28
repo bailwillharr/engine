@@ -10,7 +10,7 @@ struct CameraControllerComponent {
 
 	const float walk_speed = 4.0f;
 	
-	bool isJumping = false;
+	bool isGrounded = false;
 	float dy = 0.0f;
 	float standingHeight = 0.0f;
 	const float thrust = 25.0f;

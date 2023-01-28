@@ -28,6 +28,7 @@ namespace engine {
 		auto getJustUncollided() { return m_justUncollided; }
 		auto getLastEntityCollided() { return m_lastEntityCollided; }
 		auto getLastCollisionNormal() { return m_lastCollisionNormal; }
+		auto getLastCollisionPoint() { return m_lastCollisionPoint; }
 
 	private:
 		bool m_isColliding;
@@ -35,6 +36,7 @@ namespace engine {
 		bool m_justUncollided;
 		uint32_t m_lastEntityCollided;
 		glm::vec3 m_lastCollisionNormal;
+		glm::vec3 m_lastCollisionPoint;
 	};
 
 }
