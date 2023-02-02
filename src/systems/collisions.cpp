@@ -9,128 +9,96 @@
 
 namespace engine {
 
+	// static functions
+
+	static bool checkCollisionFast(AABB a, AABB b)
+	{
+		if (a.pos1.x > a.pos2.x) std::swap(a.pos1.x, a.pos2.x);
+		if (a.pos1.y > a.pos2.y) std::swap(a.pos1.y, a.pos2.y);
+		if (a.pos1.z > a.pos2.z) std::swap(a.pos1.z, a.pos2.z);
+		if (b.pos1.x > b.pos2.x) std::swap(b.pos1.x, b.pos2.x);
+		if (b.pos1.y > b.pos2.y) std::swap(b.pos1.y, b.pos2.y);
+		if (b.pos1.z > b.pos2.z) std::swap(b.pos1.z, b.pos2.z);
+
+		return (
+			a.pos1.x <= b.pos2.x &&
+			a.pos2.x >= b.pos1.x &&
+			a.pos1.y <= b.pos2.y &&
+			a.pos2.y >= b.pos1.y &&
+			a.pos1.z <= b.pos2.z &&
+			a.pos2.z >= b.pos1.z
+		);
+	}
+
+	// class methods
+
 	PhysicsSystem::PhysicsSystem(Scene* scene)
 		: System(scene, { typeid(TransformComponent).hash_code(), typeid(ColliderComponent).hash_code() })
 	{
+	}
 
+	void PhysicsSystem::onComponentInsert(uint32_t entity)
+	{
+		(void)entity;
+		m_staticInfos.reserve(m_entities.size());
+		m_dynamicInfos.reserve(m_entities.size());
+		TRACE("added entity {} to collider system", entity);
 	}
 
 	void PhysicsSystem::onUpdate(float ts)
 	{
 		(void)ts;
 
-		using glm::vec3;
+		m_staticInfos.clear();
+		m_dynamicInfos.clear();
 
-		struct CollisionInfo {
-			uint32_t entity;
-			TransformComponent* t;
-			ColliderComponent* c;
+		TRACE("Getting collider entities:");
+		for (uint32_t entity : m_entities) {
+			TRACE("   has entity: {}", entity);
+			const auto t = m_scene->getComponent<TransformComponent>(entity);
+			const auto c = m_scene->getComponent<ColliderComponent>(entity);
 
-			vec3 pos;
+			const glm::vec3 globalPosition = t->worldMatrix[3];
+			const AABB localBoundingBox = c->aabb;
+			AABB globalBoundingBox;
+			globalBoundingBox.pos1 = globalPosition + localBoundingBox.pos1;
+			globalBoundingBox.pos2 = globalPosition + localBoundingBox.pos2;
+			TRACE("   global bounding box:");
+			TRACE("       pos1: {} {} {}", globalBoundingBox.pos1.x, globalBoundingBox.pos1.y, globalBoundingBox.pos1.z);
+			TRACE("       pos2: {} {} {}", globalBoundingBox.pos2.x, globalBoundingBox.pos2.y, globalBoundingBox.pos2.z);
 
-			bool wasColliding;
+			CollisionInfo info{
+				.entity = entity,
+				.aabb = globalBoundingBox,
+				.isMaybeColliding = false,
+				.isColliding = false
+			};
+			if (c->isStatic) {
+				m_staticInfos.push_back(info);
+			} else {
+				m_dynamicInfos.push_back(info);
+			}
+		}
+
+		/* BROAD PHASE */
+
+		TRACE("Starting broad phase collision test");
+
+		struct PossibleCollision {
+
 		};
 
-		std::vector<CollisionInfo> entityColliders(m_entities.size());
-
-		uint32_t i = 0;
-		for (uint32_t entity : m_entities) {
-			auto t = m_scene->getComponent<TransformComponent>(entity);
-			auto c = m_scene->getComponent<ColliderComponent>(entity);
-
-			entityColliders[i].entity = entity;
-			entityColliders[i].t = t;
-			entityColliders[i].c = c;
-
-			entityColliders[i].wasColliding = c->getIsColliding();
-			c->m_isColliding = false;
-			c->m_justCollided = false;
-			c->m_justUncollided = false;
-
-			vec3 pos = reinterpret_cast<vec3&>(t->worldMatrix[3]);
-			entityColliders[i].pos = pos;
-
-			i++;
+		// Check every static collider against every dynamic collider, and every dynamic collider against every other one
+		// This technique is inefficient for many entities.
+		for (size_t i = 0; i < m_staticInfos.size(); i++) {
+			for (size_t j = 0; j < m_dynamicInfos.size(); j++) {
+				if (checkCollisionFast(m_staticInfos[i].aabb, m_dynamicInfos[j].aabb)) {
+					m_staticInfos[i].isMaybeColliding = true;
+					m_dynamicInfos[i].isMaybeColliding = true;
+					TRACE("Collision detected between {} and {}", m_staticInfos[i].entity, m_dynamicInfos[j].entity);
+				}
+			}
 		}
-
-		// compares every entity to every other entity, but pairs are never repeated
-		for (size_t i = 0; i < entityColliders.size(); i++) {
-			auto* ec1 = &entityColliders[i];
-
-			for (size_t j = i + 1; j < entityColliders.size(); j++) {
-
-				auto* ec2 = &entityColliders[j];
-
-				if (	ec1->c->colliderType == ColliderType::SPHERE &&
-						ec2->c->colliderType == ColliderType::SPHERE		) {
-					const vec3 v = ec2->pos - ec1->pos;
-					const float distanceSquared = v.x * v.x + v.y * v.y + v.z * v.z;
-					const float sumOfRadii = ec1->c->colliders.sphereCollider.r + ec2->c->colliders.sphereCollider.r;
-					const float sumOfRadiiSquared = sumOfRadii * sumOfRadii;
-					if (distanceSquared < sumOfRadiiSquared) {
-						ec1->c->m_isColliding = true;
-						ec1->c->m_lastEntityCollided = ec2->entity;
-						ec1->c->m_lastCollisionNormal = glm::normalize(v);
-						ec1->c->m_lastCollisionPoint = ec1->pos + (v * ec1->c->colliders.sphereCollider.r / glm::sqrt(distanceSquared));
-						ec2->c->m_isColliding = true;
-						ec2->c->m_lastEntityCollided = ec1->entity;
-						ec2->c->m_lastCollisionNormal = -ec1->c->m_lastCollisionNormal;
-						ec2->c->m_lastCollisionPoint = ec1->c->m_lastCollisionPoint;
-					}
-				} else if (		(ec1->c->colliderType == ColliderType::PLANE &&
-								 ec2->c->colliderType == ColliderType::SPHERE) ||
-								(ec1->c->colliderType == ColliderType::SPHERE &&
-								 ec2->c->colliderType == ColliderType::PLANE)) {
-					CollisionInfo *plane, *sphere;
-					if (ec1->c->colliderType == ColliderType::PLANE) {
-						plane = ec1;
-						sphere = ec2;
-					} else {
-						sphere = ec1;
-						plane = ec2;
-					}
-					float distance = plane->pos.y - sphere->pos.y;
-					if (distance < 0.0f) distance = -distance; // make positive
-					if (distance < sphere->c->colliders.sphereCollider.r) {
-						plane->c->m_isColliding = true;
-						plane->c->m_lastEntityCollided = sphere->entity;
-						plane->c->m_lastCollisionNormal = {0.0f, -1.0f, 0.0f};
-						plane->c->m_lastCollisionPoint = {sphere->pos.x, plane->pos.y, sphere->pos.z};
-						sphere->c->m_isColliding = true;
-						sphere->c->m_lastEntityCollided = plane->entity;
-						sphere->c->m_lastCollisionNormal = {0.0f, 1.0f, 0.0f};
-						sphere->c->m_lastCollisionPoint = plane->c->m_lastCollisionPoint;
-					}
-				} else {
-					throw std::runtime_error("Collision combination not supported!");
-				}
-
-			}
-
-			if (ec1->wasColliding != ec1->c->getIsColliding()) {
-				if (ec1->c->getIsColliding()) {
-					ec1->c->m_justCollided = true;
-				} else {
-					ec1->c->m_justUncollided = true;
-				}
-			}
-			if (ec1->c->getJustCollided()) {
-				TRACE("'{}' has collided!", ec1->t->tag);
-				auto r = m_scene->getComponent<RenderableComponent>(ec1->entity);
-				if (r != nullptr) {
-					r->shown = true;
-				}
-			}
-			if (ec1->c->getJustUncollided()) {
-				TRACE("'{}' has stopped colliding!", ec1->t->tag);
-				auto r = m_scene->getComponent<RenderableComponent>(ec1->entity);
-				if (r != nullptr) {
-					r->shown = false;
-				}
-			}
-
-		}
-
 	}
 
 }

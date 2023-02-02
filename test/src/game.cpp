@@ -42,7 +42,7 @@ void playGame()
 {
 	engine::Application app(PROJECT_NAME, PROJECT_VERSION);
 
-	app.setFrameLimiter(true);
+	app.setFrameLimiter(false);
 
 	// configure window
 	app.window()->setRelativeMouseMode(true);
@@ -51,20 +51,22 @@ void playGame()
 
 	auto myScene = app.sceneManager()->createEmptyScene();
 
-	myScene->registerComponent<CameraControllerComponent>();
-	myScene->registerSystem<CameraControllerSystem>();
+	/* create camera */
+	{
+		myScene->registerComponent<CameraControllerComponent>();
+		myScene->registerSystem<CameraControllerSystem>();
 
-	auto camera = myScene->createEntity("camera");
-	myScene->getComponent<engine::TransformComponent>(camera)->position.y = 8.0f;
-	auto cameraCollider = myScene->addComponent<engine::ColliderComponent>(camera);
-	cameraCollider->colliderType = engine::ColliderType::SPHERE;
-	cameraCollider->colliders.sphereCollider.r = 1.8f;
-	myScene->addComponent<CameraControllerComponent>(camera);
+		auto camera = myScene->createEntity("camera");
+		myScene->getComponent<engine::TransformComponent>(camera)->position.y = 8.0f;
+		auto cameraCollider = myScene->addComponent<engine::ColliderComponent>(camera);
+		cameraCollider->isStatic = false;
+		cameraCollider->aabb = { { -0.2f, -1.5f, -0.2f }, { 0.2f, 0.2f, 0.2f} }; // Origin is at eye level
+		myScene->addComponent<CameraControllerComponent>(camera);
 
-	myScene->getSystem<engine::RenderSystem>()->setCameraEntity(camera);
+		myScene->getSystem<engine::RenderSystem>()->setCameraEntity(camera);
+	}
 
-//	engine::util::loadMeshFromFile(myScene, app.getResourcePath("models/van/van.dae"));
-
+	/* shared resources */
 	auto grassTexture = std::make_shared<engine::resources::Texture>(
 		app.gfx(),
 		app.getResourcePath("textures/grass.jpg"),
@@ -72,39 +74,53 @@ void playGame()
 		true,
 		true
 	);
+	auto spaceTexture = std::make_shared<engine::resources::Texture>(
+		app.gfx(),
+		app.getResourcePath("textures/space2.png"),
+		engine::resources::Texture::Filtering::ANISOTROPIC,
+		true,
+		true
+	);
 
-	uint32_t enemy = myScene->createEntity("enemy");
-	auto enemyRenderable = myScene->addComponent<engine::RenderableComponent>(enemy);
-	enemyRenderable->material = std::make_unique<engine::resources::Material>(app.getResource<engine::resources::Shader>("engine.textured"));
-	enemyRenderable->material->m_texture = app.getResource<engine::resources::Texture>("engine.white");
-	enemyRenderable->mesh = genSphereMesh(app.gfx(), 5.0f, 50, false);
-	auto enemyT = myScene->getComponent<engine::TransformComponent>(enemy);
-	enemyT->position.x += 10.0f;
-	enemyT->position.y += 2.0f;
-	enemyT->position.z += 14.0f;
-	auto enemyCollider = myScene->addComponent<engine::ColliderComponent>(enemy);
-	enemyCollider->colliderType = engine::ColliderType::SPHERE;
-	enemyCollider->colliders.sphereCollider.r = 5.0f;
+	/* skybox */
+	{
+		uint32_t skybox = myScene->createEntity("skybox");
+		auto skyboxRenderable = myScene->addComponent<engine::RenderableComponent>(skybox);
+		skyboxRenderable->material = std::make_unique<engine::resources::Material>(app.getResource<engine::resources::Shader>("engine.skybox"));
+		skyboxRenderable->material->m_texture = spaceTexture;
+//		skyboxRenderable->mesh = genSphereMesh(app.gfx(), 1.0f, 50, true);
+		skyboxRenderable->mesh = genCuboidMesh(app.gfx(), 2.0f, 2.0f, 2.0f, 1.0f, true);
+		myScene->getComponent<engine::TransformComponent>(skybox)->position = { -1.0f, -1.0f, -1.0f };
+	}
 
-	uint32_t sphere = myScene->createEntity("sphere");
-	auto sphereRenderable = myScene->addComponent<engine::RenderableComponent>(sphere);
-	sphereRenderable->material = std::make_unique<engine::resources::Material>(app.getResource<engine::resources::Shader>("engine.textured"));
-	sphereRenderable->material->m_texture = app.getResource<engine::resources::Texture>("engine.white");
-	sphereRenderable->mesh = genSphereMesh(app.gfx(), 100.0f, 50, true);
+	/* enemy sphere */
+	{
+		uint32_t enemy = myScene->createEntity("enemy");
+		auto enemyRenderable = myScene->addComponent<engine::RenderableComponent>(enemy);
+		enemyRenderable->material = std::make_unique<engine::resources::Material>(app.getResource<engine::resources::Shader>("engine.textured"));
+		enemyRenderable->material->m_texture = app.getResource<engine::resources::Texture>("engine.white");
+		enemyRenderable->mesh = genSphereMesh(app.gfx(), 5.0f, 50, false);
+		auto enemyTransform = myScene->getComponent<engine::TransformComponent>(enemy);
+		enemyTransform->position.x = 10.0f;
+		enemyTransform->position.y = 0.0f;
+		enemyTransform->position.z = 14.0f;
+		auto enemyCollider = myScene->addComponent<engine::ColliderComponent>(enemy);
+		enemyCollider->isStatic = true;
+		enemyCollider->aabb = { { -5.0f, -5.0f, -5.0f }, { 5.0f, 5.0f, 5.0f } }; // A box enclosing the sphere
+	}
 
-	uint32_t light = myScene->createEntity("light");
-	myScene->getComponent<engine::TransformComponent>(light)->position = glm::vec3{-10.0f, 10.0f, 10.0f};
-	auto lightRenderable = myScene->addComponent<engine::RenderableComponent>(light);
-	lightRenderable->material = sphereRenderable->material;
-	lightRenderable->mesh = genSphereMesh(app.gfx(), 0.5f, 40, false, true);
-
-	uint32_t floor = myScene->createEntity("floor");
-	myScene->getComponent<engine::TransformComponent>(floor)->position = glm::vec3{-50.0f, -0.1f, -50.0f};
-	auto floorRenderable = myScene->addComponent<engine::RenderableComponent>(floor);
-	floorRenderable->material = std::make_shared<engine::resources::Material>(*sphereRenderable->material);
-	floorRenderable->material->m_texture = grassTexture;
-	floorRenderable->mesh = genCuboidMesh(app.gfx(), 100.0f, 0.1f, 100.0f);
-	myScene->addComponent<engine::ColliderComponent>(floor)->colliderType = engine::ColliderType::PLANE;
+	/* floor */
+	{
+		uint32_t floor = myScene->createEntity("floor");
+		myScene->getComponent<engine::TransformComponent>(floor)->position = glm::vec3{-50.0f, -0.1f, -50.0f};
+		auto floorRenderable = myScene->addComponent<engine::RenderableComponent>(floor);
+		floorRenderable->material = std::make_shared<engine::resources::Material>(app.getResource<engine::resources::Shader>("engine.textured"));
+		floorRenderable->material->m_texture = grassTexture;
+		floorRenderable->mesh = genCuboidMesh(app.gfx(), 100.0f, 0.1f, 100.0f, 128.0f);
+		auto floorCollider = myScene->addComponent<engine::ColliderComponent>(floor);
+		floorCollider->isStatic = true;
+		floorCollider->aabb = { { 0.0f, 0.0f, 0.0f }, { 100.0f, 0.1f, 100.0f } };
+	}
 
 	app.gameLoop();
 

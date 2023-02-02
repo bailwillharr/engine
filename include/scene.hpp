@@ -59,7 +59,7 @@ namespace engine {
 			size_t hash = typeid(T).hash_code();
 
 			auto array = getComponentArray<T>();
-			array->insertData(entity, T{});
+			array->insertData(entity, T{}); // errors if entity already exists in array
 
 			// set the component bit for this entity
 			size_t componentSignaturePosition = m_componentSignaturePositions.at(hash);
@@ -68,8 +68,10 @@ namespace engine {
 
 			for (auto& [systemName, system] : m_systems)
 			{
+				if (system->m_entities.contains(entity)) continue;
 				if ((system->m_signature & signatureRef) == system->m_signature) {
 					system->m_entities.insert(entity);
+					system->onComponentInsert(entity);
 				}
 			}
 

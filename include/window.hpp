@@ -138,7 +138,7 @@ namespace engine {
 		bool m_keyboardFocus = true;
 
 		// size in screen coordinates
-		glm::ivec2 m_winSize = glm::vec2(640, 480);
+		glm::ivec2 m_winSize = glm::vec2(1024, 768);
 
 		// performance counter frequency
 		uint64_t m_counterFreq;

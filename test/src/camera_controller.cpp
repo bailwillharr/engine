@@ -42,6 +42,7 @@ void CameraControllerSystem::onUpdate(float ts)
 
 	const float dt = ts;
 
+/*
 	constexpr float G = 9.8f;
 //	constexpr float MAX_SLOPE_ANGLE = glm::radians(20.0f);
 	constexpr float MAX_SLOPE_ANGLE = glm::radians(1000.0f); // treat every collider as a floor, (TODO: get wall collisions working so this can be removed)
@@ -89,10 +90,14 @@ void CameraControllerSystem::onUpdate(float ts)
 		c->dy += dt * c->thrust;
 	}
 
+*/
+
 	// in metres per second
-	//constexpr float SPEED = 1.5f;
 	float SPEED = c->walk_speed;
 	if (m_scene->app()->inputManager()->getButton("sprint")) SPEED *= 10.0f;
+
+	if (m_scene->app()->inputManager()->getButton("fire")) t->position.y += dt * SPEED;
+	if (m_scene->app()->inputManager()->getButton("aim")) t->position.y -= dt * SPEED;
 
 	float dx = m_scene->app()->inputManager()->getAxis("movex");
 	float dz = (-m_scene->app()->inputManager()->getAxis("movey"));
@@ -113,9 +118,10 @@ void CameraControllerSystem::onUpdate(float ts)
 	const glm::vec3 d2xRotated = glm::rotateY(glm::vec3{ dx, 0.0f, 0.0f }, c->m_yaw);
 	const glm::vec3 d2zRotated = glm::rotateY(glm::vec3{ 0.0f, 0.0f, dz }, c->m_yaw);
 	glm::vec3 hVel = (d2xRotated + d2zRotated);
-	if (isSliding) {
+/*	if (isSliding) {
 		hVel = glm::vec3{norm.z, 0.0f, -norm.x};
 	}
+*/
 	hVel *= SPEED;
 	t->position += hVel * dt;
 	t->position.y += c->dy * dt;
@@ -158,8 +164,7 @@ void CameraControllerSystem::onUpdate(float ts)
 			" y: " + std::to_string(t->position.y) +
 			" z: " + std::to_string(t->position.z)
 		};
-//		m_scene->app()->window()->infoBox("POSITION", pos_string);
-		m_scene->app()->window()->infoBox("POSITION", std::to_string(slope));
+		m_scene->app()->window()->infoBox("POSITION", pos_string);
 		INFO("position: " + pos_string);
 	}
 

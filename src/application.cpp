@@ -88,6 +88,20 @@ namespace engine {
 			getResourceManager<resources::Shader>()->addPersistent("engine.textured", std::move(texturedShader));
 		}
 		{
+			resources::Shader::VertexParams vertParams{};
+			vertParams.hasNormal = true;
+			vertParams.hasUV0 = true;
+			auto texturedShader = std::make_unique<resources::Shader>(
+				gfx(),
+				getResourcePath("engine/shaders/skybox.vert").c_str(),
+				getResourcePath("engine/shaders/skybox.frag").c_str(),
+				vertParams,
+				false,
+				true
+			);
+			getResourceManager<resources::Shader>()->addPersistent("engine.skybox", std::move(texturedShader));
+		}
+		{
 			auto whiteTexture = std::make_unique<resources::Texture>(
 				gfx(),
 				getResourcePath("engine/textures/white.png"),

@@ -22,7 +22,13 @@ namespace engine {
 		registerSystem<RenderSystem>();
 	}
 
-	Scene::~Scene() {}
+	Scene::~Scene()
+	{
+		INFO("Entity signatures:");
+		for (auto [entity, signature] : m_signatures) {
+			INFO("entity {}, signature: {}", entity, signature.to_string());
+		}
+	}
 
 	uint32_t Scene::createEntity(const std::string& tag, uint32_t parent)
 	{
@@ -54,7 +60,6 @@ namespace engine {
 
 	void Scene::update(float ts)
 	{
-
 		for (auto& [name, system] : m_systems) {
 			system->onUpdate(ts);
 		}

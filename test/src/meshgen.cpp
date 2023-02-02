@@ -88,7 +88,7 @@ std::unique_ptr<engine::resources::Mesh> genSphereMesh(engine::GFXDevice* gfx, f
 	return std::make_unique<engine::resources::Mesh>(gfx, vertices);
 }
 
-std::unique_ptr<engine::resources::Mesh> genCuboidMesh(engine::GFXDevice* gfx, float x, float y, float z)
+std::unique_ptr<engine::resources::Mesh> genCuboidMesh(engine::GFXDevice* gfx, float x, float y, float z, float tiling, bool windInside)
 {
 
 	// x goes ->
@@ -98,8 +98,6 @@ std::unique_ptr<engine::resources::Mesh> genCuboidMesh(engine::GFXDevice* gfx, f
 	using namespace glm;
 
 	std::vector<engine::Vertex> v{};
-
-	const float tiling = 128.0f;
 
 	// front
 	v.push_back({{x,	0.0f,	0.0f}, {0.0f, 0.0f, -1.0f}, {tiling, 0.0f}});
@@ -148,6 +146,12 @@ std::unique_ptr<engine::resources::Mesh> genCuboidMesh(engine::GFXDevice* gfx, f
 	v.push_back({{x,	y,	0.0f},	{0.0f, 1.0f, 0.0f}, {tiling, 0.0f}});
 	v.push_back({{0.0f,	y,	z},		{0.0f, 1.0f, 0.0f}, {0.0f, tiling}});
 	v.push_back({{x,	y,	z},		{0.0f, 1.0f, 0.0f}, {tiling, tiling}});
+
+	if (windInside) {
+		for (size_t i = 0; i < v.size(); i += 3) {
+			std::swap(v[i], v[i + 2]);
+		}
+	}
 
 	return std::make_unique<engine::resources::Mesh>(gfx, v);
 

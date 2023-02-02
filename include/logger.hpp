@@ -28,14 +28,11 @@ namespace engine {
 
 		sinks.emplace_back(std::make_shared<spdlog::sinks::basic_file_sink_mt>(log_path.string(), true));
 
-#ifndef NDEBUG
-		// DEBUG
 		sinks.emplace_back(std::make_shared<spdlog::sinks::stdout_color_sink_mt>());
-#endif
 
 		auto logger = std::make_shared<spdlog::logger>(appName, sinks.begin(), sinks.end());
 
-		logger->set_level(spdlog::level::trace);
+		logger->set_level(spdlog::level::trace); // Logs below INFO are ignored through macros in release (see log.hpp)
 
 		spdlog::register_logger(logger);
 		spdlog::set_default_logger(logger);

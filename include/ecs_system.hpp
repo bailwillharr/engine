@@ -43,6 +43,7 @@ namespace engine {
 			}
 		}
 
+	private:
 		std::map<uint32_t, T> m_componentArray{};
 
 	};
@@ -56,6 +57,9 @@ namespace engine {
 		System& operator=(const System&) = delete;
 
 		virtual void onUpdate(float ts) = 0;
+
+		virtual void onComponentInsert(uint32_t) {}
+		virtual void onComponentRemove(uint32_t) {}
 
 		Scene* const m_scene;
 

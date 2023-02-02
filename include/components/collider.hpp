@@ -5,38 +5,29 @@
 
 namespace engine {
 
-	class PhysicsSystem;
-
-	enum class ColliderType {
-		SPHERE,
-		PLANE,
+	struct AABB {
+		glm::vec3 pos1;
+		glm::vec3 pos2;
 	};
+
+	class PhysicsSystem;
 
 	struct ColliderComponent  {
 		friend PhysicsSystem;
 
-		ColliderType colliderType;
+		ColliderComponent()
+		{
 
-		union {
-			struct {
-				float r;
-			} sphereCollider;
-		} colliders;
+		}
 
-		auto getIsColliding() { return m_isColliding; }
-		auto getJustCollided() { return m_justCollided; }
-		auto getJustUncollided() { return m_justUncollided; }
-		auto getLastEntityCollided() { return m_lastEntityCollided; }
-		auto getLastCollisionNormal() { return m_lastCollisionNormal; }
-		auto getLastCollisionPoint() { return m_lastCollisionPoint; }
+		bool isStatic;
+		AABB aabb;
 
-	private:
-		bool m_isColliding;
-		bool m_justCollided;
-		bool m_justUncollided;
-		uint32_t m_lastEntityCollided;
-		glm::vec3 m_lastCollisionNormal;
-		glm::vec3 m_lastCollisionPoint;
+		glm::vec3 getLastCollisionNormal() { return {0.0f, 1.0f, 0.0f}; }
+		glm::vec3 getLastCollisionPoint() { return {}; }
+		bool getIsColliding() { return true; }
+		bool getJustUncollided() { return false; }
+
 	};
 
 }
