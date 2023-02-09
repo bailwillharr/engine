@@ -23,8 +23,12 @@ set(SRC_FILES
 	"src/resources/mesh.cpp"
 	"src/resources/texture.cpp"
 
+	"src/event_system.cpp"
+
 	"src/scene.cpp"
+
 	"src/gfx_device_vulkan.cpp"
+	"src/gfx_device_null.cpp"
 
 	"src/util/files.cpp"
 	"src/util/model_loader.cpp"
@@ -50,6 +54,8 @@ set(INCLUDE_FILES
 	"include/resources/material.hpp"
 	"include/resources/mesh.hpp"
 	"include/resources/texture.hpp"
+
+	"include/event_system.hpp"
 
 	"include/engine_api.h"
 

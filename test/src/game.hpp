@@ -1,3 +1,3 @@
 #pragma once
 
-void playGame();
+void playGame(bool enableFrameLimiter);

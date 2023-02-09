@@ -1,6 +1,9 @@
 #pragma once
 
 #include "ecs_system.hpp"
+#include "event_system.hpp"
+
+#include "systems/collisions.hpp"
 
 struct CameraControllerComponent {
 	float m_cameraSensitivity = 0.007f;
@@ -17,10 +20,14 @@ struct CameraControllerComponent {
 
 };
 
-class CameraControllerSystem : public engine::System {
+class CameraControllerSystem : public engine::System, public engine::EventHandler<engine::PhysicsSystem::CollisionEvent> {
 
 public:
 	CameraControllerSystem(engine::Scene* scene);
 
+	// engine::System overrides
 	void onUpdate(float ts) override;
+
+	// engine::EventHandler overrides
+	void onEvent(engine::PhysicsSystem::CollisionEvent info) override;
 };

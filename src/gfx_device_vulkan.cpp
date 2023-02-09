@@ -492,7 +492,7 @@ namespace engine {
 		vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
 
 		VkSampleCountFlags counts = physicalDeviceProperties.limits.framebufferColorSampleCounts & physicalDeviceProperties.limits.framebufferDepthSampleCounts;
-		counts %= VK_SAMPLE_COUNT_8_BIT; // restricts it to 8
+		counts %= VK_SAMPLE_COUNT_4_BIT; // restricts it to 2 or 1 (0b11)
 		if (counts & VK_SAMPLE_COUNT_64_BIT) { return VK_SAMPLE_COUNT_64_BIT; }
 		if (counts & VK_SAMPLE_COUNT_32_BIT) { return VK_SAMPLE_COUNT_32_BIT; }
 		if (counts & VK_SAMPLE_COUNT_16_BIT) { return VK_SAMPLE_COUNT_16_BIT; }
@@ -657,6 +657,14 @@ namespace engine {
 
 		// create the render pass
 		if (swapchain->renderpass == VK_NULL_HANDLE) {
+
+			/*
+			 * render pass layout:
+			 * 0: color attachment with msaa samples, 
+			 * 1: depth attachment with msaa samples, used for fragment shading
+			 * 2: present src (resolve) attachment with 1 sample, used for swapchain present
+			 */
+
 			VkAttachmentDescription colorAttachment{};
 			colorAttachment.format = swapchain->surfaceFormat.format;
 			colorAttachment.samples = swapchain->msaaSamples;
@@ -1579,7 +1587,7 @@ namespace engine {
 			renderPassInfo.renderArea.extent = pimpl->swapchain.extent;
 
 			std::array<VkClearValue, 2> clearValues{};
-			clearValues[0].color = { {0.1f, 0.1f, 0.1f, 1.0f} };
+			clearValues[0].color = { {1.0f, 1.0f, 1.0f, 1.0f} };
 			clearValues[1].depthStencil = { 1.0f, 0 };
 			renderPassInfo.clearValueCount = (uint32_t)clearValues.size();
 			renderPassInfo.pClearValues = clearValues.data();

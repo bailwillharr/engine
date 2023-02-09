@@ -20,13 +20,14 @@ namespace engine {
 
 		}
 
-		bool isStatic;
-		AABB aabb;
+		bool isStatic = true;
+		bool isTrigger = false; // entity receives an event on collision enter and exit
+		AABB aabb{};
 
-		glm::vec3 getLastCollisionNormal() { return {0.0f, 1.0f, 0.0f}; }
-		glm::vec3 getLastCollisionPoint() { return {}; }
-		bool getIsColliding() { return true; }
-		bool getJustUncollided() { return false; }
+		bool getIsColliding() { return isColliding; }
+
+	private:
+		bool isColliding = false;
 
 	};
 

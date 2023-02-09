@@ -12,6 +12,11 @@ namespace engine {
 	Scene::Scene(Application* app)
 		: m_app(app)
 	{
+		// event system
+		m_eventSystem = std::make_unique<EventSystem>();
+
+		// ecs configuration:
+
 		registerComponent<TransformComponent>();
 		registerComponent<RenderableComponent>();
 		registerComponent<ColliderComponent>();
@@ -64,6 +69,7 @@ namespace engine {
 			system->onUpdate(ts);
 		}
 
+		m_eventSystem->dispatchEvents(); // clears event queue
 	}
 
 }

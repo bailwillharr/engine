@@ -38,11 +38,11 @@ static void configureInputs(engine::InputManager* inputManager)
 	inputManager->addInputAxis("looky", engine::inputs::MouseAxis::Y);
 }
 
-void playGame()
+void playGame(bool enableFrameLimiter)
 {
 	engine::Application app(PROJECT_NAME, PROJECT_VERSION);
 
-	app.setFrameLimiter(false);
+	app.setFrameLimiter(enableFrameLimiter);
 
 	// configure window
 	app.window()->setRelativeMouseMode(true);
@@ -60,8 +60,12 @@ void playGame()
 		myScene->getComponent<engine::TransformComponent>(camera)->position.y = 8.0f;
 		auto cameraCollider = myScene->addComponent<engine::ColliderComponent>(camera);
 		cameraCollider->isStatic = false;
+		cameraCollider->isTrigger = true;
 		cameraCollider->aabb = { { -0.2f, -1.5f, -0.2f }, { 0.2f, 0.2f, 0.2f} }; // Origin is at eye level
 		myScene->addComponent<CameraControllerComponent>(camera);
+		myScene->events()->subscribeToEventType<engine::PhysicsSystem::CollisionEvent>(
+				engine::EventSubscriberKind::ENTITY, camera, myScene->getSystem<CameraControllerSystem>()
+			);
 
 		myScene->getSystem<engine::RenderSystem>()->setCameraEntity(camera);
 	}
@@ -83,7 +87,7 @@ void playGame()
 	);
 
 	/* skybox */
-	{
+	if (0) {
 		uint32_t skybox = myScene->createEntity("skybox");
 		auto skyboxRenderable = myScene->addComponent<engine::RenderableComponent>(skybox);
 		skyboxRenderable->material = std::make_unique<engine::resources::Material>(app.getResource<engine::resources::Shader>("engine.skybox"));

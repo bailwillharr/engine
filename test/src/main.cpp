@@ -7,15 +7,22 @@
 
 #include <exception>
 
-int main(int, char *[])
+int main(int argc, char* argv[])
 {
+
+	bool enableFrameLimiter = true;
+
+	if (argc == 2) {
+		const std::string arg { argv[1] };
+		if (arg == "nofpslimit") enableFrameLimiter = false;
+	}
 
 	engine::setupLog(PROJECT_NAME);
 
 	INFO("{} v{}", PROJECT_NAME, PROJECT_VERSION);
 
 	try {
-		playGame();
+		playGame(enableFrameLimiter);
 	}
 	catch (const std::exception& e) {
 

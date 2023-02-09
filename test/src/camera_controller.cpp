@@ -173,3 +173,9 @@ void CameraControllerSystem::onUpdate(float ts)
 	}
 
 }
+
+void CameraControllerSystem::onEvent(engine::PhysicsSystem::CollisionEvent info)
+{
+	(void)info;
+	INFO("COLLISION EVENT!");
+}

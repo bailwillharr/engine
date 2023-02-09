@@ -3,4 +3,4 @@ set -e
 cd Release
 cmake --build .
 cd test
-./enginetest
+./enginetest $@

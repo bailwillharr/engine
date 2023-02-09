@@ -3,4 +3,4 @@ set -e
 cd Debug
 cmake --build .
 cd test
-./enginetest
+./enginetest $@

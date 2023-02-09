@@ -3,6 +3,7 @@
 #include "log.hpp"
 
 #include "ecs_system.hpp"
+#include "event_system.hpp"
 
 #include <map>
 #include <cstdint>
@@ -24,6 +25,8 @@ namespace engine {
 		void update(float ts);
 
 		Application* app() { return m_app; }
+
+		EventSystem* events() { return m_eventSystem.get(); }
 
 		/* ecs stuff */
 
@@ -129,6 +132,8 @@ namespace engine {
 			assert(castedPtr != nullptr);
 			return castedPtr;
 		}
+
+		std::unique_ptr<EventSystem> m_eventSystem{};
 
 	};
 

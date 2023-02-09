@@ -35,13 +35,17 @@ namespace engine {
 	PhysicsSystem::PhysicsSystem(Scene* scene)
 		: System(scene, { typeid(TransformComponent).hash_code(), typeid(ColliderComponent).hash_code() })
 	{
+		m_scene->events()->registerEventType<CollisionEvent>();
 	}
 
 	void PhysicsSystem::onComponentInsert(uint32_t entity)
 	{
 		(void)entity;
-		m_staticInfos.reserve(m_entities.size());
-		m_dynamicInfos.reserve(m_entities.size());
+		const size_t size = m_entities.size();
+		m_staticAABBs.reserve(size);
+		m_dynamicAABBs.reserve(size);
+		m_possibleCollisions.reserve(size);
+		m_collisionInfos.reserve(size);
 		TRACE("added entity {} to collider system", entity);
 	}
 
@@ -49,12 +53,12 @@ namespace engine {
 	{
 		(void)ts;
 
-		m_staticInfos.clear();
-		m_dynamicInfos.clear();
+		m_staticAABBs.clear();
+		m_dynamicAABBs.clear();
+		m_possibleCollisions.clear();
+		m_collisionInfos.clear();
 
-		TRACE("Getting collider entities:");
 		for (uint32_t entity : m_entities) {
-			TRACE("   has entity: {}", entity);
 			const auto t = m_scene->getComponent<TransformComponent>(entity);
 			const auto c = m_scene->getComponent<ColliderComponent>(entity);
 
@@ -63,41 +67,49 @@ namespace engine {
 			AABB globalBoundingBox;
 			globalBoundingBox.pos1 = globalPosition + localBoundingBox.pos1;
 			globalBoundingBox.pos2 = globalPosition + localBoundingBox.pos2;
-			TRACE("   global bounding box:");
-			TRACE("       pos1: {} {} {}", globalBoundingBox.pos1.x, globalBoundingBox.pos1.y, globalBoundingBox.pos1.z);
-			TRACE("       pos2: {} {} {}", globalBoundingBox.pos2.x, globalBoundingBox.pos2.y, globalBoundingBox.pos2.z);
 
-			CollisionInfo info{
-				.entity = entity,
-				.aabb = globalBoundingBox,
-				.isMaybeColliding = false,
-				.isColliding = false
-			};
 			if (c->isStatic) {
-				m_staticInfos.push_back(info);
+				m_staticAABBs.emplace_back(std::make_tuple(entity, globalBoundingBox, c->isTrigger));
 			} else {
-				m_dynamicInfos.push_back(info);
+				m_dynamicAABBs.emplace_back(std::make_tuple(entity, globalBoundingBox, c->isTrigger));
 			}
 		}
 
 		/* BROAD PHASE */
 
-		TRACE("Starting broad phase collision test");
-
-		struct PossibleCollision {
-
-		};
-
 		// Check every static collider against every dynamic collider, and every dynamic collider against every other one
 		// This technique is inefficient for many entities.
-		for (size_t i = 0; i < m_staticInfos.size(); i++) {
-			for (size_t j = 0; j < m_dynamicInfos.size(); j++) {
-				if (checkCollisionFast(m_staticInfos[i].aabb, m_dynamicInfos[j].aabb)) {
-					m_staticInfos[i].isMaybeColliding = true;
-					m_dynamicInfos[i].isMaybeColliding = true;
-					TRACE("Collision detected between {} and {}", m_staticInfos[i].entity, m_dynamicInfos[j].entity);
+		for (auto [staticEntity, staticAABB, staticTrigger] : m_staticAABBs) {
+			for (auto [dynamicEntity, dynamicAABB, dynamicTrigger] : m_dynamicAABBs) {
+				if (checkCollisionFast(staticAABB, dynamicAABB)) {
+					if (staticTrigger || dynamicTrigger) { // only check collisions involved with triggers
+						m_possibleCollisions.emplace_back(
+							staticEntity, staticAABB, staticTrigger,
+							dynamicEntity, dynamicAABB, dynamicTrigger
+						);
+					}
 				}
 			}
+		}
+
+		// get collision details and submit events
+		for (auto possibleCollision : m_possibleCollisions) {
+			if (possibleCollision.staticTrigger) {
+				CollisionEvent info{};
+				info.isCollisionEnter = true;
+				info.collidedEntity = possibleCollision.dynamicEntity;
+				m_collisionInfos.emplace_back(possibleCollision.staticEntity, info);
+			}
+			if (possibleCollision.dynamicTrigger) {
+				CollisionEvent info{};
+				info.isCollisionEnter = true;
+				info.collidedEntity = possibleCollision.staticEntity;
+				m_collisionInfos.emplace_back(possibleCollision.dynamicEntity, info);
+			}
+		}
+
+		for (auto [entity, info] : m_collisionInfos) {
+			m_scene->events()->queueEvent(EventSubscriberKind::ENTITY, entity, info);
 		}
 	}
 

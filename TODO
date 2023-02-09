@@ -1,5 +1,7 @@
 ----- TO DO LIST -----
 
+TODO now: the collision system doesn't use the "isTrigger" bool properly.
+
 Add support for shadows and other complex lighting. Also add post-processing.
 
 The engine needs an event/message system, this will be helpful for collision
