@@ -4,9 +4,6 @@ TODO now: the collision system doesn't use the "isTrigger" bool properly.
 
 Add support for shadows and other complex lighting. Also add post-processing.
 
-The engine needs an event/message system, this will be helpful for collision
-detection. Also helpful for general gameplay logic.
-
 Add AABB colliders, sphere colliders, and mesh colliders.
 
 Support animations and skinned meshes.
@@ -20,8 +17,6 @@ For font rendering, put all ASCII characters in one large texture and use
 
 
 
-
-
 ----- DONE -----
 
 For mesh rendering, give every mesh-renderer a ShaderMaterial which, depending
@@ -29,7 +24,9 @@ on the shader, defines how the mesh reacts to light and also stores a reference
 to its texture(s). -- Also make a model loader that works with multiple meshes
 (by creating many objects).
 
-# VULKAN #
+The engine needs an event/message system, this will be helpful for collision
+detection. Also helpful for general gameplay logic.
+
 The entire vulkan backend needs redesigning without so many classes
 
 Place all instances of a particular component in contiguous memory: I.e., a
