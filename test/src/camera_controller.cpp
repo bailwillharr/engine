@@ -23,19 +23,17 @@ CameraControllerSystem::CameraControllerSystem(engine::Scene* scene)
 void CameraControllerSystem::onUpdate(float ts)
 {
 
-	engine::TransformComponent* t = nullptr;
-	engine::ColliderComponent* col = nullptr;
-	CameraControllerComponent* c = nullptr;
-	for (uint32_t entity : m_entities) {
-		t = m_scene->getComponent<engine::TransformComponent>(entity);
-		col = m_scene->getComponent<engine::ColliderComponent>(entity);
-		c = m_scene->getComponent<CameraControllerComponent>(entity);
-		break;
+	if (t == nullptr || c == nullptr || col == nullptr) {
+		for (uint32_t entity : m_entities) {
+			t = m_scene->getComponent<engine::TransformComponent>(entity);
+			col = m_scene->getComponent<engine::ColliderComponent>(entity);
+			c = m_scene->getComponent<CameraControllerComponent>(entity);
+			break;
+		}
+		if (t == nullptr) return;
+		if (c == nullptr) return;
+		if (col == nullptr) return;
 	}
-	if (t == nullptr) return;
-	if (c == nullptr) return;
-	if (col == nullptr) return;
-
 	// calculate new position
 
 	// use one unit per meter
@@ -177,5 +175,6 @@ void CameraControllerSystem::onUpdate(float ts)
 // called once per frame
 void CameraControllerSystem::onEvent(engine::PhysicsSystem::CollisionEvent info)
 {
-	(void)info;
+	INFO("NORMAL X: {}, Y: {}, Z: {}", info.normal.x, info.normal.y, info.normal.z);
+	t->position += info.normal;
 }

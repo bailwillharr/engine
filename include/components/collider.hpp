@@ -15,14 +15,9 @@ namespace engine {
 	struct ColliderComponent  {
 		friend PhysicsSystem;
 
-		ColliderComponent()
-		{
-
-		}
-
 		bool isStatic = true;
 		bool isTrigger = false; // entity receives an event on collision enter and exit
-		AABB aabb{};
+		AABB aabb{}; // broad phase
 
 		bool getIsColliding() { return isColliding; }
 

@@ -87,7 +87,7 @@ void playGame(bool enableFrameLimiter)
 	);
 
 	/* skybox */
-	if (0) {
+	{
 		uint32_t skybox = myScene->createEntity("skybox");
 		auto skyboxRenderable = myScene->addComponent<engine::RenderableComponent>(skybox);
 		skyboxRenderable->material = std::make_unique<engine::resources::Material>(app.getResource<engine::resources::Shader>("engine.skybox"));
@@ -124,6 +124,38 @@ void playGame(bool enableFrameLimiter)
 		auto floorCollider = myScene->addComponent<engine::ColliderComponent>(floor);
 		floorCollider->isStatic = true;
 		floorCollider->aabb = { { 0.0f, 0.0f, 0.0f }, { 100.0f, 0.1f, 100.0f } };
+	}
+
+	// cubes!
+	{
+		constexpr int SIZE = 10;
+
+		const uint32_t cubeParent = myScene->createEntity("cubeParent");
+		myScene->getComponent<engine::TransformComponent>(cubeParent)->position = { 10.0f, 5.0f, 10.0f };
+
+		std::shared_ptr<engine::resources::Mesh> cubeMesh = genCuboidMesh(app.gfx(), 0.1f, 0.1f, 0.1f);
+		const auto cubeMaterial = std::make_shared<engine::resources::Material>(app.getResource<engine::resources::Shader>("engine.textured"));
+		cubeMaterial->m_texture = app.getResource<engine::resources::Texture>("engine.white");
+
+		uint32_t cubes[SIZE][SIZE][SIZE];
+		for (int x = 0; x < SIZE; x++) {
+			for (int y = 0; y < SIZE; y++) {
+				for (int z = 0; z < SIZE; z++) {
+					const uint32_t cube = myScene->createEntity("cube" + std::to_string(x * 100 + y * 10 + z), cubeParent);
+
+					auto transform = myScene->getComponent<engine::TransformComponent>(cube);
+					auto renderable = myScene->addComponent<engine::RenderableComponent>(cube);
+
+					transform->position = { (float)x, (float)y, (float)z };
+					renderable->mesh = cubeMesh;
+					renderable->material = cubeMaterial;
+
+					cubes[x][y][z] = cube;
+				}
+			}
+		}
+
+		(void)cubes;
 	}
 
 	app.gameLoop();

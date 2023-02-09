@@ -3,6 +3,7 @@
 #include "ecs_system.hpp"
 #include "event_system.hpp"
 
+#include "components/transform.hpp"
 #include "systems/collisions.hpp"
 
 struct CameraControllerComponent {
@@ -30,4 +31,8 @@ public:
 
 	// engine::EventHandler overrides
 	void onEvent(engine::PhysicsSystem::CollisionEvent info) override;
+
+	engine::TransformComponent* t = nullptr;
+	engine::ColliderComponent* col = nullptr;
+	CameraControllerComponent* c = nullptr;
 };
