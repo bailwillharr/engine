@@ -1,5 +1,7 @@
 ----- TO DO LIST -----
 
+Supported different event 'kinds' (postPhysics, preRender, postRender etc)
+
 TODO now: the collision system doesn't use the "isTrigger" bool properly.
 
 Add support for shadows and other complex lighting. Also add post-processing.
