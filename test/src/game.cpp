@@ -97,20 +97,20 @@ void playGame(bool enableFrameLimiter)
 		myScene->getComponent<engine::TransformComponent>(skybox)->position = { -1.0f, -1.0f, -1.0f };
 	}
 
-	/* enemy sphere */
+	/* enemy cube */
 	{
 		uint32_t enemy = myScene->createEntity("enemy");
 		auto enemyRenderable = myScene->addComponent<engine::RenderableComponent>(enemy);
 		enemyRenderable->material = std::make_unique<engine::resources::Material>(app.getResource<engine::resources::Shader>("engine.textured"));
 		enemyRenderable->material->m_texture = app.getResource<engine::resources::Texture>("engine.white");
-		enemyRenderable->mesh = genSphereMesh(app.gfx(), 5.0f, 50, false);
+		enemyRenderable->mesh = genCuboidMesh(app.gfx(), 10.0f, 10.0f, 10.0f);
 		auto enemyTransform = myScene->getComponent<engine::TransformComponent>(enemy);
 		enemyTransform->position.x = 10.0f;
 		enemyTransform->position.y = 0.0f;
 		enemyTransform->position.z = 14.0f;
 		auto enemyCollider = myScene->addComponent<engine::ColliderComponent>(enemy);
 		enemyCollider->isStatic = true;
-		enemyCollider->aabb = { { -5.0f, -5.0f, -5.0f }, { 5.0f, 5.0f, 5.0f } }; // A box enclosing the sphere
+		enemyCollider->aabb = { { 0.0f, 0.0f, 0.0f }, { 10.0f, 10.0f, 10.0f } }; // A box enclosing the sphere
 	}
 
 	/* floor */
@@ -127,11 +127,13 @@ void playGame(bool enableFrameLimiter)
 	}
 
 	// cubes!
-	{
+	if (0) {
 		constexpr int SIZE = 10;
 
 		const uint32_t cubeParent = myScene->createEntity("cubeParent");
-		myScene->getComponent<engine::TransformComponent>(cubeParent)->position = { 10.0f, 5.0f, 10.0f };
+		engine::TransformComponent* cubeParentTransform = myScene->getComponent<engine::TransformComponent>(cubeParent);
+		cubeParentTransform->position = { 100.0f, 0.0f, 100.0f };
+		cubeParentTransform->scale = { 100.0f, 100.0f, 100.0f };
 
 		std::shared_ptr<engine::resources::Mesh> cubeMesh = genCuboidMesh(app.gfx(), 0.1f, 0.1f, 0.1f);
 		const auto cubeMaterial = std::make_shared<engine::resources::Material>(app.getResource<engine::resources::Shader>("engine.textured"));

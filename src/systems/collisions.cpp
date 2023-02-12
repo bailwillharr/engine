@@ -35,8 +35,8 @@ namespace engine {
 		const float PZdistance = glm::abs(subjectCentre.z - object.pos2.z);
 		const float NZdistance = glm::abs(subjectCentre.z - object.pos1.z);
 		const std::array<float, 6> distances { PXdistance, NXdistance, PYdistance, NYdistance, PZdistance, NZdistance };
-		const auto maxDistance = std::max_element(distances.begin(), distances.end());
-		const int index = maxDistance - distances.begin();
+		const auto minDistance = std::min_element(distances.begin(), distances.end());
+		const int index = minDistance - distances.begin();
 		switch (index) {
 			case 0:
 				// P_X
@@ -135,6 +135,10 @@ namespace engine {
 				info.isCollisionEnter = true;
 				info.collidedEntity = possibleCollision.dynamicEntity;
 				info.normal = getAABBNormal(possibleCollision.staticAABB, possibleCollision.dynamicAABB);
+
+				AABB object = possibleCollision.dynamicAABB;
+				info.point = object.pos2;
+
 				m_collisionInfos.emplace_back(possibleCollision.staticEntity, info);
 			}
 			if (possibleCollision.dynamicTrigger) {
@@ -142,6 +146,11 @@ namespace engine {
 				info.isCollisionEnter = true;
 				info.collidedEntity = possibleCollision.staticEntity;
 				info.normal = getAABBNormal(possibleCollision.dynamicAABB, possibleCollision.staticAABB);
+
+				AABB object = possibleCollision.staticAABB;
+				info.point = object.pos2;
+
+
 				m_collisionInfos.emplace_back(possibleCollision.dynamicEntity, info);
 			}
 		}

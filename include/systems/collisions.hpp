@@ -21,6 +21,7 @@ namespace engine {
 			bool isCollisionEnter; // false == collision exit
 			uint32_t collidedEntity; // the entity that this entity collided with
 			glm::vec3 normal; // the normal of the surface this entity collided with; ignored on collision exit
+			glm::vec3 point; // where the collision was detected
 		};
 	
 	private:

@@ -19,6 +19,9 @@ struct CameraControllerComponent {
 	float standingHeight = 0.0f;
 	const float thrust = 25.0f;
 
+	glm::vec3 lastCollisionNormal{};
+	glm::vec3 lastCollisionPoint{};
+	bool justCollided = false;
 };
 
 class CameraControllerSystem : public engine::System, public engine::EventHandler<engine::PhysicsSystem::CollisionEvent> {

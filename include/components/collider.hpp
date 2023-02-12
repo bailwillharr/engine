@@ -19,11 +19,7 @@ namespace engine {
 		bool isTrigger = false; // entity receives an event on collision enter and exit
 		AABB aabb{}; // broad phase
 
-		bool getIsColliding() { return isColliding; }
-
 	private:
-		bool isColliding = false;
-
 	};
 
 }

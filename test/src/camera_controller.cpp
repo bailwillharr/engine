@@ -40,13 +40,12 @@ void CameraControllerSystem::onUpdate(float ts)
 
 	const float dt = ts;
 
-/*
 	constexpr float G = 9.8f;
 //	constexpr float MAX_SLOPE_ANGLE = glm::radians(20.0f);
 	constexpr float MAX_SLOPE_ANGLE = glm::radians(1000.0f); // treat every collider as a floor, (TODO: get wall collisions working so this can be removed)
 	constexpr float FLOOR_SINK_LEVEL = 0.05f; // how far into the floor to ground the player
 
-	glm::vec3 norm = col->getLastCollisionNormal();
+	glm::vec3 norm = c->lastCollisionNormal;
 
 	norm.y = 0.0f;
 
@@ -55,22 +54,22 @@ void CameraControllerSystem::onUpdate(float ts)
 
 	bool isSliding = false;
 
-	if (col->getIsColliding()) {
+	if (c->justCollided) {
 		if (slope > MAX_SLOPE_ANGLE) {
 			// slide across wall
 			isSliding = true;
 		} else {
 			if (c->dy < 0.0f && c->isGrounded == false) {
 				// in the ground, push up a bit
-				float floorY = col->getLastCollisionPoint().y;
-				t->position.y = floorY + col->colliders.sphereCollider.r - FLOOR_SINK_LEVEL;
+				float floorY = c->lastCollisionPoint.y;
+				t->position.y = floorY + 1.5f - FLOOR_SINK_LEVEL;
 				c->dy = 0.0f;
 				c->isGrounded = true;
 			}
 		}
 	}
 
-	if (col->getJustUncollided() && slope <= MAX_SLOPE_ANGLE) {
+	if (c->justCollided == false && slope <= MAX_SLOPE_ANGLE) {
 		// just stopped colliding with a floor collider
 		c->isGrounded = false;
 	}
@@ -88,14 +87,9 @@ void CameraControllerSystem::onUpdate(float ts)
 		c->dy += dt * c->thrust;
 	}
 
-*/
-
 	// in metres per second
 	float SPEED = c->walk_speed;
 	if (m_scene->app()->inputManager()->getButton("sprint")) SPEED *= 10.0f;
-
-	if (m_scene->app()->inputManager()->getButton("fire")) t->position.y += dt * SPEED;
-	if (m_scene->app()->inputManager()->getButton("aim")) t->position.y -= dt * SPEED;
 
 	float dx = m_scene->app()->inputManager()->getAxis("movex");
 	float dz = (-m_scene->app()->inputManager()->getAxis("movey"));
@@ -116,10 +110,9 @@ void CameraControllerSystem::onUpdate(float ts)
 	const glm::vec3 d2xRotated = glm::rotateY(glm::vec3{ dx, 0.0f, 0.0f }, c->m_yaw);
 	const glm::vec3 d2zRotated = glm::rotateY(glm::vec3{ 0.0f, 0.0f, dz }, c->m_yaw);
 	glm::vec3 hVel = (d2xRotated + d2zRotated);
-/*	if (isSliding) {
+	if (isSliding) {
 		hVel = glm::vec3{norm.z, 0.0f, -norm.x};
 	}
-*/
 	hVel *= SPEED;
 	t->position += hVel * dt;
 	t->position.y += c->dy * dt;
@@ -170,11 +163,14 @@ void CameraControllerSystem::onUpdate(float ts)
 		m_scene->app()->window()->toggleFullscreen();
 	}
 
+	c->justCollided = false;
+
 }
 
 // called once per frame
 void CameraControllerSystem::onEvent(engine::PhysicsSystem::CollisionEvent info)
 {
-	INFO("NORMAL X: {}, Y: {}, Z: {}", info.normal.x, info.normal.y, info.normal.z);
-	t->position += info.normal;
+	c->justCollided = info.isCollisionEnter;
+	c->lastCollisionNormal = info.normal;
+	c->lastCollisionPoint = info.point;
 }
