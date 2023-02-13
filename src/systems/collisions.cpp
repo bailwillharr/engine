@@ -150,7 +150,6 @@ namespace engine {
 				AABB object = possibleCollision.staticAABB;
 				info.point = object.pos2;
 
-
 				m_collisionInfos.emplace_back(possibleCollision.dynamicEntity, info);
 			}
 		}

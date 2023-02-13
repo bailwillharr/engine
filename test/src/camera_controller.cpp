@@ -41,16 +41,16 @@ void CameraControllerSystem::onUpdate(float ts)
 	const float dt = ts;
 
 	constexpr float G = 9.8f;
-//	constexpr float MAX_SLOPE_ANGLE = glm::radians(20.0f);
-	constexpr float MAX_SLOPE_ANGLE = glm::radians(1000.0f); // treat every collider as a floor, (TODO: get wall collisions working so this can be removed)
+	const float MAX_SLOPE_ANGLE = glm::cos(glm::radians(20.0f));
+//	constexpr float MAX_SLOPE_ANGLE = glm::radians(1000.0f); // treat every collider as a floor, (TODO: get wall collisions working so this can be removed)
 	constexpr float FLOOR_SINK_LEVEL = 0.05f; // how far into the floor to ground the player
 
 	glm::vec3 norm = c->lastCollisionNormal;
 
-	norm.y = 0.0f;
-
 	glm::vec3 dir = glm::normalize(glm::rotateY(glm::vec3{ 1.0f, 0.0f, 0.0f }, c->m_yaw) + glm::rotateY(glm::vec3{ 0.0f, 0.0f, 1.0f }, c->m_yaw));
-	const float slope = glm::length(glm::half_pi<float>() - glm::acos(glm::dot(dir, norm)));
+	const float slope = glm::dot(dir, norm);
+
+	INFO("slope: {}", slope);
 
 	bool isSliding = false;
 

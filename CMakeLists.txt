@@ -23,8 +23,6 @@ set(SRC_FILES
 	"src/resources/mesh.cpp"
 	"src/resources/texture.cpp"
 
-	"src/event_system.cpp"
-
 	"src/scene.cpp"
 
 	"src/gfx_device_vulkan.cpp"

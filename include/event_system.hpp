@@ -71,10 +71,10 @@ namespace engine {
 	class EventSystem {
 	
 	public:
-		EventSystem();
+		EventSystem() {}
 		EventSystem(const EventSystem&) = delete;
 		EventSystem& operator=(const EventSystem&) = delete;
-		~EventSystem();
+		~EventSystem() {}
 
 		template <typename T>
 		void registerEventType()
