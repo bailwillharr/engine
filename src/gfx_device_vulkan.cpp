@@ -503,7 +503,7 @@ namespace engine {
 	}
 
 	// This is called not just on initialisation, but also when the window is resized.
-	static void createSwapchain(VkDevice device, VkPhysicalDevice physicalDevice, VmaAllocator allocator, std::vector<Queue> queues, SDL_Window* window, VkSurfaceKHR surface, bool vsync, Swapchain* swapchain)
+	static void createSwapchain(VkDevice device, VkPhysicalDevice physicalDevice, VmaAllocator allocator, std::vector<Queue> queues, SDL_Window* window, VkSurfaceKHR surface, bool vsync, bool useMSAA, Swapchain* swapchain)
 	{
 		[[maybe_unused]] VkResult res;
 
@@ -636,7 +636,10 @@ namespace engine {
 		assert(res == VK_SUCCESS);
 
 		// Use multisample anti-aliasing
-		swapchain->msaaSamples = getMaxSampleCount(physicalDevice);
+		if (useMSAA)
+			swapchain->msaaSamples = getMaxSampleCount(physicalDevice);
+		else
+			swapchain->msaaSamples = VK_SAMPLE_COUNT_1_BIT;
 
 		// create depth buffer if old depth buffer is wrong size.
 		// Also do the same for the MSAA buffer.
@@ -663,6 +666,8 @@ namespace engine {
 			 * 0: color attachment with msaa samples, 
 			 * 1: depth attachment with msaa samples, used for fragment shading
 			 * 2: present src (resolve) attachment with 1 sample, used for swapchain present
+			 *
+			 * if msaa is disabled, 0 is used for swapchain present and 2 is ignored
 			 */
 
 			VkAttachmentDescription colorAttachment{};
@@ -673,7 +678,11 @@ namespace engine {
 			colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 			colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 			colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-			colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			if (useMSAA) {
+				colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			} else {
+				colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+			}
 
 			colorAttachmentRef.attachment = 0;
 			colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -709,7 +718,11 @@ namespace engine {
 			subpass.colorAttachmentCount = 1;
 			subpass.pColorAttachments = &colorAttachmentRef;
 			subpass.pDepthStencilAttachment = &depthAttachmentRef;
-			subpass.pResolveAttachments = &colorAttachmentResolveRef;
+			if (useMSAA) {
+				subpass.pResolveAttachments = &colorAttachmentResolveRef;
+			} else {
+				subpass.pResolveAttachments = nullptr;
+			}
 
 			VkSubpassDependency dependency{};
 			dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
@@ -723,7 +736,11 @@ namespace engine {
 
 			VkRenderPassCreateInfo createInfo{};
 			createInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-			createInfo.attachmentCount = (uint32_t)attachments.size();
+			if (useMSAA) {
+				createInfo.attachmentCount = 3;
+			} else {
+				createInfo.attachmentCount = 2;
+			}
 			createInfo.pAttachments = attachments.data();
 			createInfo.subpassCount = 1;
 			createInfo.pSubpasses = &subpass;
@@ -766,7 +783,12 @@ namespace engine {
 			VkFramebufferCreateInfo framebufferInfo{};
 			framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 			framebufferInfo.renderPass = swapchain->renderpass;
-			framebufferInfo.attachmentCount = (uint32_t)attachments.size();
+			if (useMSAA) {
+				framebufferInfo.attachmentCount = 3;
+			} else {
+				attachments[0] = swapchain->imageViews[i];
+				framebufferInfo.attachmentCount = 2;
+			}
 			framebufferInfo.pAttachments = attachments.data();
 			framebufferInfo.width = swapchain->extent.width;
 			framebufferInfo.height = swapchain->extent.height;
@@ -1431,7 +1453,7 @@ namespace engine {
 
 
 		// Now make the swapchain
-		createSwapchain(pimpl->device, pimpl->physicalDevice, pimpl->allocator, pimpl->queues, window, pimpl->surface, pimpl->vsync, &pimpl->swapchain);
+		createSwapchain(pimpl->device, pimpl->physicalDevice, pimpl->allocator, pimpl->queues, window, pimpl->surface, pimpl->vsync, false, &pimpl->swapchain);
 
 
 
@@ -1560,7 +1582,7 @@ namespace engine {
 		if (res == VK_ERROR_OUT_OF_DATE_KHR) {
 			// recreate swapchain
 			waitIdle();
-			createSwapchain(pimpl->device, pimpl->physicalDevice, pimpl->allocator, pimpl->queues, pimpl->window, pimpl->surface, pimpl->vsync, &pimpl->swapchain);
+			createSwapchain(pimpl->device, pimpl->physicalDevice, pimpl->allocator, pimpl->queues, pimpl->window, pimpl->surface, pimpl->vsync, false, &pimpl->swapchain);
 			return;
 		}
 		else {
@@ -1693,7 +1715,7 @@ namespace engine {
 		if (res == VK_SUBOPTIMAL_KHR || res == VK_ERROR_OUT_OF_DATE_KHR) {
 			// recreate swapchain
 			waitIdle();
-			createSwapchain(pimpl->device, pimpl->physicalDevice, pimpl->allocator, pimpl->queues, pimpl->window, pimpl->surface, pimpl->vsync, &pimpl->swapchain);
+			createSwapchain(pimpl->device, pimpl->physicalDevice, pimpl->allocator, pimpl->queues, pimpl->window, pimpl->surface, pimpl->vsync, false, &pimpl->swapchain);
 		}
 		else {
 			assert(res == VK_SUCCESS);

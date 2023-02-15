@@ -2,6 +2,7 @@
 
 layout(binding = 0) uniform UBO {
 	mat4 proj;
+	mat4 view;
 } ubo;
 
 layout( push_constant ) uniform Constants {

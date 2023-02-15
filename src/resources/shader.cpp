@@ -36,7 +36,7 @@ namespace engine::resources {
 		}
 		vertFormat.stride = stride;
 
-		m_pipeline = m_gfx->createPipeline(vertPath, fragPath, vertFormat, sizeof(glm::mat4), alphaBlending, cullBackFace);
+		m_pipeline = m_gfx->createPipeline(vertPath, fragPath, vertFormat, sizeof(glm::mat4) * 2, alphaBlending, cullBackFace);
 
 		INFO("Loaded shader: {}, vertex attribs: {}", vertPath, vertFormat.attributeDescriptions.size());
 	}

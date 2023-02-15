@@ -50,8 +50,6 @@ void CameraControllerSystem::onUpdate(float ts)
 	glm::vec3 dir = glm::normalize(glm::rotateY(glm::vec3{ 1.0f, 0.0f, 0.0f }, c->m_yaw) + glm::rotateY(glm::vec3{ 0.0f, 0.0f, 1.0f }, c->m_yaw));
 	const float slope = glm::dot(dir, norm);
 
-	INFO("slope: {}", slope);
-
 	bool isSliding = false;
 
 	if (c->justCollided) {

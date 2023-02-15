@@ -1,7 +1,8 @@
 #version 450
 
-layout(binding = 0) uniform UBO {
+layout(set = 0, binding = 0) uniform UBO {
 	mat4 proj;
+	mat4 view;
 } ubo;
 
 layout( push_constant ) uniform Constants {

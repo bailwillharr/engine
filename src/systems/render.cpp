@@ -58,7 +58,15 @@ namespace engine {
 			assert(r->mesh != nullptr);
 			assert(r->material->m_texture != nullptr);
 
-			gfx->updateUniformBuffer(r->material->getShader()->getPipeline(), &projMatrix, sizeof(projMatrix), 0);
+			struct {
+				glm::mat4 proj;
+				glm::mat4 view;
+			} uniform{};
+
+			uniform.proj = projMatrix;
+			uniform.view = viewMatrix;
+
+			gfx->updateUniformBuffer(r->material->getShader()->getPipeline(), &uniform, sizeof(glm::mat4) * 2, 0);
 
 			struct {
 				glm::mat4 model;
@@ -84,7 +92,7 @@ namespace engine {
 
 	void RenderSystem::setCameraEntity(uint32_t entity)
 	{
-		{ m_camera.camEntity = entity; }
+		m_camera.camEntity = entity;
 	}
 
 }

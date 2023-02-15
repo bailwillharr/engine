@@ -1,7 +1,5 @@
 #include "window.hpp"
 
-#include "log.hpp"
-
 #include <iostream>
 #include <stdexcept>
 
