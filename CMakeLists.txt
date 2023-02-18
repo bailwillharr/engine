@@ -9,70 +9,70 @@ project(engine LANGUAGES CXX
 )
 
 set(SRC_FILES
-	"src/ecs_system.cpp"
-	"src/application.cpp"
+	src/ecs_system.cpp
+	src/application.cpp
 
-	"src/libs/stb_image.cpp"
+	src/libs/stb_image.cpp
 
-	"src/systems/transform.cpp"
-	"src/systems/render.cpp"
-	"src/systems/collisions.cpp"
+	src/systems/transform.cpp
+	src/systems/render.cpp
+	src/systems/collisions.cpp
 
-	"src/resources/shader.cpp"
-	"src/resources/material.cpp"
-	"src/resources/mesh.cpp"
-	"src/resources/texture.cpp"
+	src/resources/shader.cpp
+	src/resources/material.cpp
+	src/resources/mesh.cpp
+	src/resources/texture.cpp
 
-	"src/scene.cpp"
+	src/scene.cpp
 
-	"src/gfx_device_vulkan.cpp"
-	"src/gfx_device_null.cpp"
+	src/gfx_device_vulkan.cpp
+	src/gfx_device_null.cpp
 
-	"src/util/files.cpp"
-	"src/util/model_loader.cpp"
+	src/util/files.cpp
+	src/util/model_loader.cpp
 
-	"src/scene_manager.cpp"
-	"src/input_manager.cpp"
-	"src/window.cpp"
+	src/scene_manager.cpp
+	src/input_manager.cpp
+	src/window.cpp
 )
 
 set(INCLUDE_FILES
-	"include/ecs_system.hpp"
-	"include/gfx_device.hpp"
+	include/ecs_system.hpp
+	include/gfx_device.hpp
 
-	"include/inputs/mouse.hpp"
-	"include/inputs/keyboard.hpp"
-	"include/input_manager.hpp"
+	include/inputs/mouse.hpp
+	include/inputs/keyboard.hpp
+	include/input_manager.hpp
 
-	"include/systems/transform.hpp"
-	"include/systems/render.hpp"
-	"include/systems/collisions.hpp"
+	include/systems/transform.hpp
+	include/systems/render.hpp
+	include/systems/collisions.hpp
 
-	"include/resources/shader.hpp"
-	"include/resources/material.hpp"
-	"include/resources/mesh.hpp"
-	"include/resources/texture.hpp"
+	include/resources/shader.hpp
+	include/resources/material.hpp
+	include/resources/mesh.hpp
+	include/resources/texture.hpp
 
-	"include/event_system.hpp"
+	include/event_system.hpp
 
-	"include/engine_api.h"
+	include/engine_api.h
 
-	"include/util/files.hpp"
-	"include/util/model_loader.hpp"
+	include/util/files.hpp
+	include/util/model_loader.hpp
 
-	"include/util.hpp"
-	"include/logger.hpp"
-	"include/scene_manager.hpp"
-	"include/gfx.hpp"
-	"include/scene.hpp"
-	"include/window.hpp"
-	"include/log.hpp"
-	"include/resource_manager.hpp"
-	"include/application.hpp"
+	include/util.hpp
+	include/logger.hpp
+	include/scene_manager.hpp
+	include/gfx.hpp
+	include/scene.hpp
+	include/window.hpp
+	include/log.hpp
+	include/resource_manager.hpp
+	include/application.hpp
 
-	"include/components/transform.hpp"
-	"include/components/renderable.hpp"
-	"include/components/collider.hpp"
+	include/components/transform.hpp
+	include/components/renderable.hpp
+	include/components/collider.hpp
 )
 
 add_library(${PROJECT_NAME} STATIC
@@ -91,6 +91,10 @@ set_property(TARGET ${PROJECT_NAME} PROPERTY WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
+set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_EXTENSIONS OFF)
+set_property(TARGET ${PROJECT_NAME} PROPERTY C_STANDARD 99)
+set_property(TARGET ${PROJECT_NAME} PROPERTY C_STANDARD_REQUIRED ON)
+set_property(TARGET ${PROJECT_NAME} PROPERTY C_EXTENSIONS OFF)
 
 if (MSVC)
 	target_compile_options(${PROJECT_NAME} PRIVATE /W3)
@@ -125,22 +129,6 @@ endif()
 # MinGW library if using it
 if (MINGW)
 	target_link_libraries(${PROJECT_NAME} PUBLIC mingw32)
-endif()
-
-if(ENGINE_BUILD_OPENGL)
-	# GLAD:
-	set(GLAD_PROFILE "core" CACHE INTERNAL "" FORCE)
-	set(GLAD_API "gl=3.3" CACHE INTERNAL "" FORCE)
-	if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-		set(GLAD_GENERATOR "c-debug" CACHE INTERNAL "" FORCE)
-	else()
-		set(GLAD_GENERATOR "c" CACHE INTERNAL "" FORCE)
-	endif()
-	set(GLAD_SPEC "gl" CACHE INTERNAL "" FORCE)
-	set(BUILD_SHARED_LIBS OFF)
-	add_subdirectory(dependencies/glad)
-	target_link_libraries(${PROJECT_NAME} PUBLIC glad)
-	target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC dependencies/glad/include)
 endif()
 
 if(ENGINE_BUILD_VULKAN)
