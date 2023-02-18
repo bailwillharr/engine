@@ -23,6 +23,7 @@ namespace engine {
 	// Event queue interface to allow for different type queues to be in the map
 	class IEventQueue {
 	public:
+		virtual ~IEventQueue() {}
 		virtual void dispatchEvents() = 0;
 	};
 
@@ -61,6 +62,11 @@ namespace engine {
 		std::unordered_map<uint32_t, EventHandler<T>*> m_subscribers;
 
 		struct QueuedEvent {
+
+			QueuedEvent(EventHandler<T>* handler, T event) :
+				handler(handler),
+				event(event) {}
+
 			EventHandler<T>* handler;
 			T event;
 		};

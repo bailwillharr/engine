@@ -33,6 +33,15 @@ namespace engine {
 		std::vector<std::tuple<uint32_t, AABB, bool>> m_dynamicAABBs{};
 
 		struct PossibleCollision {
+
+			PossibleCollision(uint32_t staticEntity, AABB staticAABB, bool staticTrigger, uint32_t dynamicEntity, AABB dynamicAABB, bool dynamicTrigger) :
+				staticEntity(staticEntity),
+				staticAABB(staticAABB),
+				staticTrigger(staticTrigger),
+				dynamicEntity(dynamicEntity),
+				dynamicAABB(dynamicAABB),
+				dynamicTrigger(dynamicTrigger) {}
+
 			uint32_t staticEntity;
 			AABB staticAABB;
 			bool staticTrigger;

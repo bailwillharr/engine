@@ -11,7 +11,7 @@ namespace engine::resources {
 	Shader::Shader(GFXDevice* gfx, const char* vertPath, const char* fragPath, const VertexParams& vertexParams, bool alphaBlending, bool cullBackFace)
 		: m_gfx(gfx)
 	{
-		int index = 0;
+		uint32_t index = 0;
 		uint32_t stride = 0;
 		gfx::VertexFormat vertFormat{};
 

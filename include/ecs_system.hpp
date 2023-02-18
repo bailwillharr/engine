@@ -52,7 +52,7 @@ namespace engine {
 	
 	public:
 		System(Scene* scene, std::set<size_t> requiredComponentHashes);
-		~System() {}
+		virtual ~System() {}
 		System(const System&) = delete;
 		System& operator=(const System&) = delete;
 

@@ -46,6 +46,10 @@ namespace engine::gfx {
 	};
 
 	struct VertexAttribDescription {
+		VertexAttribDescription(uint32_t location, VertexAttribFormat format, uint32_t offset) :
+			location(location),
+			format(format),
+			offset(offset) {}
 		uint32_t location;
 		VertexAttribFormat format;
 		uint32_t offset;
