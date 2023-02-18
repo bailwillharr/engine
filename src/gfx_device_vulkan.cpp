@@ -1205,6 +1205,7 @@ namespace engine {
 
 			const std::vector<const char*> requiredDeviceExtensions{
 				VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+				VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME,
 			};
 
 			for (const auto& dev : physicalDevices) {
@@ -1359,6 +1360,10 @@ namespace engine {
 				.ppEnabledExtensionNames = requiredDeviceExtensions.data(),
 				.pEnabledFeatures = &deviceFeatures,
 			};
+
+			for ([[maybe_unused]] const char* ext : requiredDeviceExtensions) {
+				DEBUG("Using Vulkan device extension: {}", ext);
+			}
 
 			res = vkCreateDevice(pimpl->physicalDevice, &deviceCreateInfo, nullptr, &pimpl->device);
 			if (res != VK_SUCCESS) {
