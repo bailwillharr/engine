@@ -136,9 +136,9 @@ if(ENGINE_BUILD_VULKAN)
 	set(VOLK_STATIC_DEFINES "")
 	set(VOLK_PULL_IN_VULKAN ON)
 	set(VOLK_INSTALL OFF)
-	set(VOLK_HEADERS_ONLY ON)
+	set(VOLK_HEADERS_ONLY OFF)
 	add_subdirectory(dependencies/volk)
-	target_link_libraries(${PROJECT_NAME} PRIVATE volk_headers)
+	target_link_libraries(${PROJECT_NAME} PRIVATE volk::volk)
 	# Vulkan Memory Allocator
 	target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE dependencies/VulkanMemoryAllocator/include)
 	# shaderc

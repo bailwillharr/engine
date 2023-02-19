@@ -8,7 +8,6 @@
 #include "log.hpp"
 #include "util/files.hpp"
 
-#define VOLK_IMPLEMENTATION
 #include <volk.h>
 
 #define VMA_STATIC_VULKAN_FUNCTIONS 0
@@ -598,13 +597,21 @@ namespace engine {
 		}
 
 		swapchain->presentMode = VK_PRESENT_MODE_FIFO_KHR; // This mode is always available
-		if (settings.vsync == false) {
+		if (settings.vsync == true) {
 			for (const auto& presMode : presentModes) {
 				if (presMode == VK_PRESENT_MODE_MAILBOX_KHR) {
-					swapchain->presentMode = presMode; // this mode allows uncapped FPS while also avoiding screen tearing
+					swapchain->presentMode = presMode; // this mode allows V-sync without fixing FPS to refresh rate
+				}
+			}
+		} else {
+			for (const auto& presMode : presentModes) {
+				if (presMode == VK_PRESENT_MODE_IMMEDIATE_KHR) {
+					swapchain->presentMode = presMode; // V-sync off
 				}
 			}
 		}
+
+		INFO("V-sync: {}", swapchain->presentMode == VK_PRESENT_MODE_FIFO_KHR || swapchain->presentMode == VK_PRESENT_MODE_MAILBOX_KHR ? "ON" : "OFF");
 
 		uint32_t imageCount = caps.minImageCount + 1;
 		if (caps.maxImageCount > 0 && imageCount > caps.maxImageCount) {
@@ -1738,9 +1745,8 @@ namespace engine {
 		presentInfo.waitSemaphoreCount = 1;
 		presentInfo.pWaitSemaphores = &pimpl->swapchain.releaseSemaphores[frameIndex];
 
-		VkSwapchainKHR swapchains[] = { pimpl->swapchain.swapchain };
 		presentInfo.swapchainCount = 1;
-		presentInfo.pSwapchains = swapchains;
+		presentInfo.pSwapchains = &pimpl->swapchain.swapchain;
 		presentInfo.pImageIndices = &imageIndex;
 		presentInfo.pResults = nullptr;
 

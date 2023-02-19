@@ -40,9 +40,11 @@ static void configureInputs(engine::InputManager* inputManager)
 
 void playGame(bool enableFrameLimiter)
 {
+	INFO("FPS limiter: {}", enableFrameLimiter ? "ON" : "OFF");
+
 	engine::gfx::GraphicsSettings graphicsSettings{};
 	graphicsSettings.vsync = false;
-	graphicsSettings.msaaLevel = engine::gfx::MSAALevel::MSAA_16X;
+	graphicsSettings.msaaLevel = engine::gfx::MSAALevel::MSAA_OFF;
 	engine::Application app(PROJECT_NAME, PROJECT_VERSION, graphicsSettings);
 
 	app.setFrameLimiter(enableFrameLimiter);
