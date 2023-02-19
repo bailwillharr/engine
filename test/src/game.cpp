@@ -40,7 +40,10 @@ static void configureInputs(engine::InputManager* inputManager)
 
 void playGame(bool enableFrameLimiter)
 {
-	engine::Application app(PROJECT_NAME, PROJECT_VERSION);
+	engine::gfx::GraphicsSettings graphicsSettings{};
+	graphicsSettings.vsync = false;
+	graphicsSettings.msaaLevel = engine::gfx::MSAALevel::MSAA_16X;
+	engine::Application app(PROJECT_NAME, PROJECT_VERSION, graphicsSettings);
 
 	app.setFrameLimiter(enableFrameLimiter);
 
@@ -67,7 +70,8 @@ void playGame(bool enableFrameLimiter)
 				engine::EventSubscriberKind::ENTITY, camera, myScene->getSystem<CameraControllerSystem>()
 			);
 
-		myScene->getSystem<engine::RenderSystem>()->setCameraEntity(camera);
+		auto renderSystem = myScene->getSystem<engine::RenderSystem>();
+		renderSystem->setCameraEntity(camera);
 	}
 
 	/* shared resources */
@@ -113,21 +117,34 @@ void playGame(bool enableFrameLimiter)
 		enemyCollider->aabb = { { 0.0f, 0.0f, 0.0f }, { 10.0f, 10.0f, 10.0f } }; // A box enclosing the sphere
 	}
 
+	/* sun */
+	{
+		uint32_t sun = myScene->createEntity("sun");
+		auto sunRenderable = myScene->addComponent<engine::RenderableComponent>(sun);
+		sunRenderable->material = std::make_unique<engine::resources::Material>(app.getResource<engine::resources::Shader>("engine.textured"));
+		sunRenderable->material->m_texture = app.getResource<engine::resources::Texture>("engine.white");
+		sunRenderable->mesh = genSphereMesh(app.gfx(), 500.0f, 32, false, true);
+		auto sunTransform = myScene->getComponent<engine::TransformComponent>(sun);
+		sunTransform->position.x = 2000.0f;
+		sunTransform->position.y = 2000.0f;
+		sunTransform->position.z = -2000.0f;
+	}
+
 	/* floor */
 	{
 		uint32_t floor = myScene->createEntity("floor");
-		myScene->getComponent<engine::TransformComponent>(floor)->position = glm::vec3{-50.0f, -0.1f, -50.0f};
+		myScene->getComponent<engine::TransformComponent>(floor)->position = glm::vec3{-5000.0f, -1.0f, -5000.0f};
 		auto floorRenderable = myScene->addComponent<engine::RenderableComponent>(floor);
 		floorRenderable->material = std::make_shared<engine::resources::Material>(app.getResource<engine::resources::Shader>("engine.textured"));
 		floorRenderable->material->m_texture = grassTexture;
-		floorRenderable->mesh = genCuboidMesh(app.gfx(), 100.0f, 0.1f, 100.0f, 128.0f);
+		floorRenderable->mesh = genCuboidMesh(app.gfx(), 10000.0f, 1.0f, 10000.0f, 5000.0f);
 		auto floorCollider = myScene->addComponent<engine::ColliderComponent>(floor);
 		floorCollider->isStatic = true;
-		floorCollider->aabb = { { 0.0f, 0.0f, 0.0f }, { 100.0f, 0.1f, 100.0f } };
+		floorCollider->aabb = { { 0.0f, 0.0f, 0.0f }, { 10000.0f, 1.0f, 10000.0f } };
 	}
 
 	// cubes!
-	if (0) {
+	{
 		constexpr int SIZE = 10;
 
 		const uint32_t cubeParent = myScene->createEntity("cubeParent");
@@ -147,6 +164,11 @@ void playGame(bool enableFrameLimiter)
 
 					auto transform = myScene->getComponent<engine::TransformComponent>(cube);
 					auto renderable = myScene->addComponent<engine::RenderableComponent>(cube);
+					auto collider = myScene->addComponent<engine::ColliderComponent>(cube);
+					collider->aabb.pos1 = { 0.0f, 0.0f, 0.0f };
+					collider->aabb.pos2 = { 10.0f, 10.0f, 10.0f };
+					collider->isStatic = true;
+					collider->isTrigger = false;
 
 					transform->position = { (float)x, (float)y, (float)z };
 					renderable->mesh = cubeMesh;

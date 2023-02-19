@@ -27,8 +27,10 @@ namespace engine {
 		std::vector<spdlog::sink_ptr> sinks;
 
 		sinks.emplace_back(std::make_shared<spdlog::sinks::basic_file_sink_mt>(log_path.string(), true));
+		sinks.back()->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] %v");
 
 		sinks.emplace_back(std::make_shared<spdlog::sinks::stdout_color_sink_mt>());
+		sinks.back()->set_pattern("[%H:%M:%S.%e] [%l] %v");
 
 		auto logger = std::make_shared<spdlog::logger>(appName, sinks.begin(), sinks.end());
 
@@ -36,6 +38,7 @@ namespace engine {
 
 		spdlog::register_logger(logger);
 		spdlog::set_default_logger(logger);
+		spdlog::flush_every(std::chrono::seconds(60));
 
 		INFO("Created log with path: {}", log_path.string());
 

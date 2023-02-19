@@ -7,6 +7,8 @@
 
 #include "log.hpp"
 
+#include <array>
+
 namespace engine {
 
 	// static functions

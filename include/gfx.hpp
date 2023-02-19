@@ -3,7 +3,31 @@
 #include <cstdint>
 #include <vector>
 
+// Enums and structs for the graphics abstraction
+
 namespace engine::gfx {
+
+	enum class MSAALevel {
+		MSAA_OFF,
+		MSAA_2X,
+		MSAA_4X,
+		MSAA_8X,
+		MSAA_16X,
+	};
+
+	struct GraphicsSettings {
+		
+		GraphicsSettings()
+		{
+			// sane defaults
+			vsync = false;
+			msaaLevel = MSAALevel::MSAA_OFF;
+		}
+
+		bool vsync;
+		MSAALevel msaaLevel;
+
+	};
 
 	enum class ShaderType {
 		VERTEX,

@@ -56,10 +56,10 @@ static std::filesystem::path getResourcesPath()
 
 namespace engine {
 
-	Application::Application(const char* appName, const char* appVersion)
+	Application::Application(const char* appName, const char* appVersion, gfx::GraphicsSettings graphicsSettings)
 	{
 		m_window = std::make_unique<Window>(appName, true, false);
-		m_gfx = std::make_unique<GFXDevice>(appName, appVersion, m_window->getHandle());
+		m_gfx = std::make_unique<GFXDevice>(appName, appVersion, m_window->getHandle(), graphicsSettings);
 		m_inputManager = std::make_unique<InputManager>(window());
 		m_sceneManager = std::make_unique<SceneManager>(this);
 

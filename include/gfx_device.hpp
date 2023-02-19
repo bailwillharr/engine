@@ -11,7 +11,7 @@ namespace engine {
 	class GFXDevice {
 
 	public:
-		GFXDevice(const char* appName, const char* appVersion, SDL_Window* window, bool vsync = false);
+		GFXDevice(const char* appName, const char* appVersion, SDL_Window* window, gfx::GraphicsSettings settings);
 
 		GFXDevice(const GFXDevice&) = delete;
 		GFXDevice& operator=(const GFXDevice&) = delete;

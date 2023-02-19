@@ -164,13 +164,36 @@ namespace engine {
 
 		static VkFilter getTextureFilter(gfx::TextureFilter filter)
 		{
-			switch(filter) {
+			switch (filter) {
 			case gfx::TextureFilter::LINEAR:
 				return VK_FILTER_LINEAR;
 			case gfx::TextureFilter::NEAREST:
 				return VK_FILTER_NEAREST;
 			}
 			throw std::runtime_error("Unknown texture filter");
+		}
+
+		static VkSampleCountFlags getSampleCountFlags(gfx::MSAALevel level)
+		{
+			switch (level) {
+			case gfx::MSAALevel::MSAA_OFF:
+				return VK_SAMPLE_COUNT_1_BIT;
+				break;
+			case gfx::MSAALevel::MSAA_2X:
+				return VK_SAMPLE_COUNT_2_BIT;
+				break;
+			case gfx::MSAALevel::MSAA_4X:
+				return VK_SAMPLE_COUNT_4_BIT;
+				break;
+			case gfx::MSAALevel::MSAA_8X:
+				return VK_SAMPLE_COUNT_8_BIT;
+				break;
+			case gfx::MSAALevel::MSAA_16X:
+				return VK_SAMPLE_COUNT_16_BIT;
+				break;
+			default:
+				throw std::runtime_error("Unknown MSAA level");
+			}
 		}
 
 	}
@@ -486,13 +509,14 @@ namespace engine {
 		vmaDestroyImage(allocator, db.image, db.allocation);
 	}
 
-	static VkSampleCountFlagBits getMaxSampleCount(VkPhysicalDevice physicalDevice)
+	static VkSampleCountFlagBits getMaxSampleCount(VkPhysicalDevice physicalDevice, gfx::MSAALevel maxLevel)
 	{
+		VkSampleCountFlags max = vkinternal::getSampleCountFlags(maxLevel);
 		VkPhysicalDeviceProperties physicalDeviceProperties;
 		vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
 
 		VkSampleCountFlags counts = physicalDeviceProperties.limits.framebufferColorSampleCounts & physicalDeviceProperties.limits.framebufferDepthSampleCounts;
-		counts %= VK_SAMPLE_COUNT_4_BIT; // restricts it to 2 or 1 (0b11)
+		counts %= (max << 1); // restricts sample count to maxLevel
 		if (counts & VK_SAMPLE_COUNT_64_BIT) { return VK_SAMPLE_COUNT_64_BIT; }
 		if (counts & VK_SAMPLE_COUNT_32_BIT) { return VK_SAMPLE_COUNT_32_BIT; }
 		if (counts & VK_SAMPLE_COUNT_16_BIT) { return VK_SAMPLE_COUNT_16_BIT; }
@@ -503,7 +527,7 @@ namespace engine {
 	}
 
 	// This is called not just on initialisation, but also when the window is resized.
-	static void createSwapchain(VkDevice device, VkPhysicalDevice physicalDevice, VmaAllocator allocator, std::vector<Queue> queues, SDL_Window* window, VkSurfaceKHR surface, bool vsync, bool useMSAA, Swapchain* swapchain)
+	static void createSwapchain(VkDevice device, VkPhysicalDevice physicalDevice, VmaAllocator allocator, std::vector<Queue> queues, SDL_Window* window, VkSurfaceKHR surface, gfx::GraphicsSettings settings, Swapchain* swapchain)
 	{
 		[[maybe_unused]] VkResult res;
 
@@ -574,7 +598,7 @@ namespace engine {
 		}
 
 		swapchain->presentMode = VK_PRESENT_MODE_FIFO_KHR; // This mode is always available
-		if (vsync == false) {
+		if (settings.vsync == false) {
 			for (const auto& presMode : presentModes) {
 				if (presMode == VK_PRESENT_MODE_MAILBOX_KHR) {
 					swapchain->presentMode = presMode; // this mode allows uncapped FPS while also avoiding screen tearing
@@ -636,10 +660,12 @@ namespace engine {
 		assert(res == VK_SUCCESS);
 
 		// Use multisample anti-aliasing
-		if (useMSAA)
-			swapchain->msaaSamples = getMaxSampleCount(physicalDevice);
+		if (settings.msaaLevel != gfx::MSAALevel::MSAA_OFF)
+			swapchain->msaaSamples = getMaxSampleCount(physicalDevice, settings.msaaLevel);
 		else
 			swapchain->msaaSamples = VK_SAMPLE_COUNT_1_BIT;
+
+		INFO("Multisampling mode: {}", swapchain->msaaSamples == VK_SAMPLE_COUNT_1_BIT ? "OFF" : std::to_string(swapchain->msaaSamples) + "x");
 
 		// create depth buffer if old depth buffer is wrong size.
 		// Also do the same for the MSAA buffer.
@@ -678,10 +704,10 @@ namespace engine {
 			colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 			colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 			colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-			if (useMSAA) {
-				colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-			} else {
+			if (swapchain->msaaSamples == VK_SAMPLE_COUNT_1_BIT) {
 				colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+			} else {
+				colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 			}
 
 			colorAttachmentRef.attachment = 0;
@@ -718,10 +744,10 @@ namespace engine {
 			subpass.colorAttachmentCount = 1;
 			subpass.pColorAttachments = &colorAttachmentRef;
 			subpass.pDepthStencilAttachment = &depthAttachmentRef;
-			if (useMSAA) {
-				subpass.pResolveAttachments = &colorAttachmentResolveRef;
-			} else {
+			if (swapchain->msaaSamples == VK_SAMPLE_COUNT_1_BIT) {
 				subpass.pResolveAttachments = nullptr;
+			} else {
+				subpass.pResolveAttachments = &colorAttachmentResolveRef;
 			}
 
 			VkSubpassDependency dependency{};
@@ -736,10 +762,10 @@ namespace engine {
 
 			VkRenderPassCreateInfo createInfo{};
 			createInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-			if (useMSAA) {
-				createInfo.attachmentCount = 3;
-			} else {
+			if (swapchain->msaaSamples == VK_SAMPLE_COUNT_1_BIT) {
 				createInfo.attachmentCount = 2;
+			} else {
+				createInfo.attachmentCount = 3;
 			}
 			createInfo.pAttachments = attachments.data();
 			createInfo.subpassCount = 1;
@@ -783,11 +809,11 @@ namespace engine {
 			VkFramebufferCreateInfo framebufferInfo{};
 			framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 			framebufferInfo.renderPass = swapchain->renderpass;
-			if (useMSAA) {
-				framebufferInfo.attachmentCount = 3;
-			} else {
+			if (swapchain->msaaSamples == VK_SAMPLE_COUNT_1_BIT) {
 				attachments[0] = swapchain->imageViews[i];
 				framebufferInfo.attachmentCount = 2;
+			} else {
+				framebufferInfo.attachmentCount = 3;
 			}
 			framebufferInfo.pAttachments = attachments.data();
 			framebufferInfo.width = swapchain->extent.width;
@@ -1044,7 +1070,9 @@ namespace engine {
 		VmaAllocator allocator = nullptr;
 
 		// device settings
-		bool vsync = false;
+		gfx::GraphicsSettings graphicsSettings;
+		
+		// device properties/limits
 		float maxSamplerAnisotropy;
 
 		// render loop
@@ -1059,7 +1087,7 @@ namespace engine {
 
 	};
 
-	GFXDevice::GFXDevice(const char* appName, const char* appVersion, SDL_Window* window, bool vsync)
+	GFXDevice::GFXDevice(const char* appName, const char* appVersion, SDL_Window* window, gfx::GraphicsSettings settings)
 	{
 
 		pimpl = std::make_unique<Impl>();
@@ -1067,7 +1095,7 @@ namespace engine {
 		VkResult res;
 
 		pimpl->window = window;
-		pimpl->vsync = vsync;
+		pimpl->graphicsSettings = settings;
 
 		// initialise vulkan
 
@@ -1458,7 +1486,7 @@ namespace engine {
 
 
 		// Now make the swapchain
-		createSwapchain(pimpl->device, pimpl->physicalDevice, pimpl->allocator, pimpl->queues, window, pimpl->surface, pimpl->vsync, false, &pimpl->swapchain);
+		createSwapchain(pimpl->device, pimpl->physicalDevice, pimpl->allocator, pimpl->queues, window, pimpl->surface, pimpl->graphicsSettings, &pimpl->swapchain);
 
 
 
@@ -1587,7 +1615,7 @@ namespace engine {
 		if (res == VK_ERROR_OUT_OF_DATE_KHR) {
 			// recreate swapchain
 			waitIdle();
-			createSwapchain(pimpl->device, pimpl->physicalDevice, pimpl->allocator, pimpl->queues, pimpl->window, pimpl->surface, pimpl->vsync, false, &pimpl->swapchain);
+			createSwapchain(pimpl->device, pimpl->physicalDevice, pimpl->allocator, pimpl->queues, pimpl->window, pimpl->surface, pimpl->graphicsSettings, &pimpl->swapchain);
 			return;
 		}
 		else {
@@ -1720,7 +1748,7 @@ namespace engine {
 		if (res == VK_SUBOPTIMAL_KHR || res == VK_ERROR_OUT_OF_DATE_KHR) {
 			// recreate swapchain
 			waitIdle();
-			createSwapchain(pimpl->device, pimpl->physicalDevice, pimpl->allocator, pimpl->queues, pimpl->window, pimpl->surface, pimpl->vsync, false, &pimpl->swapchain);
+			createSwapchain(pimpl->device, pimpl->physicalDevice, pimpl->allocator, pimpl->queues, pimpl->window, pimpl->surface, pimpl->graphicsSettings, &pimpl->swapchain);
 		}
 		else {
 			assert(res == VK_SUCCESS);

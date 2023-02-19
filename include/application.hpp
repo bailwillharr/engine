@@ -2,6 +2,8 @@
 
 #include "resource_manager.hpp"
 
+#include "gfx.hpp"
+
 #include <memory>
 #include <string>
 #include <filesystem>
@@ -23,7 +25,7 @@ namespace engine {
 	class Application {
 
 	public:
-		Application(const char* appName, const char* appVersion);
+		Application(const char* appName, const char* appVersion, gfx::GraphicsSettings graphicsSettings);
 		~Application();
 		Application(const Application&) = delete;
 		Application& operator=(const Application&) = delete;

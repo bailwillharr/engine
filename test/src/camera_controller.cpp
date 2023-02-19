@@ -115,7 +115,7 @@ void CameraControllerSystem::onUpdate(float ts)
 	t->position += hVel * dt;
 	t->position.y += c->dy * dt;
 
-	constexpr float MAX_DISTANCE_FROM_ORIGIN = 1000.0f;
+	constexpr float MAX_DISTANCE_FROM_ORIGIN = 10000.0f;
 
 	if (glm::length(t->position) > MAX_DISTANCE_FROM_ORIGIN) {
 		t->position = { 0.0f, 5.0f, 0.0f };

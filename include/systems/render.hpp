@@ -23,8 +23,8 @@ namespace engine {
 			// only uses transform component, which is required for all entities anyway
 			uint32_t camEntity = 0;
 			float verticalFovDegrees = 70.0f;
-			float clipNear = 0.1f;
-			float clipFar = 1000.0f;
+			float clipNear = 0.5f;
+			float clipFar = 10000.0f;
 		} m_camera;
 
 		float m_viewportAspectRatio = 1.0f;
