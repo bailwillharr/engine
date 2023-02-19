@@ -1,6 +1,7 @@
 .ccls-cache/
 .vscode/
 .vs/
+*.aps
 out/
 build/
 /build*/
