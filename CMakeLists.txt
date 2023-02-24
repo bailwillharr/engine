@@ -16,6 +16,7 @@ set(SRC_FILES
 
 	src/systems/transform.cpp
 	src/systems/render.cpp
+	src/systems/ui.cpp
 	src/systems/collisions.cpp
 
 	src/resources/shader.cpp
@@ -46,6 +47,7 @@ set(INCLUDE_FILES
 
 	include/systems/transform.hpp
 	include/systems/render.hpp
+	include/systems/ui.hpp
 	include/systems/collisions.hpp
 
 	include/resources/shader.hpp
@@ -73,6 +75,7 @@ set(INCLUDE_FILES
 	include/components/transform.hpp
 	include/components/renderable.hpp
 	include/components/collider.hpp
+	include/components/ui_element.hpp
 )
 
 add_library(${PROJECT_NAME} STATIC

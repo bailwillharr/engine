@@ -43,7 +43,7 @@ void playGame(bool enableFrameLimiter)
 	INFO("FPS limiter: {}", enableFrameLimiter ? "ON" : "OFF");
 
 	engine::gfx::GraphicsSettings graphicsSettings{};
-	graphicsSettings.vsync = false;
+	graphicsSettings.vsync = true;
 	graphicsSettings.msaaLevel = engine::gfx::MSAALevel::MSAA_OFF;
 	engine::Application app(PROJECT_NAME, PROJECT_VERSION, graphicsSettings);
 
@@ -62,7 +62,7 @@ void playGame(bool enableFrameLimiter)
 		myScene->registerSystem<CameraControllerSystem>();
 
 		auto camera = myScene->createEntity("camera");
-		myScene->getComponent<engine::TransformComponent>(camera)->position.y = 8.0f;
+		myScene->getComponent<engine::TransformComponent>(camera)->position = { 0.0f, 10.0f, 0.0f };
 		auto cameraCollider = myScene->addComponent<engine::ColliderComponent>(camera);
 		cameraCollider->isStatic = false;
 		cameraCollider->isTrigger = true;
@@ -146,7 +146,7 @@ void playGame(bool enableFrameLimiter)
 	}
 
 	// cubes!
-	{
+	if (false) { // disabled
 		constexpr int SIZE = 10;
 
 		const uint32_t cubeParent = myScene->createEntity("cubeParent");

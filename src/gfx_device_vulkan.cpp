@@ -598,9 +598,11 @@ namespace engine {
 
 		swapchain->presentMode = VK_PRESENT_MODE_FIFO_KHR; // This mode is always available
 		if (settings.vsync == true) {
-			for (const auto& presMode : presentModes) {
-				if (presMode == VK_PRESENT_MODE_MAILBOX_KHR) {
-					swapchain->presentMode = presMode; // this mode allows V-sync without fixing FPS to refresh rate
+			if (settings.waitForPresent == false) {
+				for (const auto& presMode : presentModes) {
+					if (presMode == VK_PRESENT_MODE_MAILBOX_KHR) {
+						swapchain->presentMode = presMode; // this mode allows V-sync without fixing FPS to refresh rate
+					}
 				}
 			}
 		} else {

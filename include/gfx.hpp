@@ -20,11 +20,13 @@ namespace engine::gfx {
 		GraphicsSettings()
 		{
 			// sane defaults
-			vsync = false;
+			vsync = true;
+			waitForPresent = true; // not all GPUs/drivers support immediate present with V-sync enabled
 			msaaLevel = MSAALevel::MSAA_OFF;
 		}
 
 		bool vsync;
+		bool waitForPresent; // idle CPU after render until the frame has been presented (no affect with V-sync disabled)
 		MSAALevel msaaLevel;
 
 	};
