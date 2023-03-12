@@ -83,8 +83,7 @@ namespace engine {
 				r->mesh->getIB(),
 				r->mesh->getCount(),
 				&pushConsts,
-				sizeof(pushConsts),
-				r->material->m_texture->getHandle()
+				sizeof(pushConsts)
 			);*/
 
 		}

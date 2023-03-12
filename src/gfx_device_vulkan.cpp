@@ -26,6 +26,18 @@
 #include "log.hpp"
 #include "util/files.hpp"
 
+inline static void checkVulkanError(VkResult errorCode, int lineNo)
+{
+	if (errorCode != VK_SUCCESS) {
+		const std::string message("VULKAN ERROR ON LINE " + std::to_string(lineNo));
+		throw std::runtime_error(message.c_str());
+	}
+}
+
+#undef VKCHECK
+#define VKCHECK(ErrCode) \
+        checkVulkanError(ErrCode, __LINE__)
+
 namespace engine {
 
 	static constexpr uint32_t FRAMES_IN_FLIGHT = 2; // This improved FPS by 5x! (on Intel IGPU)
@@ -61,9 +73,6 @@ namespace engine {
 	struct gfx::Pipeline {
 		VkPipelineLayout layout = VK_NULL_HANDLE;
 		VkPipeline handle = VK_NULL_HANDLE;
-		std::vector<gfx::Buffer*> uniformBuffers{};
-		VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
-		std::array<VkDescriptorSet, FRAMES_IN_FLIGHT> descriptorSets{};
 	};
 
 	struct gfx::Texture {
@@ -148,7 +157,6 @@ namespace engine {
 
 	// functions
 
-#if 0
 	static VkShaderModule compileShader(VkDevice device, shaderc_shader_kind kind, const std::string& source, const char* filename)
 	{
 
@@ -194,6 +202,8 @@ namespace engine {
 		return shaderModule;
 
 	}
+
+#if 0
 
 	static Swapchain::MSTarget createMSAATarget(VkSampleCountFlagBits msaaSamples, VkExtent2D extent, VkFormat colorFormat, VkDevice device, VmaAllocator allocator)
 	{
@@ -619,8 +629,7 @@ namespace engine {
 			.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
 			.commandBufferCount = 1
 		};
-		res = vkAllocateCommandBuffers(pimpl->device.device, &cmdAllocInfo, &pimpl->drawBuf);
-		assert(res == VK_SUCCESS);
+		VKCHECK(vkAllocateCommandBuffers(pimpl->device.device, &cmdAllocInfo, &pimpl->drawBuf));
 
 	}
 
@@ -669,20 +678,19 @@ namespace engine {
 			res = vkAcquireNextImageKHR(
 				pimpl->device.device, pimpl->swapchain.swapchain, 1000000000LL,
 				pimpl->presentSemaphore, VK_NULL_HANDLE, &swapchainImageIndex);
-			assert(res == VK_SUCCESS || res == VK_SUBOPTIMAL_KHR || res == VK_ERROR_OUT_OF_DATE_KHR);
+			if (res != VK_SUBOPTIMAL_KHR && res != VK_ERROR_OUT_OF_DATE_KHR) VKCHECK(res);
 			if (res == VK_SUCCESS) pimpl->swapchainIsOutOfDate = false;
 		} while (pimpl->swapchainIsOutOfDate);
 
 		/* wait until the previous frame RENDERING has finished */
 		res = vkWaitForFences(pimpl->device.device, 1, &pimpl->renderFence, VK_TRUE, 1000000000LL);
-		if (res == VK_TIMEOUT) throw std::runtime_error("Render fence timed out!");
-		assert(res == VK_SUCCESS);
+		VKCHECK(res);
 		res = vkResetFences(pimpl->device.device, 1, &pimpl->renderFence);
-		assert(res == VK_SUCCESS);
+		VKCHECK(res);
 
 		/* record command buffer */
 		res = vkResetCommandBuffer(pimpl->drawBuf, 0);
-		assert(res == VK_SUCCESS);
+		VKCHECK(res);
 
 		VkCommandBufferBeginInfo beginInfo{
 			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -691,7 +699,7 @@ namespace engine {
 			.pInheritanceInfo = nullptr // ignored
 		};
 		res = vkBeginCommandBuffer(pimpl->drawBuf, &beginInfo);
-		assert(res == VK_SUCCESS);
+		VKCHECK(res);
 
 		{ // RECORDING
 
@@ -747,7 +755,7 @@ namespace engine {
 		vkCmdEndRenderPass(pimpl->drawBuf);
 
 		res = vkEndCommandBuffer(pimpl->drawBuf);
-		assert(res == VK_SUCCESS);
+		VKCHECK(res);
 
 		// SUBMIT
 
@@ -765,7 +773,7 @@ namespace engine {
 			.pSignalSemaphores = &pimpl->renderSemaphore,
 		};
 		res = vkQueueSubmit(pimpl->device.queues.drawQueues[0], 1, &submitInfo, pimpl->renderFence);
-		assert(res == VK_SUCCESS);
+		VKCHECK(res);
 
 		// PRESENT
 
@@ -798,80 +806,11 @@ namespace engine {
 
 		gfx::Pipeline* pipeline = new gfx::Pipeline;
 
-#if 0
 		auto vertShaderCode = util::readTextFile(vertShaderPath);
 		auto fragShaderCode = util::readTextFile(fragShaderPath);
 
 		VkShaderModule vertShaderModule = compileShader(pimpl->device.device, shaderc_vertex_shader, vertShaderCode->data(), vertShaderPath);
 		VkShaderModule fragShaderModule = compileShader(pimpl->device.device, shaderc_fragment_shader, fragShaderCode->data(), fragShaderPath);
-		
-		// create uniform buffers
-		pipeline->uniformBuffers.resize(FRAMES_IN_FLIGHT);
-		for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
-			auto buf = new gfx::Buffer{};
-			buf->size = uniformBufferSize;
-			buf->type = gfx::BufferType::UNIFORM;
-
-			VkBufferCreateInfo bufferInfo{};
-			bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-			bufferInfo.size = buf->size;
-			bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-			bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-			VmaAllocationCreateInfo allocInfo{};
-			allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
-			allocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
-			allocInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-
-			VmaAllocationInfo resultingAlloc;
-			res = vmaCreateBuffer(pimpl->allocator, &bufferInfo, &allocInfo, &buf->buffer, &buf->allocation, &resultingAlloc);
-			assert(res == VK_SUCCESS);
-
-			pipeline->uniformBuffers[i] = buf;
-		}
-
-		// create descriptor pools
-		VkDescriptorPoolSize poolSize{};
-		poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		poolSize.descriptorCount = FRAMES_IN_FLIGHT;
-		
-		VkDescriptorPoolCreateInfo poolInfo{};
-		poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-		poolInfo.poolSizeCount = 1;
-		poolInfo.pPoolSizes = &poolSize;
-		poolInfo.maxSets = FRAMES_IN_FLIGHT;
-		res = vkCreateDescriptorPool(pimpl->device.device, &poolInfo, nullptr, &pipeline->descriptorPool);
-		assert(res == VK_SUCCESS);
-
-		std::array<VkDescriptorSetLayout, FRAMES_IN_FLIGHT> layouts;
-		layouts.fill(pimpl->descriptorSetLayout);
-		VkDescriptorSetAllocateInfo dSetAllocInfo{};
-		dSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-		dSetAllocInfo.descriptorPool = pipeline->descriptorPool;
-		dSetAllocInfo.descriptorSetCount = FRAMES_IN_FLIGHT;
-		dSetAllocInfo.pSetLayouts = layouts.data();
-		res = vkAllocateDescriptorSets(pimpl->device, &dSetAllocInfo, pipeline->descriptorSets.data());
-		assert(res == VK_SUCCESS);
-
-		for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
-			VkDescriptorBufferInfo bufferInfo{};
-			bufferInfo.buffer = pipeline->uniformBuffers[i]->buffer;
-			bufferInfo.offset = 0;
-			bufferInfo.range = uniformBufferSize;
-
-			VkWriteDescriptorSet descriptorWrite{};
-			descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrite.dstSet = pipeline->descriptorSets[i];
-			descriptorWrite.dstBinding = 0;
-			descriptorWrite.dstArrayElement = 0;
-			descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			descriptorWrite.descriptorCount = 1;
-			descriptorWrite.pBufferInfo = &bufferInfo;
-			descriptorWrite.pImageInfo = nullptr;
-			descriptorWrite.pTexelBufferView = nullptr;
-
-			vkUpdateDescriptorSets(pimpl->device, 1, &descriptorWrite, 0, nullptr);
-		}
 
 		// get vertex attrib layout:
 		VkVertexInputBindingDescription bindingDescription{ };
@@ -906,7 +845,7 @@ namespace engine {
 
 		VkPipelineShaderStageCreateInfo shaderStages[2] = { vertShaderStageInfo, fragShaderStageInfo };
 
-		// this sets "vertex attribute pointers"
+		// set the vertex input layout
 		VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
 		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 		vertexInputInfo.vertexBindingDescriptionCount = 1;
@@ -931,6 +870,7 @@ namespace engine {
 		scissor.offset = { 0, 0 };
 		scissor.extent = pimpl->swapchain.extent;
 
+		// Dynamic states removes the need to re-create pipelines whenever the window size changes
 		std::vector<VkDynamicState> dynamicStates = {
 			VK_DYNAMIC_STATE_VIEWPORT,
 			VK_DYNAMIC_STATE_SCISSOR
@@ -968,8 +908,8 @@ namespace engine {
 
 		VkPipelineMultisampleStateCreateInfo multisampling{};
 		multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+		multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 		multisampling.sampleShadingEnable = VK_FALSE;
-		multisampling.rasterizationSamples = pimpl->swapchain.msaaSamples;
 		multisampling.minSampleShading = 1.0f; // ignored
 		multisampling.pSampleMask = nullptr; // ignored
 		multisampling.alphaToCoverageEnable = VK_FALSE; // ignored
@@ -1022,16 +962,14 @@ namespace engine {
 		pushConstantRange.size = PUSH_CONSTANT_MAX_SIZE;
 		pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
-		std::array<VkDescriptorSetLayout, 2> setLayouts{ pimpl->descriptorSetLayout, pimpl->samplerSetLayout};
-
 		VkPipelineLayoutCreateInfo layoutInfo{};
 		layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		layoutInfo.setLayoutCount = (uint32_t)setLayouts.size();
-		layoutInfo.pSetLayouts = setLayouts.data();
+		layoutInfo.setLayoutCount = 0;
+		layoutInfo.pSetLayouts = nullptr;
 		layoutInfo.pushConstantRangeCount = 1;
 		layoutInfo.pPushConstantRanges = &pushConstantRange;
 
-		res = vkCreatePipelineLayout(pimpl->device, &layoutInfo, nullptr, &pipeline->layout);
+		res = vkCreatePipelineLayout(pimpl->device.device, &layoutInfo, nullptr, &pipeline->layout);
 		assert(res == VK_SUCCESS);
 
 		VkGraphicsPipelineCreateInfo createInfo{};
@@ -1040,7 +978,7 @@ namespace engine {
 		createInfo.pStages = shaderStages;
 		createInfo.pVertexInputState = &vertexInputInfo;
 		createInfo.pInputAssemblyState = &inputAssembly;
-		createInfo.pViewportState = &viewportState;
+		createInfo.pViewportState = &viewportState; // TODO: maybe this isn't needed?
 		createInfo.pRasterizationState = &rasterizer;
 		createInfo.pMultisampleState = &multisampling;
 		createInfo.pDepthStencilState = &depthStencil;
@@ -1052,13 +990,11 @@ namespace engine {
 		createInfo.basePipelineHandle = VK_NULL_HANDLE;
 		createInfo.basePipelineIndex = -1;
 
-		res = vkCreateGraphicsPipelines(pimpl->device, VK_NULL_HANDLE, 1, &createInfo, nullptr, &pipeline->handle);
+		res = vkCreateGraphicsPipelines(pimpl->device.device, VK_NULL_HANDLE, 1, &createInfo, nullptr, &pipeline->handle);
 		assert(res == VK_SUCCESS);
 
-		vkDestroyShaderModule(pimpl->device, fragShaderModule, nullptr);
-		vkDestroyShaderModule(pimpl->device, vertShaderModule, nullptr);
-
-#endif
+		vkDestroyShaderModule(pimpl->device.device, fragShaderModule, nullptr);
+		vkDestroyShaderModule(pimpl->device.device, vertShaderModule, nullptr);
 
 		return pipeline;
 
@@ -1067,16 +1003,8 @@ namespace engine {
 	void GFXDevice::destroyPipeline(const gfx::Pipeline* pipeline)
 	{
 
-#if 0
-		vkDestroyPipeline(pimpl->device, pipeline->handle, nullptr);
-		vkDestroyPipelineLayout(pimpl->device, pipeline->layout, nullptr);
-
-		vkDestroyDescriptorPool(pimpl->device, pipeline->descriptorPool, nullptr);
-
-		for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
-			destroyBuffer(pipeline->uniformBuffers[i]);
-		}
-#endif
+		vkDestroyPipeline(pimpl->device.device, pipeline->handle, nullptr);
+		vkDestroyPipelineLayout(pimpl->device.device, pipeline->layout, nullptr);
 
 		delete pipeline;
 	}

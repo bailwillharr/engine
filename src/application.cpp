@@ -73,6 +73,7 @@ namespace engine {
 		registerResourceManager<resources::Mesh>();
 
 		// default resources
+#if 0
 		{
 			resources::Shader::VertexParams vertParams{};
 			vertParams.hasNormal = true;
@@ -101,6 +102,7 @@ namespace engine {
 			);
 			getResourceManager<resources::Shader>()->addPersistent("builtin.skybox", std::move(texturedShader));
 		}
+#endif
 		{
 			auto whiteTexture = std::make_unique<resources::Texture>(
 				gfx(),

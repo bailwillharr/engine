@@ -76,7 +76,7 @@ namespace engine::gfx {
 			location(location),
 			format(format),
 			offset(offset) {}
-		uint32_t location;
+		uint32_t location; // the index to use in the shader
 		VertexAttribFormat format;
 		uint32_t offset;
 	};

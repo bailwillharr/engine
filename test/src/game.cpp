@@ -56,6 +56,17 @@ void playGame(bool enableFrameLimiter)
 
 	auto myScene = app.sceneManager()->createEmptyScene();
 
+	const std::string vertPath = app.getResourcePath("engine/shaders/test.vert");
+	const std::string fragPath = app.getResourcePath("engine/shaders/test.frag");
+	engine::resources::Shader::VertexParams vertexParams{};
+	vertexParams.hasColor = false;
+	vertexParams.hasNormal = false;
+	vertexParams.hasTangent = false;
+	vertexParams.hasUV0 = false;
+	bool alphaBlending = false;
+	bool cullBackFace = false;
+	engine::resources::Shader testShader(app.gfx(), vertPath.c_str(), fragPath.c_str(), vertexParams, alphaBlending, cullBackFace);
+
 #if 0
 
 	/* create camera */
