@@ -14,7 +14,7 @@ int main(int argc, char* argv[])
 
 	bool enableFrameLimiter = true;
 	if (argc == 2) {
-		if (strcmp(argv[2], "nofpslimit") == 0) enableFrameLimiter = false;
+		if (strcmp(argv[1], "nofpslimit") == 0) enableFrameLimiter = false;
 	}
 
 	engine::setupLog(PROJECT_NAME);

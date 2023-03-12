@@ -11,7 +11,14 @@ namespace engine {
 		VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
 	};
 
-	Instance createVulkanInstance(SDL_Window* window, const char* appName, const char* appVersion);
+	enum class MessageSeverity {
+		SEV_VERBOSE,
+		SEV_INFO,
+		SEV_WARNING,
+		SEV_ERROR // windows.h defines ERROR annoyingly
+	};
+
+	Instance createVulkanInstance(SDL_Window* window, const char* appName, const char* appVersion, bool useValidation, MessageSeverity validationLevel = MessageSeverity::SEV_WARNING);
 	void destroyVulkanInstance(Instance instance);
 
 }

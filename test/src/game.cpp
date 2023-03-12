@@ -44,6 +44,7 @@ void playGame(bool enableFrameLimiter)
 
 	engine::gfx::GraphicsSettings graphicsSettings{};
 	graphicsSettings.vsync = true;
+	graphicsSettings.waitForPresent = false;
 	graphicsSettings.msaaLevel = engine::gfx::MSAALevel::MSAA_OFF;
 	engine::Application app(PROJECT_NAME, PROJECT_VERSION, graphicsSettings);
 
@@ -60,12 +61,25 @@ void playGame(bool enableFrameLimiter)
 	const std::string fragPath = app.getResourcePath("engine/shaders/test.frag");
 	engine::resources::Shader::VertexParams vertexParams{};
 	vertexParams.hasColor = false;
-	vertexParams.hasNormal = false;
+	vertexParams.hasNormal = true;
 	vertexParams.hasTangent = false;
-	vertexParams.hasUV0 = false;
+	vertexParams.hasUV0 = true;
 	bool alphaBlending = false;
-	bool cullBackFace = false;
-	engine::resources::Shader testShader(app.gfx(), vertPath.c_str(), fragPath.c_str(), vertexParams, alphaBlending, cullBackFace);
+	bool cullBackFace = true;
+	auto testShader = std::make_shared<engine::resources::Shader>(app.gfx(), vertPath.c_str(), fragPath.c_str(), vertexParams, alphaBlending, cullBackFace);
+
+	auto camera = myScene->createEntity("camera");
+
+	auto renderSystem = myScene->getSystem<engine::RenderSystem>();
+	renderSystem->setCameraEntity(camera);
+	myScene->getComponent<engine::TransformComponent>(camera)->position = { 0.0f, 10.0f, 0.0f };
+
+	/* cube */
+	uint32_t cube = myScene->createEntity("cube");
+	myScene->getComponent<engine::TransformComponent>(cube)->position = glm::vec3{ -0.5f, -0.5f, -0.5f };
+	auto cubeRenderable = myScene->addComponent<engine::RenderableComponent>(cube);
+	cubeRenderable->material = std::make_shared<engine::resources::Material>(testShader);
+	cubeRenderable->mesh = genCuboidMesh(app.gfx(), 1, 1.0f, 1, 1);
 
 #if 0
 

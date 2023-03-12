@@ -19,12 +19,15 @@ namespace engine {
 
 		void getViewportSize(uint32_t *w, uint32_t *h);
 
-		gfx::CommandBuffer* beginRender();
-		void finishRender(gfx::CommandBuffer* commandBuffer);
+		gfx::DrawBuffer* beginRender();
+		void finishRender(gfx::DrawBuffer* drawBuffer);
 
-		void cmdBindPipeline(gfx::CommandBuffer* commandBuffer, const gfx::Pipeline* pipeline);
-		void cmdBindDescriptorSetTexture(gfx::CommandBuffer* commandBuffer, uint32_t set, uint32_t binding, const gfx::Texture* texture);
-		void cmdBindDescriptorSetBuffer(gfx::CommandBuffer* commandBuffer, uint32_t set, uint32_t binding, const gfx::Texture* texture);
+		void cmdBindPipeline(gfx::DrawBuffer* drawBuffer, const gfx::Pipeline* pipeline);
+		void cmdBindVertexBuffer(gfx::DrawBuffer* drawBuffer, uint32_t binding, const gfx::Buffer* buffer);
+		void cmdBindIndexBuffer(gfx::DrawBuffer* drawBuffer, const gfx::Buffer* buffer);
+		void cmdDrawIndexed(gfx::DrawBuffer* drawBuffer, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance);
+		//void cmdBindDescriptorSetTexture(gfx::CommandBuffer* commandBuffer, uint32_t set, uint32_t binding, const gfx::Texture* texture);
+		//void cmdBindDescriptorSetBuffer(gfx::CommandBuffer* commandBuffer, uint32_t set, uint32_t binding, const gfx::Texture* texture);
 		
 		// creates the equivalent of an OpenGL shader program & vertex attrib configuration
 		gfx::Pipeline* createPipeline(const char* vertShaderPath, const char* fragShaderPath, const gfx::VertexFormat& vertexFormat, uint64_t uniformBufferSize, bool alphaBlending, bool backfaceCulling);

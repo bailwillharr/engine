@@ -43,22 +43,15 @@ namespace engine {
 	static constexpr uint32_t FRAMES_IN_FLIGHT = 2; // This improved FPS by 5x! (on Intel IGPU)
 
 	static constexpr size_t PUSH_CONSTANT_MAX_SIZE = 128; // bytes
+	static constexpr VkIndexType INDEX_TYPE = VK_INDEX_TYPE_UINT32;
 
 	// structures and enums
 
-	struct DepthBuffer {
-		VkImage image;
-		VmaAllocation allocation;
-		VkImageView view;
-	};
-
-	struct DrawCall {
-		const gfx::Pipeline* pipeline = nullptr; // for performance, keep this the same for consecutive draw calls
-		const gfx::Buffer* vertexBuffer = nullptr;
-		const gfx::Buffer* indexBuffer = nullptr; // if this is nullptr, don't use indexed
-		uint32_t count = 0;
-		uint8_t pushConstantData[PUSH_CONSTANT_MAX_SIZE];
-		const gfx::Texture* texture = nullptr;
+	struct FrameData {
+		VkFence renderFence = VK_NULL_HANDLE;
+		VkSemaphore presentSemaphore = VK_NULL_HANDLE;
+		VkSemaphore renderSemaphore = VK_NULL_HANDLE;
+		VkCommandBuffer drawBuf = VK_NULL_HANDLE;
 	};
 
 	// handles
@@ -85,8 +78,8 @@ namespace engine {
 		uint32_t mipLevels;
 	};
 
-	struct gfx::CommandBuffer {
-		uint32_t frameIndex; // needed to identify correct command buffer, fences and semaphores
+	struct gfx::DrawBuffer {
+		FrameData frameData;
 		uint32_t imageIndex; // for swapchain present
 	};
 
@@ -325,7 +318,7 @@ namespace engine {
 		if (counts & VK_SAMPLE_COUNT_2_BIT) { return VK_SAMPLE_COUNT_2_BIT; }
 		throw std::runtime_error("MSAA is not supported");
 	}
-
+#endif
 	static void copyBuffer(VkDevice device, VkCommandPool commandPool, VkQueue queue, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
 	{
 		[[maybe_unused]] VkResult res;
@@ -372,6 +365,8 @@ namespace engine {
 		vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
 		
 	}
+
+#if 0
 
 	static VkCommandBuffer beginOneTimeCommands(VkDevice device, VkCommandPool commandPool)
 	{
@@ -528,6 +523,7 @@ namespace engine {
 			0, nullptr,
 			1, &barrier);
 	}
+
 #endif
 
 	// class definitions
@@ -546,14 +542,11 @@ namespace engine {
 		Swapchain swapchain{};
 		
 		uint64_t FRAMECOUNT = 0;
+		
+		FrameData frameData[FRAMES_IN_FLIGHT] = {};
 
-		// temp
-		VkFence renderFence = VK_NULL_HANDLE;
-		VkSemaphore presentSemaphore = VK_NULL_HANDLE;
-		VkSemaphore renderSemaphore = VK_NULL_HANDLE;
-		VkCommandBuffer drawBuf = VK_NULL_HANDLE;
 		bool swapchainIsOutOfDate = false;
-
+		
 	};
 
 	GFXDevice::GFXDevice(const char* appName, const char* appVersion, SDL_Window* window, gfx::GraphicsSettings settings)
@@ -579,7 +572,13 @@ namespace engine {
 			throw std::runtime_error("The loaded Vulkan version must be at least 1.3");
 		}
 
-		pimpl->instance = createVulkanInstance(pimpl->window, appName, appVersion);
+#ifdef NDEBUG
+		bool useValidation = false;
+#else
+		bool useValidation = true;
+#endif
+
+		pimpl->instance = createVulkanInstance(pimpl->window, appName, appVersion, useValidation, MessageSeverity::SEV_WARNING);
 
 		if (SDL_Vulkan_CreateSurface(pimpl->window, pimpl->instance.instance, &pimpl->surface) == false) {
 			throw std::runtime_error("Unable to create window surface");
@@ -603,43 +602,46 @@ namespace engine {
 
 		/* the following is temporary setup */
 
-		VkFenceCreateInfo fenceInfo{
+		for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
+			VkFenceCreateInfo fenceInfo{
 			.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
 			.pNext = nullptr,
 			.flags = VK_FENCE_CREATE_SIGNALED_BIT
-		};
-		res = vkCreateFence(pimpl->device.device, &fenceInfo, nullptr, &pimpl->renderFence);
-		if (res != VK_SUCCESS) throw std::runtime_error("Failed to create fence!");
+			};
+			res = vkCreateFence(pimpl->device.device, &fenceInfo, nullptr, &pimpl->frameData[i].renderFence);
+			if (res != VK_SUCCESS) throw std::runtime_error("Failed to create fence!");
 
-		VkSemaphoreCreateInfo smphInfo{
-			.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
-			.pNext = nullptr,
-			.flags = 0
-		};
-		res = vkCreateSemaphore(pimpl->device.device, &smphInfo, nullptr, &pimpl->presentSemaphore);
-		if (res != VK_SUCCESS) throw std::runtime_error("Failed to create semaphore!");
-		res = vkCreateSemaphore(pimpl->device.device, &smphInfo, nullptr, &pimpl->renderSemaphore);
-		if (res != VK_SUCCESS) throw std::runtime_error("Failed to create semaphore!");
+			VkSemaphoreCreateInfo smphInfo{
+				.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+				.pNext = nullptr,
+				.flags = 0
+			};
+			res = vkCreateSemaphore(pimpl->device.device, &smphInfo, nullptr, &pimpl->frameData[i].presentSemaphore);
+			if (res != VK_SUCCESS) throw std::runtime_error("Failed to create semaphore!");
+			res = vkCreateSemaphore(pimpl->device.device, &smphInfo, nullptr, &pimpl->frameData[i].renderSemaphore);
+			if (res != VK_SUCCESS) throw std::runtime_error("Failed to create semaphore!");
 
-		// Create the command buffer for rendering:
-		VkCommandBufferAllocateInfo cmdAllocInfo{
-			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-			.pNext = nullptr,
-			.commandPool = pimpl->device.commandPools.draw,
-			.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-			.commandBufferCount = 1
-		};
-		VKCHECK(vkAllocateCommandBuffers(pimpl->device.device, &cmdAllocInfo, &pimpl->drawBuf));
-
+			VkCommandBufferAllocateInfo cmdAllocInfo{
+				.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+				.pNext = nullptr,
+				.commandPool = pimpl->device.commandPools.draw,
+				.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+				.commandBufferCount = 1
+			};
+			VKCHECK(vkAllocateCommandBuffers(pimpl->device.device, &cmdAllocInfo, &pimpl->frameData[i].drawBuf));
+		}
+	
 	}
 
 	GFXDevice::~GFXDevice()
 	{
-		vkFreeCommandBuffers(pimpl->device.device, pimpl->device.commandPools.draw, 1, &pimpl->drawBuf);
-		vkDestroySemaphore(pimpl->device.device, pimpl->renderSemaphore, nullptr);
-		vkDestroySemaphore(pimpl->device.device, pimpl->presentSemaphore, nullptr);
-		vkDestroyFence(pimpl->device.device, pimpl->renderFence, nullptr);
-
+		for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
+			vkFreeCommandBuffers(pimpl->device.device, pimpl->device.commandPools.draw, 1, &pimpl->frameData[i].drawBuf);
+			vkDestroySemaphore(pimpl->device.device, pimpl->frameData[i].renderSemaphore, nullptr);
+			vkDestroySemaphore(pimpl->device.device, pimpl->frameData[i].presentSemaphore, nullptr);
+			vkDestroyFence(pimpl->device.device, pimpl->frameData[i].renderFence, nullptr);
+		}
+		
 		destroySwapchain(pimpl->swapchain);
 		destroyAllocator(pimpl->allocator);
 		destroyDevice(pimpl->device);
@@ -661,11 +663,13 @@ namespace engine {
 		}
 	}
 
-	gfx::CommandBuffer* GFXDevice::beginRender()
+	gfx::DrawBuffer* GFXDevice::beginRender()
 	{
 		VkResult res;
 
 		uint32_t swapchainImageIndex;
+
+		FrameData frameData = pimpl->frameData[pimpl->FRAMECOUNT % FRAMES_IN_FLIGHT];
 
 		do {
 			if (pimpl->swapchainIsOutOfDate) {
@@ -677,19 +681,19 @@ namespace engine {
 			// THIS FUNCTION BLOCKS UNTIL AN IMAGE IS AVAILABLE (it waits for vsync)
 			res = vkAcquireNextImageKHR(
 				pimpl->device.device, pimpl->swapchain.swapchain, 1000000000LL,
-				pimpl->presentSemaphore, VK_NULL_HANDLE, &swapchainImageIndex);
+				frameData.presentSemaphore, VK_NULL_HANDLE, &swapchainImageIndex);
 			if (res != VK_SUBOPTIMAL_KHR && res != VK_ERROR_OUT_OF_DATE_KHR) VKCHECK(res);
 			if (res == VK_SUCCESS) pimpl->swapchainIsOutOfDate = false;
 		} while (pimpl->swapchainIsOutOfDate);
 
 		/* wait until the previous frame RENDERING has finished */
-		res = vkWaitForFences(pimpl->device.device, 1, &pimpl->renderFence, VK_TRUE, 1000000000LL);
+		res = vkWaitForFences(pimpl->device.device, 1, &frameData.renderFence, VK_TRUE, 1000000000LL);
 		VKCHECK(res);
-		res = vkResetFences(pimpl->device.device, 1, &pimpl->renderFence);
+		res = vkResetFences(pimpl->device.device, 1, &frameData.renderFence);
 		VKCHECK(res);
 
 		/* record command buffer */
-		res = vkResetCommandBuffer(pimpl->drawBuf, 0);
+		res = vkResetCommandBuffer(frameData.drawBuf, 0);
 		VKCHECK(res);
 
 		VkCommandBufferBeginInfo beginInfo{
@@ -698,7 +702,7 @@ namespace engine {
 			.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
 			.pInheritanceInfo = nullptr // ignored
 		};
-		res = vkBeginCommandBuffer(pimpl->drawBuf, &beginInfo);
+		res = vkBeginCommandBuffer(frameData.drawBuf, &beginInfo);
 		VKCHECK(res);
 
 		{ // RECORDING
@@ -719,7 +723,7 @@ namespace engine {
 			passBegin.renderArea.offset = { 0, 0 };
 			passBegin.clearValueCount = 1;
 			passBegin.pClearValues = &clearValue;
-			vkCmdBeginRenderPass(pimpl->drawBuf, &passBegin, VK_SUBPASS_CONTENTS_INLINE);
+			vkCmdBeginRenderPass(frameData.drawBuf, &passBegin, VK_SUBPASS_CONTENTS_INLINE);
 
 			VkViewport viewport{};
 			viewport.x = 0.0f;
@@ -728,33 +732,34 @@ namespace engine {
 			viewport.height = -(float)pimpl->swapchain.extent.height;
 			viewport.minDepth = 0.0f;
 			viewport.maxDepth = 1.0f;
-			vkCmdSetViewport(pimpl->drawBuf, 0, 1, &viewport);
+			vkCmdSetViewport(frameData.drawBuf, 0, 1, &viewport);
 
 			VkRect2D scissor{};
 			scissor.offset = { 0, 0 };
 			scissor.extent = pimpl->swapchain.extent;
-			vkCmdSetScissor(pimpl->drawBuf, 0, 1, &scissor);
+			vkCmdSetScissor(frameData.drawBuf, 0, 1, &scissor);
 
 		}
 
 		// hand command buffer over to caller
-		gfx::CommandBuffer* commandBuffer = new gfx::CommandBuffer;
-		commandBuffer->imageIndex = swapchainImageIndex;
-		return commandBuffer;
+		gfx::DrawBuffer* drawBuffer = new gfx::DrawBuffer;
+		drawBuffer->frameData = frameData;
+		drawBuffer->imageIndex = swapchainImageIndex;
+		return drawBuffer;
 
 	}
 
-	void GFXDevice::finishRender(gfx::CommandBuffer* commandBuffer)
+	void GFXDevice::finishRender(gfx::DrawBuffer* drawBuffer)
 	{
-		if (commandBuffer == nullptr) {
+		if (drawBuffer == nullptr) {
 			return;
 		}
-		uint32_t swapchainImageIndex = commandBuffer->imageIndex;
+		uint32_t swapchainImageIndex = drawBuffer->imageIndex;
 		VkResult res;
 
-		vkCmdEndRenderPass(pimpl->drawBuf);
+		vkCmdEndRenderPass(drawBuffer->frameData.drawBuf);
 
-		res = vkEndCommandBuffer(pimpl->drawBuf);
+		res = vkEndCommandBuffer(drawBuffer->frameData.drawBuf);
 		VKCHECK(res);
 
 		// SUBMIT
@@ -765,15 +770,15 @@ namespace engine {
 			.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
 			.pNext = nullptr,
 			.waitSemaphoreCount = 1,
-			.pWaitSemaphores = &pimpl->presentSemaphore,
+			.pWaitSemaphores = &drawBuffer->frameData.presentSemaphore,
 			.pWaitDstStageMask = &waitStage,
 			.commandBufferCount = 1,
-			.pCommandBuffers = &pimpl->drawBuf,
+			.pCommandBuffers = &drawBuffer->frameData.drawBuf,
 			.signalSemaphoreCount = 1,
-			.pSignalSemaphores = &pimpl->renderSemaphore,
+			.pSignalSemaphores = &drawBuffer->frameData.renderSemaphore,
 		};
-		res = vkQueueSubmit(pimpl->device.queues.drawQueues[0], 1, &submitInfo, pimpl->renderFence);
-		VKCHECK(res);
+		res = vkQueueSubmit(pimpl->device.queues.drawQueues[0], 1, &submitInfo, drawBuffer->frameData.renderFence);
+		// VKCHECK(res); // expensive operation for some reason
 
 		// PRESENT
 
@@ -781,7 +786,7 @@ namespace engine {
 			.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
 			.pNext = nullptr,
 			.waitSemaphoreCount = 1,
-			.pWaitSemaphores = &pimpl->renderSemaphore,
+			.pWaitSemaphores = &drawBuffer->frameData.renderSemaphore,
 			.swapchainCount = 1,
 			.pSwapchains = &pimpl->swapchain.swapchain,
 			.pImageIndices = &swapchainImageIndex,
@@ -796,7 +801,36 @@ namespace engine {
 
 		pimpl->FRAMECOUNT++;
 
-		delete commandBuffer;
+		delete drawBuffer;
+	}
+
+	void GFXDevice::cmdBindPipeline(gfx::DrawBuffer* drawBuffer, const gfx::Pipeline* pipeline)
+	{
+		assert(drawBuffer != nullptr);
+		vkCmdBindPipeline(drawBuffer->frameData.drawBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->handle);
+	}
+
+	void GFXDevice::cmdBindVertexBuffer(gfx::DrawBuffer* drawBuffer, uint32_t binding, const gfx::Buffer* buffer)
+	{
+		assert(drawBuffer != nullptr);
+		assert(buffer != nullptr);
+		assert(buffer->type == gfx::BufferType::VERTEX);
+		const VkDeviceSize offset = 0;
+		vkCmdBindVertexBuffers(drawBuffer->frameData.drawBuf, binding, 1, &buffer->buffer, &offset);
+	}
+
+	void GFXDevice::cmdBindIndexBuffer(gfx::DrawBuffer* drawBuffer, const gfx::Buffer* buffer)
+	{
+		assert(drawBuffer != nullptr);
+		assert(buffer != nullptr);
+		assert(buffer->type == gfx::BufferType::INDEX);
+		vkCmdBindIndexBuffer(drawBuffer->frameData.drawBuf, buffer->buffer, 0, INDEX_TYPE);
+	}
+
+	void GFXDevice::cmdDrawIndexed(gfx::DrawBuffer* drawBuffer, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance)
+	{
+		assert(drawBuffer != nullptr);
+		vkCmdDrawIndexed(drawBuffer->frameData.drawBuf, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
 	}
 
 	gfx::Pipeline* GFXDevice::createPipeline(const char* vertShaderPath, const char* fragShaderPath, const gfx::VertexFormat& vertexFormat, uint64_t uniformBufferSize, bool alphaBlending, bool backfaceCulling)
@@ -1037,8 +1071,6 @@ namespace engine {
 
 		out->type = type;
 
-#if 0
-
 		VkBuffer stagingBuffer;
 		VmaAllocation stagingAllocation;
 
@@ -1084,20 +1116,17 @@ namespace engine {
 		}
 
 		// copy the data from the staging buffer to the gpu buffer
-		copyBuffer(pimpl->device, pimpl->commandPool, pimpl->gfxQueue.handle, stagingBuffer, out->buffer, out->size);
+		copyBuffer(pimpl->device.device, pimpl->device.commandPools.transfer, pimpl->device.queues.transferQueues[0], stagingBuffer, out->buffer, out->size);
 
 		// destroy staging buffer
 		vmaDestroyBuffer(pimpl->allocator, stagingBuffer, stagingAllocation);
-#endif
 		return out;
 
 	}
 
 	void GFXDevice::destroyBuffer(const gfx::Buffer* buffer)
 	{
-#if 0
 		vmaDestroyBuffer(pimpl->allocator, buffer->buffer, buffer->allocation);
-#endif
 		delete buffer;
 	}
 

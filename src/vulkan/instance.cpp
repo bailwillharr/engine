@@ -87,7 +87,7 @@ namespace engine {
 		return VK_FALSE;
 	}
 
-	static VkDebugUtilsMessengerCreateInfoEXT getDebugMessengerCreateInfo()
+	static VkDebugUtilsMessengerCreateInfoEXT getDebugMessengerCreateInfo(MessageSeverity validationLevel)
 	{
 		VkDebugUtilsMessengerCreateInfoEXT debugMessengerInfo{
 			.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
@@ -102,15 +102,7 @@ namespace engine {
 			.pUserData = nullptr,
 		};
 
-		enum class MessageSeverity {
-			SEV_VERBOSE,
-			SEV_INFO,
-			SEV_WARNING,
-			SEV_ERROR // windows.h defines ERROR annoyingly
-		};
-
-		constexpr MessageSeverity MESSAGE_LEVEL = MessageSeverity::SEV_WARNING;
-		switch (MESSAGE_LEVEL) {
+		switch (validationLevel) {
 		case MessageSeverity::SEV_VERBOSE:
 			debugMessengerInfo.messageSeverity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT;
 			[[fallthrough]];
@@ -130,7 +122,7 @@ namespace engine {
 		return debugMessengerInfo;
 	}
 
-	Instance createVulkanInstance(SDL_Window* window, const char* appName, const char* appVersion)
+	Instance createVulkanInstance(SDL_Window* window, const char* appName, const char* appVersion, bool useValidation, MessageSeverity validationLevel)
 	{
 		Instance instance;
 
@@ -152,22 +144,31 @@ namespace engine {
 
 		const std::vector<const char*> windowExtensions = getWindowExtensions(window);
 		std::vector<const char*> instanceExtensionsToUse = windowExtensions;
-		instanceExtensionsToUse.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+		if (useValidation) instanceExtensionsToUse.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 
-		const char* const validationLayer = getValidationLayer();
+		const char* validationLayer = nullptr;
+		if (useValidation) {
+			const char* validationLayer = getValidationLayer();
+		}
 
-		VkDebugUtilsMessengerCreateInfoEXT debugMessengerInfo = getDebugMessengerCreateInfo();
+		VkDebugUtilsMessengerCreateInfoEXT debugMessengerInfo = getDebugMessengerCreateInfo(validationLevel);
 
 		VkInstanceCreateInfo instanceInfo{
 			.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
 			.pNext = &debugMessengerInfo,
-			.flags = 0,
-			.pApplicationInfo = &applicationInfo,
-			.enabledLayerCount = 1,
-			.ppEnabledLayerNames = &validationLayer,
-			.enabledExtensionCount = (uint32_t)instanceExtensionsToUse.size(),
-			.ppEnabledExtensionNames = instanceExtensionsToUse.data(),
+			.flags = 0
 		};
+		instanceInfo.pApplicationInfo = &applicationInfo;
+		if (validationLayer) {
+			instanceInfo.enabledLayerCount = 1;
+			instanceInfo.ppEnabledLayerNames = &validationLayer;
+		}
+		else {
+			instanceInfo.enabledLayerCount = 0;
+			instanceInfo.ppEnabledLayerNames = nullptr;
+		}
+		instanceInfo.enabledExtensionCount = (uint32_t)instanceExtensionsToUse.size();
+		instanceInfo.ppEnabledExtensionNames = instanceExtensionsToUse.data();
 
 		VkResult res;
 		res = vkCreateInstance(&instanceInfo, nullptr, &instance.instance);
@@ -181,11 +182,12 @@ namespace engine {
 		volkLoadInstanceOnly(instance.instance);
 
 		// create the debug messenger
-		VkDebugUtilsMessengerCreateInfoEXT createInfo = getDebugMessengerCreateInfo();
-
-		res = vkCreateDebugUtilsMessengerEXT(instance.instance, &createInfo, nullptr, &instance.debugMessenger);
-		if (res != VK_SUCCESS) {
-			throw std::runtime_error("vkCreateDebugUtilsMessengerExt failed: " + std::to_string(res));
+		if (useValidation) {
+			VkDebugUtilsMessengerCreateInfoEXT createInfo = getDebugMessengerCreateInfo(validationLevel);
+			res = vkCreateDebugUtilsMessengerEXT(instance.instance, &createInfo, nullptr, &instance.debugMessenger);
+			if (res != VK_SUCCESS) {
+				throw std::runtime_error("vkCreateDebugUtilsMessengerExt failed: " + std::to_string(res));
+			}
 		}
 
 		return instance;
@@ -193,7 +195,9 @@ namespace engine {
 
 	void destroyVulkanInstance(Instance instance)
 	{
-		vkDestroyDebugUtilsMessengerEXT(instance.instance, instance.debugMessenger, nullptr);
+		if (instance.debugMessenger != VK_NULL_HANDLE) {
+			vkDestroyDebugUtilsMessengerEXT(instance.instance, instance.debugMessenger, nullptr);
+		}
 		vkDestroyInstance(instance.instance, nullptr);
 	}
 

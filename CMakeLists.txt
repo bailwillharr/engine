@@ -3,6 +3,8 @@ cmake_minimum_required(VERSION 3.24)
 # options
 option(ENGINE_BUILD_TEST "Compile the test program" ON)
 
+SET(CMAKE_CONFIGURATION_TYPES "Debug;Release;RelWithDebInfo")
+
 project(engine LANGUAGES CXX
 	VERSION "0.1.0"
 )

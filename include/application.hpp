@@ -65,6 +65,8 @@ namespace engine {
 		InputManager* inputManager() { return m_inputManager.get(); }
 		SceneManager* sceneManager() { return m_sceneManager.get(); }
 
+		gfx::DrawBuffer* getDrawBuffer() { return m_drawBuffer; }
+
 		std::string getResourcePath(const std::string relativePath) { return (m_resourcesPath / relativePath).string(); }
 
 	private:
@@ -77,7 +79,7 @@ namespace engine {
 
 		bool m_enableFrameLimiter = true;
 
-		gfx::CommandBuffer *m_drawCommandBuffer;
+		gfx::DrawBuffer *m_drawBuffer;
 
 		/* resource stuff */
 

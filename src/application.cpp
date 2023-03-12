@@ -132,7 +132,7 @@ namespace engine {
 		while (m_window->isRunning()) {
 
 			/* begin rendering */
-			m_drawCommandBuffer = m_gfx->beginRender();
+			m_drawBuffer = m_gfx->beginRender();
 
 			/* logic */
 			m_sceneManager->updateActiveScene(m_window->dt());
@@ -149,7 +149,7 @@ namespace engine {
 			}
 
 			/* draw */
-			m_gfx->finishRender(m_drawCommandBuffer);
+			m_gfx->finishRender(m_drawBuffer);
 
 			/* poll events */
 			m_window->getInputAndEvents();

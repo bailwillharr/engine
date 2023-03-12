@@ -25,7 +25,8 @@ namespace engine {
 		(void)ts;
 
 		GFXDevice* const gfx = m_scene->app()->gfx();
-
+		
+		gfx::DrawBuffer* drawBuffer = m_scene->app()->getDrawBuffer();
 		/* camera stuff */
 
 		const auto cameraTransform = m_scene->getComponent<TransformComponent>(m_camera.camEntity);
@@ -56,7 +57,7 @@ namespace engine {
 
 			assert(r->material != nullptr);
 			assert(r->mesh != nullptr);
-			assert(r->material->m_texture != nullptr);
+			//assert(r->material->m_texture != nullptr);
 
 			struct {
 				glm::mat4 proj;
@@ -75,6 +76,11 @@ namespace engine {
 
 			pushConsts.model = t->worldMatrix;
 			pushConsts.view = viewMatrix;
+
+			gfx->cmdBindPipeline(drawBuffer, r->material->getShader()->getPipeline());
+			gfx->cmdBindVertexBuffer(drawBuffer, 0, r->mesh->getVB());
+			gfx->cmdBindIndexBuffer(drawBuffer, r->mesh->getIB());
+			gfx->cmdDrawIndexed(drawBuffer, r->mesh->getCount(), 1, 0, 0, 0);
 
 			/*
 			gfx->draw(
