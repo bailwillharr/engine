@@ -19,7 +19,8 @@ set(GAME_SOURCES
 )
 
 if (WIN32)
-	add_executable(${PROJECT_NAME} WIN32 ${GAME_SOURCES} "game.rc")
+	#add_executable(${PROJECT_NAME} WIN32 ${GAME_SOURCES} "game.rc")
+	add_executable(${PROJECT_NAME} ${GAME_SOURCES})
 else()
 	add_executable(${PROJECT_NAME} ${GAME_SOURCES})
 endif()

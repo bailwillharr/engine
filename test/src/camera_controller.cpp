@@ -154,7 +154,7 @@ void CameraControllerSystem::onUpdate(float ts)
 			" z: " + std::to_string(t->position.z)
 		};
 		m_scene->app()->window()->infoBox("POSITION", pos_string);
-		INFO("position: " + pos_string);
+		LOG_INFO("position: " + pos_string);
 	}
 
 	if (m_scene->app()->inputManager()->getButtonPress("fullscreen")) {

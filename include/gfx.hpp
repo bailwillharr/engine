@@ -90,5 +90,6 @@ namespace engine::gfx {
 	struct Pipeline;
 	struct Buffer;
 	struct Texture;
+	struct CommandBuffer;
 
 }

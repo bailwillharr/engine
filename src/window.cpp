@@ -24,12 +24,8 @@ namespace engine {
 
 		Uint32 windowFlags = SDL_WINDOW_SHOWN;
 
-#ifdef ENGINE_BUILD_VULKAN
+		// use Vulkan 1.3
 		windowFlags |= SDL_WINDOW_VULKAN;
-#endif
-#ifdef ENGINE_BUILD_OPENGL
-		windowFlags |= SDL_WINDOW_OPENGL;
-#endif
 
 		if (m_resizable) {
 			windowFlags |= SDL_WINDOW_RESIZABLE;

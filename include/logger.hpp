@@ -40,7 +40,7 @@ namespace engine {
 		spdlog::set_default_logger(logger);
 		spdlog::flush_every(std::chrono::seconds(60));
 
-		INFO("Created log with path: {}", log_path.string());
+		LOG_INFO("Created log with path: {}", log_path.string());
 
 	}
 

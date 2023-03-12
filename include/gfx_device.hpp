@@ -19,12 +19,12 @@ namespace engine {
 
 		void getViewportSize(uint32_t *w, uint32_t *h);
 
-		// adds a draw call to the queue
-		// vertexBuffer is required, indexBuffer can be NULL, uniformData is required
-		void draw(const gfx::Pipeline* pipeline, const gfx::Buffer* vertexBuffer, const gfx::Buffer* indexBuffer, uint32_t count, const void* pushConstantData, size_t pushConstantSize, const gfx::Texture* texture);
+		gfx::CommandBuffer* beginRender();
+		void finishRender(gfx::CommandBuffer* commandBuffer);
 
-		// Call once per frame. Executes all queued draw calls and renders to the screen.
-		void renderFrame();
+		void cmdBindPipeline(gfx::CommandBuffer* commandBuffer, const gfx::Pipeline* pipeline);
+		void cmdBindDescriptorSetTexture(gfx::CommandBuffer* commandBuffer, uint32_t set, uint32_t binding, const gfx::Texture* texture);
+		void cmdBindDescriptorSetBuffer(gfx::CommandBuffer* commandBuffer, uint32_t set, uint32_t binding, const gfx::Texture* texture);
 		
 		// creates the equivalent of an OpenGL shader program & vertex attrib configuration
 		gfx::Pipeline* createPipeline(const char* vertShaderPath, const char* fragShaderPath, const gfx::VertexFormat& vertexFormat, uint64_t uniformBufferSize, bool alphaBlending, bool backfaceCulling);

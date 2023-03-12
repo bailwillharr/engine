@@ -38,7 +38,7 @@ namespace engine::resources {
 
 		m_pipeline = m_gfx->createPipeline(vertPath, fragPath, vertFormat, sizeof(glm::mat4) * 2, alphaBlending, cullBackFace);
 
-		INFO("Loaded shader: {}, vertex attribs: {}", vertPath, vertFormat.attributeDescriptions.size());
+		LOG_INFO("Loaded shader: {}, vertex attribs: {}", vertPath, vertFormat.attributeDescriptions.size());
 	}
 
 	Shader::~Shader()

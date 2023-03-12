@@ -79,13 +79,13 @@ namespace engine {
 			vertParams.hasUV0 = true;
 			auto texturedShader = std::make_unique<resources::Shader>(
 				gfx(),
-				getResourcePath("engine/shaders/textured.vert").c_str(),
-				getResourcePath("engine/shaders/textured.frag").c_str(),
+				getResourcePath("engine/shaders/standard.vert").c_str(),
+				getResourcePath("engine/shaders/standard.frag").c_str(),
 				vertParams,
 				false,
 				true
 			);
-			getResourceManager<resources::Shader>()->addPersistent("engine.textured", std::move(texturedShader));
+			getResourceManager<resources::Shader>()->addPersistent("builtin.standard", std::move(texturedShader));
 		}
 		{
 			resources::Shader::VertexParams vertParams{};
@@ -99,7 +99,7 @@ namespace engine {
 				false,
 				true
 			);
-			getResourceManager<resources::Shader>()->addPersistent("engine.skybox", std::move(texturedShader));
+			getResourceManager<resources::Shader>()->addPersistent("builtin.skybox", std::move(texturedShader));
 		}
 		{
 			auto whiteTexture = std::make_unique<resources::Texture>(
@@ -109,7 +109,7 @@ namespace engine {
 				false,
 				false
 			);
-			getResourceManager<resources::Texture>()->addPersistent("engine.white", std::move(whiteTexture));
+			getResourceManager<resources::Texture>()->addPersistent("builtin.white", std::move(whiteTexture));
 		}
 	}
 
@@ -117,7 +117,7 @@ namespace engine {
 
 	void Application::gameLoop()
 	{
-		TRACE("Begin game loop...");
+		LOG_TRACE("Begin game loop...");
 
 		constexpr int FPS_LIMIT = 240;
 		constexpr auto FRAMETIME_LIMIT = std::chrono::nanoseconds(1000000000 / FPS_LIMIT);
@@ -129,6 +129,9 @@ namespace engine {
 		// single-threaded game loop
 		while (m_window->isRunning()) {
 
+			/* begin rendering */
+			m_drawCommandBuffer = m_gfx->beginRender();
+
 			/* logic */
 			m_sceneManager->updateActiveScene(m_window->dt());
 
@@ -139,12 +142,12 @@ namespace engine {
 			uint64_t now = m_window->getNanos();
 			if (now - lastTick >= 1000000000LL * 5LL) [[unlikely]] {
 				lastTick = now;
-				INFO("fps: {}", m_window->getAvgFPS());
+				LOG_INFO("fps: {}", m_window->getAvgFPS());
 				m_window->resetAvgFPS();
 			}
 
 			/* draw */
-			m_gfx->renderFrame();
+			m_gfx->finishRender(m_drawCommandBuffer);
 
 			/* poll events */
 			m_window->getInputAndEvents();

@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.24)
 
 # options
 option(ENGINE_BUILD_TEST "Compile the test program" ON)
-option(ENGINE_BUILD_VULKAN "Use Vulkan 1.3 for graphics" ON)
 
 project(engine LANGUAGES CXX
 	VERSION "0.1.0"
@@ -27,7 +26,15 @@ set(SRC_FILES
 	src/scene.cpp
 
 	src/gfx_device_vulkan.cpp
-	src/gfx_device_null.cpp
+
+	src/vulkan/device.cpp
+	src/vulkan/device.h
+	src/vulkan/gpu_allocator.cpp
+	src/vulkan/gpu_allocator.h
+	src/vulkan/instance.cpp
+	src/vulkan/instance.h
+	src/vulkan/swapchain.cpp
+	src/vulkan/swapchain.h
 
 	src/util/files.cpp
 	src/util/model_loader.cpp
@@ -90,6 +97,10 @@ source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/include" PREFIX "Include" FILES $
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE DEFINITIONS "ENGINE_EXPORTS")
 
+if (WIN32)
+	target_compile_definitions(${PROJECT_NAME} PRIVATE DEFINITIONS "NOMINMAX") # stop windows.h conflicting with 'std::max'
+endif()
+
 set_property(TARGET ${PROJECT_NAME} PROPERTY WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
@@ -114,13 +125,6 @@ target_include_directories(${PROJECT_NAME} PRIVATE src)
 configure_file(config.h.in config.h)
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
-# figure out what graphics api to use
-if (ENGINE_BUILD_VULKAN)
-	target_compile_definitions(${PROJECT_NAME} PRIVATE "ENGINE_BUILD_VULKAN")
-else()
-	target_compile_definitions(${PROJECT_NAME} PRIVATE "ENGINE_BUILD_NULL")
-endif()
-
 # Build the test
 if (ENGINE_BUILD_TEST)
 	add_subdirectory(test)
@@ -134,24 +138,25 @@ if (MINGW)
 	target_link_libraries(${PROJECT_NAME} PUBLIC mingw32)
 endif()
 
-if(ENGINE_BUILD_VULKAN)
-	# Volk
-	set(VOLK_STATIC_DEFINES "")
-	set(VOLK_PULL_IN_VULKAN ON)
-	set(VOLK_INSTALL OFF)
-	set(VOLK_HEADERS_ONLY OFF)
-	add_subdirectory(dependencies/volk)
-	target_link_libraries(${PROJECT_NAME} PRIVATE volk::volk)
-	# Vulkan Memory Allocator
-	target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE dependencies/VulkanMemoryAllocator/include)
-	# shaderc
-	if (MSVC)
-		include(FindVulkan)
-		find_package(Vulkan COMPONENTS shaderc_combined)
-		target_link_libraries(${PROJECT_NAME} PRIVATE Vulkan::shaderc_combined)
-	else()
-		target_link_libraries(${PROJECT_NAME} PRIVATE shaderc_shared)
-	endif()
+# Volk
+set(VOLK_STATIC_DEFINES "")
+set(VOLK_PULL_IN_VULKAN ON)
+set(VOLK_INSTALL OFF)
+set(VOLK_HEADERS_ONLY OFF)
+if (WIN32)
+	set(VOLK_STATIC_DEFINES VK_USE_PLATFORM_WIN32_KHR)
+endif()
+add_subdirectory(dependencies/volk)
+target_link_libraries(${PROJECT_NAME} PRIVATE volk::volk)
+# Vulkan Memory Allocator
+target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE dependencies/VulkanMemoryAllocator/include)
+# shaderc
+if (MSVC)
+	include(FindVulkan)
+	find_package(Vulkan COMPONENTS shaderc_combined)
+	target_link_libraries(${PROJECT_NAME} PRIVATE Vulkan::shaderc_combined)
+else()
+	target_link_libraries(${PROJECT_NAME} PRIVATE shaderc_shared)
 endif()
 
 # SDL2:

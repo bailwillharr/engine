@@ -41,7 +41,7 @@ namespace engine::resources {
 		m_vb = m_gfx->createBuffer(gfx::BufferType::VERTEX, vertices.size() * sizeof(Vertex), vertices.data());
 		m_ib = m_gfx->createBuffer(gfx::BufferType::INDEX, indices.size() * sizeof(uint32_t), indices.data());
 		m_count = (uint32_t)indices.size();
-		INFO("Loaded mesh, vertices: {}, indices: {}", vertices.size(), indices.size());
+		LOG_INFO("Loaded mesh, vertices: {}, indices: {}", vertices.size(), indices.size());
 	}
 
 }

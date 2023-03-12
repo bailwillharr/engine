@@ -76,6 +76,7 @@ namespace engine {
 			pushConsts.model = t->worldMatrix;
 			pushConsts.view = viewMatrix;
 
+			/*
 			gfx->draw(
 				r->material->getShader()->getPipeline(),
 				r->mesh->getVB(),
@@ -84,7 +85,7 @@ namespace engine {
 				&pushConsts,
 				sizeof(pushConsts),
 				r->material->m_texture->getHandle()
-			);
+			);*/
 
 		}
 

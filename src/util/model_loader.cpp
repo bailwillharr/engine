@@ -77,11 +77,11 @@ namespace engine::util {
 			auto child = scene->createEntity("_mesh" + std::to_string(i), parentObj);
 			auto childRenderer = scene->addComponent<RenderableComponent>(child);
 			childRenderer->mesh = meshes[parentNode->mMeshes[i]];
-			childRenderer->material = std::make_shared<resources::Material>(scene->app()->getResource<resources::Shader>("engine.textured"));
+			childRenderer->material = std::make_shared<resources::Material>(scene->app()->getResource<resources::Shader>("builtin.standard"));
 			if (textures.contains(meshTextureIndices[parentNode->mMeshes[i]])) {
 				childRenderer->material->m_texture = textures.at(meshTextureIndices[parentNode->mMeshes[i]]);
 			} else {
-				childRenderer->material->m_texture = scene->app()->getResource<resources::Texture>("engine.white");
+				childRenderer->material->m_texture = scene->app()->getResource<resources::Texture>("builtin.white");
 			}
 		}
 
@@ -105,7 +105,7 @@ namespace engine::util {
 		public:
 			void write(const char* message) override {
 				(void)message;
-				TRACE("ASSIMP: {}", message);
+				LOG_TRACE("ASSIMP: {}", message);
 			}
 		};
 
@@ -160,23 +160,23 @@ namespace engine::util {
 		assert(scene->HasLights() == false);
 		assert(scene->hasSkeletons() == false);
 
-		TRACE("material count: {}, mesh count: {}", scene->mNumMaterials, scene->mNumMeshes);
+		LOG_TRACE("material count: {}, mesh count: {}", scene->mNumMaterials, scene->mNumMeshes);
 
 		std::map<int, std::shared_ptr<resources::Texture>> textures{};
 
 		for (uint32_t i = 0; i < scene->mNumMaterials; i++) {
 			const aiMaterial* m = scene->mMaterials[i];
-			TRACE("Material {}:", i);
-			TRACE("  Name: {}", m->GetName().C_Str());
+			LOG_TRACE("Material {}:", i);
+			LOG_TRACE("  Name: {}", m->GetName().C_Str());
 			for (uint32_t j = 0; j < m->mNumProperties; j++) {
 				[[maybe_unused]] const aiMaterialProperty* p = m->mProperties[j];
-				TRACE("  prop {}, key: {}", j, p->mKey.C_Str());
+				LOG_TRACE("  prop {}, key: {}", j, p->mKey.C_Str());
 			}
 			
 			if (aiGetMaterialTextureCount(m, aiTextureType_DIFFUSE) >= 1) {
 				aiString texPath{};
 				aiGetMaterialTexture(m, aiTextureType_DIFFUSE, 0, &texPath);
-				TRACE("  Diffuse tex: {}", texPath.C_Str());
+				LOG_TRACE("  Diffuse tex: {}", texPath.C_Str());
 				std::filesystem::path absPath = path;
 				absPath = absPath.parent_path();
 				absPath /= texPath.C_Str();
@@ -185,7 +185,7 @@ namespace engine::util {
 						parent->app()->gfx(), absPath.string(),
 						resources::Texture::Filtering::TRILINEAR, true, true);
 				} catch (const std::runtime_error&) {
-					textures[i] = parent->app()->getResource<resources::Texture>("engine.white");
+					textures[i] = parent->app()->getResource<resources::Texture>("builtin.white");
 				}
 			}
 		}
@@ -197,8 +197,8 @@ namespace engine::util {
 			meshMaterialIndices.push_back(m->mMaterialIndex);
 			std::vector<Vertex> vertices(m->mNumVertices);
 			std::vector<uint32_t> indices(m->mNumFaces * 3);
-			TRACE("Mesh {}: vertex count {}", i, vertices.size());
-			TRACE("Mesh {}: index count {}", i, indices.size());
+			LOG_TRACE("Mesh {}: vertex count {}", i, vertices.size());
+			LOG_TRACE("Mesh {}: index count {}", i, indices.size());
 
 			for (uint32_t j = 0; j < vertices.size(); j++) {
 				Vertex v{};
@@ -230,7 +230,7 @@ namespace engine::util {
 
 		buildGraph(textures, meshes, meshMaterialIndices, scene->mRootNode, parent, obj);
 
-		INFO("Loaded model: {}, meshes: {}, textures: {}", scene->GetShortFilename(path.c_str()), meshes.size(), textures.size());
+		LOG_INFO("Loaded model: {}, meshes: {}, textures: {}", scene->GetShortFilename(path.c_str()), meshes.size(), textures.size());
 
 		Assimp::DefaultLogger::kill();
 		return obj;

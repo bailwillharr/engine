@@ -79,7 +79,7 @@ namespace engine {
 		m_dynamicAABBs.reserve(size);
 		m_possibleCollisions.reserve(size);
 		m_collisionInfos.reserve(size);
-		TRACE("added entity {} to collider system", entity);
+		LOG_TRACE("added entity {} to collider system", entity);
 	}
 
 	void PhysicsSystem::onUpdate(float ts)

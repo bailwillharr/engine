@@ -57,7 +57,7 @@ Texture::Texture(GFXDevice* gfxDevice, const std::string& path, Filtering filter
 		mipmapSetting,
 		anisotropyEnable);
 
-	INFO("Loaded texture: {}, width: {} height: {}", path, width, height);
+	LOG_INFO("Loaded texture: {}, width: {} height: {}", path, width, height);
 
 }
 

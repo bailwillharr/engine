@@ -77,6 +77,8 @@ namespace engine {
 
 		bool m_enableFrameLimiter = true;
 
+		gfx::CommandBuffer *m_drawCommandBuffer;
+
 		/* resource stuff */
 
 		std::unordered_map<size_t, std::unique_ptr<IResourceManager>> m_resourceManagers{};
