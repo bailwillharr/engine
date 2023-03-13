@@ -752,11 +752,12 @@ namespace engine {
 
 		{ // RECORDING
 
-			VkClearValue clearValue{}; // Using same value for all components enables compression according to NVIDIA Best Practices
-			clearValue.color.float32[0] = 1.0f;
-			clearValue.color.float32[1] = 1.0f;
-			clearValue.color.float32[2] = 1.0f;
-			clearValue.color.float32[3] = 1.0f;
+			std::array<VkClearValue, 2> clearValues{}; // Using same value for all components enables compression according to NVIDIA Best Practices
+			clearValues[0].color.float32[0] = 1.0f;
+			clearValues[0].color.float32[1] = 1.0f;
+			clearValues[0].color.float32[2] = 1.0f;
+			clearValues[0].color.float32[3] = 1.0f;
+			clearValues[1].depthStencil.depth = 1.0f;
 
 			VkRenderPassBeginInfo passBegin{};
 			passBegin.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -765,8 +766,8 @@ namespace engine {
 			passBegin.framebuffer = std::get<2>(pimpl->swapchain.images[swapchainImageIndex]);
 			passBegin.renderArea.extent = pimpl->swapchain.extent;
 			passBegin.renderArea.offset = { 0, 0 };
-			passBegin.clearValueCount = 1;
-			passBegin.pClearValues = &clearValue;
+			passBegin.clearValueCount = clearValues.size();
+			passBegin.pClearValues = clearValues.data();
 			vkCmdBeginRenderPass(frameData.drawBuf, &passBegin, VK_SUBPASS_CONTENTS_INLINE);
 
 			VkViewport viewport{};

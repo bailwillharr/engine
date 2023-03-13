@@ -1,5 +1,6 @@
 #include <stdexcept>
 #include <vector>
+#include <array>
 #include <algorithm>
 #include <assert.h>
 
@@ -146,6 +147,7 @@ namespace engine {
 			imageInfo.format = sc->depthStencil.format;
 			imageInfo.extent.width = sc->extent.width;
 			imageInfo.extent.height = sc->extent.height;
+			imageInfo.extent.depth = 1;
 			imageInfo.mipLevels = 1;
 			imageInfo.arrayLayers = 1;
 			imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
