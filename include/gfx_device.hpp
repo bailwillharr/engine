@@ -26,15 +26,21 @@ namespace engine {
 		void cmdBindVertexBuffer(gfx::DrawBuffer* drawBuffer, uint32_t binding, const gfx::Buffer* buffer);
 		void cmdBindIndexBuffer(gfx::DrawBuffer* drawBuffer, const gfx::Buffer* buffer);
 		void cmdDrawIndexed(gfx::DrawBuffer* drawBuffer, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance);
-		//void cmdBindDescriptorSetTexture(gfx::CommandBuffer* commandBuffer, uint32_t set, uint32_t binding, const gfx::Texture* texture);
-		//void cmdBindDescriptorSetBuffer(gfx::CommandBuffer* commandBuffer, uint32_t set, uint32_t binding, const gfx::Texture* texture);
+		void cmdBindDescriptorSet(gfx::DrawBuffer* drawBuffer, const gfx::Pipeline* pipeline, const gfx::DescriptorSet* set, uint32_t setNumber);
 		
 		// creates the equivalent of an OpenGL shader program & vertex attrib configuration
-		gfx::Pipeline* createPipeline(const char* vertShaderPath, const char* fragShaderPath, const gfx::VertexFormat& vertexFormat, uint64_t uniformBufferSize, bool alphaBlending, bool backfaceCulling);
+		gfx::Pipeline* createPipeline(const gfx::PipelineInfo& info);
 		void destroyPipeline(const gfx::Pipeline* pipeline);
+
+		gfx::DescriptorSetLayout* createDescriptorSetLayout();
+		void destroyDescriptorSetLayout(const gfx::DescriptorSetLayout* layout);
+		
+		gfx::DescriptorSet* allocateDescriptorSet(const gfx::DescriptorSetLayout* layout);
+		void updateDescriptor(const gfx::DescriptorSet* set, uint32_t binding, const gfx::Buffer* buffer);
 
 		void updateUniformBuffer(const gfx::Pipeline* pipeline, const void* data, size_t size, uint32_t offset);
 
+		// Tries to create it on the GPU. Cannot be directly updated by the CPU.
 		gfx::Buffer* createBuffer(gfx::BufferType type, uint64_t size, const void* data);
 		void destroyBuffer(const gfx::Buffer* buffer);
 

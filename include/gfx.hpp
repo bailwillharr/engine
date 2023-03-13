@@ -7,6 +7,14 @@
 
 namespace engine::gfx {
 
+	// handles (incomplete types)
+	struct Pipeline;
+	struct Buffer;
+	struct Texture;
+	struct DrawBuffer;
+	struct DescriptorSetLayout;
+	struct DescriptorSet;
+
 	enum class MSAALevel {
 		MSAA_OFF,
 		MSAA_2X,
@@ -86,10 +94,13 @@ namespace engine::gfx {
 		std::vector<VertexAttribDescription> attributeDescriptions;
 	};
 
-	// handles (incomplete types)
-	struct Pipeline;
-	struct Buffer;
-	struct Texture;
-	struct DrawBuffer;
+	struct PipelineInfo {
+		const char* vertShaderPath;
+		const char* fragShaderPath;
+		gfx::VertexFormat vertexFormat;
+		bool alphaBlending;
+		bool backfaceCulling;
+		std::vector<const DescriptorSetLayout*> descriptorSetLayouts;
+	};
 
 }

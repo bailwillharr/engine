@@ -78,6 +78,7 @@ namespace engine {
 			pushConsts.view = viewMatrix;
 
 			gfx->cmdBindPipeline(drawBuffer, r->material->getShader()->getPipeline());
+			gfx->cmdBindDescriptorSet(drawBuffer, r->material->getShader()->getPipeline(), r->material->getShader()->getSetZero(), 0);
 			gfx->cmdBindVertexBuffer(drawBuffer, 0, r->mesh->getVB());
 			gfx->cmdBindIndexBuffer(drawBuffer, r->mesh->getIB());
 			gfx->cmdDrawIndexed(drawBuffer, r->mesh->getCount(), 1, 0, 0, 0);

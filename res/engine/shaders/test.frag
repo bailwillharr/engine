@@ -1,9 +1,12 @@
 #version 450
 
+layout(location = 0) in vec2 fragUV;
+
 layout(location = 0) out vec4 outColor;
 
 void main()
 {
-	outColor = vec4(0.0, 0.0, 1.0, 1.0);
+	vec3 baseColor = vec3(fragUV, 0.0);
+	outColor = vec4(baseColor, 1.0);
 }
 

@@ -55,7 +55,7 @@ namespace engine {
 	};
 
 	// handles
-	
+
 	struct gfx::Buffer {
 		gfx::BufferType type;
 		VkBuffer buffer = VK_NULL_HANDLE;
@@ -83,6 +83,14 @@ namespace engine {
 		uint32_t imageIndex; // for swapchain present
 	};
 
+	struct gfx::DescriptorSetLayout {
+		VkDescriptorSetLayout layout;
+	};
+
+	struct gfx::DescriptorSet {
+		VkDescriptorSet set;
+	};
+
 	// enum converters
 
 	namespace vkinternal {
@@ -107,6 +115,8 @@ namespace engine {
 				return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 			case gfx::BufferType::INDEX:
 				return VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+			case gfx::BufferType::UNIFORM:
+				return VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 			default:
 				throw std::runtime_error("This buffer type does not have usage bits");
 			}
@@ -170,7 +180,7 @@ namespace engine {
 			throw std::runtime_error("PREPROCESS ERR " + preprocessed.GetErrorMessage());
 		}
 
-		std::string shaderStr{preprocessed.cbegin(), preprocessed.cend()};
+		std::string shaderStr{ preprocessed.cbegin(), preprocessed.cend() };
 
 		// compile
 		shaderc::SpvCompilationResult compiledShader = compiler.CompileGlslToSpv(shaderStr.c_str(), kind, filename, options);
@@ -363,7 +373,7 @@ namespace engine {
 		assert(res == VK_SUCCESS);
 
 		vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
-		
+
 	}
 
 #if 0
@@ -529,7 +539,7 @@ namespace engine {
 	// class definitions
 
 	struct GFXDevice::Impl {
-		
+
 		// device settings
 		gfx::GraphicsSettings graphicsSettings;
 
@@ -540,13 +550,15 @@ namespace engine {
 		VmaAllocator allocator{};
 		SwapchainInfo swapchainInfo{};
 		Swapchain swapchain{};
-		
+
+		VkDescriptorPool descriptorPool;
+
 		uint64_t FRAMECOUNT = 0;
-		
+
 		FrameData frameData[FRAMES_IN_FLIGHT] = {};
 
 		bool swapchainIsOutOfDate = false;
-		
+
 	};
 
 	GFXDevice::GFXDevice(const char* appName, const char* appVersion, SDL_Window* window, gfx::GraphicsSettings settings)
@@ -600,7 +612,7 @@ namespace engine {
 		pimpl->swapchainInfo.waitForPresent = pimpl->graphicsSettings.waitForPresent;
 		createSwapchain(&pimpl->swapchain, pimpl->swapchainInfo);
 
-		/* the following is temporary setup */
+		/* make synchronisation primitives for rendering and allocate command buffers */
 
 		for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
 			VkFenceCreateInfo fenceInfo{
@@ -630,18 +642,35 @@ namespace engine {
 			};
 			VKCHECK(vkAllocateCommandBuffers(pimpl->device.device, &cmdAllocInfo, &pimpl->frameData[i].drawBuf));
 		}
-	
+
+		/* create a global descriptor pool */
+
+		std::vector<VkDescriptorPoolSize> poolSizes{};
+		poolSizes.emplace_back(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 5); // purposely low limit
+
+		VkDescriptorPoolCreateInfo descriptorPoolInfo{
+			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+			.pNext = nullptr,
+		};
+		descriptorPoolInfo.flags = 0;
+		descriptorPoolInfo.maxSets = 5; // purposely low limit
+		descriptorPoolInfo.poolSizeCount = poolSizes.size();
+		descriptorPoolInfo.pPoolSizes = poolSizes.data();
+		VKCHECK(vkCreateDescriptorPool(pimpl->device.device, &descriptorPoolInfo, nullptr, &pimpl->descriptorPool));
+
 	}
 
 	GFXDevice::~GFXDevice()
 	{
+		vkDestroyDescriptorPool(pimpl->device.device, pimpl->descriptorPool, nullptr);
+
 		for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
 			vkFreeCommandBuffers(pimpl->device.device, pimpl->device.commandPools.draw, 1, &pimpl->frameData[i].drawBuf);
 			vkDestroySemaphore(pimpl->device.device, pimpl->frameData[i].renderSemaphore, nullptr);
 			vkDestroySemaphore(pimpl->device.device, pimpl->frameData[i].presentSemaphore, nullptr);
 			vkDestroyFence(pimpl->device.device, pimpl->frameData[i].renderFence, nullptr);
 		}
-		
+
 		destroySwapchain(pimpl->swapchain);
 		destroyAllocator(pimpl->allocator);
 		destroyDevice(pimpl->device);
@@ -649,7 +678,7 @@ namespace engine {
 		destroyVulkanInstance(pimpl->instance);
 	}
 
-	void GFXDevice::getViewportSize(uint32_t *w, uint32_t *h)
+	void GFXDevice::getViewportSize(uint32_t* w, uint32_t* h)
 	{
 		int width, height;
 		SDL_Vulkan_GetDrawableSize(pimpl->window, &width, &height);
@@ -833,28 +862,33 @@ namespace engine {
 		vkCmdDrawIndexed(drawBuffer->frameData.drawBuf, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
 	}
 
-	gfx::Pipeline* GFXDevice::createPipeline(const char* vertShaderPath, const char* fragShaderPath, const gfx::VertexFormat& vertexFormat, uint64_t uniformBufferSize, bool alphaBlending, bool backfaceCulling)
+	void GFXDevice::cmdBindDescriptorSet(gfx::DrawBuffer* drawBuffer, const gfx::Pipeline* pipeline, const gfx::DescriptorSet* set, uint32_t setNumber)
+	{
+		vkCmdBindDescriptorSets(drawBuffer->frameData.drawBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->layout, setNumber, 1, &set->set, 0, nullptr);
+	}
+
+	gfx::Pipeline* GFXDevice::createPipeline(const gfx::PipelineInfo& info)
 	{
 
 		[[maybe_unused]] VkResult res;
 
 		gfx::Pipeline* pipeline = new gfx::Pipeline;
 
-		auto vertShaderCode = util::readTextFile(vertShaderPath);
-		auto fragShaderCode = util::readTextFile(fragShaderPath);
+		auto vertShaderCode = util::readTextFile(info.vertShaderPath);
+		auto fragShaderCode = util::readTextFile(info.fragShaderPath);
 
-		VkShaderModule vertShaderModule = compileShader(pimpl->device.device, shaderc_vertex_shader, vertShaderCode->data(), vertShaderPath);
-		VkShaderModule fragShaderModule = compileShader(pimpl->device.device, shaderc_fragment_shader, fragShaderCode->data(), fragShaderPath);
+		VkShaderModule vertShaderModule = compileShader(pimpl->device.device, shaderc_vertex_shader, vertShaderCode->data(), info.vertShaderPath);
+		VkShaderModule fragShaderModule = compileShader(pimpl->device.device, shaderc_fragment_shader, fragShaderCode->data(), info.fragShaderPath);
 
 		// get vertex attrib layout:
 		VkVertexInputBindingDescription bindingDescription{ };
 		bindingDescription.binding = 0;
-		bindingDescription.stride = vertexFormat.stride;
+		bindingDescription.stride = info.vertexFormat.stride;
 		bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
 		std::vector<VkVertexInputAttributeDescription> attribDescs{};
-		attribDescs.reserve(vertexFormat.attributeDescriptions.size());
-		for (const auto& desc : vertexFormat.attributeDescriptions) {
+		attribDescs.reserve(info.vertexFormat.attributeDescriptions.size());
+		for (const auto& desc : info.vertexFormat.attributeDescriptions) {
 			VkVertexInputAttributeDescription vulkanAttribDesc{};
 			vulkanAttribDesc.binding = 0;
 			vulkanAttribDesc.location = desc.location;
@@ -928,7 +962,7 @@ namespace engine {
 		rasterizer.rasterizerDiscardEnable = VK_FALSE;
 		rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
 		rasterizer.lineWidth = 1.0f;
-		if (backfaceCulling == true) {
+		if (info.backfaceCulling == true) {
 			rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
 		}
 		else {
@@ -955,7 +989,7 @@ namespace engine {
 			VK_COLOR_COMPONENT_G_BIT |
 			VK_COLOR_COMPONENT_B_BIT |
 			VK_COLOR_COMPONENT_A_BIT;
-		if (alphaBlending) {
+		if (info.alphaBlending) {
 			colorBlendAttachment.blendEnable = VK_TRUE;
 			colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
 			colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
@@ -967,7 +1001,7 @@ namespace engine {
 		else {
 			colorBlendAttachment.blendEnable = VK_FALSE;
 		}
-		
+
 		VkPipelineColorBlendStateCreateInfo colorBlending{};
 		colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
 		colorBlending.logicOpEnable = VK_FALSE;
@@ -996,10 +1030,15 @@ namespace engine {
 		pushConstantRange.size = PUSH_CONSTANT_MAX_SIZE;
 		pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
+		std::vector<VkDescriptorSetLayout> descriptorSetLayouts(info.descriptorSetLayouts.size());
+		for (size_t i = 0; i < descriptorSetLayouts.size(); i++) {
+			descriptorSetLayouts[i] = info.descriptorSetLayouts[i]->layout;
+		}
+
 		VkPipelineLayoutCreateInfo layoutInfo{};
 		layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		layoutInfo.setLayoutCount = 0;
-		layoutInfo.pSetLayouts = nullptr;
+		layoutInfo.setLayoutCount = descriptorSetLayouts.size();
+		layoutInfo.pSetLayouts = descriptorSetLayouts.data();
 		layoutInfo.pushConstantRangeCount = 1;
 		layoutInfo.pPushConstantRanges = &pushConstantRange;
 
@@ -1036,11 +1075,82 @@ namespace engine {
 
 	void GFXDevice::destroyPipeline(const gfx::Pipeline* pipeline)
 	{
-
 		vkDestroyPipeline(pimpl->device.device, pipeline->handle, nullptr);
 		vkDestroyPipelineLayout(pimpl->device.device, pipeline->layout, nullptr);
 
 		delete pipeline;
+	}
+
+	gfx::DescriptorSetLayout* GFXDevice::createDescriptorSetLayout()
+	{
+		gfx::DescriptorSetLayout* out = new gfx::DescriptorSetLayout{};
+
+		std::vector<VkDescriptorSetLayoutBinding> bindings{};
+		bindings.push_back({});
+		bindings[0].binding = 0; // This should be as low as possible to avoid wasting memory
+		bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		bindings[0].descriptorCount = 1; // if > 1, accessible as an array in the shader
+		bindings[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT; // only accessible in vertex 
+
+		VkDescriptorSetLayoutCreateInfo info{
+			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+			.pNext = nullptr
+		};
+		info.flags = 0;
+		info.bindingCount = bindings.size();
+		info.pBindings = bindings.data();
+		VKCHECK(vkCreateDescriptorSetLayout(pimpl->device.device, &info, nullptr, &out->layout));
+
+		return out;
+	}
+
+	void GFXDevice::destroyDescriptorSetLayout(const gfx::DescriptorSetLayout* layout)
+	{
+		vkDestroyDescriptorSetLayout(pimpl->device.device, layout->layout, nullptr);
+		delete layout;
+	}
+
+	gfx::DescriptorSet* GFXDevice::allocateDescriptorSet(const gfx::DescriptorSetLayout* layout)
+	{
+		gfx::DescriptorSet* set = new gfx::DescriptorSet{};
+
+		VkDescriptorSetAllocateInfo allocInfo{
+			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+			.pNext = nullptr,
+			.descriptorPool = pimpl->descriptorPool,
+			.descriptorSetCount = 1,
+			.pSetLayouts = &layout->layout
+		};
+
+		VkResult res;
+		res = vkAllocateDescriptorSets(pimpl->device.device, &allocInfo, &set->set);
+		if (res == VK_ERROR_FRAGMENTED_POOL) throw std::runtime_error("Descriptor pool is fragmented!");
+		if (res == VK_ERROR_OUT_OF_POOL_MEMORY) throw std::runtime_error("Descriptor pool is out of memory!");
+		VKCHECK(res);
+
+		return set;
+	}
+
+	void GFXDevice::updateDescriptor(const gfx::DescriptorSet* set, uint32_t binding, const gfx::Buffer* buffer)
+	{
+		VkDescriptorBufferInfo bufferInfo{
+			.buffer = buffer->buffer,
+			.offset = 0,
+			.range = VK_WHOLE_SIZE
+		};
+		VkWriteDescriptorSet descriptorWrite{
+			.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+			.pNext = nullptr,
+			.dstSet = set->set,
+			.dstBinding = binding,
+			.dstArrayElement = 0,
+			.descriptorCount = 1,
+			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			.pImageInfo = nullptr,
+			.pBufferInfo = &bufferInfo,
+			.pTexelBufferView = nullptr
+		};
+		vkUpdateDescriptorSets(pimpl->device.device, 1, &descriptorWrite, 0, nullptr);
 	}
 
 	void GFXDevice::updateUniformBuffer(const gfx::Pipeline* pipeline, const void* data, size_t size, uint32_t offset)
@@ -1059,7 +1169,7 @@ namespace engine {
 			vmaUnmapMemory(pimpl->allocator, buffer->allocation);
 		}
 #endif
-		
+
 	}
 
 	gfx::Buffer* GFXDevice::createBuffer(gfx::BufferType type, uint64_t size, const void* data)
@@ -1106,7 +1216,7 @@ namespace engine {
 			gpuBufferInfo.usage = vkinternal::getBufferUsageFlag(type) | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 			gpuBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 			gpuBufferInfo.flags = 0;
-			
+
 			VmaAllocationCreateInfo gpuAllocationInfo{};
 			gpuAllocationInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
 			gpuAllocationInfo.flags = 0;
@@ -1149,8 +1259,9 @@ namespace engine {
 
 		if (mipmapSetting == gfx::MipmapSetting::OFF) {
 			out->mipLevels = 1;
-		} else {
-			out->mipLevels = static_cast<uint32_t>(std::floor(std::log2( std::max(width, height) ))) + 1;
+		}
+		else {
+			out->mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(width, height)))) + 1;
 		}
 
 		// first load image into staging buffer
@@ -1249,7 +1360,7 @@ namespace engine {
 			.baseArrayLayer = 0,
 			.layerCount = 1
 		};
-		
+
 		res = vkCreateImageView(pimpl->device, &imageViewInfo, nullptr, &out->imageView);
 		assert(res == VK_SUCCESS);
 
@@ -1268,7 +1379,8 @@ namespace engine {
 			samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 			if (useAnisotropy) {
 				samplerInfo.anisotropyEnable = VK_TRUE;
-			} else {
+			}
+			else {
 				samplerInfo.anisotropyEnable = VK_FALSE;
 			}
 			samplerInfo.maxAnisotropy = pimpl->maxSamplerAnisotropy;
@@ -1278,7 +1390,8 @@ namespace engine {
 			samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
 			if (mipmapSetting == gfx::MipmapSetting::LINEAR) {
 				samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-			} else {
+			}
+			else {
 				samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
 			}
 			samplerInfo.minLod = 0.0f;

@@ -27,8 +27,13 @@ public:
 
 	const gfx::Pipeline* getPipeline();
 
+	const gfx::DescriptorSet* getSetZero() { return m_setZero; }
+
 private:
 	GFXDevice* const m_gfx;
+	const gfx::DescriptorSetLayout* m_setZeroLayout;
+	const gfx::DescriptorSet* m_setZero;
+	const gfx::Buffer* m_setZeroBuffer;
 	const gfx::Pipeline* m_pipeline;
 
 };
