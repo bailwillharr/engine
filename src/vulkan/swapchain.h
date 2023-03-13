@@ -4,7 +4,7 @@
 
 #include <SDL2/SDL_vulkan.h>
 
-#include <Volk/volk.h>
+#include <volk.h>
 
 namespace engine {
 

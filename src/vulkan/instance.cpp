@@ -148,16 +148,15 @@ namespace engine {
 
 		const char* validationLayer = nullptr;
 		if (useValidation) {
-			const char* validationLayer = getValidationLayer();
+			validationLayer = getValidationLayer();
 		}
 
 		VkDebugUtilsMessengerCreateInfoEXT debugMessengerInfo = getDebugMessengerCreateInfo(validationLevel);
 
-		VkInstanceCreateInfo instanceInfo{
-			.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-			.pNext = &debugMessengerInfo,
-			.flags = 0
-		};
+		VkInstanceCreateInfo instanceInfo{};
+		instanceInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+		instanceInfo.pNext = &debugMessengerInfo;
+		instanceInfo.flags = 0;
 		instanceInfo.pApplicationInfo = &applicationInfo;
 		if (validationLayer) {
 			instanceInfo.enabledLayerCount = 1;

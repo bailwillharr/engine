@@ -2,9 +2,8 @@
 #include <vector>
 #include <array>
 #include <string>
+#include <cstring>
 #include <assert.h>
-
-#include <Volk/volk.h>
 
 #include "device.h"
 
@@ -210,7 +209,7 @@ namespace engine {
 		for (size_t i = 0; i < queueFamilies.size(); i++) {
 			VkQueueFamilyProperties p = queueFamilies[i];
 
-			if (p.queueCount < 2) break; // need one queue for presenting and one-or-more for rendering
+			if (p.queueCount < 2) continue; // need one queue for presenting and one-or-more for rendering
 
 			if (p.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
 				VkBool32 supportsPresent;

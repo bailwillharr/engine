@@ -129,7 +129,7 @@ namespace engine {
 			}
 		}
 
-		static VkFilter getTextureFilter(gfx::TextureFilter filter)
+		[[maybe_unused]] static VkFilter getTextureFilter(gfx::TextureFilter filter)
 		{
 			switch (filter) {
 			case gfx::TextureFilter::LINEAR:
@@ -140,7 +140,7 @@ namespace engine {
 			throw std::runtime_error("Unknown texture filter");
 		}
 
-		static VkSampleCountFlags getSampleCountFlags(gfx::MSAALevel level)
+		[[maybe_unused]] static VkSampleCountFlags getSampleCountFlags(gfx::MSAALevel level)
 		{
 			switch (level) {
 			case gfx::MSAALevel::MSAA_OFF:
@@ -622,7 +622,7 @@ namespace engine {
 
 		/* make synchronisation primitives for rendering and allocate command buffers */
 
-		for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
+		for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
 			VkFenceCreateInfo fenceInfo{
 			.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
 			.pNext = nullptr,
@@ -656,10 +656,9 @@ namespace engine {
 		std::vector<VkDescriptorPoolSize> poolSizes{};
 		poolSizes.emplace_back(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 5); // purposely low limit
 
-		VkDescriptorPoolCreateInfo descriptorPoolInfo{
-			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-			.pNext = nullptr,
-		};
+		VkDescriptorPoolCreateInfo descriptorPoolInfo{};
+		descriptorPoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+		descriptorPoolInfo.pNext = nullptr;
 		descriptorPoolInfo.flags = 0;
 		descriptorPoolInfo.maxSets = 5; // purposely low limit
 		descriptorPoolInfo.poolSizeCount = poolSizes.size();
@@ -672,7 +671,7 @@ namespace engine {
 	{
 		vkDestroyDescriptorPool(pimpl->device.device, pimpl->descriptorPool, nullptr);
 
-		for (int i = 0; i < FRAMES_IN_FLIGHT; i++) {
+		for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
 			vkFreeCommandBuffers(pimpl->device.device, pimpl->device.commandPools.draw, 1, &pimpl->frameData[i].drawBuf);
 			vkDestroySemaphore(pimpl->device.device, pimpl->frameData[i].renderSemaphore, nullptr);
 			vkDestroySemaphore(pimpl->device.device, pimpl->frameData[i].presentSemaphore, nullptr);
@@ -758,10 +757,9 @@ namespace engine {
 			clearValue.color.float32[2] = 1.0f;
 			clearValue.color.float32[3] = 1.0f;
 
-			VkRenderPassBeginInfo passBegin{
-				.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-				.pNext = nullptr
-			};
+			VkRenderPassBeginInfo passBegin{};
+			passBegin.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+			passBegin.pNext = nullptr;
 			passBegin.renderPass = pimpl->swapchain.renderpass;
 			passBegin.framebuffer = std::get<2>(pimpl->swapchain.images[swapchainImageIndex]);
 			passBegin.renderArea.extent = pimpl->swapchain.extent;
@@ -1115,10 +1113,9 @@ namespace engine {
 		bindings[0].descriptorCount = 1; // if > 1, accessible as an array in the shader
 		bindings[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT; // only accessible in vertex 
 
-		VkDescriptorSetLayoutCreateInfo info{
-			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-			.pNext = nullptr
-		};
+		VkDescriptorSetLayoutCreateInfo info{};
+		info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+		info.pNext = nullptr;
 		info.flags = 0;
 		info.bindingCount = bindings.size();
 		info.pBindings = bindings.data();
@@ -1344,6 +1341,13 @@ namespace engine {
 		gfx::MipmapSetting mipmapSetting,
 		bool useAnisotropy)
 	{
+		(void)imageData;
+		(void)width;
+		(void)height;
+		(void)minFilter;
+		(void)magFilter;
+		(void)mipmapSetting;
+		(void)useAnisotropy;
 		auto out = new gfx::Texture;
 
 #if 0
@@ -1544,6 +1548,7 @@ namespace engine {
 
 	void GFXDevice::destroyTexture(const gfx::Texture* texture)
 	{
+		(void)texture;
 #if 0
 		vkDestroyDescriptorPool(pimpl->device, texture->pool, nullptr);
 		vkDestroySampler(pimpl->device, texture->sampler, nullptr);

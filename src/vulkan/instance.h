@@ -2,7 +2,7 @@
 
 #include <SDL2/SDL_video.h>
 
-#include <Volk/volk.h>
+#include <volk.h>
 
 namespace engine {
 
