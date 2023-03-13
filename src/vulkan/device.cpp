@@ -5,9 +5,20 @@
 #include <cstring>
 #include <assert.h>
 
+#include "log.hpp"
+
 #include "device.h"
 
 namespace engine {
+
+	static bool checkQueueFamilySupportsPresent(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, uint32_t familyIndex)
+	{
+		VkBool32 supportsPresent;
+		VkResult res;
+		res = vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, static_cast<uint32_t>(familyIndex), surface, &supportsPresent);
+		if (res != VK_SUCCESS) throw std::runtime_error("Failed to check for queue family present support!");
+		return supportsPresent;
+	}
 
 	/* chooses a device, creates it, gets its function pointers, and creates command pools */
 	Device createDevice(VkInstance instance, DeviceRequirements requirements, VkSurfaceKHR surface)
@@ -209,22 +220,33 @@ namespace engine {
 		for (size_t i = 0; i < queueFamilies.size(); i++) {
 			VkQueueFamilyProperties p = queueFamilies[i];
 
-			if (p.queueCount < 2) continue; // need one queue for presenting and one-or-more for rendering
+			if (p.queueCount < 2) continue; // ideally have one queue for presenting and at least one other for rendering
 
 			if (p.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-				VkBool32 supportsPresent;
-				res = vkGetPhysicalDeviceSurfaceSupportKHR(d.physicalDevice, static_cast<uint32_t>(i), surface, &supportsPresent);
-				if (res != VK_SUCCESS) throw std::runtime_error("Failed to check for queue family present support!");
-				if (supportsPresent) {
+				if (checkQueueFamilySupportsPresent(d.physicalDevice, surface, i)) {
 					graphicsFamily = static_cast<uint32_t>(i);
 					break;
 				}
 			}
 		}
-		if (graphicsFamily == UINT32_MAX) throw std::runtime_error("Unable to find a graphics/present queue family!");
+		if (graphicsFamily == UINT32_MAX) {
+			for (size_t i = 0; i < queueFamilies.size(); i++) {
+				VkQueueFamilyProperties p = queueFamilies[i];
+				if (p.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+					if (checkQueueFamilySupportsPresent(d.physicalDevice, surface, i)) {
+						graphicsFamily = static_cast<uint32_t>(i);
+					}
+				}
+			}
+			if (graphicsFamily == UINT32_MAX) {
+				throw std::runtime_error("Failed to find a graphics/present family!");
+			}
+			LOG_WARN("Failed to find ideal graphics/present queue family! Falling back to family #{}.", graphicsFamily);
+		}
 
 		// find a transfer queue family (image layout transitions, buffer upload)
 		uint32_t transferFamily = UINT32_MAX;
+		// prefer a dedicated transfer queue family
 		for (size_t i = 0; i < queueFamilies.size(); i++) {
 			VkQueueFamilyProperties p = queueFamilies[i];
 			if (((p.queueFlags & VK_QUEUE_TRANSFER_BIT) != 0) &&
@@ -234,7 +256,10 @@ namespace engine {
 				break;
 			}
 		}
-		if (transferFamily == UINT32_MAX) throw std::runtime_error("Unable to find a transfer queue family!");
+		if (transferFamily == UINT32_MAX) {
+			transferFamily = graphicsFamily;
+			LOG_WARN("Failed to find a dedicated transfer queue family! Falling back to graphics family.");
+		}
 
 		// queue priorities
 		std::vector<float> graphicsQueuePriorities(queueFamilies[graphicsFamily].queueCount);
@@ -242,24 +267,26 @@ namespace engine {
 		std::vector<float> transferQueuePriorities(queueFamilies[transferFamily].queueCount);
 		std::fill(transferQueuePriorities.begin(), transferQueuePriorities.end(), 1.0f);
 
-		std::array<VkDeviceQueueCreateInfo, 2> queueCreateInfos{
-			VkDeviceQueueCreateInfo{
-				.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-				.pNext = nullptr,
-				.flags = 0,
-				.queueFamilyIndex = graphicsFamily,
-				.queueCount = queueFamilies[graphicsFamily].queueCount,
-				.pQueuePriorities = graphicsQueuePriorities.data(),
-			},
-			VkDeviceQueueCreateInfo{
+		std::vector<VkDeviceQueueCreateInfo> queueCreateInfos{};
+		queueCreateInfos.push_back(VkDeviceQueueCreateInfo{
+			.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+			.pNext = nullptr,
+			.flags = 0,
+			.queueFamilyIndex = graphicsFamily,
+			.queueCount = queueFamilies[graphicsFamily].queueCount,
+			.pQueuePriorities = graphicsQueuePriorities.data()
+		});
+
+		if (transferFamily != graphicsFamily) {
+			queueCreateInfos.push_back(VkDeviceQueueCreateInfo{
 				.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
 				.pNext = nullptr,
 				.flags = 0,
 				.queueFamilyIndex = transferFamily,
 				.queueCount = queueFamilies[transferFamily].queueCount,
-				.pQueuePriorities = transferQueuePriorities.data(),
-			}
-		};
+				.pQueuePriorities = transferQueuePriorities.data()
+			});
+		}
 
 		/* create device now */
 		VkDeviceCreateInfo deviceCreateInfo{
@@ -282,14 +309,49 @@ namespace engine {
 
 		volkLoadDevice(d.device);
 
-		vkGetDeviceQueue(d.device, graphicsFamily, 0, &d.queues.presentQueue);
-		d.queues.drawQueues.resize(queueFamilies[graphicsFamily].queueCount - 1);
-		for (uint32_t i = 0; i < d.queues.drawQueues.size(); i++) {
-			vkGetDeviceQueue(d.device, graphicsFamily, i + 1, &d.queues.drawQueues[i]);
-		}
-		d.queues.transferQueues.resize(queueFamilies[transferFamily].queueCount);
-		for (uint32_t i = 0; i < d.queues.transferQueues.size(); i++) {
-			vkGetDeviceQueue(d.device, transferFamily, i, &d.queues.transferQueues[i]);
+
+		if (transferFamily != graphicsFamily) {
+			vkGetDeviceQueue(d.device, graphicsFamily, 0, &d.queues.presentQueue);
+			if (queueFamilies[graphicsFamily].queueCount >= 2) {
+				d.queues.drawQueues.resize(queueFamilies[graphicsFamily].queueCount - 1);
+				for (uint32_t i = 0; i < d.queues.drawQueues.size(); i++) {
+					vkGetDeviceQueue(d.device, graphicsFamily, i + 1, &d.queues.drawQueues[i]);
+				}
+			} else {
+				d.queues.drawQueues.resize(1);
+				d.queues.drawQueues[0] = d.queues.presentQueue;
+			}
+			d.queues.transferQueues.resize(queueFamilies[transferFamily].queueCount);
+			for (uint32_t i = 0; i < d.queues.transferQueues.size(); i++) {
+				vkGetDeviceQueue(d.device, transferFamily, i, &d.queues.transferQueues[i]);
+			}
+		} else {
+			// same graphics family for graphics/present and transfer
+			uint32_t queueCount = queueFamilies[graphicsFamily].queueCount;
+			vkGetDeviceQueue(d.device, graphicsFamily, 0, &d.queues.presentQueue);
+			if (queueCount >= 2) {
+				d.queues.transferQueues.resize(1);
+				vkGetDeviceQueue(d.device, graphicsFamily, 1, &d.queues.transferQueues[0]);
+				// use the remaining queues for drawing
+				if (queueCount >= 3) {
+					d.queues.drawQueues.resize(queueCount - 2);
+					for (uint32_t i = 0; i < queueCount - 2; i++) {
+						vkGetDeviceQueue(d.device, graphicsFamily, i + 2, &d.queues.drawQueues[i]);
+					}
+				} else {
+					// 2 queues available
+					// present and drawing share a queue
+					// transfer gets its own queue
+					d.queues.drawQueues.resize(1);
+					d.queues.drawQueues[0] = d.queues.presentQueue;
+				}
+			} else {
+				// only 1 queue available :(
+				d.queues.transferQueues.resize(1);
+				d.queues.transferQueues[0] = d.queues.presentQueue;
+				d.queues.drawQueues.resize(1);
+				d.queues.drawQueues[0] = d.queues.presentQueue;
+			}
 		}
 
 		d.queues.presentAndDrawQueueFamily = graphicsFamily;

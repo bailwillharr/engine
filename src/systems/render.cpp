@@ -47,11 +47,10 @@ namespace engine {
 		const glm::mat4 projMatrix = glm::perspectiveZO(verticalFovRadians, m_viewportAspectRatio, m_camera.clipNear, m_camera.clipFar);
 
 		/* update SET 0 */
-		RenderData::SetZeroBuffer uniform{};
-		uniform.proj = projMatrix;
-		uniform.myValue.x = 1.0f;
-		m_value = glm::mod(m_value + ts, 1.0f);
-		uniform.myValue.y = m_value;
+		RenderData::SetZeroBuffer uniform{
+			.view = viewMatrix,
+			.proj = projMatrix
+		};
 		m_gfx->writeDescriptorBuffer(renderData.setZeroBuffer, 0, sizeof(RenderData::SetZeroBuffer), &uniform);
 
 		/* render all renderable entities */
@@ -69,11 +68,9 @@ namespace engine {
 
 			struct {
 				glm::mat4 model;
-				glm::mat4 view;
 			} pushConsts{};
 
 			pushConsts.model = t->worldMatrix;
-			pushConsts.view = viewMatrix;
 
 			m_gfx->cmdBindPipeline(renderData.drawBuffer, r->material->getShader()->getPipeline());
 			m_gfx->cmdBindDescriptorSet(renderData.drawBuffer, r->material->getShader()->getPipeline(), renderData.setZero, 0);

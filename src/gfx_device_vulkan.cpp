@@ -613,6 +613,7 @@ namespace engine {
 		pimpl->allocator = createAllocator(pimpl->instance.instance, pimpl->device.device, pimpl->device.physicalDevice);
 
 		pimpl->swapchainInfo.device = pimpl->device.device;
+		pimpl->swapchainInfo.allocator = pimpl->allocator;
 		pimpl->swapchainInfo.physicalDevice = pimpl->device.physicalDevice;
 		pimpl->swapchainInfo.surface = pimpl->surface;
 		pimpl->swapchainInfo.window = pimpl->window;

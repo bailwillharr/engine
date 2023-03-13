@@ -14,6 +14,7 @@ namespace engine {
 	void createSwapchain(Swapchain* sc, const SwapchainInfo& info)
 	{
 		sc->device = info.device;
+		sc->allocator = info.allocator;
 
 		LOG_INFO("Recreating swapchain!\n");
 
@@ -129,6 +130,61 @@ namespace engine {
 			vkDestroySwapchainKHR(info.device, scInfo.oldSwapchain, nullptr);
 		}
 
+		{ /* create the depth buffer */
+
+			sc->depthStencil.format = VK_FORMAT_D32_SFLOAT;
+
+			if (sc->depthStencil.image != VK_NULL_HANDLE) {
+				vkDestroyImageView(info.device, sc->depthStencil.view, nullptr);
+				vmaDestroyImage(sc->allocator, sc->depthStencil.image, sc->depthStencil.allocation);
+			}
+			VkImageCreateInfo imageInfo{};
+			imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+			imageInfo.pNext = nullptr;
+			imageInfo.flags = 0;
+			imageInfo.imageType = VK_IMAGE_TYPE_2D;
+			imageInfo.format = sc->depthStencil.format;
+			imageInfo.extent.width = sc->extent.width;
+			imageInfo.extent.height = sc->extent.height;
+			imageInfo.mipLevels = 1;
+			imageInfo.arrayLayers = 1;
+			imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+			imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+			imageInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+			imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+			imageInfo.queueFamilyIndexCount = 0; // ignored
+			imageInfo.pQueueFamilyIndices = nullptr; // ignored
+			imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+			VmaAllocationCreateInfo allocInfo{};
+			allocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+			allocInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
+			allocInfo.priority = 1.0f;
+
+			res = vmaCreateImage(sc->allocator, &imageInfo, &allocInfo, &sc->depthStencil.image, &sc->depthStencil.allocation, nullptr);
+			if (res != VK_SUCCESS) throw std::runtime_error("Failed to create depth buffer image! Code: " + std::to_string(res));
+
+			VkImageViewCreateInfo viewInfo{};
+			viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+			viewInfo.pNext = nullptr;
+			viewInfo.flags = 0;
+			viewInfo.image = sc->depthStencil.image;
+			viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+			viewInfo.format = sc->depthStencil.format;
+			viewInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+			viewInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+			viewInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+			viewInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+			viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+			viewInfo.subresourceRange.baseMipLevel = 0;
+			viewInfo.subresourceRange.levelCount = 1;
+			viewInfo.subresourceRange.baseArrayLayer = 0;
+			viewInfo.subresourceRange.layerCount = 1;
+			res = vkCreateImageView(info.device, &viewInfo, nullptr, &sc->depthStencil.view);
+			assert(res == VK_SUCCESS);
+
+		}
+
 		/* create the render pass */
 		if (sc->renderpass != VK_NULL_HANDLE) {
 			vkDestroyRenderPass(sc->device, sc->renderpass, nullptr);
@@ -144,9 +200,25 @@ namespace engine {
 			.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
 			.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
 		};
+		VkAttachmentDescription depthStencilAttachment{
+			.flags = 0,
+			.format = sc->depthStencil.format,
+			.samples = VK_SAMPLE_COUNT_1_BIT,
+			.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+			.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE, // the depth buffer is not used after the fragment shader
+			.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE, // ignored
+			.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE, // ignored
+			.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+			.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+		};
+		std::array<VkAttachmentDescription, 2> attachments { colorAttachment, depthStencilAttachment };
 		VkAttachmentReference colorAttachmentRef{
 			.attachment = 0,
 			.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+		};
+		VkAttachmentReference depthStencilAttachmentRef{
+			.attachment = 1,
+			.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
 		};
 		VkSubpassDescription subpass{
 			.flags = 0,
@@ -156,25 +228,25 @@ namespace engine {
 			.colorAttachmentCount = 1,
 			.pColorAttachments = &colorAttachmentRef,
 			.pResolveAttachments = nullptr,
-			.pDepthStencilAttachment = nullptr,
+			.pDepthStencilAttachment = &depthStencilAttachmentRef,
 			.preserveAttachmentCount = 0,
 			.pPreserveAttachments = nullptr,
 		};
 		VkSubpassDependency dependency{
 			.srcSubpass = VK_SUBPASS_EXTERNAL,
 			.dstSubpass = 0,
-			.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-			.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+			.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+			.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
 			.srcAccessMask = 0,
-			.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+			.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
 			.dependencyFlags = 0
 		};
 		VkRenderPassCreateInfo renderPassInfo{
 			.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
 			.pNext = nullptr,
 			.flags = 0,
-			.attachmentCount = 1,
-			.pAttachments = &colorAttachment,
+			.attachmentCount = attachments.size(),
+			.pAttachments = attachments.data(),
 			.subpassCount = 1,
 			.pSubpasses = &subpass,
 			.dependencyCount = 1,
@@ -194,9 +266,9 @@ namespace engine {
 		/* create image view and framebuffer for each image */
 		sc->images.resize(swapchainImageCount);
 		for (uint32_t i = 0; i < swapchainImageCount; i++) {
-			auto& [image, view, framebuffer] = sc->images.at(i);
+			auto& [image, imageView, framebuffer] = sc->images.at(i);
 
-			if (view != VK_NULL_HANDLE) vkDestroyImageView(sc->device, view, nullptr);
+			if (imageView != VK_NULL_HANDLE) vkDestroyImageView(sc->device, imageView, nullptr);
 			if (framebuffer != VK_NULL_HANDLE) vkDestroyFramebuffer(sc->device, framebuffer, nullptr);
 
 			image = swapchainImages[i];
@@ -218,16 +290,20 @@ namespace engine {
 			viewInfo.subresourceRange.levelCount = 1;
 			viewInfo.subresourceRange.baseArrayLayer = 0;
 			viewInfo.subresourceRange.layerCount = 1;
-			VkResult res = vkCreateImageView(sc->device, &viewInfo, nullptr, &view);
+			VkResult res = vkCreateImageView(sc->device, &viewInfo, nullptr, &imageView);
 			if (res != VK_SUCCESS) throw std::runtime_error("Failed to create image view from swapchain image!");
+
+			std::array<VkImageView, 2> attachments {
+				imageView, sc->depthStencil.view
+			};
 
 			VkFramebufferCreateInfo fbInfo{};
 			fbInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 			fbInfo.pNext = nullptr;
 			fbInfo.flags = 0;
 			fbInfo.renderPass = sc->renderpass;
-			fbInfo.attachmentCount = 1;
-			fbInfo.pAttachments = &view;
+			fbInfo.attachmentCount = attachments.size();
+			fbInfo.pAttachments = attachments.data();
 			fbInfo.width = sc->extent.width;
 			fbInfo.height = sc->extent.height;
 			fbInfo.layers = 1;
@@ -246,6 +322,8 @@ namespace engine {
 			vkDestroyImageView(sc.device, view, nullptr);
 		}
 		vkDestroyRenderPass(sc.device, sc.renderpass, nullptr);
+		vkDestroyImageView(sc.device, sc.depthStencil.view, nullptr);
+		vmaDestroyImage(sc.allocator, sc.depthStencil.image, sc.depthStencil.allocation);
 		vkDestroySwapchainKHR(sc.device, sc.swapchain, nullptr);
 	}
 

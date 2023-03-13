@@ -31,8 +31,8 @@ namespace engine {
 		const gfx::DescriptorSetLayout* setZeroLayout;
 		const gfx::DescriptorSet* setZero;
 		struct SetZeroBuffer {
+			glm::mat4 view;
 			glm::mat4 proj;
-			glm::vec2 myValue;
 		};
 		gfx::DescriptorBuffer* setZeroBuffer;
 	};

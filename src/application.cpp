@@ -78,8 +78,8 @@ namespace engine {
 		renderData.setZeroLayout = gfx()->createDescriptorSetLayout();
 		renderData.setZero = gfx()->allocateDescriptorSet(renderData.setZeroLayout);
 		RenderData::SetZeroBuffer initialData{
+			.view = glm::mat4{1.0f},
 			.proj = glm::perspectiveZO(glm::radians(70.0f), 1024.0f / 768.0f, 0.1f, 1000.0f),
-			.myValue = { 0.0f, 1.0f }
 		};
 		renderData.setZeroBuffer = gfx()->createDescriptorBuffer(sizeof(RenderData::SetZeroBuffer), &initialData);
 		gfx()->updateDescriptor(renderData.setZero, 0, renderData.setZeroBuffer, 0, sizeof(RenderData::SetZeroBuffer));

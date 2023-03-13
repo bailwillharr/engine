@@ -2,12 +2,11 @@
 
 layout( push_constant ) uniform Constants {
 	mat4 model;
-	mat4 view;
 } constants;
 
 layout(set = 0, binding = 0) uniform SetZeroBuffer {
+	mat4 view;
 	mat4 proj;
-	vec2 myValue;
 } setZeroBuffer;
 
 layout(location = 0) in vec3 inPosition;
@@ -20,12 +19,12 @@ layout(location = 2) out vec2 fragUV;
 layout(location = 3) out vec3 fragLightPos;
 
 void main() {
-	gl_Position = setZeroBuffer.proj * constants.view * constants.model * vec4(inPosition, 1.0);
+	gl_Position = setZeroBuffer.proj * setZeroBuffer.view * constants.model * vec4(inPosition, 1.0);
 
-	fragPos = vec3(constants.view * constants.model * vec4(inPosition, 1.0));
-	fragNorm = mat3(transpose(inverse(constants.view * constants.model))) * inNorm;
+	fragPos = vec3(setZeroBuffer.view * constants.model * vec4(inPosition, 1.0));
+	fragNorm = mat3(transpose(inverse(setZeroBuffer.view * constants.model))) * inNorm;
 	fragUV = inUV;
 
 	vec3 lightPos = vec3(2000.0, 2000.0, -2000.0);
-	fragLightPos = vec3(constants.view * vec4(lightPos, 1.0));
+	fragLightPos = vec3(setZeroBuffer.view * vec4(lightPos, 1.0));
 }
