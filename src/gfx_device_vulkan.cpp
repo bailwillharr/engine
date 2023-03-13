@@ -6,7 +6,7 @@
 #include <fstream>
 #include <filesystem>
 #include <optional>
-#include <queue>
+#include <deque>
 #include <map>
 #include <iostream>
 
@@ -61,6 +61,7 @@ namespace engine {
 		VkBuffer buffer = VK_NULL_HANDLE;
 		VmaAllocation allocation = nullptr;
 		VkDeviceSize size = 0;
+		bool hostVisible = false;
 	};
 
 	struct gfx::Pipeline {
@@ -80,6 +81,7 @@ namespace engine {
 
 	struct gfx::DrawBuffer {
 		FrameData frameData;
+		uint32_t currentFrameIndex; // corresponds to the frameData
 		uint32_t imageIndex; // for swapchain present
 	};
 
@@ -88,7 +90,12 @@ namespace engine {
 	};
 
 	struct gfx::DescriptorSet {
-		VkDescriptorSet set;
+		std::array<VkDescriptorSet, FRAMES_IN_FLIGHT> sets; // frames in flight cannot use the same descriptor set in case the buffer needs updating
+	};
+
+	struct gfx::DescriptorBuffer {
+		gfx::Buffer stagingBuffer{};
+		std::array<gfx::Buffer, FRAMES_IN_FLIGHT> gpuBuffers;
 	};
 
 	// enum converters
@@ -552,6 +559,7 @@ namespace engine {
 		Swapchain swapchain{};
 
 		VkDescriptorPool descriptorPool;
+		std::array<std::unordered_set<gfx::DescriptorBuffer*>, FRAMES_IN_FLIGHT> descriptorBufferWriteQueues{};
 
 		uint64_t FRAMECOUNT = 0;
 
@@ -696,9 +704,17 @@ namespace engine {
 	{
 		VkResult res;
 
-		uint32_t swapchainImageIndex;
+		const uint32_t currentFrameIndex = pimpl->FRAMECOUNT % FRAMES_IN_FLIGHT;
+		const FrameData frameData = pimpl->frameData[currentFrameIndex];
 
-		FrameData frameData = pimpl->frameData[pimpl->FRAMECOUNT % FRAMES_IN_FLIGHT];
+		/* first empty the descriptor buffer write queue */
+		auto& writeQueue = pimpl->descriptorBufferWriteQueues[currentFrameIndex];
+		for (gfx::DescriptorBuffer* buffer : writeQueue) {
+			copyBuffer(pimpl->device.device, pimpl->device.commandPools.transfer, pimpl->device.queues.transferQueues[0], buffer->stagingBuffer.buffer, buffer->gpuBuffers[currentFrameIndex].buffer, buffer->stagingBuffer.size);
+		}
+		writeQueue.clear();
+
+		uint32_t swapchainImageIndex;
 
 		do {
 			if (pimpl->swapchainIsOutOfDate) {
@@ -736,10 +752,10 @@ namespace engine {
 
 		{ // RECORDING
 
-			VkClearValue clearValue{};
+			VkClearValue clearValue{}; // Using same value for all components enables compression according to NVIDIA Best Practices
 			clearValue.color.float32[0] = 1.0f;
-			clearValue.color.float32[1] = 0.0f;
-			clearValue.color.float32[2] = 0.0f;
+			clearValue.color.float32[1] = 1.0f;
+			clearValue.color.float32[2] = 1.0f;
 			clearValue.color.float32[3] = 1.0f;
 
 			VkRenderPassBeginInfo passBegin{
@@ -773,6 +789,7 @@ namespace engine {
 		// hand command buffer over to caller
 		gfx::DrawBuffer* drawBuffer = new gfx::DrawBuffer;
 		drawBuffer->frameData = frameData;
+		drawBuffer->currentFrameIndex = currentFrameIndex;
 		drawBuffer->imageIndex = swapchainImageIndex;
 		return drawBuffer;
 
@@ -862,9 +879,15 @@ namespace engine {
 		vkCmdDrawIndexed(drawBuffer->frameData.drawBuf, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
 	}
 
+	void GFXDevice::cmdPushConstants(gfx::DrawBuffer* drawBuffer, const gfx::Pipeline* pipeline, uint32_t offset, uint32_t size, const void* data)
+	{
+		assert(drawBuffer != nullptr);
+		vkCmdPushConstants(drawBuffer->frameData.drawBuf, pipeline->layout, VK_SHADER_STAGE_VERTEX_BIT, offset, size, data);
+	}
+
 	void GFXDevice::cmdBindDescriptorSet(gfx::DrawBuffer* drawBuffer, const gfx::Pipeline* pipeline, const gfx::DescriptorSet* set, uint32_t setNumber)
 	{
-		vkCmdBindDescriptorSets(drawBuffer->frameData.drawBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->layout, setNumber, 1, &set->set, 0, nullptr);
+		vkCmdBindDescriptorSets(drawBuffer->frameData.drawBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->layout, setNumber, 1, &set->sets[drawBuffer->currentFrameIndex], 0, nullptr);
 	}
 
 	gfx::Pipeline* GFXDevice::createPipeline(const gfx::PipelineInfo& info)
@@ -1114,61 +1137,133 @@ namespace engine {
 	{
 		gfx::DescriptorSet* set = new gfx::DescriptorSet{};
 
-		VkDescriptorSetAllocateInfo allocInfo{
+		for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
+			VkDescriptorSetAllocateInfo allocInfo{
 			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
 			.pNext = nullptr,
 			.descriptorPool = pimpl->descriptorPool,
 			.descriptorSetCount = 1,
 			.pSetLayouts = &layout->layout
-		};
-
-		VkResult res;
-		res = vkAllocateDescriptorSets(pimpl->device.device, &allocInfo, &set->set);
-		if (res == VK_ERROR_FRAGMENTED_POOL) throw std::runtime_error("Descriptor pool is fragmented!");
-		if (res == VK_ERROR_OUT_OF_POOL_MEMORY) throw std::runtime_error("Descriptor pool is out of memory!");
-		VKCHECK(res);
+			};
+			VkResult res;
+			res = vkAllocateDescriptorSets(pimpl->device.device, &allocInfo, &set->sets[i]);
+			if (res == VK_ERROR_FRAGMENTED_POOL) throw std::runtime_error("Descriptor pool is fragmented!");
+			if (res == VK_ERROR_OUT_OF_POOL_MEMORY) throw std::runtime_error("Descriptor pool is out of memory!");
+			VKCHECK(res);
+		}
 
 		return set;
 	}
 
-	void GFXDevice::updateDescriptor(const gfx::DescriptorSet* set, uint32_t binding, const gfx::Buffer* buffer)
+	void GFXDevice::updateDescriptor(const gfx::DescriptorSet* set, uint32_t binding, const gfx::DescriptorBuffer* buffer, size_t offset, size_t range)
 	{
-		VkDescriptorBufferInfo bufferInfo{
-			.buffer = buffer->buffer,
-			.offset = 0,
-			.range = VK_WHOLE_SIZE
-		};
-		VkWriteDescriptorSet descriptorWrite{
-			.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-			.pNext = nullptr,
-			.dstSet = set->set,
-			.dstBinding = binding,
-			.dstArrayElement = 0,
-			.descriptorCount = 1,
-			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-			.pImageInfo = nullptr,
-			.pBufferInfo = &bufferInfo,
-			.pTexelBufferView = nullptr
-		};
-		vkUpdateDescriptorSets(pimpl->device.device, 1, &descriptorWrite, 0, nullptr);
+		assert(pimpl->FRAMECOUNT == 0);
+
+		for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
+			VkDescriptorBufferInfo bufferInfo{
+			.buffer = buffer->gpuBuffers[i].buffer,
+			.offset = offset,
+			.range = range
+			};
+			VkWriteDescriptorSet descriptorWrite{
+				.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+				.pNext = nullptr,
+				.dstSet = set->sets[i],
+				.dstBinding = binding,
+				.dstArrayElement = 0,
+				.descriptorCount = 1,
+				.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+				.pImageInfo = nullptr,
+				.pBufferInfo = &bufferInfo,
+				.pTexelBufferView = nullptr
+			};
+			vkUpdateDescriptorSets(pimpl->device.device, 1, &descriptorWrite, 0, nullptr);
+		}
 	}
 
-	void GFXDevice::updateUniformBuffer(const gfx::Pipeline* pipeline, const void* data, size_t size, uint32_t offset)
+	gfx::DescriptorBuffer* GFXDevice::createDescriptorBuffer(uint64_t size, const void* initialData)
 	{
+		gfx::DescriptorBuffer* out = new gfx::DescriptorBuffer{};
+		
+		/* first make staging buffer */
+		out->stagingBuffer.size = size;
+		out->stagingBuffer.type = gfx::BufferType::UNIFORM;
+		out->stagingBuffer.hostVisible = true;
+		{
+			VkBufferCreateInfo stagingBufferInfo{};
+			stagingBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+			stagingBufferInfo.size = out->stagingBuffer.size;
+			stagingBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+			stagingBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+			stagingBufferInfo.flags = 0;
 
-#if 0
-		assert(size <= pipeline->uniformBuffers[0]->size);
+			VmaAllocationCreateInfo stagingAllocInfo{};
+			stagingAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+			stagingAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+			stagingAllocInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 
-		[[maybe_unused]] VkResult res;
+			VKCHECK(vmaCreateBuffer(pimpl->allocator, &stagingBufferInfo, &stagingAllocInfo, &out->stagingBuffer.buffer, &out->stagingBuffer.allocation, nullptr));
 
-		for (gfx::Buffer* buffer : pipeline->uniformBuffers) {
-			void* uniformDest = nullptr;
-			res = vmaMapMemory(pimpl->allocator, buffer->allocation, &uniformDest);
-			assert(res == VK_SUCCESS);
-			memcpy((uint8_t*)uniformDest + offset, data, size);
-			vmaUnmapMemory(pimpl->allocator, buffer->allocation);
+			void* dataDest;
+			VKCHECK(vmaMapMemory(pimpl->allocator, out->stagingBuffer.allocation, &dataDest));
+			memcpy(dataDest, initialData, out->stagingBuffer.size);
+			vmaUnmapMemory(pimpl->allocator, out->stagingBuffer.allocation);
 		}
-#endif
+
+		/* create the device-local set of buffers */
+		for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
+
+			out->gpuBuffers[i].size = out->stagingBuffer.size;
+			out->gpuBuffers[i].type = gfx::BufferType::UNIFORM;
+			out->gpuBuffers[i].hostVisible = false;
+
+			VkBufferCreateInfo gpuBufferInfo{};
+			gpuBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+			gpuBufferInfo.size = out->gpuBuffers[i].size;
+			gpuBufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+			gpuBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+			gpuBufferInfo.flags = 0;
+
+			VmaAllocationCreateInfo gpuAllocationInfo{};
+			gpuAllocationInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+			gpuAllocationInfo.flags = 0;
+
+			VKCHECK(vmaCreateBuffer(pimpl->allocator, &gpuBufferInfo, &gpuAllocationInfo, &out->gpuBuffers[i].buffer, &out->gpuBuffers[i].allocation, nullptr));
+
+			/* copy staging buffer into both */
+			copyBuffer(pimpl->device.device, pimpl->device.commandPools.transfer, pimpl->device.queues.transferQueues[0], out->stagingBuffer.buffer, out->gpuBuffers[i].buffer, out->stagingBuffer.size);
+		}
+
+		return out;
+
+	}
+
+	void GFXDevice::destroyDescriptorBuffer(const gfx::DescriptorBuffer* descriptorBuffer)
+	{
+		for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
+			vmaDestroyBuffer(pimpl->allocator, descriptorBuffer->gpuBuffers[i].buffer, descriptorBuffer->gpuBuffers[i].allocation);
+		}
+
+		vmaDestroyBuffer(pimpl->allocator, descriptorBuffer->stagingBuffer.buffer, descriptorBuffer->stagingBuffer.allocation);
+
+		delete descriptorBuffer;
+	}
+
+	void GFXDevice::writeDescriptorBuffer(gfx::DescriptorBuffer* buffer, uint64_t offset, uint64_t size, const void* data)
+	{
+		assert(offset + size <= buffer->stagingBuffer.size);
+
+		/* first update the staging buffer */
+		void* dataDest;
+		VKCHECK(vmaMapMemory(pimpl->allocator, buffer->stagingBuffer.allocation, &dataDest));
+		memcpy(dataDest, (uint8_t*)data + offset, size);
+		vmaUnmapMemory(pimpl->allocator, buffer->stagingBuffer.allocation);
+
+		/* queue the writes to each gpu buffer */
+		// This is required as buffers cannot be updated if they are currently in use
+		for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
+			pimpl->descriptorBufferWriteQueues[i].insert(buffer);
+		}
 
 	}
 
@@ -1178,8 +1273,8 @@ namespace engine {
 
 		auto out = new gfx::Buffer{};
 		out->size = size;
-
 		out->type = type;
+		out->hostVisible = false;
 
 		VkBuffer stagingBuffer;
 		VmaAllocation stagingAllocation;
@@ -1455,6 +1550,11 @@ namespace engine {
 		vkDestroyImageView(pimpl->device, texture->imageView, nullptr);
 		vmaDestroyImage(pimpl->allocator, texture->image, texture->alloc);
 #endif
+	}
+
+	uint64_t GFXDevice::getFrameCount()
+	{
+		return pimpl->FRAMECOUNT;
 	}
 
 	void GFXDevice::waitIdle()

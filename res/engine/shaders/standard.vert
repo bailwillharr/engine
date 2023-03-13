@@ -1,14 +1,14 @@
 #version 450
 
-layout(set = 0, binding = 0) uniform UBO {
-	mat4 proj;
-	mat4 view;
-} ubo;
-
 layout( push_constant ) uniform Constants {
 	mat4 model;
 	mat4 view;
 } constants;
+
+layout(set = 0, binding = 0) uniform SetZeroBuffer {
+	mat4 proj;
+	vec2 myValue;
+} setZeroBuffer;
 
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inNorm;
@@ -20,7 +20,7 @@ layout(location = 2) out vec2 fragUV;
 layout(location = 3) out vec3 fragLightPos;
 
 void main() {
-	gl_Position = ubo.proj * constants.view * constants.model * vec4(inPosition, 1.0);
+	gl_Position = setZeroBuffer.proj * constants.view * constants.model * vec4(inPosition, 1.0);
 
 	fragPos = vec3(constants.view * constants.model * vec4(inPosition, 1.0));
 	fragNorm = mat3(transpose(inverse(constants.view * constants.model))) * inNorm;

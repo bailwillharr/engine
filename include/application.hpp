@@ -4,6 +4,8 @@
 
 #include "gfx.hpp"
 
+#include <glm/mat4x4.hpp>
+
 #include <memory>
 #include <string>
 #include <filesystem>
@@ -21,6 +23,19 @@ namespace engine {
 		class Shader;
 		class Texture;
 	}
+
+	struct RenderData {
+		std::unique_ptr<GFXDevice> gfxdev;
+		gfx::DrawBuffer* drawBuffer = nullptr;
+		/* uniforms for engine globals */
+		const gfx::DescriptorSetLayout* setZeroLayout;
+		const gfx::DescriptorSet* setZero;
+		struct SetZeroBuffer {
+			glm::mat4 proj;
+			glm::vec2 myValue;
+		};
+		gfx::DescriptorBuffer* setZeroBuffer;
+	};
 
 	class Application {
 
@@ -61,25 +76,22 @@ namespace engine {
 
 		/* getters */
 		Window* window() { return m_window.get(); }
-		GFXDevice* gfx() { return m_gfx.get(); }
+		GFXDevice* gfx() { return renderData.gfxdev.get(); }
 		InputManager* inputManager() { return m_inputManager.get(); }
 		SceneManager* sceneManager() { return m_sceneManager.get(); }
 
-		gfx::DrawBuffer* getDrawBuffer() { return m_drawBuffer; }
-
 		std::string getResourcePath(const std::string relativePath) { return (m_resourcesPath / relativePath).string(); }
+
+		RenderData renderData{};
 
 	private:
 		std::unique_ptr<Window> m_window;
-		std::unique_ptr<GFXDevice> m_gfx;
 		std::unique_ptr<InputManager> m_inputManager;
 		std::unique_ptr<SceneManager> m_sceneManager;
 
 		std::filesystem::path m_resourcesPath;
 
 		bool m_enableFrameLimiter = true;
-
-		gfx::DrawBuffer *m_drawBuffer;
 
 		/* resource stuff */
 

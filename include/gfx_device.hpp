@@ -26,9 +26,9 @@ namespace engine {
 		void cmdBindVertexBuffer(gfx::DrawBuffer* drawBuffer, uint32_t binding, const gfx::Buffer* buffer);
 		void cmdBindIndexBuffer(gfx::DrawBuffer* drawBuffer, const gfx::Buffer* buffer);
 		void cmdDrawIndexed(gfx::DrawBuffer* drawBuffer, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance);
+		void cmdPushConstants(gfx::DrawBuffer* drawBuffer, const gfx::Pipeline* pipeline, uint32_t offset, uint32_t size, const void* data);
 		void cmdBindDescriptorSet(gfx::DrawBuffer* drawBuffer, const gfx::Pipeline* pipeline, const gfx::DescriptorSet* set, uint32_t setNumber);
 		
-		// creates the equivalent of an OpenGL shader program & vertex attrib configuration
 		gfx::Pipeline* createPipeline(const gfx::PipelineInfo& info);
 		void destroyPipeline(const gfx::Pipeline* pipeline);
 
@@ -36,11 +36,15 @@ namespace engine {
 		void destroyDescriptorSetLayout(const gfx::DescriptorSetLayout* layout);
 		
 		gfx::DescriptorSet* allocateDescriptorSet(const gfx::DescriptorSetLayout* layout);
-		void updateDescriptor(const gfx::DescriptorSet* set, uint32_t binding, const gfx::Buffer* buffer);
+		// This updates all copies of the descriptor. This cannot be used after any frames have been renderered
+		void updateDescriptor(const gfx::DescriptorSet* set, uint32_t binding, const gfx::DescriptorBuffer* buffer, size_t offset, size_t range);
 
-		void updateUniformBuffer(const gfx::Pipeline* pipeline, const void* data, size_t size, uint32_t offset);
+		gfx::DescriptorBuffer* createDescriptorBuffer(uint64_t size, const void* initialData);
+		void destroyDescriptorBuffer(const gfx::DescriptorBuffer* descriptorBuffer);
 
-		// Tries to create it on the GPU. Cannot be directly updated by the CPU.
+		void writeDescriptorBuffer(gfx::DescriptorBuffer* buffer, uint64_t offset, uint64_t size, const void* data);
+
+		// Loads data into staging buffer and copies that into a single GPU buffer.
 		gfx::Buffer* createBuffer(gfx::BufferType type, uint64_t size, const void* data);
 		void destroyBuffer(const gfx::Buffer* buffer);
 
@@ -53,6 +57,8 @@ namespace engine {
 			gfx::MipmapSetting mipmapSetting,
 			bool useAnisotropy = false);
 		void destroyTexture(const gfx::Texture* texture);
+
+		uint64_t getFrameCount();
 
 		// wait until all the active GPU queues have finished working
 		void waitIdle();

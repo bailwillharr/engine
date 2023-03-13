@@ -15,20 +15,22 @@
 namespace engine {
 
 	RenderSystem::RenderSystem(Scene* scene)
-		: System(scene, { typeid(TransformComponent).hash_code(), typeid(RenderableComponent).hash_code() })
+		: System(scene, { typeid(TransformComponent).hash_code(), typeid(RenderableComponent).hash_code() }),
+		  m_gfx(m_scene->app()->gfx())
 	{
+	}
 
+	RenderSystem::~RenderSystem()
+	{
 	}
 
 	void RenderSystem::onUpdate(float ts)
 	{
 		(void)ts;
-
-		GFXDevice* const gfx = m_scene->app()->gfx();
 		
-		gfx::DrawBuffer* drawBuffer = m_scene->app()->getDrawBuffer();
+		RenderData& renderData = m_scene->app()->renderData;
+		
 		/* camera stuff */
-
 		const auto cameraTransform = m_scene->getComponent<TransformComponent>(m_camera.camEntity);
 
 		// do not render if camera is not set
@@ -38,13 +40,19 @@ namespace engine {
 
 		if (m_scene->app()->window()->getWindowResized()) {
 			uint32_t w, h;
-			gfx->getViewportSize(&w, &h);
+			m_gfx->getViewportSize(&w, &h);
 			m_viewportAspectRatio = (float)w / (float)h;
 		}
 		const float verticalFovRadians = glm::radians(m_camera.verticalFovDegrees);
-//		const float horizontalFovRadians = glm::radians(m_camera.horizontalFovDegrees);
-//		const float verticalFov = glm::atan( glm::tan(horizontalFovRadians / 2.0f) / m_viewportAspectRatio ) * 2.0f;
 		const glm::mat4 projMatrix = glm::perspectiveZO(verticalFovRadians, m_viewportAspectRatio, m_camera.clipNear, m_camera.clipFar);
+
+		/* update SET 0 */
+		RenderData::SetZeroBuffer uniform{};
+		uniform.proj = projMatrix;
+		uniform.myValue.x = 1.0f;
+		m_value = glm::mod(m_value + ts, 1.0f);
+		uniform.myValue.y = m_value;
+		m_gfx->writeDescriptorBuffer(renderData.setZeroBuffer, 0, sizeof(RenderData::SetZeroBuffer), &uniform);
 
 		/* render all renderable entities */
 
@@ -60,16 +68,6 @@ namespace engine {
 			//assert(r->material->m_texture != nullptr);
 
 			struct {
-				glm::mat4 proj;
-				glm::mat4 view;
-			} uniform{};
-
-			uniform.proj = projMatrix;
-			uniform.view = viewMatrix;
-
-			gfx->updateUniformBuffer(r->material->getShader()->getPipeline(), &uniform, sizeof(glm::mat4) * 2, 0);
-
-			struct {
 				glm::mat4 model;
 				glm::mat4 view;
 			} pushConsts{};
@@ -77,21 +75,12 @@ namespace engine {
 			pushConsts.model = t->worldMatrix;
 			pushConsts.view = viewMatrix;
 
-			gfx->cmdBindPipeline(drawBuffer, r->material->getShader()->getPipeline());
-			gfx->cmdBindDescriptorSet(drawBuffer, r->material->getShader()->getPipeline(), r->material->getShader()->getSetZero(), 0);
-			gfx->cmdBindVertexBuffer(drawBuffer, 0, r->mesh->getVB());
-			gfx->cmdBindIndexBuffer(drawBuffer, r->mesh->getIB());
-			gfx->cmdDrawIndexed(drawBuffer, r->mesh->getCount(), 1, 0, 0, 0);
-
-			/*
-			gfx->draw(
-				r->material->getShader()->getPipeline(),
-				r->mesh->getVB(),
-				r->mesh->getIB(),
-				r->mesh->getCount(),
-				&pushConsts,
-				sizeof(pushConsts)
-			);*/
+			m_gfx->cmdBindPipeline(renderData.drawBuffer, r->material->getShader()->getPipeline());
+			m_gfx->cmdBindDescriptorSet(renderData.drawBuffer, r->material->getShader()->getPipeline(), renderData.setZero, 0);
+			m_gfx->cmdPushConstants(renderData.drawBuffer, r->material->getShader()->getPipeline(), 0, sizeof(pushConsts), &pushConsts);
+			m_gfx->cmdBindVertexBuffer(renderData.drawBuffer, 0, r->mesh->getVB());
+			m_gfx->cmdBindIndexBuffer(renderData.drawBuffer, r->mesh->getIB());
+			m_gfx->cmdDrawIndexed(renderData.drawBuffer, r->mesh->getCount(), 1, 0, 0, 0);
 
 		}
 

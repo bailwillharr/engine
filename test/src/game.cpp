@@ -57,32 +57,6 @@ void playGame(bool enableFrameLimiter)
 
 	auto myScene = app.sceneManager()->createEmptyScene();
 
-	const std::string vertPath = app.getResourcePath("engine/shaders/test.vert");
-	const std::string fragPath = app.getResourcePath("engine/shaders/test.frag");
-	engine::resources::Shader::VertexParams vertexParams{};
-	vertexParams.hasColor = false;
-	vertexParams.hasNormal = true;
-	vertexParams.hasTangent = false;
-	vertexParams.hasUV0 = true;
-	bool alphaBlending = false;
-	bool cullBackFace = true;
-	auto testShader = std::make_shared<engine::resources::Shader>(app.gfx(), vertPath.c_str(), fragPath.c_str(), vertexParams, alphaBlending, cullBackFace);
-
-	auto camera = myScene->createEntity("camera");
-
-	auto renderSystem = myScene->getSystem<engine::RenderSystem>();
-	renderSystem->setCameraEntity(camera);
-	myScene->getComponent<engine::TransformComponent>(camera)->position = { 0.0f, 10.0f, 0.0f };
-
-	/* cube */
-	uint32_t cube = myScene->createEntity("cube");
-	myScene->getComponent<engine::TransformComponent>(cube)->position = glm::vec3{ -0.5f, -0.5f, -0.5f };
-	auto cubeRenderable = myScene->addComponent<engine::RenderableComponent>(cube);
-	cubeRenderable->material = std::make_shared<engine::resources::Material>(testShader);
-	cubeRenderable->mesh = genCuboidMesh(app.gfx(), 1, 1.0f, 1, 1);
-
-#if 0
-
 	/* create camera */
 	{
 		myScene->registerComponent<CameraControllerComponent>();
@@ -130,6 +104,15 @@ void playGame(bool enableFrameLimiter)
 		myScene->getComponent<engine::TransformComponent>(skybox)->position = { -1.0f, -1.0f, -1.0f };
 	}
 
+	/* cube */
+	{
+		uint32_t cube = myScene->createEntity("cube");
+		myScene->getComponent<engine::TransformComponent>(cube)->position = glm::vec3{ -0.5f, -0.5f, -0.5f };
+		auto cubeRenderable = myScene->addComponent<engine::RenderableComponent>(cube);
+		cubeRenderable->material = std::make_shared<engine::resources::Material>(app.getResource<engine::resources::Shader>("builtin.standard"));
+		cubeRenderable->mesh = genCuboidMesh(app.gfx(), 1.0f, 1.0f, 1.0f, 1);
+	}
+
 	/* floor */
 	{
 		uint32_t floor = myScene->createEntity("floor");
@@ -138,12 +121,11 @@ void playGame(bool enableFrameLimiter)
 		floorRenderable->material = std::make_shared<engine::resources::Material>(app.getResource<engine::resources::Shader>("builtin.standard"));
 		floorRenderable->material->m_texture = grassTexture;
 		floorRenderable->mesh = genCuboidMesh(app.gfx(), 10000.0f, 1.0f, 10000.0f, 5000.0f);
+		floorRenderable->shown = true;
 		auto floorCollider = myScene->addComponent<engine::ColliderComponent>(floor);
 		floorCollider->isStatic = true;
 		floorCollider->aabb = { { 0.0f, 0.0f, 0.0f }, { 10000.0f, 1.0f, 10000.0f } };
 	}
-
-#endif
 
 	app.gameLoop();
 

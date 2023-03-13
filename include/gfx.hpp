@@ -9,6 +9,7 @@ namespace engine::gfx {
 
 	// handles (incomplete types)
 	struct Pipeline;
+	struct DescriptorBuffer;
 	struct Buffer;
 	struct Texture;
 	struct DrawBuffer;

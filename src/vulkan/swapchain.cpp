@@ -5,6 +5,8 @@
 
 #include <SDL2/SDL_vulkan.h>
 
+#include "log.hpp"
+
 #include "swapchain.h"
 
 namespace engine {
@@ -13,7 +15,7 @@ namespace engine {
 	{
 		sc->device = info.device;
 
-		printf("Recreating swapchain!\n");
+		LOG_INFO("Recreating swapchain!\n");
 
 		// get surface caps and features
 		VkResult res;

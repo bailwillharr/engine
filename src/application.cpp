@@ -14,6 +14,8 @@
 #include "resources/shader.hpp"
 #include "resources/texture.hpp"
 
+#include <glm/gtc/matrix_transform.hpp>
+
 // To allow the FPS-limiter to put the thread to sleep
 #include <thread>
 
@@ -23,43 +25,42 @@
 #define MAX_PATH 260
 #endif
 
-static std::filesystem::path getResourcesPath()
-{
-	std::filesystem::path resourcesPath{};
+namespace engine {
+
+	static std::filesystem::path getResourcesPath()
+	{
+		std::filesystem::path resourcesPath{};
 
 #ifdef _MSC_VER
-	CHAR exeDirBuf[MAX_PATH + 1];
-	GetModuleFileNameA(NULL, exeDirBuf, MAX_PATH + 1);
-	std::filesystem::path cwd = std::filesystem::path(exeDirBuf).parent_path();
-	(void)_chdir((const char*)std::filesystem::absolute(cwd).c_str());
+		CHAR exeDirBuf[MAX_PATH + 1];
+		GetModuleFileNameA(NULL, exeDirBuf, MAX_PATH + 1);
+		std::filesystem::path cwd = std::filesystem::path(exeDirBuf).parent_path();
+		(void)_chdir((const char*)std::filesystem::absolute(cwd).c_str());
 #else
-	std::filesystem::path cwd = std::filesystem::current_path();
+		std::filesystem::path cwd = std::filesystem::current_path();
 #endif
 
-	if (std::filesystem::is_directory(cwd / "res")) {
-		resourcesPath = cwd / "res";
-	}
-	else {
-		resourcesPath = cwd.parent_path() / "share" / "sdltest";
-	}
+		if (std::filesystem::is_directory(cwd / "res")) {
+			resourcesPath = cwd / "res";
+		}
+		else {
+			resourcesPath = cwd.parent_path() / "share" / "sdltest";
+		}
 
-	if (std::filesystem::is_directory(resourcesPath) == false) {
-		resourcesPath = cwd.root_path() / "usr" / "local" / "share" / "sdltest";
+		if (std::filesystem::is_directory(resourcesPath) == false) {
+			resourcesPath = cwd.root_path() / "usr" / "local" / "share" / "sdltest";
+		}
+
+		if (std::filesystem::is_directory(resourcesPath) == false) {
+			throw std::runtime_error("Unable to determine resources location. CWD: " + cwd.string());
+		}
+
+		return resourcesPath;
 	}
-
-	if (std::filesystem::is_directory(resourcesPath) == false) {
-		throw std::runtime_error("Unable to determine resources location. CWD: " + cwd.string());
-	}
-
-	return resourcesPath;
-}
-
-namespace engine {
 
 	Application::Application(const char* appName, const char* appVersion, gfx::GraphicsSettings graphicsSettings)
 	{
 		m_window = std::make_unique<Window>(appName, true, false);
-		m_gfx = std::make_unique<GFXDevice>(appName, appVersion, m_window->getHandle(), graphicsSettings);
 		m_inputManager = std::make_unique<InputManager>(window());
 		m_sceneManager = std::make_unique<SceneManager>(this);
 
@@ -72,14 +73,24 @@ namespace engine {
 		registerResourceManager<resources::Material>();
 		registerResourceManager<resources::Mesh>();
 
+		// initialise the render data
+		renderData.gfxdev = std::make_unique<GFXDevice>(appName, appVersion, m_window->getHandle(), graphicsSettings);
+		renderData.setZeroLayout = gfx()->createDescriptorSetLayout();
+		renderData.setZero = gfx()->allocateDescriptorSet(renderData.setZeroLayout);
+		RenderData::SetZeroBuffer initialData{
+			.proj = glm::perspectiveZO(glm::radians(70.0f), 1024.0f / 768.0f, 0.1f, 1000.0f),
+			.myValue = { 0.0f, 1.0f }
+		};
+		renderData.setZeroBuffer = gfx()->createDescriptorBuffer(sizeof(RenderData::SetZeroBuffer), &initialData);
+		gfx()->updateDescriptor(renderData.setZero, 0, renderData.setZeroBuffer, 0, sizeof(RenderData::SetZeroBuffer));
+
 		// default resources
-#if 0
 		{
 			resources::Shader::VertexParams vertParams{};
 			vertParams.hasNormal = true;
 			vertParams.hasUV0 = true;
 			auto texturedShader = std::make_unique<resources::Shader>(
-				gfx(),
+				&renderData,
 				getResourcePath("engine/shaders/standard.vert").c_str(),
 				getResourcePath("engine/shaders/standard.frag").c_str(),
 				vertParams,
@@ -93,7 +104,7 @@ namespace engine {
 			vertParams.hasNormal = true;
 			vertParams.hasUV0 = true;
 			auto texturedShader = std::make_unique<resources::Shader>(
-				gfx(),
+				&renderData,
 				getResourcePath("engine/shaders/skybox.vert").c_str(),
 				getResourcePath("engine/shaders/skybox.frag").c_str(),
 				vertParams,
@@ -102,7 +113,6 @@ namespace engine {
 			);
 			getResourceManager<resources::Shader>()->addPersistent("builtin.skybox", std::move(texturedShader));
 		}
-#endif
 		{
 			auto whiteTexture = std::make_unique<resources::Texture>(
 				gfx(),
@@ -115,7 +125,11 @@ namespace engine {
 		}
 	}
 
-	Application::~Application() {}
+	Application::~Application()
+	{
+		gfx()->destroyDescriptorBuffer(renderData.setZeroBuffer);
+		gfx()->destroyDescriptorSetLayout(renderData.setZeroLayout);
+	}
 
 	void Application::gameLoop()
 	{
@@ -132,7 +146,7 @@ namespace engine {
 		while (m_window->isRunning()) {
 
 			/* begin rendering */
-			m_drawBuffer = m_gfx->beginRender();
+			renderData.drawBuffer = gfx()->beginRender();
 
 			/* logic */
 			m_sceneManager->updateActiveScene(m_window->dt());
@@ -149,7 +163,7 @@ namespace engine {
 			}
 
 			/* draw */
-			m_gfx->finishRender(m_drawBuffer);
+			gfx()->finishRender(renderData.drawBuffer);
 
 			/* poll events */
 			m_window->getInputAndEvents();
@@ -163,7 +177,7 @@ namespace engine {
 
 		}
 
-		m_gfx->waitIdle();
+		gfx()->waitIdle();
 	}
 
 }

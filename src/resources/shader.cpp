@@ -1,5 +1,6 @@
 #include "resources/shader.hpp"
 
+#include "application.hpp"
 #include "gfx_device.hpp"
 #include "log.hpp"
 
@@ -8,11 +9,9 @@
 namespace engine::resources {
 
 
-	Shader::Shader(GFXDevice* gfx, const char* vertPath, const char* fragPath, const VertexParams& vertexParams, bool alphaBlending, bool cullBackFace)
-		: m_gfx(gfx)
+	Shader::Shader(RenderData* renderData, const char* vertPath, const char* fragPath, const VertexParams& vertexParams, bool alphaBlending, bool cullBackFace)
+		: m_gfx(renderData->gfxdev.get())
 	{
-
-		m_setZeroLayout = m_gfx->createDescriptorSetLayout();
 
 		uint32_t index = 0;
 		uint32_t stride = 0;
@@ -45,26 +44,17 @@ namespace engine::resources {
 		info.vertexFormat = vertFormat;
 		info.alphaBlending = alphaBlending;
 		info.backfaceCulling = cullBackFace;
-		info.descriptorSetLayouts.push_back(m_setZeroLayout);
+		info.descriptorSetLayouts.push_back(renderData->setZeroLayout);
 
 		m_pipeline = m_gfx->createPipeline(info);
 
 		LOG_INFO("Loaded shader: {}, vertex attribs: {}", vertPath, vertFormat.attributeDescriptions.size());
 
-		/* allocate uniform descriptor set */
-		m_setZero = m_gfx->allocateDescriptorSet(m_setZeroLayout);
-		/* fill with data */
-		glm::vec4 myValue = { 0.5f, 0.5f, 0.5f, 1.0f };
-		m_setZeroBuffer = m_gfx->createBuffer(gfx::BufferType::UNIFORM, sizeof(glm::vec4), &myValue);
-		m_gfx->updateDescriptor(m_setZero, 0, m_setZeroBuffer);
-
 	}
 
 	Shader::~Shader()
 	{
-		m_gfx->destroyBuffer(m_setZeroBuffer);
 		m_gfx->destroyPipeline(m_pipeline);
-		m_gfx->destroyDescriptorSetLayout(m_setZeroLayout);
 	}
 
 	const gfx::Pipeline* Shader::getPipeline()
