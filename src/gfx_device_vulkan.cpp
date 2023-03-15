@@ -1404,6 +1404,9 @@ namespace engine {
 
 	gfx::Image* GFXDevice::createImage(uint32_t w, uint32_t h, const void* imageData)
 	{
+		(void)w;
+		(void)h;
+		(void)imageData;
 		return nullptr;
 	}
 

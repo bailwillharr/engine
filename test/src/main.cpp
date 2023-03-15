@@ -18,7 +18,7 @@ int main(int argc, char* argv[])
 	settings.enableValidation = false;
 	if (argc >= 2) {
 		std::unordered_set<std::string> args{};
-		for (size_t i = 1; i < argc; i++) {
+		for (int i = 1; i < argc; i++) {
 			args.insert(std::string(argv[i]));
 		}
 		if (args.contains("nofpslimit")) settings.enableFrameLimiter = false;
