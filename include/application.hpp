@@ -31,10 +31,16 @@ namespace engine {
 		const gfx::DescriptorSetLayout* setZeroLayout;
 		const gfx::DescriptorSet* setZero;
 		struct SetZeroBuffer {
-			glm::mat4 view;
 			glm::mat4 proj;
 		};
 		gfx::DescriptorBuffer* setZeroBuffer;
+		/* uniforms for per-frame data */
+		const gfx::DescriptorSetLayout* setOneLayout;
+		const gfx::DescriptorSet* setOne;
+		struct SetOneBuffer {
+			glm::mat4 view;
+		};
+		gfx::DescriptorBuffer* setOneBuffer;
 	};
 
 	class Application {

@@ -72,119 +72,126 @@ namespace engine {
 			}
 
 			/* check features */
-			VkPhysicalDeviceFeatures devFeatures;
-			vkGetPhysicalDeviceFeatures(physDev, &devFeatures);
+			VkPhysicalDeviceMemoryPriorityFeaturesEXT memoryPriorityFeatures{};
+			memoryPriorityFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PRIORITY_FEATURES_EXT;
+			VkPhysicalDeviceFeatures2 devFeatures{};
+			devFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+			devFeatures.pNext = &memoryPriorityFeatures;
+			vkGetPhysicalDeviceFeatures2(physDev, &devFeatures);
 			{
 				if (requirements.requiredFeatures.robustBufferAccess)
-					if (devFeatures.robustBufferAccess == VK_FALSE) continue;
+					if (devFeatures.features.robustBufferAccess == VK_FALSE) continue;
 				if (requirements.requiredFeatures.fullDrawIndexUint32)
-					if (devFeatures.fullDrawIndexUint32 == VK_FALSE) continue;
+					if (devFeatures.features.fullDrawIndexUint32 == VK_FALSE) continue;
 				if (requirements.requiredFeatures.imageCubeArray == VK_TRUE)
-					if (devFeatures.imageCubeArray == VK_FALSE) continue;
+					if (devFeatures.features.imageCubeArray == VK_FALSE) continue;
 				if (requirements.requiredFeatures.independentBlend == VK_TRUE)
-					if (devFeatures.independentBlend == VK_FALSE) continue;
+					if (devFeatures.features.independentBlend == VK_FALSE) continue;
 				if (requirements.requiredFeatures.geometryShader == VK_TRUE)
-					if (devFeatures.geometryShader == VK_FALSE) continue;
+					if (devFeatures.features.geometryShader == VK_FALSE) continue;
 				if (requirements.requiredFeatures.tessellationShader == VK_TRUE)
-					if (devFeatures.tessellationShader == VK_FALSE) continue;
+					if (devFeatures.features.tessellationShader == VK_FALSE) continue;
 				if (requirements.requiredFeatures.sampleRateShading == VK_TRUE)
-					if (devFeatures.sampleRateShading == VK_FALSE) continue;
+					if (devFeatures.features.sampleRateShading == VK_FALSE) continue;
 				if (requirements.requiredFeatures.dualSrcBlend == VK_TRUE)
-					if (devFeatures.dualSrcBlend == VK_FALSE) continue;
+					if (devFeatures.features.dualSrcBlend == VK_FALSE) continue;
 				if (requirements.requiredFeatures.logicOp == VK_TRUE)
-					if (devFeatures.logicOp == VK_FALSE) continue;
+					if (devFeatures.features.logicOp == VK_FALSE) continue;
 				if (requirements.requiredFeatures.multiDrawIndirect == VK_TRUE)
-					if (devFeatures.multiDrawIndirect == VK_FALSE) continue;
+					if (devFeatures.features.multiDrawIndirect == VK_FALSE) continue;
 				if (requirements.requiredFeatures.drawIndirectFirstInstance == VK_TRUE)
-					if (devFeatures.drawIndirectFirstInstance == VK_FALSE) continue;
+					if (devFeatures.features.drawIndirectFirstInstance == VK_FALSE) continue;
 				if (requirements.requiredFeatures.depthClamp == VK_TRUE)
-					if (devFeatures.depthClamp == VK_FALSE) continue;
+					if (devFeatures.features.depthClamp == VK_FALSE) continue;
 				if (requirements.requiredFeatures.depthBiasClamp == VK_TRUE)
-					if (devFeatures.depthBiasClamp == VK_FALSE) continue;
+					if (devFeatures.features.depthBiasClamp == VK_FALSE) continue;
 				if (requirements.requiredFeatures.fillModeNonSolid == VK_TRUE)
-					if (devFeatures.fillModeNonSolid == VK_FALSE) continue;
+					if (devFeatures.features.fillModeNonSolid == VK_FALSE) continue;
 				if (requirements.requiredFeatures.depthBounds == VK_TRUE)
-					if (devFeatures.depthBounds == VK_FALSE) continue;
+					if (devFeatures.features.depthBounds == VK_FALSE) continue;
 				if (requirements.requiredFeatures.wideLines == VK_TRUE)
-					if (devFeatures.wideLines == VK_FALSE) continue;
+					if (devFeatures.features.wideLines == VK_FALSE) continue;
 				if (requirements.requiredFeatures.largePoints == VK_TRUE)
-					if (devFeatures.largePoints == VK_FALSE) continue;
+					if (devFeatures.features.largePoints == VK_FALSE) continue;
 				if (requirements.requiredFeatures.alphaToOne == VK_TRUE)
-					if (devFeatures.alphaToOne == VK_FALSE) continue;
+					if (devFeatures.features.alphaToOne == VK_FALSE) continue;
 				if (requirements.requiredFeatures.multiViewport == VK_TRUE)
-					if (devFeatures.multiViewport == VK_FALSE) continue;
+					if (devFeatures.features.multiViewport == VK_FALSE) continue;
 				if (requirements.requiredFeatures.samplerAnisotropy == VK_TRUE)
-					if (devFeatures.samplerAnisotropy == VK_FALSE) continue;
+					if (devFeatures.features.samplerAnisotropy == VK_FALSE) continue;
 				if (requirements.requiredFeatures.textureCompressionETC2 == VK_TRUE)
-					if (devFeatures.textureCompressionETC2 == VK_FALSE) continue;
+					if (devFeatures.features.textureCompressionETC2 == VK_FALSE) continue;
 				if (requirements.requiredFeatures.textureCompressionASTC_LDR == VK_TRUE)
-					if (devFeatures.textureCompressionASTC_LDR == VK_FALSE) continue;
+					if (devFeatures.features.textureCompressionASTC_LDR == VK_FALSE) continue;
 				if (requirements.requiredFeatures.textureCompressionBC == VK_TRUE)
-					if (devFeatures.textureCompressionBC == VK_FALSE) continue;
+					if (devFeatures.features.textureCompressionBC == VK_FALSE) continue;
 				if (requirements.requiredFeatures.occlusionQueryPrecise == VK_TRUE)
-					if (devFeatures.occlusionQueryPrecise == VK_FALSE) continue;
+					if (devFeatures.features.occlusionQueryPrecise == VK_FALSE) continue;
 				if (requirements.requiredFeatures.pipelineStatisticsQuery == VK_TRUE)
-					if (devFeatures.pipelineStatisticsQuery == VK_FALSE) continue;
+					if (devFeatures.features.pipelineStatisticsQuery == VK_FALSE) continue;
 				if (requirements.requiredFeatures.vertexPipelineStoresAndAtomics == VK_TRUE)
-					if (devFeatures.vertexPipelineStoresAndAtomics == VK_FALSE) continue;
+					if (devFeatures.features.vertexPipelineStoresAndAtomics == VK_FALSE) continue;
 				if (requirements.requiredFeatures.fragmentStoresAndAtomics == VK_TRUE)
-					if (devFeatures.fragmentStoresAndAtomics == VK_FALSE) continue;
+					if (devFeatures.features.fragmentStoresAndAtomics == VK_FALSE) continue;
 				if (requirements.requiredFeatures.shaderTessellationAndGeometryPointSize == VK_TRUE)
-					if (devFeatures.shaderTessellationAndGeometryPointSize == VK_FALSE) continue;
+					if (devFeatures.features.shaderTessellationAndGeometryPointSize == VK_FALSE) continue;
 				if (requirements.requiredFeatures.shaderImageGatherExtended == VK_TRUE)
-					if (devFeatures.shaderImageGatherExtended == VK_FALSE) continue;
+					if (devFeatures.features.shaderImageGatherExtended == VK_FALSE) continue;
 				if (requirements.requiredFeatures.shaderStorageImageExtendedFormats == VK_TRUE)
-					if (devFeatures.shaderStorageImageExtendedFormats == VK_FALSE) continue;
+					if (devFeatures.features.shaderStorageImageExtendedFormats == VK_FALSE) continue;
 				if (requirements.requiredFeatures.shaderStorageImageMultisample == VK_TRUE)
-					if (devFeatures.shaderStorageImageMultisample == VK_FALSE) continue;
+					if (devFeatures.features.shaderStorageImageMultisample == VK_FALSE) continue;
 				if (requirements.requiredFeatures.shaderStorageImageReadWithoutFormat == VK_TRUE)
-					if (devFeatures.shaderStorageImageReadWithoutFormat == VK_FALSE) continue;
+					if (devFeatures.features.shaderStorageImageReadWithoutFormat == VK_FALSE) continue;
 				if (requirements.requiredFeatures.shaderStorageImageWriteWithoutFormat == VK_TRUE)
-					if (devFeatures.shaderStorageImageWriteWithoutFormat == VK_FALSE) continue;
+					if (devFeatures.features.shaderStorageImageWriteWithoutFormat == VK_FALSE) continue;
 				if (requirements.requiredFeatures.shaderUniformBufferArrayDynamicIndexing == VK_TRUE)
-					if (devFeatures.shaderUniformBufferArrayDynamicIndexing == VK_FALSE) continue;
+					if (devFeatures.features.shaderUniformBufferArrayDynamicIndexing == VK_FALSE) continue;
 				if (requirements.requiredFeatures.shaderSampledImageArrayDynamicIndexing == VK_TRUE)
-					if (devFeatures.shaderSampledImageArrayDynamicIndexing == VK_FALSE) continue;
+					if (devFeatures.features.shaderSampledImageArrayDynamicIndexing == VK_FALSE) continue;
 				if (requirements.requiredFeatures.shaderStorageBufferArrayDynamicIndexing == VK_TRUE)
-					if (devFeatures.shaderStorageBufferArrayDynamicIndexing == VK_FALSE) continue;
+					if (devFeatures.features.shaderStorageBufferArrayDynamicIndexing == VK_FALSE) continue;
 				if (requirements.requiredFeatures.shaderStorageImageArrayDynamicIndexing == VK_TRUE)
-					if (devFeatures.shaderStorageImageArrayDynamicIndexing == VK_FALSE) continue;
+					if (devFeatures.features.shaderStorageImageArrayDynamicIndexing == VK_FALSE) continue;
 				if (requirements.requiredFeatures.shaderClipDistance == VK_TRUE)
-					if (devFeatures.shaderClipDistance == VK_FALSE) continue;
+					if (devFeatures.features.shaderClipDistance == VK_FALSE) continue;
 				if (requirements.requiredFeatures.shaderCullDistance == VK_TRUE)
-					if (devFeatures.shaderCullDistance == VK_FALSE) continue;
+					if (devFeatures.features.shaderCullDistance == VK_FALSE) continue;
 				if (requirements.requiredFeatures.shaderFloat64 == VK_TRUE)
-					if (devFeatures.shaderFloat64 == VK_FALSE) continue;
+					if (devFeatures.features.shaderFloat64 == VK_FALSE) continue;
 				if (requirements.requiredFeatures.shaderInt64 == VK_TRUE)
-					if (devFeatures.shaderInt64 == VK_FALSE) continue;
+					if (devFeatures.features.shaderInt64 == VK_FALSE) continue;
 				if (requirements.requiredFeatures.shaderInt16 == VK_TRUE)
-					if (devFeatures.shaderInt16 == VK_FALSE) continue;
+					if (devFeatures.features.shaderInt16 == VK_FALSE) continue;
 				if (requirements.requiredFeatures.shaderResourceResidency == VK_TRUE)
-					if (devFeatures.shaderResourceResidency == VK_FALSE) continue;
+					if (devFeatures.features.shaderResourceResidency == VK_FALSE) continue;
 				if (requirements.requiredFeatures.shaderResourceMinLod == VK_TRUE)
-					if (devFeatures.shaderResourceMinLod == VK_FALSE) continue;
+					if (devFeatures.features.shaderResourceMinLod == VK_FALSE) continue;
 				if (requirements.requiredFeatures.sparseBinding == VK_TRUE)
-					if (devFeatures.sparseBinding == VK_FALSE) continue;
+					if (devFeatures.features.sparseBinding == VK_FALSE) continue;
 				if (requirements.requiredFeatures.sparseResidencyBuffer == VK_TRUE)
-					if (devFeatures.sparseResidencyBuffer == VK_FALSE) continue;
+					if (devFeatures.features.sparseResidencyBuffer == VK_FALSE) continue;
 				if (requirements.requiredFeatures.sparseResidencyImage2D == VK_TRUE)
-					if (devFeatures.sparseResidencyImage2D == VK_FALSE) continue;
+					if (devFeatures.features.sparseResidencyImage2D == VK_FALSE) continue;
 				if (requirements.requiredFeatures.sparseResidencyImage3D == VK_TRUE)
-					if (devFeatures.sparseResidencyImage3D == VK_FALSE) continue;
+					if (devFeatures.features.sparseResidencyImage3D == VK_FALSE) continue;
 				if (requirements.requiredFeatures.sparseResidency2Samples == VK_TRUE)
-					if (devFeatures.sparseResidency2Samples == VK_FALSE) continue;
+					if (devFeatures.features.sparseResidency2Samples == VK_FALSE) continue;
 				if (requirements.requiredFeatures.sparseResidency4Samples == VK_TRUE)
-					if (devFeatures.sparseResidency4Samples == VK_FALSE) continue;
+					if (devFeatures.features.sparseResidency4Samples == VK_FALSE) continue;
 				if (requirements.requiredFeatures.sparseResidency8Samples == VK_TRUE)
-					if (devFeatures.sparseResidency8Samples == VK_FALSE) continue;
+					if (devFeatures.features.sparseResidency8Samples == VK_FALSE) continue;
 				if (requirements.requiredFeatures.sparseResidency16Samples == VK_TRUE)
-					if (devFeatures.sparseResidency16Samples == VK_FALSE) continue;
+					if (devFeatures.features.sparseResidency16Samples == VK_FALSE) continue;
 				if (requirements.requiredFeatures.sparseResidencyAliased == VK_TRUE)
-					if (devFeatures.sparseResidencyAliased == VK_FALSE) continue;
+					if (devFeatures.features.sparseResidencyAliased == VK_FALSE) continue;
 				if (requirements.requiredFeatures.variableMultisampleRate == VK_TRUE)
-					if (devFeatures.variableMultisampleRate == VK_FALSE) continue;
+					if (devFeatures.features.variableMultisampleRate == VK_FALSE) continue;
 				if (requirements.requiredFeatures.inheritedQueries == VK_TRUE)
-					if (devFeatures.inheritedQueries == VK_FALSE) continue;
+					if (devFeatures.features.inheritedQueries == VK_FALSE) continue;
+				
+				if (requirements.memoryPriorityFeature == VK_TRUE)
+					if (memoryPriorityFeatures.memoryPriority == VK_FALSE) continue;
 			}
 
 			bool formatsSupported = true;
@@ -295,10 +302,19 @@ namespace engine {
 			});
 		}
 
+		/* set enabled features */
+		VkPhysicalDeviceMemoryPriorityFeaturesEXT memoryPriorityFeaturesToEnable{};
+		memoryPriorityFeaturesToEnable.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PRIORITY_FEATURES_EXT;
+		memoryPriorityFeaturesToEnable.memoryPriority = requirements.memoryPriorityFeature;
+		VkPhysicalDeviceFeatures2 featuresToEnable{};
+		featuresToEnable.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+		featuresToEnable.pNext = &memoryPriorityFeaturesToEnable;
+		featuresToEnable.features = requirements.requiredFeatures;
+
 		/* create device now */
 		VkDeviceCreateInfo deviceCreateInfo{
 			.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-			.pNext = nullptr,
+			.pNext = &featuresToEnable,
 			.flags = 0,
 			.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size()),
 			.pQueueCreateInfos = queueCreateInfos.data(),
@@ -306,7 +322,7 @@ namespace engine {
 			.ppEnabledLayerNames = nullptr, // deprecated and ignored
 			.enabledExtensionCount = static_cast<uint32_t>(requirements.requiredExtensions.size()),
 			.ppEnabledExtensionNames = requirements.requiredExtensions.data(),
-			.pEnabledFeatures = &requirements.requiredFeatures
+			.pEnabledFeatures = nullptr,
 		};
 
 		res = vkCreateDevice(d.physicalDevice, &deviceCreateInfo, nullptr, &d.device);

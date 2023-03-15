@@ -44,7 +44,7 @@ namespace engine {
 		};
 
 		VmaAllocatorCreateInfo createInfo{
-			.flags = 0,
+			.flags = VMA_ALLOCATOR_CREATE_EXT_MEMORY_PRIORITY_BIT,
 			.physicalDevice = physicalDevice,
 			.device = device,
 			.preferredLargeHeapBlockSize = 0,

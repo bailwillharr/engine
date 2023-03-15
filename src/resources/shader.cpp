@@ -45,6 +45,7 @@ namespace engine::resources {
 		info.alphaBlending = alphaBlending;
 		info.backfaceCulling = cullBackFace;
 		info.descriptorSetLayouts.push_back(renderData->setZeroLayout);
+		info.descriptorSetLayouts.push_back(renderData->setOneLayout);
 
 		m_pipeline = m_gfx->createPipeline(info);
 

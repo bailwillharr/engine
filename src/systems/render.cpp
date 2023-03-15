@@ -42,43 +42,69 @@ namespace engine {
 			uint32_t w, h;
 			m_gfx->getViewportSize(&w, &h);
 			m_viewportAspectRatio = (float)w / (float)h;
+			const float verticalFovRadians = glm::radians(m_camera.verticalFovDegrees);
+			const glm::mat4 projMatrix = glm::perspectiveZO(verticalFovRadians, m_viewportAspectRatio, m_camera.clipNear, m_camera.clipFar);
+			/* update SET 0 */
+			RenderData::SetZeroBuffer setZeroBuffer{
+				.proj = projMatrix
+			};
+			m_gfx->writeDescriptorBuffer(renderData.setZeroBuffer, 0, sizeof(RenderData::SetZeroBuffer), &setZeroBuffer);
 		}
-		const float verticalFovRadians = glm::radians(m_camera.verticalFovDegrees);
-		const glm::mat4 projMatrix = glm::perspectiveZO(verticalFovRadians, m_viewportAspectRatio, m_camera.clipNear, m_camera.clipFar);
 
-		/* update SET 0 */
-		RenderData::SetZeroBuffer uniform{
-			.view = viewMatrix,
-			.proj = projMatrix
+		RenderData::SetOneBuffer setOneBuffer{
+			.view = viewMatrix
 		};
-		m_gfx->writeDescriptorBuffer(renderData.setZeroBuffer, 0, sizeof(RenderData::SetZeroBuffer), &uniform);
+		//m_gfx->writeDescriptorBuffer(renderData.setOneBuffer, 0, sizeof(RenderData::SetOneBuffer), &setOneBuffer);
 
 		/* render all renderable entities */
+
+		struct PushConstants {
+			glm::mat4 model;
+		};
+
+		struct DrawCallData {
+			const gfx::Buffer* vb;
+			const gfx::Buffer* ib;
+			uint32_t indexCount;
+			PushConstants pushConsts;
+		};
+		std::unordered_map <const gfx::Pipeline*, std::vector<DrawCallData>> pipelineDrawCalls{};
 
 		for (uint32_t entity : m_entities) {
 
 			auto r = m_scene->getComponent<RenderableComponent>(entity);
+			assert(r != nullptr);
+			assert(r->material != nullptr);
+			assert(r->mesh != nullptr);
 			if (r->shown == false) continue;
 
 			auto t = m_scene->getComponent<TransformComponent>(entity);
+			assert(t != nullptr);
 
-			assert(r->material != nullptr);
-			assert(r->mesh != nullptr);
-			//assert(r->material->m_texture != nullptr);
+			const gfx::Pipeline* pipeline = r->material->getShader()->getPipeline();
+			DrawCallData data{};
+			data.vb = r->mesh->getVB();
+			data.ib = r->mesh->getIB();
+			data.indexCount = r->mesh->getCount();
+			data.pushConsts.model = t->worldMatrix;
 
-			struct {
-				glm::mat4 model;
-			} pushConsts{};
+			pipelineDrawCalls[pipeline].push_back(data);
 
-			pushConsts.model = t->worldMatrix;
+		}
 
-			m_gfx->cmdBindPipeline(renderData.drawBuffer, r->material->getShader()->getPipeline());
-			m_gfx->cmdBindDescriptorSet(renderData.drawBuffer, r->material->getShader()->getPipeline(), renderData.setZero, 0);
-			m_gfx->cmdPushConstants(renderData.drawBuffer, r->material->getShader()->getPipeline(), 0, sizeof(pushConsts), &pushConsts);
-			m_gfx->cmdBindVertexBuffer(renderData.drawBuffer, 0, r->mesh->getVB());
-			m_gfx->cmdBindIndexBuffer(renderData.drawBuffer, r->mesh->getIB());
-			m_gfx->cmdDrawIndexed(renderData.drawBuffer, r->mesh->getCount(), 1, 0, 0, 0);
+		/* these descriptor set bindings should persist across pipeline changes */
+		const gfx::Pipeline* firstPipeline = pipelineDrawCalls.begin()->first;
+		m_gfx->cmdBindDescriptorSet(renderData.drawBuffer, firstPipeline, renderData.setZero, 0);
+		m_gfx->cmdBindDescriptorSet(renderData.drawBuffer, firstPipeline, renderData.setOne, 1);
 
+		for (const auto& [pipeline, drawCalls] : pipelineDrawCalls) {
+			m_gfx->cmdBindPipeline(renderData.drawBuffer, pipeline);
+			for (const auto& drawCall : drawCalls) {
+				m_gfx->cmdPushConstants(renderData.drawBuffer, pipeline, 0, sizeof(PushConstants), &drawCall.pushConsts);
+				m_gfx->cmdBindVertexBuffer(renderData.drawBuffer, 0, drawCall.vb);
+				m_gfx->cmdBindIndexBuffer(renderData.drawBuffer, drawCall.ib);
+				m_gfx->cmdDrawIndexed(renderData.drawBuffer, drawCall.indexCount, 1, 0, 0, 0);
+			}
 		}
 
 	}

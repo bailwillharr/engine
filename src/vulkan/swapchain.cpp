@@ -286,7 +286,7 @@ namespace engine {
 			VmaAllocationCreateInfo depthAllocInfo{};
 			depthAllocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
 			depthAllocInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
-			depthAllocInfo.priority = 1.0f;
+			depthAllocInfo.priority = 0.9f;
 
 			res = vmaCreateImage(sc->allocator, &depthImageInfo, &depthAllocInfo, &depthImage, &depthAllocation, nullptr);
 			if (res != VK_SUCCESS) throw std::runtime_error("Failed to create depth buffer image! Code: " + std::to_string(res));

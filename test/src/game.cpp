@@ -99,7 +99,7 @@ void playGame(GameSettings settings)
 	);
 
 	/* skybox */
-	{
+	if (0) {
 		uint32_t skybox = myScene->createEntity("skybox");
 		auto skyboxRenderable = myScene->addComponent<engine::RenderableComponent>(skybox);
 		skyboxRenderable->material = std::make_unique<engine::resources::Material>(app.getResource<engine::resources::Shader>("builtin.skybox"));
@@ -116,6 +116,9 @@ void playGame(GameSettings settings)
 		auto cubeRenderable = myScene->addComponent<engine::RenderableComponent>(cube);
 		cubeRenderable->material = std::make_shared<engine::resources::Material>(app.getResource<engine::resources::Shader>("builtin.standard"));
 		cubeRenderable->mesh = genCuboidMesh(app.gfx(), 1.0f, 1.0f, 1.0f, 1);
+		auto cubeCollider = myScene->addComponent<engine::ColliderComponent>(cube);
+		cubeCollider->isStatic = true;
+		cubeCollider->aabb = { { 0.0f, 0.0f, 0.0f }, { 1.0f, 1.0f, 1.0f } };
 	}
 
 	/* floor */

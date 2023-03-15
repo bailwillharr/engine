@@ -75,14 +75,22 @@ namespace engine {
 
 		// initialise the render data
 		renderData.gfxdev = std::make_unique<GFXDevice>(appName, appVersion, m_window->getHandle(), graphicsSettings);
+		
 		renderData.setZeroLayout = gfx()->createDescriptorSetLayout();
 		renderData.setZero = gfx()->allocateDescriptorSet(renderData.setZeroLayout);
-		RenderData::SetZeroBuffer initialData{
-			.view = glm::mat4{1.0f},
+		RenderData::SetZeroBuffer initialSetZeroData{
 			.proj = glm::perspectiveZO(glm::radians(70.0f), 1024.0f / 768.0f, 0.1f, 1000.0f),
 		};
-		renderData.setZeroBuffer = gfx()->createDescriptorBuffer(sizeof(RenderData::SetZeroBuffer), &initialData);
+		renderData.setZeroBuffer = gfx()->createDescriptorBuffer(sizeof(RenderData::SetZeroBuffer), &initialSetZeroData);
 		gfx()->updateDescriptor(renderData.setZero, 0, renderData.setZeroBuffer, 0, sizeof(RenderData::SetZeroBuffer));
+
+		renderData.setOneLayout = gfx()->createDescriptorSetLayout();
+		renderData.setOne = gfx()->allocateDescriptorSet(renderData.setOneLayout);
+		RenderData::SetOneBuffer initialSetOneData{
+			.view = glm::mat4{ 1.0f },
+		};
+		renderData.setOneBuffer = gfx()->createDescriptorBuffer(sizeof(RenderData::SetOneBuffer), &initialSetOneData);
+		gfx()->updateDescriptor(renderData.setOne, 0, renderData.setOneBuffer, 0, sizeof(RenderData::SetOneBuffer));
 
 		// default resources
 		{
@@ -99,7 +107,7 @@ namespace engine {
 			);
 			getResourceManager<resources::Shader>()->addPersistent("builtin.standard", std::move(texturedShader));
 		}
-		{
+		if (0) {
 			resources::Shader::VertexParams vertParams{};
 			vertParams.hasNormal = true;
 			vertParams.hasUV0 = true;
@@ -127,6 +135,8 @@ namespace engine {
 
 	Application::~Application()
 	{
+		gfx()->destroyDescriptorBuffer(renderData.setOneBuffer);
+		gfx()->destroyDescriptorSetLayout(renderData.setOneLayout);
 		gfx()->destroyDescriptorBuffer(renderData.setZeroBuffer);
 		gfx()->destroyDescriptorSetLayout(renderData.setZeroLayout);
 	}

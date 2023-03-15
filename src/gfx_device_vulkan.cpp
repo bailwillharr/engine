@@ -1,5 +1,14 @@
 // The implementation of the graphics layer using Vulkan 1.3.
 
+/* IMPORTANT INFORMATION
+ * 
+ * When allocating memory with  VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT, always set a memory priority.
+ * This feature uses the device extension VK_EXT_memory_priority. Depth buffers have a priority of 0.9f.
+ * Other, non-essential allocations will have a priority of 0.5f.
+ * 
+ * 
+ */
+
 #include <assert.h>
 #include <unordered_set>
 #include <array>
@@ -84,6 +93,7 @@ namespace engine {
 		FrameData frameData{};
 		uint32_t currentFrameIndex = 0; // corresponds to the frameData
 		uint32_t imageIndex = 0; // for swapchain present
+		std::vector<VkSemaphore> copySemaphores{};
 	};
 
 	struct gfx::DescriptorSetLayout {
@@ -97,6 +107,7 @@ namespace engine {
 	struct gfx::DescriptorBuffer {
 		gfx::Buffer stagingBuffer{};
 		std::array<gfx::Buffer, FRAMES_IN_FLIGHT> gpuBuffers;
+		std::array<VkSemaphore, FRAMES_IN_FLIGHT> copySemaphores;
 	};
 
 	// enum converters
@@ -266,58 +277,6 @@ namespace engine {
 	{
 		vkDestroyImageView(device, target.colorImageView, nullptr);
 		vmaDestroyImage(allocator, target.colorImage, target.colorImageAllocation);
-	}
-
-	static DepthBuffer createDepthBuffer(VkDevice device, VmaAllocator allocator, VkExtent2D extent, VkSampleCountFlagBits msaaSamples)
-	{
-		DepthBuffer db{};
-
-		[[maybe_unused]] VkResult res;
-
-		VkImageCreateInfo imageInfo{};
-		imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-		imageInfo.imageType = VK_IMAGE_TYPE_2D;
-		imageInfo.extent.width = extent.width;
-		imageInfo.extent.height = extent.height;
-		imageInfo.extent.depth = 1;
-		imageInfo.mipLevels = 1;
-		imageInfo.arrayLayers = 1;
-		imageInfo.format = VK_FORMAT_D32_SFLOAT;
-		imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-		imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		imageInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-		imageInfo.samples = msaaSamples;
-		imageInfo.flags = 0;
-
-		VmaAllocationCreateInfo allocInfo{};
-		allocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
-		allocInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
-		allocInfo.priority = 1.0f;
-
-		res = vmaCreateImage(allocator, &imageInfo, &allocInfo, &db.image, &db.allocation, nullptr);
-		assert(res == VK_SUCCESS);
-
-		VkImageViewCreateInfo imageViewInfo{};
-		imageViewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		imageViewInfo.image = db.image;
-		imageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		imageViewInfo.format = VK_FORMAT_D32_SFLOAT;
-		imageViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-		imageViewInfo.subresourceRange.baseMipLevel = 0;
-		imageViewInfo.subresourceRange.levelCount = 1;
-		imageViewInfo.subresourceRange.baseArrayLayer = 0;
-		imageViewInfo.subresourceRange.layerCount = 1;
-		res = vkCreateImageView(device, &imageViewInfo, nullptr, &db.view);
-		assert(res == VK_SUCCESS);
-
-		return db;
-	}
-
-	static void destroyDepthBuffer(DepthBuffer db, VkDevice device, VmaAllocator allocator)
-	{
-		vkDestroyImageView(device, db.view, nullptr);
-		vmaDestroyImage(allocator, db.image, db.allocation);
 	}
 
 	static VkSampleCountFlagBits getMaxSampleCount(VkPhysicalDevice physicalDevice, gfx::MSAALevel maxLevel)
@@ -601,9 +560,10 @@ namespace engine {
 		};
 
 		DeviceRequirements deviceRequirements{};
-		deviceRequirements.requiredExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+		deviceRequirements.requiredExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME };
 		deviceRequirements.requiredFeatures.samplerAnisotropy = VK_TRUE;
 		deviceRequirements.requiredFeatures.fillModeNonSolid = VK_TRUE;
+		deviceRequirements.memoryPriorityFeature = VK_TRUE;
 		deviceRequirements.formats.push_back(
 			FormatRequirements{
 				.format = VK_FORMAT_R8G8B8A8_SRGB,
@@ -770,6 +730,8 @@ namespace engine {
 	{
 		VkResult res;
 
+		gfx::DrawBuffer* drawBuffer = new gfx::DrawBuffer;
+
 		const uint32_t currentFrameIndex = pimpl->FRAMECOUNT % FRAMES_IN_FLIGHT;
 		const FrameData frameData = pimpl->frameData[currentFrameIndex];
 
@@ -779,13 +741,80 @@ namespace engine {
 		res = vkResetFences(pimpl->device.device, 1, &frameData.renderFence);
 		VKCHECK(res);
 
+		if (pimpl->device.queues.transferQueues.size() < 2) throw std::runtime_error("Need at least 2 transfer queues!");
+
 		/* first empty the descriptor buffer write queue */
 		auto& writeQueue = pimpl->descriptorBufferWriteQueues[currentFrameIndex];
 		//if (writeQueue.empty() == false) vkQueueWaitIdle(pimpl->device.queues.drawQueues[0]);
 		for (gfx::DescriptorBuffer* buffer : writeQueue) {
-			copyBuffer(pimpl->device.device, pimpl->transferCommandPool, pimpl->device.queues.transferQueues[0], buffer->stagingBuffer.buffer, buffer->gpuBuffers[currentFrameIndex].buffer, buffer->stagingBuffer.size);
+			
+			// record the command buffer
+			VkCommandBufferAllocateInfo allocInfo{};
+			allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+			allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+			allocInfo.commandPool = pimpl->transferCommandPool;
+			allocInfo.commandBufferCount = 1;
+
+			VkCommandBuffer commandBuffer;
+			res = vkAllocateCommandBuffers(pimpl->device.device, &allocInfo, &commandBuffer);
+			assert(res == VK_SUCCESS);
+
+			VkCommandBufferBeginInfo beginInfo{};
+			beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+			beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+			res = vkBeginCommandBuffer(commandBuffer, &beginInfo);
+			assert(res == VK_SUCCESS);
+
+			VkBufferCopy copyRegion{};
+			copyRegion.srcOffset = 0;
+			copyRegion.dstOffset = 0;
+			copyRegion.size = buffer->stagingBuffer.size;
+			vkCmdCopyBuffer(commandBuffer, buffer->stagingBuffer.buffer, buffer->gpuBuffers[currentFrameIndex].buffer, 1, &copyRegion);
+
+			/* barrier to perform ownership transfer from transferQueue to drawQueue */
+			VkBufferMemoryBarrier bufferMemoryBarrier{};
+			bufferMemoryBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+			bufferMemoryBarrier.pNext = nullptr;
+			bufferMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+			bufferMemoryBarrier.dstAccessMask = 0;
+			bufferMemoryBarrier.srcQueueFamilyIndex = pimpl->device.queues.transferQueueFamily;
+			bufferMemoryBarrier.dstQueueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily;
+			bufferMemoryBarrier.buffer = buffer->gpuBuffers[currentFrameIndex].buffer;
+			bufferMemoryBarrier.offset = 0;
+			bufferMemoryBarrier.size = buffer->stagingBuffer.size;
+
+			vkCmdPipelineBarrier(
+				commandBuffer,
+				VK_PIPELINE_STAGE_TRANSFER_BIT, // srcStageMask
+				VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, // dstStageMask
+				0,
+				0,
+				nullptr,
+				1,
+				&bufferMemoryBarrier,
+				0,
+				nullptr
+			);
+
+			res = vkEndCommandBuffer(commandBuffer);
+			assert(res == VK_SUCCESS);
+
+			// submit
+			VkSubmitInfo submitInfo{};
+			submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+			submitInfo.commandBufferCount = 1;
+			submitInfo.pCommandBuffers = &commandBuffer;
+			submitInfo.signalSemaphoreCount = 1;
+			submitInfo.pSignalSemaphores = &buffer->copySemaphores[currentFrameIndex];
+			submitInfo.waitSemaphoreCount = 1;
+			submitInfo.pWaitSemaphores = &frameData.renderSemaphore;
+
+			res = vkQueueSubmit(pimpl->device.queues.transferQueues[1], 1, &submitInfo, VK_NULL_HANDLE);
+			assert(res == VK_SUCCESS);
+
+			drawBuffer->copySemaphores.push_back(buffer->copySemaphores[currentFrameIndex]);
+
 		}
-		writeQueue.clear();
 
 		uint32_t swapchainImageIndex;
 
@@ -818,6 +847,34 @@ namespace engine {
 		VKCHECK(res);
 
 		{ // RECORDING
+
+			for (gfx::DescriptorBuffer* buffer : writeQueue) {
+				/* barrier to perform ownership transfer from transferQueue to drawQueue (ACQUIRE) */
+				VkBufferMemoryBarrier bufferMemoryBarrier{};
+				bufferMemoryBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+				bufferMemoryBarrier.pNext = nullptr;
+				bufferMemoryBarrier.srcAccessMask = 0;
+				bufferMemoryBarrier.dstAccessMask = VK_ACCESS_UNIFORM_READ_BIT;
+				bufferMemoryBarrier.srcQueueFamilyIndex = pimpl->device.queues.transferQueueFamily;
+				bufferMemoryBarrier.dstQueueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily;
+				bufferMemoryBarrier.buffer = buffer->gpuBuffers[currentFrameIndex].buffer;
+				bufferMemoryBarrier.offset = 0;
+				bufferMemoryBarrier.size = buffer->stagingBuffer.size;
+
+				vkCmdPipelineBarrier(
+					frameData.drawBuf,
+					VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, // srcStageMask
+					VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, // dstStageMask
+					0,
+					0,
+					nullptr,
+					1,
+					&bufferMemoryBarrier,
+					0,
+					nullptr
+				);
+			}
+			writeQueue.clear();
 
 			std::array<VkClearValue, 2> clearValues{}; // Using same value for all components enables compression according to NVIDIA Best Practices
 			clearValues[0].color.float32[0] = 1.0f;
@@ -854,7 +911,6 @@ namespace engine {
 		}
 
 		// hand command buffer over to caller
-		gfx::DrawBuffer* drawBuffer = new gfx::DrawBuffer;
 		drawBuffer->frameData = frameData;
 		drawBuffer->currentFrameIndex = currentFrameIndex;
 		drawBuffer->imageIndex = swapchainImageIndex;
@@ -877,14 +933,20 @@ namespace engine {
 
 		// SUBMIT
 
-		VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		std::vector<VkPipelineStageFlags> waitDstStageMasks{};
+		for (size_t i = 0; i < drawBuffer->copySemaphores.size(); i++) {
+			waitDstStageMasks.push_back(VK_PIPELINE_STAGE_VERTEX_SHADER_BIT);
+		}
+
+		drawBuffer->copySemaphores.push_back(drawBuffer->frameData.presentSemaphore);
+		waitDstStageMasks.push_back(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
 
 		VkSubmitInfo submitInfo{
 			.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
 			.pNext = nullptr,
-			.waitSemaphoreCount = 1,
-			.pWaitSemaphores = &drawBuffer->frameData.presentSemaphore,
-			.pWaitDstStageMask = &waitStage,
+			.waitSemaphoreCount = (uint32_t)drawBuffer->copySemaphores.size(),
+			.pWaitSemaphores = drawBuffer->copySemaphores.data(),
+			.pWaitDstStageMask = waitDstStageMasks.data(),
 			.commandBufferCount = 1,
 			.pCommandBuffers = &drawBuffer->frameData.drawBuf,
 			.signalSemaphoreCount = 1,
@@ -1280,6 +1342,12 @@ namespace engine {
 		/* create the device-local set of buffers */
 		for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
 
+			VkSemaphoreCreateInfo semInfo{};
+			semInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+			semInfo.pNext = nullptr;
+			semInfo.flags = 0;
+			VKCHECK(vkCreateSemaphore(pimpl->device.device, &semInfo, nullptr, &out->copySemaphores[i]));
+
 			out->gpuBuffers[i].size = out->stagingBuffer.size;
 			out->gpuBuffers[i].type = gfx::BufferType::UNIFORM;
 			out->gpuBuffers[i].hostVisible = false;
@@ -1309,6 +1377,7 @@ namespace engine {
 	{
 		for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
 			vmaDestroyBuffer(pimpl->allocator, descriptorBuffer->gpuBuffers[i].buffer, descriptorBuffer->gpuBuffers[i].allocation);
+			vkDestroySemaphore(pimpl->device.device, descriptorBuffer->copySemaphores[i], nullptr);
 		}
 
 		vmaDestroyBuffer(pimpl->allocator, descriptorBuffer->stagingBuffer.buffer, descriptorBuffer->stagingBuffer.allocation);

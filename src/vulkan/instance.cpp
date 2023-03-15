@@ -47,7 +47,9 @@ namespace engine {
 			}
 		}
 
-		throw std::runtime_error("Unable to find validation layer!");
+		LOG_WARN("Unable to find validation layer!");
+
+		return nullptr;
 
 	}
 
@@ -144,27 +146,26 @@ namespace engine {
 
 		const std::vector<const char*> windowExtensions = getWindowExtensions(window);
 		std::vector<const char*> instanceExtensionsToUse = windowExtensions;
-		if (useValidation) instanceExtensionsToUse.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 
 		const char* validationLayer = nullptr;
 		if (useValidation) {
 			validationLayer = getValidationLayer();
 		}
 
+		if (validationLayer) instanceExtensionsToUse.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+
 		VkDebugUtilsMessengerCreateInfoEXT debugMessengerInfo = getDebugMessengerCreateInfo(validationLevel);
 
 		VkInstanceCreateInfo instanceInfo{};
 		instanceInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-		instanceInfo.pNext = &debugMessengerInfo;
+		if (validationLayer) {
+			instanceInfo.pNext = &debugMessengerInfo;
+		}
 		instanceInfo.flags = 0;
 		instanceInfo.pApplicationInfo = &applicationInfo;
 		if (validationLayer) {
 			instanceInfo.enabledLayerCount = 1;
 			instanceInfo.ppEnabledLayerNames = &validationLayer;
-		}
-		else {
-			instanceInfo.enabledLayerCount = 0;
-			instanceInfo.ppEnabledLayerNames = nullptr;
 		}
 		instanceInfo.enabledExtensionCount = (uint32_t)instanceExtensionsToUse.size();
 		instanceInfo.ppEnabledExtensionNames = instanceExtensionsToUse.data();

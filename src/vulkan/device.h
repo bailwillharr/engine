@@ -14,6 +14,7 @@ namespace engine {
 	struct DeviceRequirements {
 		std::vector<const char*> requiredExtensions;
 		VkPhysicalDeviceFeatures requiredFeatures;
+		VkBool32 memoryPriorityFeature;
 		std::vector<FormatRequirements> formats{};
 	};
 
