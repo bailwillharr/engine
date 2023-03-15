@@ -38,7 +38,7 @@ namespace engine {
 		const float NZdistance = glm::abs(subjectCentre.z - object.pos1.z);
 		const std::array<float, 6> distances { PXdistance, NXdistance, PYdistance, NYdistance, PZdistance, NZdistance };
 		const auto minDistance = std::min_element(distances.begin(), distances.end());
-		const int index = minDistance - distances.begin();
+		const int index = static_cast<int>(minDistance - distances.begin());
 		switch (index) {
 			case 0:
 				// P_X
@@ -97,7 +97,7 @@ namespace engine {
 
 			const glm::vec3 globalPosition = t->worldMatrix[3];
 			const AABB localBoundingBox = c->aabb;
-			AABB globalBoundingBox;
+			AABB globalBoundingBox{};
 			globalBoundingBox.pos1 = globalPosition + localBoundingBox.pos1;
 			globalBoundingBox.pos2 = globalPosition + localBoundingBox.pos2;
 
@@ -117,8 +117,8 @@ namespace engine {
 
 		// Check every static collider against every dynamic collider, and every dynamic collider against every other one
 		// This technique is inefficient for many entities.
-		for (auto [staticEntity, staticAABB, staticTrigger] : m_staticAABBs) {
-			for (auto [dynamicEntity, dynamicAABB, dynamicTrigger] : m_dynamicAABBs) {
+		for (const auto& [staticEntity, staticAABB, staticTrigger] : m_staticAABBs) {
+			for (const auto& [dynamicEntity, dynamicAABB, dynamicTrigger] : m_dynamicAABBs) {
 				if (checkCollisionFast(staticAABB, dynamicAABB)) {
 					if (staticTrigger || dynamicTrigger) { // only check collisions involved with triggers
 						m_possibleCollisions.emplace_back(
@@ -131,7 +131,7 @@ namespace engine {
 		}
 
 		// get collision details and submit events
-		for (auto possibleCollision : m_possibleCollisions) {
+		for (const auto& possibleCollision : m_possibleCollisions) {
 			if (possibleCollision.staticTrigger) {
 				CollisionEvent info{};
 				info.isCollisionEnter = true;
@@ -156,7 +156,7 @@ namespace engine {
 			}
 		}
 
-		for (auto [entity, info] : m_collisionInfos) {
+		for (const auto& [entity, info] : m_collisionInfos) {
 			m_scene->events()->queueEvent<CollisionEvent>(EventSubscriberKind::ENTITY, entity, info);
 		}
 	}

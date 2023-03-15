@@ -161,6 +161,10 @@ void CameraControllerSystem::onUpdate(float ts)
 		m_scene->app()->window()->toggleFullscreen();
 	}
 
+	if (m_scene->app()->inputManager()->getButtonPress("exit")) {
+		m_scene->app()->window()->setCloseFlag();
+	}
+
 	c->justCollided = false;
 
 }

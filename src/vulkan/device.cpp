@@ -20,8 +20,8 @@ namespace engine {
 		return supportsPresent;
 	}
 
-	/* chooses a device, creates it, gets its function pointers, and creates command pools */
-	Device createDevice(VkInstance instance, DeviceRequirements requirements, VkSurfaceKHR surface)
+	/* chooses a device, creates it, gets its function pointers, and retrieves queues */
+	Device createDevice(VkInstance instance, const DeviceRequirements& requirements, VkSurfaceKHR surface)
 	{
 		Device d{};
 
@@ -187,14 +187,21 @@ namespace engine {
 					if (devFeatures.inheritedQueries == VK_FALSE) continue;
 			}
 
-			if (requirements.sampledImageLinearFilter == true) {
-				// check for linear filtering for mipmaps
-				VkFormatProperties formatProperties{};
-				vkGetPhysicalDeviceFormatProperties(physDev, VK_FORMAT_R8G8B8A8_SRGB, &formatProperties);
-				if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)) {
-					continue;
+			bool formatsSupported = true;
+			for (const FormatRequirements& formatRequirements : requirements.formats) {
+				VkFormatFeatureFlags requiredLinearFlags = formatRequirements.properties.linearTilingFeatures;
+				VkFormatFeatureFlags requiredOptimalFlags = formatRequirements.properties.optimalTilingFeatures;
+				VkFormatFeatureFlags requiredBufferFlags = formatRequirements.properties.bufferFeatures;
+				VkFormatProperties deviceFormatProperties{};
+				vkGetPhysicalDeviceFormatProperties(physDev, formatRequirements.format, &deviceFormatProperties);
+				if ((deviceFormatProperties.linearTilingFeatures & requiredLinearFlags) != requiredLinearFlags ||
+					(deviceFormatProperties.optimalTilingFeatures & requiredOptimalFlags) != requiredOptimalFlags ||
+					(deviceFormatProperties.bufferFeatures & requiredBufferFlags) != requiredBufferFlags) {
+					formatsSupported = false;
+					break;
 				}
 			}
+			if (formatsSupported == false) continue;
 
 			/* USE THIS PHYSICAL DEVICE */
 			d.physicalDevice = physDev;
@@ -223,7 +230,7 @@ namespace engine {
 			if (p.queueCount < 2) continue; // ideally have one queue for presenting and at least one other for rendering
 
 			if (p.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-				if (checkQueueFamilySupportsPresent(d.physicalDevice, surface, i)) {
+				if (checkQueueFamilySupportsPresent(d.physicalDevice, surface, static_cast<uint32_t>(i))) {
 					graphicsFamily = static_cast<uint32_t>(i);
 					break;
 				}
@@ -233,7 +240,7 @@ namespace engine {
 			for (size_t i = 0; i < queueFamilies.size(); i++) {
 				VkQueueFamilyProperties p = queueFamilies[i];
 				if (p.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-					if (checkQueueFamilySupportsPresent(d.physicalDevice, surface, i)) {
+					if (checkQueueFamilySupportsPresent(d.physicalDevice, surface, static_cast<uint32_t>(i))) {
 						graphicsFamily = static_cast<uint32_t>(i);
 					}
 				}
@@ -313,7 +320,7 @@ namespace engine {
 		if (transferFamily != graphicsFamily) {
 			vkGetDeviceQueue(d.device, graphicsFamily, 0, &d.queues.presentQueue);
 			if (queueFamilies[graphicsFamily].queueCount >= 2) {
-				d.queues.drawQueues.resize(queueFamilies[graphicsFamily].queueCount - 1);
+				d.queues.drawQueues.resize((size_t)queueFamilies[graphicsFamily].queueCount - 1);
 				for (uint32_t i = 0; i < d.queues.drawQueues.size(); i++) {
 					vkGetDeviceQueue(d.device, graphicsFamily, i + 1, &d.queues.drawQueues[i]);
 				}
@@ -334,7 +341,7 @@ namespace engine {
 				vkGetDeviceQueue(d.device, graphicsFamily, 1, &d.queues.transferQueues[0]);
 				// use the remaining queues for drawing
 				if (queueCount >= 3) {
-					d.queues.drawQueues.resize(queueCount - 2);
+					d.queues.drawQueues.resize((size_t)queueCount - 2);
 					for (uint32_t i = 0; i < queueCount - 2; i++) {
 						vkGetDeviceQueue(d.device, graphicsFamily, i + 2, &d.queues.drawQueues[i]);
 					}
@@ -357,37 +364,12 @@ namespace engine {
 		d.queues.presentAndDrawQueueFamily = graphicsFamily;
 		d.queues.transferQueueFamily = transferFamily;
 
-		/* generate command pools */
-		VkCommandPoolCreateInfo poolCreateInfo{
-			.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-			.pNext = nullptr,
-			.flags = 0, // set individually after
-			.queueFamilyIndex = 0, // set individually after
-		};
-
-		// present queue does not need a command pool as it does not use command buffers
-
-		// draw command pools:
-		poolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-		poolCreateInfo.queueFamilyIndex = graphicsFamily;
-		res = vkCreateCommandPool(d.device, &poolCreateInfo, nullptr, &d.commandPools.draw);
-		if (res != VK_SUCCESS) throw std::runtime_error("Failed to create command pool");
-
-		// transfer command pools:
-		poolCreateInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT; // buffers from this pool are often short-lived,
-		// as is usually the case for transfer operations
-		poolCreateInfo.queueFamilyIndex = transferFamily;
-		res = vkCreateCommandPool(d.device, &poolCreateInfo, nullptr, &d.commandPools.transfer);
-		if (res != VK_SUCCESS) throw std::runtime_error("Failed to create command pool");
-
 		return d;
 
 	}
 
 	void destroyDevice(Device device)
 	{
-		vkDestroyCommandPool(device.device, device.commandPools.transfer, nullptr);
-		vkDestroyCommandPool(device.device, device.commandPools.draw, nullptr);
 		vkDestroyDevice(device.device, nullptr);
 	}
 

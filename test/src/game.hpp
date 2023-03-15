@@ -1,3 +1,8 @@
 #pragma once
 
-void playGame(bool enableFrameLimiter);
+struct GameSettings {
+	bool enableFrameLimiter;
+	bool enableValidation;
+};
+
+void playGame(GameSettings settings);

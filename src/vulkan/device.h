@@ -6,10 +6,15 @@
 
 namespace engine {
 
+	struct FormatRequirements {
+		VkFormat format{};
+		VkFormatProperties properties{};
+	};
+
 	struct DeviceRequirements {
 		std::vector<const char*> requiredExtensions;
 		VkPhysicalDeviceFeatures requiredFeatures;
-		bool sampledImageLinearFilter;
+		std::vector<FormatRequirements> formats{};
 	};
 
 	struct Device {
@@ -27,13 +32,9 @@ namespace engine {
 			uint32_t transferQueueFamily = UINT32_MAX;
 		} queues{};
 
-		struct CommandPools {
-			VkCommandPool draw = VK_NULL_HANDLE; // use with the drawQueues
-			VkCommandPool transfer = VK_NULL_HANDLE; // use with the transferQueues
-		} commandPools{};
 	};
 
-	Device createDevice(VkInstance instance, DeviceRequirements requirements, VkSurfaceKHR surface);
+	Device createDevice(VkInstance instance, const DeviceRequirements& requirements, VkSurfaceKHR surface);
 	void destroyDevice(Device device);
 
 }

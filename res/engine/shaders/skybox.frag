@@ -10,7 +10,7 @@ void main() {
 
 	gl_FragDepth = 0.9999;
 	//outColor = texture(texSampler, fragUV);
-	outColor = vec4(0.1, 0.1, 0.1, 1.0);
+	outColor = vec4(fragUV, 0.0, 1.0);
 
 }
 

@@ -51,6 +51,7 @@ namespace engine {
 		VkFence renderFence = VK_NULL_HANDLE;
 		VkSemaphore presentSemaphore = VK_NULL_HANDLE;
 		VkSemaphore renderSemaphore = VK_NULL_HANDLE;
+		VkCommandPool commandPool = VK_NULL_HANDLE;
 		VkCommandBuffer drawBuf = VK_NULL_HANDLE;
 	};
 
@@ -80,9 +81,9 @@ namespace engine {
 	};
 
 	struct gfx::DrawBuffer {
-		FrameData frameData;
-		uint32_t currentFrameIndex; // corresponds to the frameData
-		uint32_t imageIndex; // for swapchain present
+		FrameData frameData{};
+		uint32_t currentFrameIndex = 0; // corresponds to the frameData
+		uint32_t imageIndex = 0; // for swapchain present
 	};
 
 	struct gfx::DescriptorSetLayout {
@@ -559,6 +560,7 @@ namespace engine {
 		Swapchain swapchain{};
 
 		VkDescriptorPool descriptorPool;
+		VkCommandPool transferCommandPool = VK_NULL_HANDLE;
 		std::array<std::unordered_set<gfx::DescriptorBuffer*>, FRAMES_IN_FLIGHT> descriptorBufferWriteQueues{};
 
 		uint64_t FRAMECOUNT = 0;
@@ -592,13 +594,7 @@ namespace engine {
 			throw std::runtime_error("The loaded Vulkan version must be at least 1.3");
 		}
 
-#ifdef NDEBUG
-		bool useValidation = false;
-#else
-		bool useValidation = true;
-#endif
-
-		pimpl->instance = createVulkanInstance(pimpl->window, appName, appVersion, useValidation, MessageSeverity::SEV_WARNING);
+		pimpl->instance = createVulkanInstance(pimpl->window, appName, appVersion, pimpl->graphicsSettings.enableValidation, MessageSeverity::SEV_WARNING);
 
 		if (SDL_Vulkan_CreateSurface(pimpl->window, pimpl->instance.instance, &pimpl->surface) == false) {
 			throw std::runtime_error("Unable to create window surface");
@@ -607,7 +603,58 @@ namespace engine {
 		DeviceRequirements deviceRequirements{};
 		deviceRequirements.requiredExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 		deviceRequirements.requiredFeatures.samplerAnisotropy = VK_TRUE;
-		deviceRequirements.sampledImageLinearFilter = true;
+		deviceRequirements.requiredFeatures.fillModeNonSolid = VK_TRUE;
+		deviceRequirements.formats.push_back(
+			FormatRequirements{
+				.format = VK_FORMAT_R8G8B8A8_SRGB,
+				.properties = VkFormatProperties{
+					.linearTilingFeatures = {},
+					.optimalTilingFeatures = VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT,
+					.bufferFeatures = {},
+				}
+			}
+		);
+		deviceRequirements.formats.push_back(
+			FormatRequirements{
+				.format = VK_FORMAT_R32G32_SFLOAT,
+				.properties = VkFormatProperties{
+					.linearTilingFeatures = {},
+					.optimalTilingFeatures = {},
+					.bufferFeatures = VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT,
+				}
+			}
+		);
+		deviceRequirements.formats.push_back(
+			FormatRequirements{
+				.format = VK_FORMAT_R32G32B32_SFLOAT,
+				.properties = VkFormatProperties{
+					.linearTilingFeatures = {},
+					.optimalTilingFeatures = {},
+					.bufferFeatures = VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT,
+				}
+			}
+		);
+		deviceRequirements.formats.push_back(
+			FormatRequirements{
+				.format = VK_FORMAT_R32G32B32A32_SFLOAT,
+				.properties = VkFormatProperties{
+					.linearTilingFeatures = {},
+					.optimalTilingFeatures = {},
+					.bufferFeatures = VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT,
+				}
+			}
+		);
+		deviceRequirements.formats.push_back( // Depth buffer format
+			FormatRequirements{
+				.format = VK_FORMAT_D16_UNORM,
+				.properties = VkFormatProperties{
+					.linearTilingFeatures = {},
+					.optimalTilingFeatures = VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT,
+					.bufferFeatures = {},
+				}
+			}
+		);
+
 		pimpl->device = createDevice(pimpl->instance.instance, deviceRequirements, pimpl->surface);
 
 		pimpl->allocator = createAllocator(pimpl->instance.instance, pimpl->device.device, pimpl->device.physicalDevice);
@@ -642,27 +689,44 @@ namespace engine {
 			res = vkCreateSemaphore(pimpl->device.device, &smphInfo, nullptr, &pimpl->frameData[i].renderSemaphore);
 			if (res != VK_SUCCESS) throw std::runtime_error("Failed to create semaphore!");
 
+			VkCommandPoolCreateInfo poolInfo{
+				.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+				.pNext = nullptr,
+				.flags = 0, // Command buffers cannot be individually reset (more performant this way)
+				.queueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily
+			};
+			VKCHECK(vkCreateCommandPool(pimpl->device.device, &poolInfo, nullptr, &pimpl->frameData[i].commandPool));
+
 			VkCommandBufferAllocateInfo cmdAllocInfo{
 				.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
 				.pNext = nullptr,
-				.commandPool = pimpl->device.commandPools.draw,
+				.commandPool = pimpl->frameData[i].commandPool,
 				.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
 				.commandBufferCount = 1
 			};
 			VKCHECK(vkAllocateCommandBuffers(pimpl->device.device, &cmdAllocInfo, &pimpl->frameData[i].drawBuf));
 		}
 
+		/* create command pool for transfer operations */
+		VkCommandPoolCreateInfo transferPoolInfo{
+			.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+			.pNext = nullptr,
+			.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT, // These command buffers don't last very long
+			.queueFamilyIndex = pimpl->device.queues.transferQueueFamily
+		};
+		VKCHECK(vkCreateCommandPool(pimpl->device.device, &transferPoolInfo, nullptr, &pimpl->transferCommandPool));
+
 		/* create a global descriptor pool */
 
 		std::vector<VkDescriptorPoolSize> poolSizes{};
-		poolSizes.emplace_back(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 5); // purposely low limit
+		poolSizes.emplace_back(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 100); // purposely low limit
 
 		VkDescriptorPoolCreateInfo descriptorPoolInfo{};
 		descriptorPoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 		descriptorPoolInfo.pNext = nullptr;
 		descriptorPoolInfo.flags = 0;
-		descriptorPoolInfo.maxSets = 5; // purposely low limit
-		descriptorPoolInfo.poolSizeCount = poolSizes.size();
+		descriptorPoolInfo.maxSets = 100; // purposely low limit
+		descriptorPoolInfo.poolSizeCount = (uint32_t)poolSizes.size();
 		descriptorPoolInfo.pPoolSizes = poolSizes.data();
 		VKCHECK(vkCreateDescriptorPool(pimpl->device.device, &descriptorPoolInfo, nullptr, &pimpl->descriptorPool));
 
@@ -672,8 +736,10 @@ namespace engine {
 	{
 		vkDestroyDescriptorPool(pimpl->device.device, pimpl->descriptorPool, nullptr);
 
+		vkDestroyCommandPool(pimpl->device.device, pimpl->transferCommandPool, nullptr);
+
 		for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
-			vkFreeCommandBuffers(pimpl->device.device, pimpl->device.commandPools.draw, 1, &pimpl->frameData[i].drawBuf);
+			vkDestroyCommandPool(pimpl->device.device, pimpl->frameData[i].commandPool, nullptr);
 			vkDestroySemaphore(pimpl->device.device, pimpl->frameData[i].renderSemaphore, nullptr);
 			vkDestroySemaphore(pimpl->device.device, pimpl->frameData[i].presentSemaphore, nullptr);
 			vkDestroyFence(pimpl->device.device, pimpl->frameData[i].renderFence, nullptr);
@@ -707,10 +773,17 @@ namespace engine {
 		const uint32_t currentFrameIndex = pimpl->FRAMECOUNT % FRAMES_IN_FLIGHT;
 		const FrameData frameData = pimpl->frameData[currentFrameIndex];
 
+		/* wait until the previous frame RENDERING has finished */
+		res = vkWaitForFences(pimpl->device.device, 1, &frameData.renderFence, VK_TRUE, 1000000000LL);
+		VKCHECK(res);
+		res = vkResetFences(pimpl->device.device, 1, &frameData.renderFence);
+		VKCHECK(res);
+
 		/* first empty the descriptor buffer write queue */
 		auto& writeQueue = pimpl->descriptorBufferWriteQueues[currentFrameIndex];
+		//if (writeQueue.empty() == false) vkQueueWaitIdle(pimpl->device.queues.drawQueues[0]);
 		for (gfx::DescriptorBuffer* buffer : writeQueue) {
-			copyBuffer(pimpl->device.device, pimpl->device.commandPools.transfer, pimpl->device.queues.transferQueues[0], buffer->stagingBuffer.buffer, buffer->gpuBuffers[currentFrameIndex].buffer, buffer->stagingBuffer.size);
+			copyBuffer(pimpl->device.device, pimpl->transferCommandPool, pimpl->device.queues.transferQueues[0], buffer->stagingBuffer.buffer, buffer->gpuBuffers[currentFrameIndex].buffer, buffer->stagingBuffer.size);
 		}
 		writeQueue.clear();
 
@@ -731,14 +804,8 @@ namespace engine {
 			if (res == VK_SUCCESS) pimpl->swapchainIsOutOfDate = false;
 		} while (pimpl->swapchainIsOutOfDate);
 
-		/* wait until the previous frame RENDERING has finished */
-		res = vkWaitForFences(pimpl->device.device, 1, &frameData.renderFence, VK_TRUE, 1000000000LL);
-		VKCHECK(res);
-		res = vkResetFences(pimpl->device.device, 1, &frameData.renderFence);
-		VKCHECK(res);
-
 		/* record command buffer */
-		res = vkResetCommandBuffer(frameData.drawBuf, 0);
+		res = vkResetCommandPool(pimpl->device.device, frameData.commandPool, 0);
 		VKCHECK(res);
 
 		VkCommandBufferBeginInfo beginInfo{
@@ -763,10 +830,10 @@ namespace engine {
 			passBegin.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 			passBegin.pNext = nullptr;
 			passBegin.renderPass = pimpl->swapchain.renderpass;
-			passBegin.framebuffer = std::get<2>(pimpl->swapchain.images[swapchainImageIndex]);
+			passBegin.framebuffer = pimpl->swapchain.framebuffers[swapchainImageIndex];
 			passBegin.renderArea.extent = pimpl->swapchain.extent;
 			passBegin.renderArea.offset = { 0, 0 };
-			passBegin.clearValueCount = clearValues.size();
+			passBegin.clearValueCount = (uint32_t)clearValues.size();
 			passBegin.pClearValues = clearValues.data();
 			vkCmdBeginRenderPass(frameData.drawBuf, &passBegin, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -824,6 +891,7 @@ namespace engine {
 			.pSignalSemaphores = &drawBuffer->frameData.renderSemaphore,
 		};
 		res = vkQueueSubmit(pimpl->device.queues.drawQueues[0], 1, &submitInfo, drawBuffer->frameData.renderFence);
+		assert(res == VK_SUCCESS);
 		// VKCHECK(res); // expensive operation for some reason
 
 		// PRESENT
@@ -913,10 +981,10 @@ namespace engine {
 		attribDescs.reserve(info.vertexFormat.attributeDescriptions.size());
 		for (const auto& desc : info.vertexFormat.attributeDescriptions) {
 			VkVertexInputAttributeDescription vulkanAttribDesc{};
-			vulkanAttribDesc.binding = 0;
 			vulkanAttribDesc.location = desc.location;
-			vulkanAttribDesc.offset = desc.offset;
+			vulkanAttribDesc.binding = 0;
 			vulkanAttribDesc.format = vkinternal::getVertexAttribFormat(desc.format);
+			vulkanAttribDesc.offset = desc.offset;
 			attribDescs.push_back(vulkanAttribDesc);
 		}
 
@@ -982,7 +1050,7 @@ namespace engine {
 		VkPipelineRasterizationStateCreateInfo rasterizer{};
 		rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
 		rasterizer.depthClampEnable = VK_FALSE;
-		rasterizer.rasterizerDiscardEnable = VK_FALSE;
+		rasterizer.rasterizerDiscardEnable = VK_FALSE; // enabling this will not run the fragment shaders at all
 		rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
 		rasterizer.lineWidth = 1.0f;
 		if (info.backfaceCulling == true) {
@@ -1060,7 +1128,7 @@ namespace engine {
 
 		VkPipelineLayoutCreateInfo layoutInfo{};
 		layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		layoutInfo.setLayoutCount = descriptorSetLayouts.size();
+		layoutInfo.setLayoutCount = (uint32_t)descriptorSetLayouts.size();
 		layoutInfo.pSetLayouts = descriptorSetLayouts.data();
 		layoutInfo.pushConstantRangeCount = 1;
 		layoutInfo.pPushConstantRanges = &pushConstantRange;
@@ -1119,7 +1187,7 @@ namespace engine {
 		info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 		info.pNext = nullptr;
 		info.flags = 0;
-		info.bindingCount = bindings.size();
+		info.bindingCount = (uint32_t)bindings.size();
 		info.pBindings = bindings.data();
 		VKCHECK(vkCreateDescriptorSetLayout(pimpl->device.device, &info, nullptr, &out->layout));
 
@@ -1230,7 +1298,7 @@ namespace engine {
 			VKCHECK(vmaCreateBuffer(pimpl->allocator, &gpuBufferInfo, &gpuAllocationInfo, &out->gpuBuffers[i].buffer, &out->gpuBuffers[i].allocation, nullptr));
 
 			/* copy staging buffer into both */
-			copyBuffer(pimpl->device.device, pimpl->device.commandPools.transfer, pimpl->device.queues.transferQueues[0], out->stagingBuffer.buffer, out->gpuBuffers[i].buffer, out->stagingBuffer.size);
+			copyBuffer(pimpl->device.device, pimpl->transferCommandPool, pimpl->device.queues.transferQueues[0], out->stagingBuffer.buffer, out->gpuBuffers[i].buffer, out->stagingBuffer.size);
 		}
 
 		return out;
@@ -1320,7 +1388,7 @@ namespace engine {
 		}
 
 		// copy the data from the staging buffer to the gpu buffer
-		copyBuffer(pimpl->device.device, pimpl->device.commandPools.transfer, pimpl->device.queues.transferQueues[0], stagingBuffer, out->buffer, out->size);
+		copyBuffer(pimpl->device.device, pimpl->transferCommandPool, pimpl->device.queues.transferQueues[0], stagingBuffer, out->buffer, out->size);
 
 		// destroy staging buffer
 		vmaDestroyBuffer(pimpl->allocator, stagingBuffer, stagingAllocation);
@@ -1332,6 +1400,11 @@ namespace engine {
 	{
 		vmaDestroyBuffer(pimpl->allocator, buffer->buffer, buffer->allocation);
 		delete buffer;
+	}
+
+	gfx::Image* GFXDevice::createImage(uint32_t w, uint32_t h, const void* imageData)
+	{
+		return nullptr;
 	}
 
 	gfx::Texture* GFXDevice::createTexture(

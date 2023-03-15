@@ -48,6 +48,8 @@ namespace engine {
 		gfx::Buffer* createBuffer(gfx::BufferType type, uint64_t size, const void* data);
 		void destroyBuffer(const gfx::Buffer* buffer);
 
+		gfx::Image* createImage(uint32_t w, uint32_t h, const void* imageData);
+
 		gfx::Texture* createTexture(
 			const void* imageData,
 			uint32_t width,

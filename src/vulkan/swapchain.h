@@ -11,6 +11,12 @@
 
 namespace engine {
 
+	struct DepthStencil {
+		VkImage image = VK_NULL_HANDLE;
+		VmaAllocation allocation = VK_NULL_HANDLE;
+		VkImageView view = VK_NULL_HANDLE;
+	};
+
 	struct Swapchain {
 		VkSwapchainKHR swapchain = VK_NULL_HANDLE;
 		VkDevice device = VK_NULL_HANDLE; // the associated device
@@ -20,13 +26,10 @@ namespace engine {
 		VkPresentModeKHR presentMode{};
 		VkExtent2D extent{};
 		VkRenderPass renderpass = VK_NULL_HANDLE;
-		std::vector<std::tuple<VkImage, VkImageView, VkFramebuffer>> images{};
-		struct DepthStencil {
-			VkImage image = VK_NULL_HANDLE;
-			VmaAllocation allocation = VK_NULL_HANDLE;
-			VkImageView view = VK_NULL_HANDLE;
-			VkFormat format{};
-		} depthStencil{};
+		const VkFormat depthStencilFormat = VK_FORMAT_D16_UNORM;
+		std::vector<std::pair<VkImage, VkImageView>> swapchainImages{};
+		std::vector<DepthStencil> depthImages{};
+		std::vector<VkFramebuffer> framebuffers{};
 	};
 
 	struct SwapchainInfo {

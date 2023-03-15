@@ -35,7 +35,7 @@ namespace engine::util {
 	{
 
 		// convert to glm column major
-		glm::mat4 transform;
+		glm::mat4 transform{};
 		for (int i = 0; i < 4; i++) {
 			for (int j = 0; j < 4; j++) {
 				transform[i][j] = parentNode->mTransformation[j][i];
@@ -196,7 +196,7 @@ namespace engine::util {
 			const aiMesh* m = scene->mMeshes[i];
 			meshMaterialIndices.push_back(m->mMaterialIndex);
 			std::vector<Vertex> vertices(m->mNumVertices);
-			std::vector<uint32_t> indices(m->mNumFaces * 3);
+			std::vector<uint32_t> indices((size_t)m->mNumFaces * 3);
 			LOG_TRACE("Mesh {}: vertex count {}", i, vertices.size());
 			LOG_TRACE("Mesh {}: index count {}", i, indices.size());
 
@@ -219,9 +219,9 @@ namespace engine::util {
 			}
 		
 			for (uint32_t j = 0; j < indices.size() / 3; j++) {
-				indices[j * 3 + 0] = m->mFaces[j].mIndices[0];
-				indices[j * 3 + 1] = m->mFaces[j].mIndices[1];
-				indices[j * 3 + 2] = m->mFaces[j].mIndices[2];
+				indices[(size_t)j * 3 + 0] = m->mFaces[j].mIndices[0];
+				indices[(size_t)j * 3 + 1] = m->mFaces[j].mIndices[1];
+				indices[(size_t)j * 3 + 2] = m->mFaces[j].mIndices[2];
 			}
 			meshes.push_back(std::make_shared<resources::Mesh>(parent->app()->gfx(), vertices, indices));
 		}

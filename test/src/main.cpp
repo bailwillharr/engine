@@ -7,14 +7,22 @@
 
 // standard library
 #include <exception>
+#include <unordered_set>
 #include <string.h>
 
 int main(int argc, char* argv[])
 {
 
-	bool enableFrameLimiter = true;
-	if (argc == 2) {
-		if (strcmp(argv[1], "nofpslimit") == 0) enableFrameLimiter = false;
+	GameSettings settings{};
+	settings.enableFrameLimiter = true;
+	settings.enableValidation = false;
+	if (argc >= 2) {
+		std::unordered_set<std::string> args{};
+		for (size_t i = 1; i < argc; i++) {
+			args.insert(std::string(argv[i]));
+		}
+		if (args.contains("nofpslimit")) settings.enableFrameLimiter = false;
+		if (args.contains("gpuvalidation")) settings.enableValidation = true;
 	}
 
 	engine::setupLog(PROJECT_NAME);
@@ -22,7 +30,7 @@ int main(int argc, char* argv[])
 	LOG_INFO("{} v{}", PROJECT_NAME, PROJECT_VERSION);
 
 	try {
-		playGame(enableFrameLimiter);
+		playGame(settings);
 	}
 	catch (const std::exception& e) {
 		LOG_CRITICAL("{}", e.what());

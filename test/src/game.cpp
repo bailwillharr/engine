@@ -21,10 +21,13 @@
 
 #include "util/model_loader.hpp"
 
+#include "game.hpp"
+
 static void configureInputs(engine::InputManager* inputManager)
 {
 	// user interface mappings
 	inputManager->addInputButton("fullscreen", engine::inputs::Key::K_F11);
+	inputManager->addInputButton("exit", engine::inputs::Key::K_ESCAPE);
 	// game buttons
 	inputManager->addInputButton("fire", engine::inputs::MouseButton::M_LEFT);
 	inputManager->addInputButton("aim", engine::inputs::MouseButton::M_RIGHT);
@@ -38,17 +41,19 @@ static void configureInputs(engine::InputManager* inputManager)
 	inputManager->addInputAxis("looky", engine::inputs::MouseAxis::Y);
 }
 
-void playGame(bool enableFrameLimiter)
+void playGame(GameSettings settings)
 {
-	LOG_INFO("FPS limiter: {}", enableFrameLimiter ? "ON" : "OFF");
+	LOG_INFO("FPS limiter: {}", settings.enableFrameLimiter ? "ON" : "OFF");
+	LOG_INFO("Graphics Validation: {}", settings.enableValidation ? "ON" : "OFF");
 
 	engine::gfx::GraphicsSettings graphicsSettings{};
+	graphicsSettings.enableValidation = settings.enableValidation;
 	graphicsSettings.vsync = true;
 	graphicsSettings.waitForPresent = false;
 	graphicsSettings.msaaLevel = engine::gfx::MSAALevel::MSAA_OFF;
 	engine::Application app(PROJECT_NAME, PROJECT_VERSION, graphicsSettings);
 
-	app.setFrameLimiter(enableFrameLimiter);
+	app.setFrameLimiter(settings.enableFrameLimiter);
 
 	// configure window
 	app.window()->setRelativeMouseMode(true);
@@ -100,8 +105,8 @@ void playGame(bool enableFrameLimiter)
 		skyboxRenderable->material = std::make_unique<engine::resources::Material>(app.getResource<engine::resources::Shader>("builtin.skybox"));
 		skyboxRenderable->material->m_texture = spaceTexture;
 //		skyboxRenderable->mesh = genSphereMesh(app.gfx(), 1.0f, 50, true);
-		skyboxRenderable->mesh = genCuboidMesh(app.gfx(), 2.0f, 2.0f, 2.0f, 1.0f, true);
-		myScene->getComponent<engine::TransformComponent>(skybox)->position = { -1.0f, -1.0f, -1.0f };
+		skyboxRenderable->mesh = genCuboidMesh(app.gfx(), 10.0f, 10.0f, 10.0f, 1.0f, true);
+		myScene->getComponent<engine::TransformComponent>(skybox)->position = { -5.0f, -5.0f, -5.0f };
 	}
 
 	/* cube */
@@ -126,6 +131,8 @@ void playGame(bool enableFrameLimiter)
 		floorCollider->isStatic = true;
 		floorCollider->aabb = { { 0.0f, 0.0f, 0.0f }, { 10000.0f, 1.0f, 10000.0f } };
 	}
+
+	//engine::util::loadMeshFromFile(myScene, app.getResourcePath("models/astronaut/astronaut.dae"));
 
 	app.gameLoop();
 

@@ -15,6 +15,7 @@ namespace engine::gfx {
 	struct DrawBuffer;
 	struct DescriptorSetLayout;
 	struct DescriptorSet;
+	struct Image;
 
 	enum class MSAALevel {
 		MSAA_OFF,
@@ -29,13 +30,16 @@ namespace engine::gfx {
 		GraphicsSettings()
 		{
 			// sane defaults
+			enableValidation = true;
 			vsync = true;
 			waitForPresent = true; // not all GPUs/drivers support immediate present with V-sync enabled
 			msaaLevel = MSAALevel::MSAA_OFF;
 		}
 
+		bool enableValidation;
 		bool vsync;
-		bool waitForPresent; // idle CPU after render until the frame has been presented (no affect with V-sync disabled)
+		// idle CPU after render until the frame has been presented (no affect with V-sync disabled)
+		bool waitForPresent;
 		MSAALevel msaaLevel;
 
 	};
@@ -98,7 +102,7 @@ namespace engine::gfx {
 	struct PipelineInfo {
 		const char* vertShaderPath;
 		const char* fragShaderPath;
-		gfx::VertexFormat vertexFormat;
+		VertexFormat vertexFormat;
 		bool alphaBlending;
 		bool backfaceCulling;
 		std::vector<const DescriptorSetLayout*> descriptorSetLayouts;
