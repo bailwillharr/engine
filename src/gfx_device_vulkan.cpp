@@ -6,7 +6,6 @@
  * This feature uses the device extension VK_EXT_memory_priority. Depth buffers have a priority of 0.9f.
  * Other, non-essential allocations will have a priority of 0.5f.
  * 
- * 
  */
 
 #include <assert.h>
