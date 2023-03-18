@@ -155,9 +155,6 @@ namespace engine {
 		// single-threaded game loop
 		while (m_window->isRunning()) {
 
-			/* begin rendering */
-			renderData.drawBuffer = gfx()->beginRender();
-
 			/* logic */
 			m_sceneManager->updateActiveScene(m_window->dt());
 

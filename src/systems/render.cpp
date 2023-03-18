@@ -54,7 +54,7 @@ namespace engine {
 		RenderData::SetOneBuffer setOneBuffer{
 			.view = viewMatrix
 		};
-		//m_gfx->writeDescriptorBuffer(renderData.setOneBuffer, 0, sizeof(RenderData::SetOneBuffer), &setOneBuffer);
+		m_gfx->writeDescriptorBuffer(renderData.setOneBuffer, 0, sizeof(RenderData::SetOneBuffer), &setOneBuffer);
 
 		/* render all renderable entities */
 
@@ -91,6 +91,9 @@ namespace engine {
 			pipelineDrawCalls[pipeline].push_back(data);
 
 		}
+
+		/* begin rendering */
+		renderData.drawBuffer = m_gfx->beginRender();
 
 		/* these descriptor set bindings should persist across pipeline changes */
 		const gfx::Pipeline* firstPipeline = pipelineDrawCalls.begin()->first;

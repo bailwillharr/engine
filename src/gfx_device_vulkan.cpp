@@ -49,7 +49,7 @@ inline static void checkVulkanError(VkResult errorCode, int lineNo)
 
 namespace engine {
 
-	static constexpr uint32_t FRAMES_IN_FLIGHT = 2; // This improved FPS by 5x! (on Intel IGPU)
+	static constexpr uint32_t FRAMES_IN_FLIGHT = 1; // This improved FPS by 5x! (on Intel IGPU)
 
 	static constexpr size_t PUSH_CONSTANT_MAX_SIZE = 128; // bytes
 	static constexpr VkIndexType INDEX_TYPE = VK_INDEX_TYPE_UINT32;
@@ -93,7 +93,7 @@ namespace engine {
 		FrameData frameData{};
 		uint32_t currentFrameIndex = 0; // corresponds to the frameData
 		uint32_t imageIndex = 0; // for swapchain present
-		std::vector<VkSemaphore> copySemaphores{};
+		std::unordered_set<gfx::DescriptorBuffer*>* buffersToWrite = nullptr;
 	};
 
 	struct gfx::DescriptorSetLayout {
@@ -745,9 +745,12 @@ namespace engine {
 
 		/* first empty the descriptor buffer write queue */
 		auto& writeQueue = pimpl->descriptorBufferWriteQueues[currentFrameIndex];
-		//if (writeQueue.empty() == false) vkQueueWaitIdle(pimpl->device.queues.drawQueues[0]);
+		if (writeQueue.empty() == false) {
+			LOG_TRACE("write queue size: {}", writeQueue.size());
+		//	vkQueueWaitIdle(pimpl->device.queues.drawQueues[0]);
+		}
 		for (gfx::DescriptorBuffer* buffer : writeQueue) {
-			
+
 			// record the command buffer
 			VkCommandBufferAllocateInfo allocInfo{};
 			allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -758,6 +761,8 @@ namespace engine {
 			VkCommandBuffer commandBuffer;
 			res = vkAllocateCommandBuffers(pimpl->device.device, &allocInfo, &commandBuffer);
 			assert(res == VK_SUCCESS);
+
+			LOG_TRACE("  write command buffer: {}", (void*)commandBuffer);
 
 			VkCommandBufferBeginInfo beginInfo{};
 			beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -771,7 +776,7 @@ namespace engine {
 			copyRegion.size = buffer->stagingBuffer.size;
 			vkCmdCopyBuffer(commandBuffer, buffer->stagingBuffer.buffer, buffer->gpuBuffers[currentFrameIndex].buffer, 1, &copyRegion);
 
-			/* barrier to perform ownership transfer from transferQueue to drawQueue */
+			/* barrier to perform ownership transfer from transferQueue to drawQueue (RELEASE) */
 			VkBufferMemoryBarrier bufferMemoryBarrier{};
 			bufferMemoryBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
 			bufferMemoryBarrier.pNext = nullptr;
@@ -786,7 +791,7 @@ namespace engine {
 			vkCmdPipelineBarrier(
 				commandBuffer,
 				VK_PIPELINE_STAGE_TRANSFER_BIT, // srcStageMask
-				VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, // dstStageMask
+				VK_PIPELINE_STAGE_TRANSFER_BIT, // dstStageMask
 				0,
 				0,
 				nullptr,
@@ -806,13 +811,11 @@ namespace engine {
 			submitInfo.pCommandBuffers = &commandBuffer;
 			submitInfo.signalSemaphoreCount = 1;
 			submitInfo.pSignalSemaphores = &buffer->copySemaphores[currentFrameIndex];
-			submitInfo.waitSemaphoreCount = 1;
-			submitInfo.pWaitSemaphores = &frameData.renderSemaphore;
+			submitInfo.waitSemaphoreCount = 0;
+			submitInfo.pWaitSemaphores = nullptr;
 
 			res = vkQueueSubmit(pimpl->device.queues.transferQueues[1], 1, &submitInfo, VK_NULL_HANDLE);
 			assert(res == VK_SUCCESS);
-
-			drawBuffer->copySemaphores.push_back(buffer->copySemaphores[currentFrameIndex]);
 
 		}
 
@@ -863,7 +866,7 @@ namespace engine {
 
 				vkCmdPipelineBarrier(
 					frameData.drawBuf,
-					VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, // srcStageMask
+					VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, // srcStageMask
 					VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, // dstStageMask
 					0,
 					0,
@@ -874,7 +877,6 @@ namespace engine {
 					nullptr
 				);
 			}
-			writeQueue.clear();
 
 			std::array<VkClearValue, 2> clearValues{}; // Using same value for all components enables compression according to NVIDIA Best Practices
 			clearValues[0].color.float32[0] = 1.0f;
@@ -914,6 +916,7 @@ namespace engine {
 		drawBuffer->frameData = frameData;
 		drawBuffer->currentFrameIndex = currentFrameIndex;
 		drawBuffer->imageIndex = swapchainImageIndex;
+		drawBuffer->buffersToWrite = &writeQueue;
 		return drawBuffer;
 
 	}
@@ -933,25 +936,28 @@ namespace engine {
 
 		// SUBMIT
 
+		std::vector<VkSemaphore> waitSemaphores{};
 		std::vector<VkPipelineStageFlags> waitDstStageMasks{};
-		for (size_t i = 0; i < drawBuffer->copySemaphores.size(); i++) {
+
+		for (const gfx::DescriptorBuffer* buffer : *drawBuffer->buffersToWrite) {
+			waitSemaphores.push_back(buffer->copySemaphores[drawBuffer->currentFrameIndex]);
 			waitDstStageMasks.push_back(VK_PIPELINE_STAGE_VERTEX_SHADER_BIT);
 		}
 
-		drawBuffer->copySemaphores.push_back(drawBuffer->frameData.presentSemaphore);
+		waitSemaphores.push_back(drawBuffer->frameData.presentSemaphore);
 		waitDstStageMasks.push_back(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
 
 		VkSubmitInfo submitInfo{
 			.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
 			.pNext = nullptr,
-			.waitSemaphoreCount = (uint32_t)drawBuffer->copySemaphores.size(),
-			.pWaitSemaphores = drawBuffer->copySemaphores.data(),
+			.waitSemaphoreCount = (uint32_t)waitSemaphores.size(),
+			.pWaitSemaphores = waitSemaphores.data(),
 			.pWaitDstStageMask = waitDstStageMasks.data(),
 			.commandBufferCount = 1,
 			.pCommandBuffers = &drawBuffer->frameData.drawBuf,
 			.signalSemaphoreCount = 1,
 			.pSignalSemaphores = &drawBuffer->frameData.renderSemaphore,
-		};
+		}; 
 		res = vkQueueSubmit(pimpl->device.queues.drawQueues[0], 1, &submitInfo, drawBuffer->frameData.renderFence);
 		assert(res == VK_SUCCESS);
 		// VKCHECK(res); // expensive operation for some reason
@@ -976,6 +982,9 @@ namespace engine {
 		else if (res != VK_SUCCESS) throw std::runtime_error("Failed to queue present!");
 
 		pimpl->FRAMECOUNT++;
+
+		/* empty the buffersToWrite queue */
+		drawBuffer->buffersToWrite->clear();
 
 		delete drawBuffer;
 	}
