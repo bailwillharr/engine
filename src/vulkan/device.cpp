@@ -37,15 +37,23 @@ namespace engine {
 		res = vkEnumeratePhysicalDevices(instance, &physDeviceCount, physicalDevices.data());
 		assert(res == VK_SUCCESS);
 
+		std::vector<VkExtensionProperties> availableExtensions{};
+
 		for (VkPhysicalDevice physDev : physicalDevices) {
 
 			// first, check extension support
+			availableExtensions.clear();
 			uint32_t extensionCount;
 			res = vkEnumerateDeviceExtensionProperties(physDev, nullptr, &extensionCount, nullptr);
 			assert(res == VK_SUCCESS);
+			availableExtensions.resize(extensionCount);
 			std::vector<VkExtensionProperties> availableExtensions(extensionCount);
 			res = vkEnumerateDeviceExtensionProperties(physDev, nullptr, &extensionCount, availableExtensions.data());
 			assert(res == VK_SUCCESS);
+
+			for (const VkExtensionProperties& ext : availableExtensions) {
+				LOG_TRACE("extension: {}", ext.extensionName);
+			}
 
 			bool foundRequiredExtensions = true;
 			for (const char* extToFind : requirements.requiredExtensions) {
@@ -190,8 +198,40 @@ namespace engine {
 				if (requirements.requiredFeatures.inheritedQueries == VK_TRUE)
 					if (devFeatures.features.inheritedQueries == VK_FALSE) continue;
 				
-				if (requirements.memoryPriorityFeature == VK_TRUE)
-					if (memoryPriorityFeatures.memoryPriority == VK_FALSE) continue;
+				/* check the memory priority extension was even requested */
+				bool memoryPriorityRequired = false;
+				for (const char* ext : requirements.requiredExtensions) {
+					if (strcmp(ext, VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME) == 0) {
+						memoryPriorityRequired = true;
+						break;
+					}
+				}
+				if (memoryPriorityRequired) {
+					if (memoryPriorityFeatures.memoryPriority == VK_FALSE) {
+						throw std::runtime_error("Required device feature 'memoryPriority' not found, but extension was");
+					} else {
+						d.memoryPriorityFeature = true;
+					}
+				} else {
+					// see if memoryPriority was optionally requested */
+					for (const char* optExt : requirements.optionalExtensions) {
+						if (strcmp(optExt, VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME) == 0) {
+							for (const VkExtensionProperties& extAvail : availableExtensions) {
+								if (strcmp(extAvail.extensionName, VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME) == 0) {
+									if (memoryPriorityFeatures.memoryPriority == VK_TRUE) {
+										d.memoryPriorityFeature = true;
+									} else {
+										throw std::runtime_error("Optional device extension 'VK_EXT_memory_priority' found, but feature wasn't");
+									}
+									break;		// |
+								}				// |
+							}					// V
+							// <--------------------
+							break;      // |
+						}				// |
+					}					// V
+					// <--------------------
+				}
 			}
 
 			bool formatsSupported = true;
@@ -305,11 +345,21 @@ namespace engine {
 		/* set enabled features */
 		VkPhysicalDeviceMemoryPriorityFeaturesEXT memoryPriorityFeaturesToEnable{};
 		memoryPriorityFeaturesToEnable.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PRIORITY_FEATURES_EXT;
-		memoryPriorityFeaturesToEnable.memoryPriority = requirements.memoryPriorityFeature;
+		memoryPriorityFeaturesToEnable.memoryPriority = d.memoryPriorityFeature ? VK_TRUE : VK_FALSE;
 		VkPhysicalDeviceFeatures2 featuresToEnable{};
 		featuresToEnable.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
 		featuresToEnable.pNext = &memoryPriorityFeaturesToEnable;
 		featuresToEnable.features = requirements.requiredFeatures;
+
+		/* get list of extensions to enable */
+		std::vector<const char*> extensionsToEnable{};
+		for (const VkExtensionProperties& availableExt : availableExtensions) {
+			if (	std::find(requirements.optionalExtensions.begin(), requirements.optionalExtensions.end(),
+					std::string(availableExt.extensionName)) != requirements.optionalExtensions.end()) {
+				extensionsToEnable.push_back(availableExt.extensionName);
+			}
+		}
+		extensionsToEnable.insert(extensionsToEnable.end(), requirements.requiredExtensions.begin(), requirements.requiredExtensions.end());
 
 		/* create device now */
 		VkDeviceCreateInfo deviceCreateInfo{
@@ -320,8 +370,8 @@ namespace engine {
 			.pQueueCreateInfos = queueCreateInfos.data(),
 			.enabledLayerCount = 0, // deprecated and ignored
 			.ppEnabledLayerNames = nullptr, // deprecated and ignored
-			.enabledExtensionCount = static_cast<uint32_t>(requirements.requiredExtensions.size()),
-			.ppEnabledExtensionNames = requirements.requiredExtensions.data(),
+			.enabledExtensionCount = static_cast<uint32_t>(extensionsToEnable.size()),
+			.ppEnabledExtensionNames = extensionsToEnable.data(),
 			.pEnabledFeatures = nullptr,
 		};
 
@@ -332,6 +382,12 @@ namespace engine {
 
 		volkLoadDevice(d.device);
 
+		/* get list of extensions enabled */
+		d.enabledExtensions.clear();
+		for (const char* ext : extensionsToEnable) {
+			// must be copied into std::strings
+			d.enabledExtensions.emplace_back(ext);
+		}
 
 		if (transferFamily != graphicsFamily) {
 			vkGetDeviceQueue(d.device, graphicsFamily, 0, &d.queues.presentQueue);

@@ -559,10 +559,10 @@ namespace engine {
 		};
 
 		DeviceRequirements deviceRequirements{};
-		deviceRequirements.requiredExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME };
+		deviceRequirements.requiredExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+		deviceRequirements.optionalExtensions = { VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME };
 		deviceRequirements.requiredFeatures.samplerAnisotropy = VK_TRUE;
 		deviceRequirements.requiredFeatures.fillModeNonSolid = VK_TRUE;
-		deviceRequirements.memoryPriorityFeature = VK_TRUE;
 		deviceRequirements.formats.push_back(
 			FormatRequirements{
 				.format = VK_FORMAT_R8G8B8A8_SRGB,
@@ -678,7 +678,7 @@ namespace engine {
 		/* create a global descriptor pool */
 
 		std::vector<VkDescriptorPoolSize> poolSizes{};
-		poolSizes.emplace_back(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 100); // purposely low limit
+		poolSizes.emplace_back(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 100u); // purposely low limit
 
 		VkDescriptorPoolCreateInfo descriptorPoolInfo{};
 		descriptorPoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -740,12 +740,15 @@ namespace engine {
 		res = vkResetFences(pimpl->device.device, 1, &frameData.renderFence);
 		VKCHECK(res);
 
-		if (pimpl->device.queues.transferQueues.size() < 2) throw std::runtime_error("Need at least 2 transfer queues!");
+		uint32_t transferQueueIndex = 0;
+		if (pimpl->device.queues.transferQueues.size() >= 2) {
+			transferQueueIndex = 1;
+		}
 
 		/* first empty the descriptor buffer write queue */
 		auto& writeQueue = pimpl->descriptorBufferWriteQueues[currentFrameIndex];
 		if (writeQueue.empty() == false) {
-			LOG_TRACE("write queue size: {}", writeQueue.size());
+//			LOG_TRACE("write queue size: {}", writeQueue.size());
 		//	vkQueueWaitIdle(pimpl->device.queues.drawQueues[0]);
 		}
 		for (gfx::DescriptorBuffer* buffer : writeQueue) {
@@ -761,7 +764,7 @@ namespace engine {
 			res = vkAllocateCommandBuffers(pimpl->device.device, &allocInfo, &commandBuffer);
 			assert(res == VK_SUCCESS);
 
-			LOG_TRACE("  write command buffer: {}", (void*)commandBuffer);
+//			LOG_TRACE("  write command buffer: {}", (void*)commandBuffer);
 
 			VkCommandBufferBeginInfo beginInfo{};
 			beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -813,7 +816,7 @@ namespace engine {
 			submitInfo.waitSemaphoreCount = 0;
 			submitInfo.pWaitSemaphores = nullptr;
 
-			res = vkQueueSubmit(pimpl->device.queues.transferQueues[1], 1, &submitInfo, VK_NULL_HANDLE);
+			res = vkQueueSubmit(pimpl->device.queues.transferQueues[transferQueueIndex], 1, &submitInfo, VK_NULL_HANDLE);
 			assert(res == VK_SUCCESS);
 
 		}

@@ -3,6 +3,7 @@
 #include "resource_manager.hpp"
 
 #include "gfx.hpp"
+#include "gfx_device.hpp"
 
 #include <glm/mat4x4.hpp>
 
