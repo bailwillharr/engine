@@ -725,6 +725,8 @@ namespace engine {
 		}
 	}
 
+	/* TODO: the descriptor buffer copy command buffers are never freed.
+	 * This causes the program to crash on IGPU after around 1 minute. (VK_ERROR_DEVICE_LOST on a vkQueueSubmit) */
 	gfx::DrawBuffer* GFXDevice::beginRender()
 	{
 		VkResult res;
