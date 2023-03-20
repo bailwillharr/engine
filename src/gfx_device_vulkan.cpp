@@ -678,7 +678,7 @@ namespace engine {
 		/* create a global descriptor pool */
 
 		std::vector<VkDescriptorPoolSize> poolSizes{};
-		poolSizes.emplace_back(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 100u); // purposely low limit
+		poolSizes.push_back({ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 100u }); // purposely low limit
 
 		VkDescriptorPoolCreateInfo descriptorPoolInfo{};
 		descriptorPoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -981,7 +981,7 @@ namespace engine {
 			// flag to re-create the swapchain before next render
 			pimpl->swapchainIsOutOfDate = true;
 		}
-		else if (res != VK_SUCCESS) throw std::runtime_error("Failed to queue present!");
+		else if (res != VK_SUCCESS) throw std::runtime_error("Failed to queue present! Code: " + std::to_string(res));
 
 		pimpl->FRAMECOUNT++;
 

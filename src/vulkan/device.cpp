@@ -51,7 +51,7 @@ namespace engine {
 			res = vkEnumerateDeviceExtensionProperties(physDev, nullptr, &extensionCount, availableExtensions.data());
 			assert(res == VK_SUCCESS);
 
-			for (const VkExtensionProperties& ext : availableExtensions) {
+			for ([[maybe_unused]] const VkExtensionProperties& ext : availableExtensions) {
 				LOG_TRACE("extension: {}", ext.extensionName);
 			}
 
