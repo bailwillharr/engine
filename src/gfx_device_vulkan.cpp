@@ -70,8 +70,8 @@ namespace engine {
 	struct FrameData {
 		VkFence renderFence = VK_NULL_HANDLE;
 		VkSemaphore transferSemaphore = VK_NULL_HANDLE;
-		VkSemaphore presentSemaphore = VK_NULL_HANDLE;
 		VkSemaphore renderSemaphore = VK_NULL_HANDLE;
+		VkSemaphore presentSemaphore = VK_NULL_HANDLE;
 
 		VkCommandPool graphicsPool = VK_NULL_HANDLE;
 		VkCommandBuffer drawBuf = VK_NULL_HANDLE;
@@ -338,10 +338,11 @@ namespace engine {
 		};
 
 		DeviceRequirements deviceRequirements{};
-		deviceRequirements.requiredExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_EXT_MEMORY_BUDGET_EXTENSION_NAME };
-		deviceRequirements.optionalExtensions = { VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME };
-		deviceRequirements.requiredFeatures.samplerAnisotropy = VK_TRUE;
-		deviceRequirements.requiredFeatures.fillModeNonSolid = VK_TRUE;
+		deviceRequirements.requiredExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+		deviceRequirements.optionalExtensions.push_back(VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME);
+		deviceRequirements.optionalExtensions.push_back(VK_EXT_MEMORY_BUDGET_EXTENSION_NAME);
+		//deviceRequirements.requiredFeatures.samplerAnisotropy = VK_TRUE;
+		//deviceRequirements.requiredFeatures.fillModeNonSolid = VK_TRUE;
 		deviceRequirements.formats.push_back(
 			FormatRequirements{
 				.format = VK_FORMAT_R8G8B8A8_SRGB,
@@ -423,8 +424,8 @@ namespace engine {
 				.flags = 0
 			};
 			VKCHECK(vkCreateSemaphore(pimpl->device.device, &smphInfo, nullptr, &pimpl->frameData[i].transferSemaphore));
-			VKCHECK(vkCreateSemaphore(pimpl->device.device, &smphInfo, nullptr, &pimpl->frameData[i].presentSemaphore));
 			VKCHECK(vkCreateSemaphore(pimpl->device.device, &smphInfo, nullptr, &pimpl->frameData[i].renderSemaphore));
+			VKCHECK(vkCreateSemaphore(pimpl->device.device, &smphInfo, nullptr, &pimpl->frameData[i].presentSemaphore));
 
 			VkCommandPoolCreateInfo poolInfo{
 				.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
@@ -479,10 +480,10 @@ namespace engine {
 		vkDestroyCommandPool(pimpl->device.device, pimpl->transferCommandPool, nullptr);
 
 		for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
-			vkDestroyCommandPool(pimpl->device.device, pimpl->frameData[i].graphicsPool, nullptr);
 			vkDestroyCommandPool(pimpl->device.device, pimpl->frameData[i].transferPool, nullptr);
-			vkDestroySemaphore(pimpl->device.device, pimpl->frameData[i].renderSemaphore, nullptr);
+			vkDestroyCommandPool(pimpl->device.device, pimpl->frameData[i].graphicsPool, nullptr);
 			vkDestroySemaphore(pimpl->device.device, pimpl->frameData[i].presentSemaphore, nullptr);
+			vkDestroySemaphore(pimpl->device.device, pimpl->frameData[i].renderSemaphore, nullptr);
 			vkDestroySemaphore(pimpl->device.device, pimpl->frameData[i].transferSemaphore, nullptr);
 			vkDestroyFence(pimpl->device.device, pimpl->frameData[i].renderFence, nullptr);
 		}

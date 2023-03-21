@@ -47,7 +47,6 @@ namespace engine {
 			res = vkEnumerateDeviceExtensionProperties(physDev, nullptr, &extensionCount, nullptr);
 			assert(res == VK_SUCCESS);
 			availableExtensions.resize(extensionCount);
-			std::vector<VkExtensionProperties> availableExtensions(extensionCount);
 			res = vkEnumerateDeviceExtensionProperties(physDev, nullptr, &extensionCount, availableExtensions.data());
 			assert(res == VK_SUCCESS);
 

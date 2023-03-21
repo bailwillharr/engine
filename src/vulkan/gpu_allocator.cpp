@@ -44,7 +44,7 @@ namespace engine {
 		};
 
 		VmaAllocatorCreateInfo createInfo{
-			.flags = VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT,
+			.flags = 0,
 			.physicalDevice = device.physicalDevice,
 			.device = device.device,
 			.preferredLargeHeapBlockSize = 0,
@@ -60,6 +60,10 @@ namespace engine {
 		if (std::find(device.enabledExtensions.begin(), device.enabledExtensions.end(),
 			std::string(VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME)) != device.enabledExtensions.end()) {
 				createInfo.flags |= VMA_ALLOCATOR_CREATE_EXT_MEMORY_PRIORITY_BIT;
+		}
+		if (std::find(device.enabledExtensions.begin(), device.enabledExtensions.end(),
+			std::string(VK_EXT_MEMORY_BUDGET_EXTENSION_NAME)) != device.enabledExtensions.end()) {
+				createInfo.flags |= VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT;
 		}
 
 		[[maybe_unused]] VkResult res;
