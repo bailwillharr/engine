@@ -404,7 +404,7 @@ namespace engine {
 		pimpl->swapchainInfo.vsync = pimpl->graphicsSettings.vsync;
 		pimpl->swapchainInfo.waitForPresent = pimpl->graphicsSettings.waitForPresent;
 		createSwapchain(&pimpl->swapchain, pimpl->swapchainInfo);
-
+		
 		/* make synchronisation primitives for rendering and allocate command buffers */
 
 		for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
@@ -1272,14 +1272,12 @@ namespace engine {
 		for (uint32_t i = 0; i < memProps.memoryProperties.memoryHeapCount; i++) {
 			const VmaStatistics& statistics = pStats.memoryType[i].statistics;
 			VkMemoryHeap heap = memProps.memoryProperties.memoryHeaps[i];
-			if (statistics.allocationCount > 0) {
-				LOG_INFO("Memory heap {}", i);
-				LOG_INFO("    Memory blocks allocated: {} ({} MiB)", statistics.blockCount, statistics.allocationBytes / (1024 * 1024));
-				LOG_INFO("    Number of allocations: {} ({} MiB)", statistics.allocationCount, statistics.allocationBytes / (1024 * 1024));
-				LOG_INFO("    Max size: {} MiB", heap.size / (1024 * 1024));
-				if (heap.flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) {
-					LOG_INFO("    DEVICE_LOCAL");
-				}
+			LOG_INFO("Memory heap {}", i);
+			LOG_INFO("    Memory blocks allocated: {} ({} MiB)", statistics.blockCount, statistics.allocationBytes / (1024 * 1024));
+			LOG_INFO("    Number of allocations: {} ({} MiB)", statistics.allocationCount, statistics.allocationBytes / (1024 * 1024));
+			LOG_INFO("    Max size: {} MiB", heap.size / (1024 * 1024));
+			if (heap.flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) {
+				LOG_INFO("    DEVICE_LOCAL");
 			}
 		}
 	}
