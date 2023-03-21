@@ -57,10 +57,15 @@ namespace engine {
 
 	struct FrameData {
 		VkFence renderFence = VK_NULL_HANDLE;
+		VkSemaphore transferSemaphore = VK_NULL_HANDLE;
 		VkSemaphore presentSemaphore = VK_NULL_HANDLE;
 		VkSemaphore renderSemaphore = VK_NULL_HANDLE;
-		VkCommandPool commandPool = VK_NULL_HANDLE;
+
+		VkCommandPool graphicsPool = VK_NULL_HANDLE;
 		VkCommandBuffer drawBuf = VK_NULL_HANDLE;
+
+		VkCommandPool transferPool = VK_NULL_HANDLE;
+		VkCommandBuffer transferBuf = VK_NULL_HANDLE;
 	};
 
 	// handles
@@ -92,7 +97,6 @@ namespace engine {
 		FrameData frameData{};
 		uint32_t currentFrameIndex = 0; // corresponds to the frameData
 		uint32_t imageIndex = 0; // for swapchain present
-		std::unordered_set<gfx::DescriptorBuffer*>* buffersToWrite = nullptr;
 	};
 
 	struct gfx::DescriptorSetLayout {
@@ -224,77 +228,6 @@ namespace engine {
 
 	}
 
-#if 0
-
-	static Swapchain::MSTarget createMSAATarget(VkSampleCountFlagBits msaaSamples, VkExtent2D extent, VkFormat colorFormat, VkDevice device, VmaAllocator allocator)
-	{
-		Swapchain::MSTarget target{};
-
-		[[maybe_unused]] VkResult res;
-
-		VkImageCreateInfo imageInfo{};
-		imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-		imageInfo.imageType = VK_IMAGE_TYPE_2D;
-		imageInfo.extent.width = extent.width;
-		imageInfo.extent.height = extent.height;
-		imageInfo.extent.depth = 1;
-		imageInfo.mipLevels = 1;
-		imageInfo.arrayLayers = 1;
-		imageInfo.format = colorFormat;
-		imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-		imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		imageInfo.usage = VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-		imageInfo.samples = msaaSamples;
-		imageInfo.flags = 0;
-
-		VmaAllocationCreateInfo allocInfo{};
-		allocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
-		allocInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
-		allocInfo.priority = 1.0f;
-
-		res = vmaCreateImage(allocator, &imageInfo, &allocInfo, &target.colorImage, &target.colorImageAllocation, nullptr);
-		assert(res == VK_SUCCESS);
-
-		VkImageViewCreateInfo imageViewInfo{};
-		imageViewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		imageViewInfo.image = target.colorImage;
-		imageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		imageViewInfo.format = colorFormat;
-		imageViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		imageViewInfo.subresourceRange.baseMipLevel = 0;
-		imageViewInfo.subresourceRange.levelCount = 1;
-		imageViewInfo.subresourceRange.baseArrayLayer = 0;
-		imageViewInfo.subresourceRange.layerCount = 1;
-		res = vkCreateImageView(device, &imageViewInfo, nullptr, &target.colorImageView);
-		assert(res == VK_SUCCESS);
-
-		return target;
-	}
-
-	static void destroyMSAATarget(const Swapchain::MSTarget& target, VkDevice device, VmaAllocator allocator)
-	{
-		vkDestroyImageView(device, target.colorImageView, nullptr);
-		vmaDestroyImage(allocator, target.colorImage, target.colorImageAllocation);
-	}
-
-	static VkSampleCountFlagBits getMaxSampleCount(VkPhysicalDevice physicalDevice, gfx::MSAALevel maxLevel)
-	{
-		VkSampleCountFlags max = vkinternal::getSampleCountFlags(maxLevel);
-		VkPhysicalDeviceProperties physicalDeviceProperties;
-		vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
-
-		VkSampleCountFlags counts = physicalDeviceProperties.limits.framebufferColorSampleCounts & physicalDeviceProperties.limits.framebufferDepthSampleCounts;
-		counts %= (max << 1); // restricts sample count to maxLevel
-		if (counts & VK_SAMPLE_COUNT_64_BIT) { return VK_SAMPLE_COUNT_64_BIT; }
-		if (counts & VK_SAMPLE_COUNT_32_BIT) { return VK_SAMPLE_COUNT_32_BIT; }
-		if (counts & VK_SAMPLE_COUNT_16_BIT) { return VK_SAMPLE_COUNT_16_BIT; }
-		if (counts & VK_SAMPLE_COUNT_8_BIT) { return VK_SAMPLE_COUNT_8_BIT; }
-		if (counts & VK_SAMPLE_COUNT_4_BIT) { return VK_SAMPLE_COUNT_4_BIT; }
-		if (counts & VK_SAMPLE_COUNT_2_BIT) { return VK_SAMPLE_COUNT_2_BIT; }
-		throw std::runtime_error("MSAA is not supported");
-	}
-#endif
 	static void copyBuffer(VkDevice device, VkCommandPool commandPool, VkQueue queue, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
 	{
 		[[maybe_unused]] VkResult res;
@@ -342,166 +275,6 @@ namespace engine {
 
 	}
 
-#if 0
-
-	static VkCommandBuffer beginOneTimeCommands(VkDevice device, VkCommandPool commandPool)
-	{
-		[[maybe_unused]] VkResult res;
-
-		VkCommandBufferAllocateInfo allocInfo{};
-		allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-		allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-		allocInfo.commandPool = commandPool;
-		allocInfo.commandBufferCount = 1;
-
-		VkCommandBuffer commandBuffer;
-		res = vkAllocateCommandBuffers(device, &allocInfo, &commandBuffer);
-		assert(res == VK_SUCCESS);
-
-		VkCommandBufferBeginInfo beginInfo{};
-		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-		res = vkBeginCommandBuffer(commandBuffer, &beginInfo);
-		assert(res == VK_SUCCESS);
-
-		return commandBuffer;
-	}
-
-	static void endOneTimeCommands(VkDevice device, VkCommandPool commandPool, VkCommandBuffer commandBuffer, VkQueue queue)
-	{
-		[[maybe_unused]] VkResult res;
-		res = vkEndCommandBuffer(commandBuffer);
-		assert(res == VK_SUCCESS);
-
-		VkSubmitInfo submitInfo{};
-		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &commandBuffer;
-
-		res = vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
-		assert(res == VK_SUCCESS);
-		res = vkQueueWaitIdle(queue);
-		assert(res == VK_SUCCESS);
-
-		vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
-	}
-
-	static void cmdTransitionImageLayout(VkCommandBuffer commandBuffer, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels, VkImage image)
-	{
-
-		VkImageMemoryBarrier barrier{};
-		barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-		barrier.oldLayout = oldLayout;
-		barrier.newLayout = newLayout;
-		barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		barrier.image = image;
-		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		barrier.subresourceRange.baseMipLevel = 0;
-		barrier.subresourceRange.levelCount = mipLevels;
-		barrier.subresourceRange.baseArrayLayer = 0;
-		barrier.subresourceRange.layerCount = 1;
-
-		VkPipelineStageFlags sourceStage;
-		VkPipelineStageFlags destinationStage;
-
-		if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
-			barrier.srcAccessMask = 0;
-			barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-
-			sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-			destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-		}
-		else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
-			barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-			barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
-			sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-			destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-		}
-		else {
-			throw std::invalid_argument("unsupported layout transition!");
-		}
-
-		vkCmdPipelineBarrier(commandBuffer, sourceStage, destinationStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
-
-	}
-
-	static void cmdGenerateMipmaps(VkCommandBuffer commandBuffer, VkImage image, int32_t width, int32_t height, uint32_t mipLevels)
-	{
-
-		VkImageMemoryBarrier barrier{};
-		barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-		barrier.image = image;
-		barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		barrier.subresourceRange.baseArrayLayer = 0;
-		barrier.subresourceRange.layerCount = 1;
-		barrier.subresourceRange.levelCount = 1;
-
-		int32_t mipWidth = width;
-		int32_t mipHeight = height;
-		for (uint32_t i = 1; i < mipLevels; i++) {
-			barrier.subresourceRange.baseMipLevel = i - 1;
-			barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-			barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-			barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-			barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-
-			vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
-				0, nullptr,
-				0, nullptr,
-				1, &barrier);
-
-			VkImageBlit blit{};
-			blit.srcOffsets[0] = { 0, 0, 0 };
-			blit.srcOffsets[1] = { mipWidth, mipHeight, 1 };
-			blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			blit.srcSubresource.mipLevel = i - 1;
-			blit.srcSubresource.baseArrayLayer = 0;
-			blit.srcSubresource.layerCount = 1;
-			blit.dstOffsets[0] = { 0, 0, 0 };
-			blit.dstOffsets[1] = { mipWidth > 1 ? mipWidth / 2 : 1, mipHeight > 1 ? mipHeight / 2 : 1, 1 };
-			blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			blit.dstSubresource.mipLevel = i;
-			blit.dstSubresource.baseArrayLayer = 0;
-			blit.dstSubresource.layerCount = 1;
-
-			vkCmdBlitImage(commandBuffer, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit, VK_FILTER_LINEAR);
-
-			barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-			barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-			barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
-			vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-				0,
-				0, nullptr,
-				0, nullptr,
-				1, &barrier);
-
-			if (mipWidth > 1) mipWidth /= 2;
-			if (mipHeight > 1) mipHeight /= 2;
-
-		}
-
-		barrier.subresourceRange.baseMipLevel = mipLevels - 1;
-		barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-		barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
-		vkCmdPipelineBarrier(commandBuffer,
-			VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
-			0, nullptr,
-			0, nullptr,
-			1, &barrier);
-	}
-
-#endif
-
 	// class definitions
 
 	struct GFXDevice::Impl {
@@ -518,8 +291,9 @@ namespace engine {
 		Swapchain swapchain{};
 
 		VkDescriptorPool descriptorPool;
-		VkCommandPool transferCommandPool = VK_NULL_HANDLE;
 		std::array<std::unordered_set<gfx::DescriptorBuffer*>, FRAMES_IN_FLIGHT> descriptorBufferWriteQueues{};
+
+		VkCommandPool transferCommandPool = VK_NULL_HANDLE;
 
 		uint64_t FRAMECOUNT = 0;
 
@@ -643,10 +417,9 @@ namespace engine {
 				.pNext = nullptr,
 				.flags = 0
 			};
-			res = vkCreateSemaphore(pimpl->device.device, &smphInfo, nullptr, &pimpl->frameData[i].presentSemaphore);
-			if (res != VK_SUCCESS) throw std::runtime_error("Failed to create semaphore!");
-			res = vkCreateSemaphore(pimpl->device.device, &smphInfo, nullptr, &pimpl->frameData[i].renderSemaphore);
-			if (res != VK_SUCCESS) throw std::runtime_error("Failed to create semaphore!");
+			VKCHECK(vkCreateSemaphore(pimpl->device.device, &smphInfo, nullptr, &pimpl->frameData[i].transferSemaphore));
+			VKCHECK(vkCreateSemaphore(pimpl->device.device, &smphInfo, nullptr, &pimpl->frameData[i].presentSemaphore));
+			VKCHECK(vkCreateSemaphore(pimpl->device.device, &smphInfo, nullptr, &pimpl->frameData[i].renderSemaphore));
 
 			VkCommandPoolCreateInfo poolInfo{
 				.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
@@ -654,19 +427,23 @@ namespace engine {
 				.flags = 0, // Command buffers cannot be individually reset (more performant this way)
 				.queueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily
 			};
-			VKCHECK(vkCreateCommandPool(pimpl->device.device, &poolInfo, nullptr, &pimpl->frameData[i].commandPool));
+			VKCHECK(vkCreateCommandPool(pimpl->device.device, &poolInfo, nullptr, &pimpl->frameData[i].graphicsPool));
+			poolInfo.queueFamilyIndex = pimpl->device.queues.transferQueueFamily;
+			VKCHECK(vkCreateCommandPool(pimpl->device.device, &poolInfo, nullptr, &pimpl->frameData[i].transferPool));
 
 			VkCommandBufferAllocateInfo cmdAllocInfo{
 				.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
 				.pNext = nullptr,
-				.commandPool = pimpl->frameData[i].commandPool,
+				.commandPool = pimpl->frameData[i].graphicsPool,
 				.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
 				.commandBufferCount = 1
 			};
 			VKCHECK(vkAllocateCommandBuffers(pimpl->device.device, &cmdAllocInfo, &pimpl->frameData[i].drawBuf));
+			cmdAllocInfo.commandPool = pimpl->frameData[i].transferPool;
+			VKCHECK(vkAllocateCommandBuffers(pimpl->device.device, &cmdAllocInfo, &pimpl->frameData[i].transferBuf));
 		}
 
-		/* create command pool for transfer operations */
+		/* create command pool for one-off transfer operations */
 		VkCommandPoolCreateInfo transferPoolInfo{
 			.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
 			.pNext = nullptr,
@@ -676,7 +453,6 @@ namespace engine {
 		VKCHECK(vkCreateCommandPool(pimpl->device.device, &transferPoolInfo, nullptr, &pimpl->transferCommandPool));
 
 		/* create a global descriptor pool */
-
 		std::vector<VkDescriptorPoolSize> poolSizes{};
 		poolSizes.push_back({ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 100u }); // purposely low limit
 
@@ -698,9 +474,11 @@ namespace engine {
 		vkDestroyCommandPool(pimpl->device.device, pimpl->transferCommandPool, nullptr);
 
 		for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
-			vkDestroyCommandPool(pimpl->device.device, pimpl->frameData[i].commandPool, nullptr);
+			vkDestroyCommandPool(pimpl->device.device, pimpl->frameData[i].graphicsPool, nullptr);
+			vkDestroyCommandPool(pimpl->device.device, pimpl->frameData[i].transferPool, nullptr);
 			vkDestroySemaphore(pimpl->device.device, pimpl->frameData[i].renderSemaphore, nullptr);
 			vkDestroySemaphore(pimpl->device.device, pimpl->frameData[i].presentSemaphore, nullptr);
+			vkDestroySemaphore(pimpl->device.device, pimpl->frameData[i].transferSemaphore, nullptr);
 			vkDestroyFence(pimpl->device.device, pimpl->frameData[i].renderFence, nullptr);
 		}
 
@@ -731,8 +509,6 @@ namespace engine {
 	{
 		VkResult res;
 
-		gfx::DrawBuffer* drawBuffer = new gfx::DrawBuffer;
-
 		const uint32_t currentFrameIndex = pimpl->FRAMECOUNT % FRAMES_IN_FLIGHT;
 		const FrameData frameData = pimpl->frameData[currentFrameIndex];
 
@@ -741,88 +517,57 @@ namespace engine {
 		VKCHECK(res);
 		res = vkResetFences(pimpl->device.device, 1, &frameData.renderFence);
 		VKCHECK(res);
+#if 0
+		/* perform any pending uniform buffer writes */
+		VKCHECK(vkResetCommandPool(pimpl->device.device, frameData.transferPool, 0));
 
-		uint32_t transferQueueIndex = 0;
-		if (pimpl->device.queues.transferQueues.size() >= 2) {
-			transferQueueIndex = 1;
+		VkCommandBufferBeginInfo transferBeginInfo{
+			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+			.pNext = nullptr,
+			.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+			.pInheritanceInfo = nullptr // ignored
+		};
+		VKCHECK(vkBeginCommandBuffer(frameData.transferBuf, &transferBeginInfo));
+
+		// transfer cmds...
+
+		std::vector<VkBufferMemoryBarrier> barriers(pimpl->descriptorBufferWriteQueues[currentFrameIndex].size());
+		for (gfx::DescriptorBuffer* descriptorBuffer : pimpl->descriptorBufferWriteQueues[currentFrameIndex]) {
+			VkBufferMemoryBarrier& barrier = barriers.emplace_back();
+			barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+			barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+			barrier.dstAccessMask = 0;
+			barrier.srcQueueFamilyIndex = pimpl->device.queues.transferQueueFamily;
+			barrier.dstQueueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily;
+			barrier.buffer = descriptorBuffer->gpuBuffers[currentFrameIndex].buffer;
+			barrier.offset = 0;
+			barrier.size = descriptorBuffer->gpuBuffers[currentFrameIndex].size;
 		}
 
-		/* first empty the descriptor buffer write queue */
-		auto& writeQueue = pimpl->descriptorBufferWriteQueues[currentFrameIndex];
-		if (writeQueue.empty() == false) {
-//			LOG_TRACE("write queue size: {}", writeQueue.size());
-		//	vkQueueWaitIdle(pimpl->device.queues.drawQueues[0]);
-		}
-		for (gfx::DescriptorBuffer* buffer : writeQueue) {
-
-			// record the command buffer
-			VkCommandBufferAllocateInfo allocInfo{};
-			allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-			allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-			allocInfo.commandPool = pimpl->transferCommandPool;
-			allocInfo.commandBufferCount = 1;
-
-			VkCommandBuffer commandBuffer;
-			res = vkAllocateCommandBuffers(pimpl->device.device, &allocInfo, &commandBuffer);
-			assert(res == VK_SUCCESS);
-
-//			LOG_TRACE("  write command buffer: {}", (void*)commandBuffer);
-
-			VkCommandBufferBeginInfo beginInfo{};
-			beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-			beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-			res = vkBeginCommandBuffer(commandBuffer, &beginInfo);
-			assert(res == VK_SUCCESS);
-
-			VkBufferCopy copyRegion{};
-			copyRegion.srcOffset = 0;
-			copyRegion.dstOffset = 0;
-			copyRegion.size = buffer->stagingBuffer.size;
-			vkCmdCopyBuffer(commandBuffer, buffer->stagingBuffer.buffer, buffer->gpuBuffers[currentFrameIndex].buffer, 1, &copyRegion);
-
-			/* barrier to perform ownership transfer from transferQueue to drawQueue (RELEASE) */
-			VkBufferMemoryBarrier bufferMemoryBarrier{};
-			bufferMemoryBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-			bufferMemoryBarrier.pNext = nullptr;
-			bufferMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-			bufferMemoryBarrier.dstAccessMask = 0;
-			bufferMemoryBarrier.srcQueueFamilyIndex = pimpl->device.queues.transferQueueFamily;
-			bufferMemoryBarrier.dstQueueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily;
-			bufferMemoryBarrier.buffer = buffer->gpuBuffers[currentFrameIndex].buffer;
-			bufferMemoryBarrier.offset = 0;
-			bufferMemoryBarrier.size = buffer->stagingBuffer.size;
-
-			vkCmdPipelineBarrier(
-				commandBuffer,
-				VK_PIPELINE_STAGE_TRANSFER_BIT, // srcStageMask
-				VK_PIPELINE_STAGE_TRANSFER_BIT, // dstStageMask
+		vkCmdPipelineBarrier(frameData.transferBuf,
+				VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
 				0,
-				0,
-				nullptr,
-				1,
-				&bufferMemoryBarrier,
-				0,
-				nullptr
+				0, nullptr,
+				(uint32_t)barriers.size(), barriers.data(),
+				0, nullptr
 			);
 
-			res = vkEndCommandBuffer(commandBuffer);
-			assert(res == VK_SUCCESS);
+		VKCHECK(vkEndCommandBuffer(frameData.transferBuf));
 
-			// submit
-			VkSubmitInfo submitInfo{};
-			submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-			submitInfo.commandBufferCount = 1;
-			submitInfo.pCommandBuffers = &commandBuffer;
-			submitInfo.signalSemaphoreCount = 1;
-			submitInfo.pSignalSemaphores = &buffer->copySemaphores[currentFrameIndex];
-			submitInfo.waitSemaphoreCount = 0;
-			submitInfo.pWaitSemaphores = nullptr;
-
-			res = vkQueueSubmit(pimpl->device.queues.transferQueues[transferQueueIndex], 1, &submitInfo, VK_NULL_HANDLE);
-			assert(res == VK_SUCCESS);
-
-		}
-
+		VkSubmitInfo transferSubmitInfo{
+			.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+			.pNext = nullptr,
+			.waitSemaphoreCount = 0, // needs to wait for render but the fence does that
+			.pWaitSemaphores = nullptr,
+			.pWaitDstStageMask = nullptr,
+			.commandBufferCount = 1,
+			.pCommandBuffers = &frameData.transferBuf,
+			.signalSemaphoreCount = 1,
+			.pSignalSemaphores = &frameData.transferSemaphore,
+		}; 
+		res = vkQueueSubmit(pimpl->device.queues.transferQueues[0], 1, &transferSubmitInfo, VK_NULL_HANDLE);
+		assert(res == VK_SUCCESS);
+#endif
 		uint32_t swapchainImageIndex;
 
 		do {
@@ -841,7 +586,7 @@ namespace engine {
 		} while (pimpl->swapchainIsOutOfDate);
 
 		/* record command buffer */
-		res = vkResetCommandPool(pimpl->device.device, frameData.commandPool, 0);
+		res = vkResetCommandPool(pimpl->device.device, frameData.graphicsPool, 0);
 		VKCHECK(res);
 
 		VkCommandBufferBeginInfo beginInfo{
@@ -854,33 +599,6 @@ namespace engine {
 		VKCHECK(res);
 
 		{ // RECORDING
-
-			for (gfx::DescriptorBuffer* buffer : writeQueue) {
-				/* barrier to perform ownership transfer from transferQueue to drawQueue (ACQUIRE) */
-				VkBufferMemoryBarrier bufferMemoryBarrier{};
-				bufferMemoryBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-				bufferMemoryBarrier.pNext = nullptr;
-				bufferMemoryBarrier.srcAccessMask = 0;
-				bufferMemoryBarrier.dstAccessMask = VK_ACCESS_UNIFORM_READ_BIT;
-				bufferMemoryBarrier.srcQueueFamilyIndex = pimpl->device.queues.transferQueueFamily;
-				bufferMemoryBarrier.dstQueueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily;
-				bufferMemoryBarrier.buffer = buffer->gpuBuffers[currentFrameIndex].buffer;
-				bufferMemoryBarrier.offset = 0;
-				bufferMemoryBarrier.size = buffer->stagingBuffer.size;
-
-				vkCmdPipelineBarrier(
-					frameData.drawBuf,
-					VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, // srcStageMask
-					VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, // dstStageMask
-					0,
-					0,
-					nullptr,
-					1,
-					&bufferMemoryBarrier,
-					0,
-					nullptr
-				);
-			}
 
 			std::array<VkClearValue, 2> clearValues{}; // Using same value for all components enables compression according to NVIDIA Best Practices
 			clearValues[0].color.float32[0] = 1.0f;
@@ -917,19 +635,18 @@ namespace engine {
 		}
 
 		// hand command buffer over to caller
+		gfx::DrawBuffer* drawBuffer = new gfx::DrawBuffer;
 		drawBuffer->frameData = frameData;
 		drawBuffer->currentFrameIndex = currentFrameIndex;
 		drawBuffer->imageIndex = swapchainImageIndex;
-		drawBuffer->buffersToWrite = &writeQueue;
 		return drawBuffer;
 
 	}
 
 	void GFXDevice::finishRender(gfx::DrawBuffer* drawBuffer)
 	{
-		if (drawBuffer == nullptr) {
-			return;
-		}
+		assert(drawBuffer != nullptr);
+
 		uint32_t swapchainImageIndex = drawBuffer->imageIndex;
 		VkResult res;
 
@@ -943,13 +660,10 @@ namespace engine {
 		std::vector<VkSemaphore> waitSemaphores{};
 		std::vector<VkPipelineStageFlags> waitDstStageMasks{};
 
-		for (const gfx::DescriptorBuffer* buffer : *drawBuffer->buffersToWrite) {
-			waitSemaphores.push_back(buffer->copySemaphores[drawBuffer->currentFrameIndex]);
-			waitDstStageMasks.push_back(VK_PIPELINE_STAGE_VERTEX_SHADER_BIT);
-		}
-
 		waitSemaphores.push_back(drawBuffer->frameData.presentSemaphore);
 		waitDstStageMasks.push_back(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+		//waitSemaphores.push_back(drawBuffer->frameData.transferSemaphore);
+		//waitDstStageMasks.push_back(VK_PIPELINE_STAGE_VERTEX_SHADER_BIT);
 
 		VkSubmitInfo submitInfo{
 			.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
@@ -986,9 +700,6 @@ namespace engine {
 		else if (res != VK_SUCCESS) throw std::runtime_error("Failed to queue present! Code: " + std::to_string(res));
 
 		pimpl->FRAMECOUNT++;
-
-		/* empty the buffersToWrite queue */
-		drawBuffer->buffersToWrite->clear();
 
 		delete drawBuffer;
 	}
@@ -1510,211 +1221,12 @@ namespace engine {
 		(void)useAnisotropy;
 		auto out = new gfx::Texture;
 
-#if 0
-
-		[[maybe_unused]] VkResult res;
-
-		size_t imageSize = width * height * 4;
-
-		if (mipmapSetting == gfx::MipmapSetting::OFF) {
-			out->mipLevels = 1;
-		}
-		else {
-			out->mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(width, height)))) + 1;
-		}
-
-		// first load image into staging buffer
-		VkBuffer stagingBuffer;
-		VmaAllocation stagingAllocation;
-		{
-			VkBufferCreateInfo stagingBufferInfo{};
-			stagingBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-			stagingBufferInfo.size = imageSize;
-			stagingBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-			stagingBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-			stagingBufferInfo.flags = 0;
-
-			VmaAllocationCreateInfo stagingAllocInfo{};
-			stagingAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
-			stagingAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
-			stagingAllocInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-
-			res = vmaCreateBuffer(pimpl->allocator, &stagingBufferInfo, &stagingAllocInfo, &stagingBuffer, &stagingAllocation, nullptr);
-			assert(res == VK_SUCCESS);
-
-			void* dataDest;
-			res = vmaMapMemory(pimpl->allocator, stagingAllocation, &dataDest);
-			assert(res == VK_SUCCESS);
-			memcpy(dataDest, imageData, imageSize);
-			vmaUnmapMemory(pimpl->allocator, stagingAllocation);
-		}
-
-		// create the image
-		VkImageCreateInfo imageInfo{};
-		imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-		imageInfo.imageType = VK_IMAGE_TYPE_2D;
-		imageInfo.extent.width = width;
-		imageInfo.extent.height = height;
-		imageInfo.extent.depth = 1;
-		imageInfo.mipLevels = out->mipLevels;
-		imageInfo.arrayLayers = 1;
-		imageInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
-		imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-		imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-		imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-		imageInfo.flags = 0;
-
-		VmaAllocationCreateInfo imageAllocInfo{};
-		imageAllocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
-
-		res = vmaCreateImage(pimpl->allocator, &imageInfo, &imageAllocInfo, &out->image, &out->alloc, nullptr);
-		assert(res == VK_SUCCESS);
-
-		// transition the image layout
-		{
-			VkCommandBuffer commandBuffer = beginOneTimeCommands(pimpl->device, pimpl->commandPool);
-
-			// begin cmd buffer
-
-			cmdTransitionImageLayout(commandBuffer, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, out->mipLevels, out->image);
-
-			VkBufferImageCopy region{};
-			region.bufferOffset = 0;
-			region.bufferRowLength = 0;
-			region.bufferImageHeight = 0;
-			region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			region.imageSubresource.mipLevel = 0;
-			region.imageSubresource.baseArrayLayer = 0;
-			region.imageSubresource.layerCount = 1;
-			region.imageOffset = { 0, 0, 0 };
-			region.imageExtent.width = width;
-			region.imageExtent.height = height;
-			region.imageExtent.depth = 1;
-
-			vkCmdCopyBufferToImage(commandBuffer, stagingBuffer, out->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
-
-			// Mipmap generation handles the transition to SHADER_READ_ONLY_OPTIMAL
-			cmdGenerateMipmaps(commandBuffer, out->image, width, height, out->mipLevels);
-
-			// end cmd buffer
-			endOneTimeCommands(pimpl->device, pimpl->commandPool, commandBuffer, pimpl->gfxQueue.handle);
-
-		}
-
-		// destroy staging buffer
-		vmaDestroyBuffer(pimpl->allocator, stagingBuffer, stagingAllocation);
-
-		// create image view
-		VkImageViewCreateInfo imageViewInfo{};
-		imageViewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		imageViewInfo.image = out->image;
-		imageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		imageViewInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
-		imageViewInfo.subresourceRange = {
-			.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-			.baseMipLevel = 0,
-			.levelCount = out->mipLevels,
-			.baseArrayLayer = 0,
-			.layerCount = 1
-		};
-
-		res = vkCreateImageView(pimpl->device, &imageViewInfo, nullptr, &out->imageView);
-		assert(res == VK_SUCCESS);
-
-		VkFilter magFilterInternal = vkinternal::getTextureFilter(magFilter);
-		VkFilter minFilterInternal = vkinternal::getTextureFilter(minFilter);
-
-		// create texture sampler
-		{
-
-			VkSamplerCreateInfo samplerInfo{};
-			samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-			samplerInfo.magFilter = magFilterInternal;
-			samplerInfo.minFilter = minFilterInternal;
-			samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-			samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-			samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-			if (useAnisotropy) {
-				samplerInfo.anisotropyEnable = VK_TRUE;
-			}
-			else {
-				samplerInfo.anisotropyEnable = VK_FALSE;
-			}
-			samplerInfo.maxAnisotropy = pimpl->maxSamplerAnisotropy;
-			samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-			samplerInfo.unnormalizedCoordinates = VK_FALSE;
-			samplerInfo.compareEnable = VK_FALSE;
-			samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-			if (mipmapSetting == gfx::MipmapSetting::LINEAR) {
-				samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-			}
-			else {
-				samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
-			}
-			samplerInfo.minLod = 0.0f;
-			samplerInfo.maxLod = static_cast<float>(out->mipLevels);
-			samplerInfo.mipLodBias = 0.0f;
-
-			res = vkCreateSampler(pimpl->device, &samplerInfo, nullptr, &out->sampler);
-			assert(res == VK_SUCCESS);
-		}
-
-		// create descriptor pools
-		VkDescriptorPoolSize poolSize{};
-		poolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		poolSize.descriptorCount = FRAMES_IN_FLIGHT;
-
-		VkDescriptorPoolCreateInfo poolInfo{};
-		poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-		poolInfo.poolSizeCount = 1;
-		poolInfo.pPoolSizes = &poolSize;
-		poolInfo.maxSets = FRAMES_IN_FLIGHT;
-		res = vkCreateDescriptorPool(pimpl->device, &poolInfo, nullptr, &out->pool);
-		assert(res == VK_SUCCESS);
-
-		std::array<VkDescriptorSetLayout, FRAMES_IN_FLIGHT> layouts{};
-		layouts.fill(pimpl->samplerSetLayout);
-		VkDescriptorSetAllocateInfo dSetAllocInfo{};
-		dSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-		dSetAllocInfo.descriptorPool = out->pool;
-		dSetAllocInfo.descriptorSetCount = FRAMES_IN_FLIGHT;
-		dSetAllocInfo.pSetLayouts = layouts.data();
-		res = vkAllocateDescriptorSets(pimpl->device, &dSetAllocInfo, out->descriptorSets.data());
-		assert(res == VK_SUCCESS);
-
-		for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
-			VkDescriptorImageInfo imageInfo{};
-			imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			imageInfo.imageView = out->imageView;
-			imageInfo.sampler = out->sampler;
-
-			VkWriteDescriptorSet descriptorWrite{};
-			descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrite.dstSet = out->descriptorSets[i];
-			descriptorWrite.dstBinding = 0;
-			descriptorWrite.dstArrayElement = 0;
-			descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			descriptorWrite.descriptorCount = 1;
-			descriptorWrite.pImageInfo = &imageInfo;
-
-			vkUpdateDescriptorSets(pimpl->device, 1, &descriptorWrite, 0, nullptr);
-		}
-
-#endif
 		return out;
 	}
 
 	void GFXDevice::destroyTexture(const gfx::Texture* texture)
 	{
 		(void)texture;
-#if 0
-		vkDestroyDescriptorPool(pimpl->device, texture->pool, nullptr);
-		vkDestroySampler(pimpl->device, texture->sampler, nullptr);
-		vkDestroyImageView(pimpl->device, texture->imageView, nullptr);
-		vmaDestroyImage(pimpl->allocator, texture->image, texture->alloc);
-#endif
 	}
 
 	uint64_t GFXDevice::getFrameCount()
