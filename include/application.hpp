@@ -34,14 +34,14 @@ namespace engine {
 		struct SetZeroBuffer {
 			glm::mat4 proj;
 		};
-		gfx::DescriptorBuffer* setZeroBuffer;
+		gfx::UniformBuffer* setZeroBuffer;
 		/* uniforms for per-frame data */
 		const gfx::DescriptorSetLayout* setOneLayout;
 		const gfx::DescriptorSet* setOne;
 		struct SetOneBuffer {
 			glm::mat4 view;
 		};
-		gfx::DescriptorBuffer* setOneBuffer;
+		gfx::UniformBuffer* setOneBuffer;
 	};
 
 	class Application {

@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <vector>
+#include <type_traits>
 
 // Enums and structs for the graphics abstraction
 
@@ -9,7 +10,7 @@ namespace engine::gfx {
 
 	// handles (incomplete types)
 	struct Pipeline;
-	struct DescriptorBuffer;
+	struct UniformBuffer;
 	struct Buffer;
 	struct Texture;
 	struct DrawBuffer;
@@ -80,9 +81,18 @@ namespace engine::gfx {
 		LINEAR,
 	};
 
-	struct VertexBufferDesc {
-		uint64_t size;
+	enum class DescriptorType {
+		UNIFORM_BUFFER,
+		COMBINED_IMAGE_SAMPLER,
 	};
+
+	namespace ShaderStageFlags {
+		enum Bits : uint32_t {
+			VERTEX = 1 << 0,
+			FRAGMENT = 1 << 1,
+		};
+		typedef std::underlying_type<Bits>::type Flags;
+	}
 
 	struct VertexAttribDescription {
 		VertexAttribDescription(uint32_t location, VertexAttribFormat format, uint32_t offset) :
@@ -106,6 +116,11 @@ namespace engine::gfx {
 		bool alphaBlending;
 		bool backfaceCulling;
 		std::vector<const DescriptorSetLayout*> descriptorSetLayouts;
+	};
+
+	struct DescriptorSetLayoutBinding {
+		DescriptorType descriptorType = DescriptorType::UNIFORM_BUFFER;
+		ShaderStageFlags::Flags stageFlags = 0;
 	};
 
 }

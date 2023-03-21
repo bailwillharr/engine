@@ -48,13 +48,13 @@ namespace engine {
 			RenderData::SetZeroBuffer setZeroBuffer{
 				.proj = projMatrix
 			};
-			m_gfx->writeDescriptorBuffer(renderData.setZeroBuffer, 0, sizeof(RenderData::SetZeroBuffer), &setZeroBuffer);
+			m_gfx->writeUniformBuffer(renderData.setZeroBuffer, 0, sizeof(RenderData::SetZeroBuffer), &setZeroBuffer);
 		}
 
 		RenderData::SetOneBuffer setOneBuffer{
 			.view = viewMatrix
 		};
-		m_gfx->writeDescriptorBuffer(renderData.setOneBuffer, 0, sizeof(RenderData::SetOneBuffer), &setOneBuffer);
+		m_gfx->writeUniformBuffer(renderData.setOneBuffer, 0, sizeof(RenderData::SetOneBuffer), &setOneBuffer);
 
 		/* render all renderable entities */
 

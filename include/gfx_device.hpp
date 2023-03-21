@@ -32,17 +32,18 @@ namespace engine {
 		gfx::Pipeline* createPipeline(const gfx::PipelineInfo& info);
 		void destroyPipeline(const gfx::Pipeline* pipeline);
 
-		gfx::DescriptorSetLayout* createDescriptorSetLayout();
+		gfx::DescriptorSetLayout* createDescriptorSetLayout(const std::vector<gfx::DescriptorSetLayoutBinding>& bindings);
 		void destroyDescriptorSetLayout(const gfx::DescriptorSetLayout* layout);
 		
 		gfx::DescriptorSet* allocateDescriptorSet(const gfx::DescriptorSetLayout* layout);
 		// This updates all copies of the descriptor. This cannot be used after any frames have been renderered
-		void updateDescriptor(const gfx::DescriptorSet* set, uint32_t binding, const gfx::DescriptorBuffer* buffer, size_t offset, size_t range);
+		void updateDescriptorUniformBuffer(const gfx::DescriptorSet* set, uint32_t binding, const gfx::UniformBuffer* buffer, size_t offset, size_t range);
+		void updateDescriptorCombinedImageSampler(const gfx::DescriptorSet* set, uint32_t binding);
 
-		gfx::DescriptorBuffer* createDescriptorBuffer(uint64_t size, const void* initialData);
-		void destroyDescriptorBuffer(const gfx::DescriptorBuffer* descriptorBuffer);
+		gfx::UniformBuffer* createUniformBuffer(uint64_t size, const void* initialData);
+		void destroyUniformBuffer(const gfx::UniformBuffer* descriptorBuffer);
 
-		void writeDescriptorBuffer(gfx::DescriptorBuffer* buffer, uint64_t offset, uint64_t size, const void* data);
+		void writeUniformBuffer(gfx::UniformBuffer* buffer, uint64_t offset, uint64_t size, const void* data);
 
 		// Loads data into staging buffer and copies that into a single GPU buffer.
 		gfx::Buffer* createBuffer(gfx::BufferType type, uint64_t size, const void* data);

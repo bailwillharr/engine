@@ -87,7 +87,6 @@ namespace engine {
 		VkBuffer buffer = VK_NULL_HANDLE;
 		VmaAllocation allocation = nullptr;
 		VkDeviceSize size = 0;
-		bool hostVisible = false;
 	};
 
 	struct gfx::Pipeline {
@@ -113,7 +112,7 @@ namespace engine {
 		std::array<VkDescriptorSet, FRAMES_IN_FLIGHT> sets; // frames in flight cannot use the same descriptor set in case the buffer needs updating
 	};
 
-	struct gfx::DescriptorBuffer {
+	struct gfx::UniformBuffer {
 		gfx::Buffer stagingBuffer{};
 		std::array<gfx::Buffer, FRAMES_IN_FLIGHT> gpuBuffers;
 	};
@@ -165,22 +164,37 @@ namespace engine {
 			switch (level) {
 			case gfx::MSAALevel::MSAA_OFF:
 				return VK_SAMPLE_COUNT_1_BIT;
-				break;
 			case gfx::MSAALevel::MSAA_2X:
 				return VK_SAMPLE_COUNT_2_BIT;
-				break;
 			case gfx::MSAALevel::MSAA_4X:
 				return VK_SAMPLE_COUNT_4_BIT;
-				break;
 			case gfx::MSAALevel::MSAA_8X:
 				return VK_SAMPLE_COUNT_8_BIT;
-				break;
 			case gfx::MSAALevel::MSAA_16X:
 				return VK_SAMPLE_COUNT_16_BIT;
-				break;
 			default:
 				throw std::runtime_error("Unknown MSAA level");
 			}
+		}
+
+		static VkDescriptorType getDescriptorType(gfx::DescriptorType type)
+		{
+			switch (type) {
+			case gfx::DescriptorType::UNIFORM_BUFFER:
+				return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			case gfx::DescriptorType::COMBINED_IMAGE_SAMPLER:
+				return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			default:
+				throw std::runtime_error("Unknown descriptor type");
+			}
+		}
+
+		static VkShaderStageFlags getShaderStageFlags(gfx::ShaderStageFlags::Flags flags)
+		{
+			VkShaderStageFlags out = 0;
+			if (flags & gfx::ShaderStageFlags::VERTEX) out |= VK_SHADER_STAGE_VERTEX_BIT;
+			if (flags & gfx::ShaderStageFlags::FRAGMENT) out |= VK_SHADER_STAGE_FRAGMENT_BIT;
+			return out;
 		}
 
 	}
@@ -296,7 +310,7 @@ namespace engine {
 		Swapchain swapchain{};
 
 		VkDescriptorPool descriptorPool;
-		std::array<std::unordered_set<gfx::DescriptorBuffer*>, FRAMES_IN_FLIGHT> descriptorBufferWriteQueues{};
+		std::array<std::unordered_set<gfx::UniformBuffer*>, FRAMES_IN_FLIGHT> uniformBufferWriteQueues{};
 
 		VkCommandPool transferCommandPool = VK_NULL_HANDLE;
 
@@ -540,16 +554,16 @@ namespace engine {
 		// transfer cmds...
 
 		std::vector<VkBufferMemoryBarrier2> barriers{};
-		for (gfx::DescriptorBuffer* descriptorBuffer : pimpl->descriptorBufferWriteQueues[currentFrameIndex]) {
+		for (gfx::UniformBuffer* uniformBuffer : pimpl->uniformBufferWriteQueues[currentFrameIndex]) {
 
 			VkBufferCopy copyRegion{};
 			copyRegion.srcOffset = 0;
 			copyRegion.dstOffset = 0;
-			copyRegion.size = descriptorBuffer->stagingBuffer.size;
+			copyRegion.size = uniformBuffer->stagingBuffer.size;
 			vkCmdCopyBuffer(
 				frameData.transferBuf,
-				descriptorBuffer->stagingBuffer.buffer,
-				descriptorBuffer->gpuBuffers[currentFrameIndex].buffer,
+				uniformBuffer->stagingBuffer.buffer,
+				uniformBuffer->gpuBuffers[currentFrameIndex].buffer,
 				1,
 				&copyRegion
 			);
@@ -562,11 +576,11 @@ namespace engine {
 			barrier.dstAccessMask = 0;
 			barrier.srcQueueFamilyIndex = pimpl->device.queues.transferQueueFamily;
 			barrier.dstQueueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily;
-			barrier.buffer = descriptorBuffer->gpuBuffers[currentFrameIndex].buffer;
+			barrier.buffer = uniformBuffer->gpuBuffers[currentFrameIndex].buffer;
 			barrier.offset = 0;
-			barrier.size = descriptorBuffer->gpuBuffers[currentFrameIndex].size;
+			barrier.size = uniformBuffer->gpuBuffers[currentFrameIndex].size;
 		}
-		pimpl->descriptorBufferWriteQueues[currentFrameIndex].clear();
+		pimpl->uniformBufferWriteQueues[currentFrameIndex].clear();
 
 		VkDependencyInfo dependencyInfo{};
 		dependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
@@ -989,23 +1003,28 @@ namespace engine {
 		delete pipeline;
 	}
 
-	gfx::DescriptorSetLayout* GFXDevice::createDescriptorSetLayout()
+	gfx::DescriptorSetLayout* GFXDevice::createDescriptorSetLayout(const std::vector<gfx::DescriptorSetLayoutBinding>& bindings)
 	{
 		gfx::DescriptorSetLayout* out = new gfx::DescriptorSetLayout{};
 
-		std::vector<VkDescriptorSetLayoutBinding> bindings{};
-		auto& binding = bindings.emplace_back();
-		binding.binding = 0; // This should be as low as possible to avoid wasting memory
-		binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		binding.descriptorCount = 1; // if > 1, accessible as an array in the shader
-		binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT; // only accessible in vertex
+		std::vector<VkDescriptorSetLayoutBinding> vulkanBindings{};
+		uint32_t i = 0;
+		for (const auto& binding : bindings) {
+			auto& vulkanBinding = vulkanBindings.emplace_back();
+			vulkanBinding.binding = i; // This should be as low as possible to avoid wasting memory
+			vulkanBinding.descriptorType = converters::getDescriptorType(binding.descriptorType);
+			vulkanBinding.descriptorCount = 1; // if > 1, accessible as an array in the shader
+			vulkanBinding.stageFlags = converters::getShaderStageFlags(binding.stageFlags);
+
+			++i;
+		}
 
 		VkDescriptorSetLayoutCreateInfo info{};
 		info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 		info.pNext = nullptr;
 		info.flags = 0;
-		info.bindingCount = (uint32_t)bindings.size();
-		info.pBindings = bindings.data();
+		info.bindingCount = (uint32_t)vulkanBindings.size();
+		info.pBindings = vulkanBindings.data();
 		VKCHECK(vkCreateDescriptorSetLayout(pimpl->device.device, &info, nullptr, &out->layout));
 
 		return out;
@@ -1039,7 +1058,7 @@ namespace engine {
 		return set;
 	}
 
-	void GFXDevice::updateDescriptor(const gfx::DescriptorSet* set, uint32_t binding, const gfx::DescriptorBuffer* buffer, size_t offset, size_t range)
+	void GFXDevice::updateDescriptorUniformBuffer(const gfx::DescriptorSet* set, uint32_t binding, const gfx::UniformBuffer* buffer, size_t offset, size_t range)
 	{
 		assert(pimpl->FRAMECOUNT == 0);
 
@@ -1065,14 +1084,39 @@ namespace engine {
 		}
 	}
 
-	gfx::DescriptorBuffer* GFXDevice::createDescriptorBuffer(uint64_t size, const void* initialData)
+    void GFXDevice::updateDescriptorCombinedImageSampler(const gfx::DescriptorSet *set, uint32_t binding)
+    {
+		assert(pimpl->FRAMECOUNT == 0);
+
+		VkDescriptorImageInfo imageInfo{};
+		imageInfo.sampler = VK_NULL_HANDLE;
+		imageInfo.imageView = VK_NULL_HANDLE;
+		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+		for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
+			VkWriteDescriptorSet descriptorWrite{
+				.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+				.pNext = nullptr,
+				.dstSet = set->sets[i],
+				.dstBinding = binding,
+				.dstArrayElement = 0,
+				.descriptorCount = 1,
+				.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+				.pImageInfo = &imageInfo,
+				.pBufferInfo = nullptr,
+				.pTexelBufferView = nullptr
+			};
+			vkUpdateDescriptorSets(pimpl->device.device, 1, &descriptorWrite, 0, nullptr);
+		}
+    }
+
+    gfx::UniformBuffer* GFXDevice::createUniformBuffer(uint64_t size, const void* initialData)
 	{
-		gfx::DescriptorBuffer* out = new gfx::DescriptorBuffer{};
+		gfx::UniformBuffer* out = new gfx::UniformBuffer{};
 		
 		/* first make staging buffer */
 		out->stagingBuffer.size = size;
 		out->stagingBuffer.type = gfx::BufferType::UNIFORM;
-		out->stagingBuffer.hostVisible = true;
 		{
 			VkBufferCreateInfo stagingBufferInfo{};
 			stagingBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -1098,7 +1142,6 @@ namespace engine {
 		for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
 			out->gpuBuffers[i].size = out->stagingBuffer.size;
 			out->gpuBuffers[i].type = gfx::BufferType::UNIFORM;
-			out->gpuBuffers[i].hostVisible = false;
 
 			VkBufferCreateInfo gpuBufferInfo{};
 			gpuBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -1121,18 +1164,18 @@ namespace engine {
 
 	}
 
-	void GFXDevice::destroyDescriptorBuffer(const gfx::DescriptorBuffer* descriptorBuffer)
+	void GFXDevice::destroyUniformBuffer(const gfx::UniformBuffer* uniformBuffer)
 	{
 		for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
-			vmaDestroyBuffer(pimpl->allocator, descriptorBuffer->gpuBuffers[i].buffer, descriptorBuffer->gpuBuffers[i].allocation);
+			vmaDestroyBuffer(pimpl->allocator, uniformBuffer->gpuBuffers[i].buffer, uniformBuffer->gpuBuffers[i].allocation);
 		}
 
-		vmaDestroyBuffer(pimpl->allocator, descriptorBuffer->stagingBuffer.buffer, descriptorBuffer->stagingBuffer.allocation);
+		vmaDestroyBuffer(pimpl->allocator, uniformBuffer->stagingBuffer.buffer, uniformBuffer->stagingBuffer.allocation);
 
-		delete descriptorBuffer;
+		delete uniformBuffer;
 	}
 
-	void GFXDevice::writeDescriptorBuffer(gfx::DescriptorBuffer* buffer, uint64_t offset, uint64_t size, const void* data)
+	void GFXDevice::writeUniformBuffer(gfx::UniformBuffer* buffer, uint64_t offset, uint64_t size, const void* data)
 	{
 		assert(offset + size <= buffer->stagingBuffer.size);
 
@@ -1145,7 +1188,7 @@ namespace engine {
 		/* queue the writes to each gpu buffer */
 		// This is required as buffers cannot be updated if they are currently in use
 		for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
-			pimpl->descriptorBufferWriteQueues[i].insert(buffer);
+			pimpl->uniformBufferWriteQueues[i].insert(buffer);
 		}
 
 	}
@@ -1157,7 +1200,6 @@ namespace engine {
 		auto out = new gfx::Buffer{};
 		out->size = size;
 		out->type = type;
-		out->hostVisible = false;
 
 		VkBuffer stagingBuffer;
 		VmaAllocation stagingAllocation;
