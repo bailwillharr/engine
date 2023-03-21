@@ -110,6 +110,9 @@ namespace engine {
 			}
 		}
 
+		/* draw */
+		m_gfx->finishRender(renderData.drawBuffer);
+
 	}
 
 	void RenderSystem::setCameraEntity(uint32_t entity)

@@ -51,10 +51,6 @@ namespace engine {
 			res = vkEnumerateDeviceExtensionProperties(physDev, nullptr, &extensionCount, availableExtensions.data());
 			assert(res == VK_SUCCESS);
 
-			for ([[maybe_unused]] const VkExtensionProperties& ext : availableExtensions) {
-				LOG_TRACE("extension: {}", ext.extensionName);
-			}
-
 			bool foundRequiredExtensions = true;
 			for (const char* extToFind : requirements.requiredExtensions) {
 				bool extFound = false;
@@ -82,9 +78,12 @@ namespace engine {
 			/* check features */
 			VkPhysicalDeviceMemoryPriorityFeaturesEXT memoryPriorityFeatures{};
 			memoryPriorityFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PRIORITY_FEATURES_EXT;
+			VkPhysicalDeviceSynchronization2Features synchronization2Features{};
+			synchronization2Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES;
+			synchronization2Features.pNext = &memoryPriorityFeatures;
 			VkPhysicalDeviceFeatures2 devFeatures{};
 			devFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-			devFeatures.pNext = &memoryPriorityFeatures;
+			devFeatures.pNext = &synchronization2Features;
 			vkGetPhysicalDeviceFeatures2(physDev, &devFeatures);
 			{
 				if (requirements.requiredFeatures.robustBufferAccess)
@@ -197,6 +196,9 @@ namespace engine {
 					if (devFeatures.features.variableMultisampleRate == VK_FALSE) continue;
 				if (requirements.requiredFeatures.inheritedQueries == VK_TRUE)
 					if (devFeatures.features.inheritedQueries == VK_FALSE) continue;
+
+				/* ensure synchronization 2 is found */
+				if (synchronization2Features.synchronization2 == VK_FALSE) continue;
 				
 				/* check the memory priority extension was even requested */
 				bool memoryPriorityRequired = false;
@@ -343,12 +345,16 @@ namespace engine {
 		}
 
 		/* set enabled features */
-		VkPhysicalDeviceMemoryPriorityFeaturesEXT memoryPriorityFeaturesToEnable{};
-		memoryPriorityFeaturesToEnable.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PRIORITY_FEATURES_EXT;
-		memoryPriorityFeaturesToEnable.memoryPriority = d.memoryPriorityFeature ? VK_TRUE : VK_FALSE;
+		VkPhysicalDeviceMemoryPriorityFeaturesEXT memoryPriorityFeatures{};
+		memoryPriorityFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PRIORITY_FEATURES_EXT;
+		memoryPriorityFeatures.memoryPriority = d.memoryPriorityFeature ? VK_TRUE : VK_FALSE;
+		VkPhysicalDeviceSynchronization2Features synchronization2Features{};
+		synchronization2Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES;
+		synchronization2Features.pNext = &memoryPriorityFeatures;
+		synchronization2Features.synchronization2 = VK_TRUE;
 		VkPhysicalDeviceFeatures2 featuresToEnable{};
 		featuresToEnable.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-		featuresToEnable.pNext = &memoryPriorityFeaturesToEnable;
+		featuresToEnable.pNext = &synchronization2Features;
 		featuresToEnable.features = requirements.requiredFeatures;
 
 		/* get list of extensions to enable */

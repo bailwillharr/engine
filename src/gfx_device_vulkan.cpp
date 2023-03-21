@@ -48,7 +48,7 @@ inline static void checkVulkanError(VkResult errorCode, int lineNo)
 
 namespace engine {
 
-	static constexpr uint32_t FRAMES_IN_FLIGHT = 1; // This improved FPS by 5x! (on Intel IGPU)
+	static constexpr uint32_t FRAMES_IN_FLIGHT = 2; // This improved FPS by 5x! (on Intel IGPU)
 
 	static constexpr size_t PUSH_CONSTANT_MAX_SIZE = 128; // bytes
 	static constexpr VkIndexType INDEX_TYPE = VK_INDEX_TYPE_UINT32;
@@ -517,7 +517,7 @@ namespace engine {
 		VKCHECK(res);
 		res = vkResetFences(pimpl->device.device, 1, &frameData.renderFence);
 		VKCHECK(res);
-#if 0
+
 		/* perform any pending uniform buffer writes */
 		VKCHECK(vkResetCommandPool(pimpl->device.device, frameData.transferPool, 0));
 
@@ -531,11 +531,26 @@ namespace engine {
 
 		// transfer cmds...
 
-		std::vector<VkBufferMemoryBarrier> barriers(pimpl->descriptorBufferWriteQueues[currentFrameIndex].size());
+		std::vector<VkBufferMemoryBarrier2> barriers{};
 		for (gfx::DescriptorBuffer* descriptorBuffer : pimpl->descriptorBufferWriteQueues[currentFrameIndex]) {
-			VkBufferMemoryBarrier& barrier = barriers.emplace_back();
-			barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-			barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+			VkBufferCopy copyRegion{};
+			copyRegion.srcOffset = 0;
+			copyRegion.dstOffset = 0;
+			copyRegion.size = descriptorBuffer->stagingBuffer.size;
+			vkCmdCopyBuffer(
+				frameData.transferBuf,
+				descriptorBuffer->stagingBuffer.buffer,
+				descriptorBuffer->gpuBuffers[currentFrameIndex].buffer,
+				1,
+				&copyRegion
+			);
+
+			VkBufferMemoryBarrier2& barrier = barriers.emplace_back();
+			barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2;
+			barrier.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+			barrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
+			barrier.dstStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
 			barrier.dstAccessMask = 0;
 			barrier.srcQueueFamilyIndex = pimpl->device.queues.transferQueueFamily;
 			barrier.dstQueueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily;
@@ -543,14 +558,13 @@ namespace engine {
 			barrier.offset = 0;
 			barrier.size = descriptorBuffer->gpuBuffers[currentFrameIndex].size;
 		}
+		pimpl->descriptorBufferWriteQueues[currentFrameIndex].clear();
 
-		vkCmdPipelineBarrier(frameData.transferBuf,
-				VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
-				0,
-				0, nullptr,
-				(uint32_t)barriers.size(), barriers.data(),
-				0, nullptr
-			);
+		VkDependencyInfo dependencyInfo{};
+		dependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+		dependencyInfo.bufferMemoryBarrierCount = (uint32_t)barriers.size();
+		dependencyInfo.pBufferMemoryBarriers = barriers.data();
+		vkCmdPipelineBarrier2(frameData.transferBuf, &dependencyInfo);
 
 		VKCHECK(vkEndCommandBuffer(frameData.transferBuf));
 
@@ -567,7 +581,7 @@ namespace engine {
 		}; 
 		res = vkQueueSubmit(pimpl->device.queues.transferQueues[0], 1, &transferSubmitInfo, VK_NULL_HANDLE);
 		assert(res == VK_SUCCESS);
-#endif
+
 		uint32_t swapchainImageIndex;
 
 		do {
@@ -599,6 +613,15 @@ namespace engine {
 		VKCHECK(res);
 
 		{ // RECORDING
+
+			/* change barriers to perform a queue ownership acquire operation */
+			for (VkBufferMemoryBarrier2& barrier : barriers) {
+				barrier.srcStageMask = VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT;
+				barrier.srcAccessMask = 0;
+				barrier.dstStageMask = VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT;
+				barrier.dstAccessMask = VK_ACCESS_2_UNIFORM_READ_BIT;
+			}
+			vkCmdPipelineBarrier2(frameData.drawBuf, &dependencyInfo);
 
 			std::array<VkClearValue, 2> clearValues{}; // Using same value for all components enables compression according to NVIDIA Best Practices
 			clearValues[0].color.float32[0] = 1.0f;
@@ -662,8 +685,8 @@ namespace engine {
 
 		waitSemaphores.push_back(drawBuffer->frameData.presentSemaphore);
 		waitDstStageMasks.push_back(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
-		//waitSemaphores.push_back(drawBuffer->frameData.transferSemaphore);
-		//waitDstStageMasks.push_back(VK_PIPELINE_STAGE_VERTEX_SHADER_BIT);
+		waitSemaphores.push_back(drawBuffer->frameData.transferSemaphore);
+		waitDstStageMasks.push_back(VK_PIPELINE_STAGE_VERTEX_SHADER_BIT);
 
 		VkSubmitInfo submitInfo{
 			.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,

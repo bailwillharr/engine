@@ -56,7 +56,7 @@ void playGame(GameSettings settings)
 	app.setFrameLimiter(settings.enableFrameLimiter);
 
 	// configure window
-	app.window()->setRelativeMouseMode(true);
+	//app.window()->setRelativeMouseMode(true);
 	
 	configureInputs(app.inputManager());
 
@@ -112,7 +112,7 @@ void playGame(GameSettings settings)
 	/* cube */
 	{
 		uint32_t cube = myScene->createEntity("cube");
-		myScene->getComponent<engine::TransformComponent>(cube)->position = glm::vec3{ -0.5f, -0.5f + 5.0f, -0.5f };
+		myScene->getComponent<engine::TransformComponent>(cube)->position = glm::vec3{ -0.5f + 5.0f, -0.5f + 5.0f, -0.5f + 5.0f };
 		auto cubeRenderable = myScene->addComponent<engine::RenderableComponent>(cube);
 		cubeRenderable->material = std::make_shared<engine::resources::Material>(app.getResource<engine::resources::Shader>("builtin.standard"));
 		cubeRenderable->mesh = genCuboidMesh(app.gfx(), 1.0f, 1.0f, 1.0f, 1);

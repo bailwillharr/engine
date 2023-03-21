@@ -169,9 +169,6 @@ namespace engine {
 				m_window->resetAvgFPS();
 			}
 
-			/* draw */
-			gfx()->finishRender(renderData.drawBuffer);
-
 			/* poll events */
 			m_window->getInputAndEvents();
 

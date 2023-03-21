@@ -3,6 +3,7 @@
 #include "application.hpp"
 #include "window.hpp"
 #include "input_manager.hpp"
+#include "scene_manager.hpp"
 #include "scene.hpp"
 
 #include "components/transform.hpp"
@@ -155,6 +156,11 @@ void CameraControllerSystem::onUpdate(float ts)
 		};
 		//m_scene->app()->window()->infoBox("POSITION", pos_string);
 		LOG_INFO("position: " + pos_string);
+	}
+
+	if (m_scene->app()->window()->getKeyPress(engine::inputs::Key::K_R)) {
+		t->position = { 0.0f, 5.0f, 0.0f };
+		c->dy = 0.0f;
 	}
 
 	if (m_scene->app()->inputManager()->getButtonPress("fullscreen")) {
