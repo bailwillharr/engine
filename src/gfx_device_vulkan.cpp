@@ -12,6 +12,14 @@
  * 
  */
 
+/* TODO
+ *
+ * - Support index buffers of both UINT16 and UINT32 types
+ * - Allow descriptor sets and layouts to also be combined texture samplers (maybe support other descriptor types?)
+ * - Use pipeline cache
+ * 
+ */
+
 #include <assert.h>
 #include <unordered_set>
 #include <array>
@@ -88,13 +96,7 @@ namespace engine {
 	};
 
 	struct gfx::Texture {
-		VkImage image;
-		VmaAllocation alloc;
-		VkImageView imageView;
-		VkSampler sampler;
-		VkDescriptorPool pool;
-		std::array<VkDescriptorSet, FRAMES_IN_FLIGHT> descriptorSets{};
-		uint32_t mipLevels;
+
 	};
 
 	struct gfx::DrawBuffer {
@@ -114,12 +116,11 @@ namespace engine {
 	struct gfx::DescriptorBuffer {
 		gfx::Buffer stagingBuffer{};
 		std::array<gfx::Buffer, FRAMES_IN_FLIGHT> gpuBuffers;
-		std::array<VkSemaphore, FRAMES_IN_FLIGHT> copySemaphores;
 	};
 
 	// enum converters
 
-	namespace vkinternal {
+	namespace converters {
 
 		static VkFormat getVertexAttribFormat(gfx::VertexAttribFormat fmt)
 		{
@@ -225,7 +226,7 @@ namespace engine {
 
 		VkShaderModule shaderModule;
 		if (vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
-			throw std::runtime_error("failed to create shader module!");
+			throw std::runtime_error("Failed to create shader module!");
 		}
 
 		return shaderModule;
@@ -798,7 +799,7 @@ namespace engine {
 			VkVertexInputAttributeDescription vulkanAttribDesc{};
 			vulkanAttribDesc.location = desc.location;
 			vulkanAttribDesc.binding = 0;
-			vulkanAttribDesc.format = vkinternal::getVertexAttribFormat(desc.format);
+			vulkanAttribDesc.format = converters::getVertexAttribFormat(desc.format);
 			vulkanAttribDesc.offset = desc.offset;
 			attribDescs.push_back(vulkanAttribDesc);
 		}
@@ -992,11 +993,11 @@ namespace engine {
 		gfx::DescriptorSetLayout* out = new gfx::DescriptorSetLayout{};
 
 		std::vector<VkDescriptorSetLayoutBinding> bindings{};
-		bindings.push_back({});
-		bindings[0].binding = 0; // This should be as low as possible to avoid wasting memory
-		bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		bindings[0].descriptorCount = 1; // if > 1, accessible as an array in the shader
-		bindings[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT; // only accessible in vertex 
+		auto& binding = bindings.emplace_back();
+		binding.binding = 0; // This should be as low as possible to avoid wasting memory
+		binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		binding.descriptorCount = 1; // if > 1, accessible as an array in the shader
+		binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT; // only accessible in vertex
 
 		VkDescriptorSetLayoutCreateInfo info{};
 		info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -1043,9 +1044,9 @@ namespace engine {
 
 		for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
 			VkDescriptorBufferInfo bufferInfo{
-			.buffer = buffer->gpuBuffers[i].buffer,
-			.offset = offset,
-			.range = range
+				.buffer = buffer->gpuBuffers[i].buffer,
+				.offset = offset,
+				.range = range
 			};
 			VkWriteDescriptorSet descriptorWrite{
 				.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
@@ -1094,13 +1095,6 @@ namespace engine {
 
 		/* create the device-local set of buffers */
 		for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
-
-			VkSemaphoreCreateInfo semInfo{};
-			semInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-			semInfo.pNext = nullptr;
-			semInfo.flags = 0;
-			VKCHECK(vkCreateSemaphore(pimpl->device.device, &semInfo, nullptr, &out->copySemaphores[i]));
-
 			out->gpuBuffers[i].size = out->stagingBuffer.size;
 			out->gpuBuffers[i].type = gfx::BufferType::UNIFORM;
 			out->gpuBuffers[i].hostVisible = false;
@@ -1130,7 +1124,6 @@ namespace engine {
 	{
 		for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
 			vmaDestroyBuffer(pimpl->allocator, descriptorBuffer->gpuBuffers[i].buffer, descriptorBuffer->gpuBuffers[i].allocation);
-			vkDestroySemaphore(pimpl->device.device, descriptorBuffer->copySemaphores[i], nullptr);
 		}
 
 		vmaDestroyBuffer(pimpl->allocator, descriptorBuffer->stagingBuffer.buffer, descriptorBuffer->stagingBuffer.allocation);
@@ -1182,12 +1175,10 @@ namespace engine {
 			stagingAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
 			stagingAllocInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 
-			res = vmaCreateBuffer(pimpl->allocator, &stagingBufferInfo, &stagingAllocInfo, &stagingBuffer, &stagingAllocation, nullptr);
-			assert(res == VK_SUCCESS);
+			VKCHECK(vmaCreateBuffer(pimpl->allocator, &stagingBufferInfo, &stagingAllocInfo, &stagingBuffer, &stagingAllocation, nullptr));
 
 			void* dataDest;
-			res = vmaMapMemory(pimpl->allocator, stagingAllocation, &dataDest);
-			assert(res == VK_SUCCESS);
+			VKCHECK(vmaMapMemory(pimpl->allocator, stagingAllocation, &dataDest));
 			memcpy(dataDest, data, out->size);
 			vmaUnmapMemory(pimpl->allocator, stagingAllocation);
 		}
@@ -1197,7 +1188,7 @@ namespace engine {
 			VkBufferCreateInfo gpuBufferInfo{};
 			gpuBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 			gpuBufferInfo.size = out->size;
-			gpuBufferInfo.usage = vkinternal::getBufferUsageFlag(type) | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+			gpuBufferInfo.usage = converters::getBufferUsageFlag(type) | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 			gpuBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 			gpuBufferInfo.flags = 0;
 
@@ -1205,8 +1196,7 @@ namespace engine {
 			gpuAllocationInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
 			gpuAllocationInfo.flags = 0;
 
-			res = vmaCreateBuffer(pimpl->allocator, &gpuBufferInfo, &gpuAllocationInfo, &out->buffer, &out->allocation, nullptr);
-			assert(res == VK_SUCCESS);
+			VKCHECK(vmaCreateBuffer(pimpl->allocator, &gpuBufferInfo, &gpuAllocationInfo, &out->buffer, &out->allocation, nullptr));
 		}
 
 		// copy the data from the staging buffer to the gpu buffer
@@ -1273,12 +1263,12 @@ namespace engine {
 			const VmaStatistics& statistics = pStats.memoryType[i].statistics;
 			VkMemoryHeap heap = memProps.memoryProperties.memoryHeaps[i];
 			LOG_INFO("Memory heap {}", i);
-			LOG_INFO("    Memory blocks allocated: {} ({} MiB)", statistics.blockCount, statistics.allocationBytes / (1024 * 1024));
-			LOG_INFO("    Number of allocations: {} ({} MiB)", statistics.allocationCount, statistics.allocationBytes / (1024 * 1024));
-			LOG_INFO("    Max size: {} MiB", heap.size / (1024 * 1024));
 			if (heap.flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) {
 				LOG_INFO("    DEVICE_LOCAL");
 			}
+			LOG_INFO("    Memory blocks allocated: {} ({} MiB)", statistics.blockCount, statistics.allocationBytes / (1024 * 1024));
+			LOG_INFO("    Number of allocations: {} ({} MiB)", statistics.allocationCount, statistics.allocationBytes / (1024 * 1024));
+			LOG_INFO("    Max size: {} MiB", heap.size / (1024 * 1024));
 		}
 	}
 

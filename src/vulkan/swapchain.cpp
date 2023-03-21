@@ -298,8 +298,11 @@ namespace engine {
 
 			VmaAllocationCreateInfo depthAllocInfo{};
 			depthAllocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
-			depthAllocInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
-			depthAllocInfo.priority = 1.0f;
+			depthAllocInfo.priority = 1.0f; // this is ignored if VK_EXT_memory_priority isn't found
+
+			// VMA automatically detects whether to use VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT
+			// https://gpuopen-librariesandsdks.github.io/VulkanMemoryAllocator/html/vk_khr_dedicated_allocation.html
+			depthAllocInfo.flags = 0;
 
 			res = vmaCreateImage(sc->allocator, &depthImageInfo, &depthAllocInfo, &depthImage, &depthAllocation, nullptr);
 			if (res != VK_SUCCESS) throw std::runtime_error("Failed to create depth buffer image! Code: " + std::to_string(res));
