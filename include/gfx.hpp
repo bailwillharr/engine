@@ -17,6 +17,7 @@ namespace engine::gfx {
 	struct DescriptorSetLayout;
 	struct DescriptorSet;
 	struct Image;
+	struct Sampler;
 
 	enum class MSAALevel {
 		MSAA_OFF,

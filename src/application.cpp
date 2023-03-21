@@ -76,22 +76,33 @@ namespace engine {
 		// initialise the render data
 		renderData.gfxdev = std::make_unique<GFXDevice>(appName, appVersion, m_window->getHandle(), graphicsSettings);
 
-		std::vector<gfx::DescriptorSetLayoutBinding> layoutBindings;
+		std::vector<gfx::DescriptorSetLayoutBinding> setZeroLayoutBindings;
 		{
-			auto& binding0 = layoutBindings.emplace_back();
+			auto& binding0 = setZeroLayoutBindings.emplace_back();
 			binding0.descriptorType = gfx::DescriptorType::UNIFORM_BUFFER;
 			binding0.stageFlags = gfx::ShaderStageFlags::VERTEX;
+			auto& binding1 = setZeroLayoutBindings.emplace_back();
+			binding1.descriptorType = gfx::DescriptorType::COMBINED_IMAGE_SAMPLER;
+			binding1.stageFlags = gfx::ShaderStageFlags::FRAGMENT;
 		}
-
-		renderData.setZeroLayout = gfx()->createDescriptorSetLayout(layoutBindings);
+		renderData.setZeroLayout = gfx()->createDescriptorSetLayout(setZeroLayoutBindings);
 		renderData.setZero = gfx()->allocateDescriptorSet(renderData.setZeroLayout);
 		RenderData::SetZeroBuffer initialSetZeroData{
 			.proj = glm::perspectiveZO(glm::radians(70.0f), 1024.0f / 768.0f, 0.1f, 1000.0f),
 		};
 		renderData.setZeroBuffer = gfx()->createUniformBuffer(sizeof(RenderData::SetZeroBuffer), &initialSetZeroData);
 		gfx()->updateDescriptorUniformBuffer(renderData.setZero, 0, renderData.setZeroBuffer, 0, sizeof(RenderData::SetZeroBuffer));
+		renderData.myImage = gfx()->createImage(512, 512, nullptr);
+		renderData.mySampler = gfx()->createSampler();
+		gfx()->updateDescriptorCombinedImageSampler(renderData.setZero, 1, renderData.myImage, renderData.mySampler);
 
-		renderData.setOneLayout = gfx()->createDescriptorSetLayout(layoutBindings);
+		std::vector<gfx::DescriptorSetLayoutBinding> setOneLayoutBindings;
+		{
+			auto& binding0 = setOneLayoutBindings.emplace_back();
+			binding0.descriptorType = gfx::DescriptorType::UNIFORM_BUFFER;
+			binding0.stageFlags = gfx::ShaderStageFlags::VERTEX;
+		}
+		renderData.setOneLayout = gfx()->createDescriptorSetLayout(setOneLayoutBindings);
 		renderData.setOne = gfx()->allocateDescriptorSet(renderData.setOneLayout);
 		RenderData::SetOneBuffer initialSetOneData{
 			.view = glm::mat4{ 1.0f },
@@ -144,6 +155,9 @@ namespace engine {
 	{
 		gfx()->destroyUniformBuffer(renderData.setOneBuffer);
 		gfx()->destroyDescriptorSetLayout(renderData.setOneLayout);
+
+		gfx()->destroySampler(renderData.mySampler);
+		gfx()->destroyImage(renderData.myImage);
 		gfx()->destroyUniformBuffer(renderData.setZeroBuffer);
 		gfx()->destroyDescriptorSetLayout(renderData.setZeroLayout);
 	}

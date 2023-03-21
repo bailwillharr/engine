@@ -7,7 +7,7 @@ layout(location = 3) in vec3 fragLightPos;
 
 layout(location = 0) out vec4 outColor;
 
-//layout(set = 1, binding = 0) uniform sampler2D texSampler;
+layout(set = 0, binding = 1) uniform sampler2D texSampler;
 
 void main() {
 
@@ -15,8 +15,7 @@ void main() {
 	vec3 lightColor = vec3(1.0, 1.0, 1.0);
 	vec3 ambientColor = vec3(1.0, 1.0, 1.0);
 	float ambientStrength = 0.05;
-	//vec3 baseColor = vec3(texture(texSampler, fragUV));
-	vec3 baseColor = vec3(mod(fragUV.x, 1.0), mod(fragUV.y, 1.0), 0.0);
+	vec3 baseColor = vec3(texture(texSampler, fragUV));
 	vec3 emission = vec3(0.0, 0.0, 0.0);
 	
 	// code

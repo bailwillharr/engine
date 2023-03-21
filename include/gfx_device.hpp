@@ -38,7 +38,7 @@ namespace engine {
 		gfx::DescriptorSet* allocateDescriptorSet(const gfx::DescriptorSetLayout* layout);
 		// This updates all copies of the descriptor. This cannot be used after any frames have been renderered
 		void updateDescriptorUniformBuffer(const gfx::DescriptorSet* set, uint32_t binding, const gfx::UniformBuffer* buffer, size_t offset, size_t range);
-		void updateDescriptorCombinedImageSampler(const gfx::DescriptorSet* set, uint32_t binding);
+		void updateDescriptorCombinedImageSampler(const gfx::DescriptorSet* set, uint32_t binding, const gfx::Image* image, const gfx::Sampler* sampler);
 
 		gfx::UniformBuffer* createUniformBuffer(uint64_t size, const void* initialData);
 		void destroyUniformBuffer(const gfx::UniformBuffer* descriptorBuffer);
@@ -50,6 +50,10 @@ namespace engine {
 		void destroyBuffer(const gfx::Buffer* buffer);
 
 		gfx::Image* createImage(uint32_t w, uint32_t h, const void* imageData);
+		void destroyImage(const gfx::Image* image);
+
+		gfx::Sampler* createSampler();
+		void destroySampler(const gfx::Sampler* sampler);
 
 		gfx::Texture* createTexture(
 			const void* imageData,

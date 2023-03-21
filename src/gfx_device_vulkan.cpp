@@ -94,6 +94,16 @@ namespace engine {
 		VkPipeline handle = VK_NULL_HANDLE;
 	};
 
+	struct gfx::Image {
+		VkImage image = VK_NULL_HANDLE;
+		VkImageView view = VK_NULL_HANDLE;
+		VmaAllocation allocation = VK_NULL_HANDLE;
+	};
+
+	struct gfx::Sampler {
+		VkSampler sampler = VK_NULL_HANDLE;
+	};
+
 	struct gfx::Texture {
 
 	};
@@ -362,7 +372,9 @@ namespace engine {
 				.format = VK_FORMAT_R8G8B8A8_SRGB,
 				.properties = VkFormatProperties{
 					.linearTilingFeatures = {},
-					.optimalTilingFeatures = VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT,
+					.optimalTilingFeatures =
+						VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT | VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT |
+						VK_FORMAT_FEATURE_TRANSFER_SRC_BIT | VK_FORMAT_FEATURE_TRANSFER_DST_BIT,
 					.bufferFeatures = {},
 				}
 			}
@@ -1084,13 +1096,13 @@ namespace engine {
 		}
 	}
 
-    void GFXDevice::updateDescriptorCombinedImageSampler(const gfx::DescriptorSet *set, uint32_t binding)
+    void GFXDevice::updateDescriptorCombinedImageSampler(const gfx::DescriptorSet *set, uint32_t binding, const gfx::Image* image, const gfx::Sampler* sampler)
     {
 		assert(pimpl->FRAMECOUNT == 0);
 
 		VkDescriptorImageInfo imageInfo{};
-		imageInfo.sampler = VK_NULL_HANDLE;
-		imageInfo.imageView = VK_NULL_HANDLE;
+		imageInfo.sampler = sampler->sampler;
+		imageInfo.imageView = image->view;
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 		for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
@@ -1259,13 +1271,138 @@ namespace engine {
 
 	gfx::Image* GFXDevice::createImage(uint32_t w, uint32_t h, const void* imageData)
 	{
-		(void)w;
-		(void)h;
 		(void)imageData;
-		return nullptr;
+
+		assert(pimpl->FRAMECOUNT == 0);
+
+		gfx::Image* out = new gfx::Image{};
+
+		VkImageCreateInfo imageInfo{};
+		imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+		imageInfo.flags = 0;
+		imageInfo.imageType = VK_IMAGE_TYPE_2D;
+		imageInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
+		imageInfo.extent.width = w;
+		imageInfo.extent.height = h;
+		imageInfo.extent.depth = 1;
+		imageInfo.mipLevels = 1;
+		imageInfo.arrayLayers = 1;
+		imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+		imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+		imageInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT;
+		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+		VmaAllocationCreateInfo allocCreateInfo{};
+		allocCreateInfo.flags = 0;
+		allocCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+		allocCreateInfo.priority = 0.5f;
+		
+		VKCHECK(vmaCreateImage(pimpl->allocator, &imageInfo, &allocCreateInfo, &out->image, &out->allocation, nullptr));
+
+		VkImageViewCreateInfo viewInfo{};
+		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		viewInfo.image = out->image;
+		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		viewInfo.format = imageInfo.format;
+		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		viewInfo.subresourceRange.baseMipLevel = 0;
+		viewInfo.subresourceRange.levelCount = 1;
+		viewInfo.subresourceRange.baseArrayLayer = 0;
+		viewInfo.subresourceRange.layerCount = 1;
+
+		VKCHECK(vkCreateImageView(pimpl->device.device, &viewInfo, nullptr, &out->view));
+
+		// Do a pipeline barrier to transition the layout
+		VkCommandBufferAllocateInfo allocInfo{};
+		allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+		allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+		allocInfo.commandPool = pimpl->transferCommandPool;
+		allocInfo.commandBufferCount = 1;
+
+		VkCommandBuffer commandBuffer;
+		VKCHECK(vkAllocateCommandBuffers(pimpl->device.device, &allocInfo, &commandBuffer));
+
+		{ // record the command buffer
+			VkCommandBufferBeginInfo beginInfo{};
+			beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+			beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+			VKCHECK(vkBeginCommandBuffer(commandBuffer, &beginInfo));
+
+			VkImageMemoryBarrier2 barrier{};
+			barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+			barrier.srcStageMask = VK_PIPELINE_STAGE_2_NONE;
+			barrier.srcAccessMask = VK_ACCESS_2_NONE;
+			barrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
+			barrier.dstAccessMask = VK_ACCESS_2_SHADER_SAMPLED_READ_BIT;
+			barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			barrier.srcQueueFamilyIndex = pimpl->device.queues.transferQueueFamily;
+			barrier.dstQueueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily;
+			barrier.image = out->image;
+			barrier.subresourceRange = viewInfo.subresourceRange;
+
+			VkDependencyInfo depInfo{};
+			depInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+			depInfo.imageMemoryBarrierCount = 1;
+			depInfo.pImageMemoryBarriers = &barrier;
+
+			vkCmdPipelineBarrier2(commandBuffer, &depInfo);
+
+			VKCHECK(vkEndCommandBuffer(commandBuffer));
+		}
+
+		// submit
+		VkSubmitInfo submitInfo{};
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &commandBuffer;
+
+		VKCHECK(vkQueueSubmit(pimpl->device.queues.transferQueues[0], 1, &submitInfo, VK_NULL_HANDLE));
+
+		VKCHECK(vkQueueWaitIdle(pimpl->device.queues.transferQueues[0]));
+
+		vkFreeCommandBuffers(pimpl->device.device, pimpl->transferCommandPool, 1, &commandBuffer);
+
+		return out;
 	}
 
-	gfx::Texture* GFXDevice::createTexture(
+    void GFXDevice::destroyImage(const gfx::Image *image)
+    {
+		vkDestroyImageView(pimpl->device.device, image->view, nullptr);
+		vmaDestroyImage(pimpl->allocator, image->image, image->allocation);
+		delete image;
+    }
+
+    gfx::Sampler *GFXDevice::createSampler()
+    {
+        gfx::Sampler* out = new gfx::Sampler{};
+
+		VkSamplerCreateInfo samplerInfo{};
+		samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+		samplerInfo.magFilter = VK_FILTER_NEAREST;
+		samplerInfo.minFilter = VK_FILTER_NEAREST;
+		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+		samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerInfo.mipLodBias = 0.0f; // wtf
+		samplerInfo.anisotropyEnable = VK_FALSE;
+		samplerInfo.minLod = 0.0f;
+		samplerInfo.maxLod = 0.0f;
+
+		VKCHECK(vkCreateSampler(pimpl->device.device, &samplerInfo, nullptr, &out->sampler));
+
+		return out;
+    }
+
+    void GFXDevice::destroySampler(const gfx::Sampler *sampler)
+    {
+		vkDestroySampler(pimpl->device.device, sampler->sampler, nullptr);
+		delete sampler;
+    }
+
+    gfx::Texture* GFXDevice::createTexture(
 		const void* imageData,
 		uint32_t width,
 		uint32_t height,

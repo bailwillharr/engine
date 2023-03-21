@@ -28,12 +28,16 @@ namespace engine {
 	struct RenderData {
 		std::unique_ptr<GFXDevice> gfxdev;
 		gfx::DrawBuffer* drawBuffer = nullptr;
+
 		/* uniforms for engine globals */
 		const gfx::DescriptorSetLayout* setZeroLayout;
 		const gfx::DescriptorSet* setZero;
 		struct SetZeroBuffer {
 			glm::mat4 proj;
 		};
+		const gfx::Image* myImage = nullptr;
+		const gfx::Sampler* mySampler = nullptr;
+
 		gfx::UniformBuffer* setZeroBuffer;
 		/* uniforms for per-frame data */
 		const gfx::DescriptorSetLayout* setOneLayout;
