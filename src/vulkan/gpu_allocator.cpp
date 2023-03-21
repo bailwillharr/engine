@@ -12,7 +12,7 @@
 
 namespace engine {
 
-	VmaAllocator createAllocator(VkInstance instance, VkDevice device, VkPhysicalDevice physicalDevice)
+	VmaAllocator createAllocator(VkInstance instance, const Device& device)
 	{
 		VmaVulkanFunctions functions{
 					.vkGetInstanceProcAddr = nullptr,
@@ -44,9 +44,9 @@ namespace engine {
 		};
 
 		VmaAllocatorCreateInfo createInfo{
-			.flags = VMA_ALLOCATOR_CREATE_EXT_MEMORY_PRIORITY_BIT,
-			.physicalDevice = physicalDevice,
-			.device = device,
+			.flags = VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT,
+			.physicalDevice = device.physicalDevice,
+			.device = device.device,
 			.preferredLargeHeapBlockSize = 0,
 			.pAllocationCallbacks = nullptr,
 			.pDeviceMemoryCallbacks = nullptr,
@@ -56,6 +56,11 @@ namespace engine {
 			.vulkanApiVersion = VK_API_VERSION_1_3,
 			.pTypeExternalMemoryHandleTypes = nullptr
 		};
+
+		if (std::find(device.enabledExtensions.begin(), device.enabledExtensions.end(),
+			std::string(VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME)) != device.enabledExtensions.end()) {
+				createInfo.flags |= VMA_ALLOCATOR_CREATE_EXT_MEMORY_PRIORITY_BIT;
+		}
 
 		[[maybe_unused]] VkResult res;
 		VmaAllocator allocator;

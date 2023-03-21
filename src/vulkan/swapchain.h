@@ -26,7 +26,7 @@ namespace engine {
 		VkPresentModeKHR presentMode{};
 		VkExtent2D extent{};
 		VkRenderPass renderpass = VK_NULL_HANDLE;
-		const VkFormat depthStencilFormat = VK_FORMAT_D16_UNORM;
+		VkFormat depthStencilFormat;
 		std::vector<std::pair<VkImage, VkImageView>> swapchainImages{};
 		std::vector<DepthStencil> depthImages{};
 		std::vector<VkFramebuffer> framebuffers{};

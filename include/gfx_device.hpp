@@ -62,6 +62,8 @@ namespace engine {
 
 		uint64_t getFrameCount();
 
+		void logPerformanceInfo();
+
 		// wait until all the active GPU queues have finished working
 		void waitIdle();
 

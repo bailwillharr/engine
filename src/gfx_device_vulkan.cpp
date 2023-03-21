@@ -3,8 +3,12 @@
 /* IMPORTANT INFORMATION
  * 
  * When allocating memory with  VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT, always set a memory priority.
- * This feature uses the device extension VK_EXT_memory_priority. Depth buffers have a priority of 0.9f.
+ * This feature uses the device extension VK_EXT_memory_priority. Depth buffers have a priority of 1.0f.
  * Other, non-essential allocations will have a priority of 0.5f.
+ * 
+ * Call vkResetCommandPool before reusing it in another frame.
+ * Otherwise, the pool will keep on growing until you run out of memory.
+ * - NVIDIA Vulkan Dos and Don'ts
  * 
  */
 
@@ -333,7 +337,7 @@ namespace engine {
 		};
 
 		DeviceRequirements deviceRequirements{};
-		deviceRequirements.requiredExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+		deviceRequirements.requiredExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_EXT_MEMORY_BUDGET_EXTENSION_NAME };
 		deviceRequirements.optionalExtensions = { VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME };
 		deviceRequirements.requiredFeatures.samplerAnisotropy = VK_TRUE;
 		deviceRequirements.requiredFeatures.fillModeNonSolid = VK_TRUE;
@@ -390,7 +394,7 @@ namespace engine {
 
 		pimpl->device = createDevice(pimpl->instance.instance, deviceRequirements, pimpl->surface);
 
-		pimpl->allocator = createAllocator(pimpl->instance.instance, pimpl->device.device, pimpl->device.physicalDevice);
+		pimpl->allocator = createAllocator(pimpl->instance.instance, pimpl->device);
 
 		pimpl->swapchainInfo.device = pimpl->device.device;
 		pimpl->swapchainInfo.allocator = pimpl->allocator;
@@ -511,6 +515,8 @@ namespace engine {
 
 		const uint32_t currentFrameIndex = pimpl->FRAMECOUNT % FRAMES_IN_FLIGHT;
 		const FrameData frameData = pimpl->frameData[currentFrameIndex];
+
+		vmaSetCurrentFrameIndex(pimpl->allocator, (uint32_t)pimpl->FRAMECOUNT);
 
 		/* wait until the previous frame RENDERING has finished */
 		res = vkWaitForFences(pimpl->device.device, 1, &frameData.renderFence, VK_TRUE, 1000000000LL);
@@ -1250,6 +1256,32 @@ namespace engine {
 	void GFXDevice::destroyTexture(const gfx::Texture* texture)
 	{
 		(void)texture;
+	}
+
+	void GFXDevice::logPerformanceInfo()
+	{
+		VmaTotalStatistics pStats{};
+		vmaCalculateStatistics(pimpl->allocator, &pStats);
+		
+		VkPhysicalDeviceMemoryProperties2 memProps{};
+		memProps.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2;
+		vkGetPhysicalDeviceMemoryProperties2(pimpl->device.physicalDevice, &memProps);
+
+		LOG_INFO("GPU Memory Statistics:");
+
+		for (uint32_t i = 0; i < memProps.memoryProperties.memoryHeapCount; i++) {
+			const VmaStatistics& statistics = pStats.memoryType[i].statistics;
+			VkMemoryHeap heap = memProps.memoryProperties.memoryHeaps[i];
+			if (statistics.allocationCount > 0) {
+				LOG_INFO("Memory heap {}", i);
+				LOG_INFO("    Memory blocks allocated: {} ({} MiB)", statistics.blockCount, statistics.allocationBytes / (1024 * 1024));
+				LOG_INFO("    Number of allocations: {} ({} MiB)", statistics.allocationCount, statistics.allocationBytes / (1024 * 1024));
+				LOG_INFO("    Max size: {} MiB", heap.size / (1024 * 1024));
+				if (heap.flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) {
+					LOG_INFO("    DEVICE_LOCAL");
+				}
+			}
+		}
 	}
 
 	uint64_t GFXDevice::getFrameCount()

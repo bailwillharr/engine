@@ -98,7 +98,20 @@ namespace engine {
 			sc->extent = oldExtent;
 		}
 
-		/* TODO: delete old framebuffers and image views */
+		/* find depth stencil format to use */
+		VkFormatProperties2 formatProperties{};
+		formatProperties.sType = VK_STRUCTURE_TYPE_FORMAT_PROPERTIES_2;
+		vkGetPhysicalDeviceFormatProperties2(info.physicalDevice, VK_FORMAT_D24_UNORM_S8_UINT, &formatProperties);
+		if (formatProperties.formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT) {
+			sc->depthStencilFormat = VK_FORMAT_D24_UNORM_S8_UINT;
+		} else {
+			vkGetPhysicalDeviceFormatProperties2(info.physicalDevice, VK_FORMAT_D16_UNORM, &formatProperties);
+			if (formatProperties.formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT) {
+				sc->depthStencilFormat = VK_FORMAT_D16_UNORM;
+			} else {
+				throw std::runtime_error("Failed to find suitable depth-buffer image format!");
+			}
+		}
 
 		/* create swapchain */
 
@@ -286,7 +299,7 @@ namespace engine {
 			VmaAllocationCreateInfo depthAllocInfo{};
 			depthAllocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
 			depthAllocInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
-			depthAllocInfo.priority = 0.9f;
+			depthAllocInfo.priority = 1.0f;
 
 			res = vmaCreateImage(sc->allocator, &depthImageInfo, &depthAllocInfo, &depthImage, &depthAllocation, nullptr);
 			if (res != VK_SUCCESS) throw std::runtime_error("Failed to create depth buffer image! Code: " + std::to_string(res));

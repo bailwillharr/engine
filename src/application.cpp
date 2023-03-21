@@ -166,6 +166,7 @@ namespace engine {
 			if (now - lastTick >= 1000000000LL * 5LL) [[unlikely]] {
 				lastTick = now;
 				LOG_INFO("fps: {}", m_window->getAvgFPS());
+				gfx()->logPerformanceInfo();
 				m_window->resetAvgFPS();
 			}
 
