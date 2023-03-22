@@ -92,7 +92,12 @@ namespace engine {
 		};
 		renderData.setZeroBuffer = gfx()->createUniformBuffer(sizeof(RenderData::SetZeroBuffer), &initialSetZeroData);
 		gfx()->updateDescriptorUniformBuffer(renderData.setZero, 0, renderData.setZeroBuffer, 0, sizeof(RenderData::SetZeroBuffer));
-		renderData.myImage = gfx()->createImage(512, 512, nullptr);
+
+		uint8_t* imageData = new uint8_t[512*512*4];
+		memset(imageData, (uint8_t)255u, 512*512*4);
+		renderData.myImage = gfx()->createImage(512, 512, imageData);
+		delete[] imageData;
+
 		renderData.mySampler = gfx()->createSampler();
 		gfx()->updateDescriptorCombinedImageSampler(renderData.setZero, 1, renderData.myImage, renderData.mySampler);
 

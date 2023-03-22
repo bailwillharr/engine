@@ -1269,13 +1269,39 @@ namespace engine {
 		delete buffer;
 	}
 
+	// imageData must have pixel format R8G8B8A8_SRGB
 	gfx::Image* GFXDevice::createImage(uint32_t w, uint32_t h, const void* imageData)
 	{
-		(void)imageData;
-
+		assert(imageData != nullptr);
 		assert(pimpl->FRAMECOUNT == 0);
 
 		gfx::Image* out = new gfx::Image{};
+
+		VkBuffer stagingBuffer = VK_NULL_HANDLE;
+		VmaAllocation stagingAllocation = VK_NULL_HANDLE;
+		VkDeviceSize stagingBufferSize = (VkDeviceSize)w * (VkDeviceSize)h * 4;
+
+		/* create staging buffer */
+		{
+			VkBufferCreateInfo stagingBufferInfo{};
+			stagingBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+			stagingBufferInfo.size = stagingBufferSize;
+			stagingBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+			stagingBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+			stagingBufferInfo.flags = 0;
+
+			VmaAllocationCreateInfo stagingAllocInfo{};
+			stagingAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+			stagingAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+			stagingAllocInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+
+			VKCHECK(vmaCreateBuffer(pimpl->allocator, &stagingBufferInfo, &stagingAllocInfo, &stagingBuffer, &stagingAllocation, nullptr));
+
+			void* dataDest;
+			VKCHECK(vmaMapMemory(pimpl->allocator, stagingAllocation, &dataDest));
+			memcpy(dataDest, imageData, stagingBufferSize);
+			vmaUnmapMemory(pimpl->allocator, stagingAllocation);
+		}
 
 		VkImageCreateInfo imageInfo{};
 		imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -1333,12 +1359,12 @@ namespace engine {
 			barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
 			barrier.srcStageMask = VK_PIPELINE_STAGE_2_NONE;
 			barrier.srcAccessMask = VK_ACCESS_2_NONE;
-			barrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
-			barrier.dstAccessMask = VK_ACCESS_2_SHADER_SAMPLED_READ_BIT;
+			barrier.dstStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+			barrier.dstAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
 			barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-			barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 			barrier.srcQueueFamilyIndex = pimpl->device.queues.transferQueueFamily;
-			barrier.dstQueueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily;
+			barrier.dstQueueFamilyIndex = pimpl->device.queues.transferQueueFamily;
 			barrier.image = out->image;
 			barrier.subresourceRange = viewInfo.subresourceRange;
 
@@ -1346,6 +1372,33 @@ namespace engine {
 			depInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
 			depInfo.imageMemoryBarrierCount = 1;
 			depInfo.pImageMemoryBarriers = &barrier;
+
+			vkCmdPipelineBarrier2(commandBuffer, &depInfo);
+
+			VkBufferImageCopy region{};
+			region.bufferOffset = 0;
+			region.bufferRowLength = 0;
+			region.bufferImageHeight = 0;
+			region.imageSubresource.aspectMask = viewInfo.subresourceRange.aspectMask;
+			region.imageSubresource.mipLevel = 0;
+			region.imageSubresource.baseArrayLayer = 0;
+			region.imageSubresource.layerCount = 1;
+			region.imageOffset.x = 0;
+			region.imageOffset.y = 0;
+			region.imageOffset.z = 0;
+			region.imageExtent = imageInfo.extent;
+
+			vkCmdCopyBufferToImage(commandBuffer, stagingBuffer, out->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+
+			// Re-use old struct, only changing some values
+			barrier.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+			barrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
+			barrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
+			barrier.dstAccessMask = VK_ACCESS_2_SHADER_SAMPLED_READ_BIT;
+			barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+			barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			barrier.srcQueueFamilyIndex = pimpl->device.queues.transferQueueFamily;
+			barrier.dstQueueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily;
 
 			vkCmdPipelineBarrier2(commandBuffer, &depInfo);
 
@@ -1363,6 +1416,8 @@ namespace engine {
 		VKCHECK(vkQueueWaitIdle(pimpl->device.queues.transferQueues[0]));
 
 		vkFreeCommandBuffers(pimpl->device.device, pimpl->transferCommandPool, 1, &commandBuffer);
+
+		vmaDestroyBuffer(pimpl->allocator, stagingBuffer, stagingAllocation);
 
 		return out;
 	}
