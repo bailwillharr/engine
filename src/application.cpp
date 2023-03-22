@@ -93,9 +93,14 @@ namespace engine {
 		renderData.setZeroBuffer = gfx()->createUniformBuffer(sizeof(RenderData::SetZeroBuffer), &initialSetZeroData);
 		gfx()->updateDescriptorUniformBuffer(renderData.setZero, 0, renderData.setZeroBuffer, 0, sizeof(RenderData::SetZeroBuffer));
 
-		uint8_t* imageData = new uint8_t[512*512*4];
-		memset(imageData, (uint8_t)255u, 512*512*4);
-		renderData.myImage = gfx()->createImage(512, 512, imageData);
+		uint8_t* imageData = new uint8_t[16*16*4];
+		for (int i = 0; i < 16*16*4; i += 4) {
+			imageData[i + 0] = ((i / 4u) % 16u) * 16u;
+			imageData[i + 1] = (i / 4u) & 0xF0u;
+			imageData[i + 2] = 0x00;
+			imageData[i + 3] = 0xFF;
+		}
+		renderData.myImage = gfx()->createImage(16, 16, imageData);
 		delete[] imageData;
 
 		renderData.mySampler = gfx()->createSampler();
