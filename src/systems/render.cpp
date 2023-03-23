@@ -106,8 +106,6 @@ namespace engine {
 		for (const auto& [pipeline, drawCalls] : pipelineDrawCalls) {
 			m_gfx->cmdBindPipeline(renderData.drawBuffer, pipeline);
 			for (const auto& drawCall : drawCalls) {
-				m_gfx->cmdBindDescriptorSet(renderData.drawBuffer, pipeline, renderData.globalSet, 0);
-				m_gfx->cmdBindDescriptorSet(renderData.drawBuffer, pipeline, renderData.frameSet, 1);
 				m_gfx->cmdBindDescriptorSet(renderData.drawBuffer, pipeline, drawCall.materialSet, 2);
 				m_gfx->cmdPushConstants(renderData.drawBuffer, pipeline, 0, sizeof(PushConstants), &drawCall.pushConsts);
 				m_gfx->cmdBindVertexBuffer(renderData.drawBuffer, 0, drawCall.vb);
