@@ -104,10 +104,6 @@ namespace engine {
 		VkSampler sampler = VK_NULL_HANDLE;
 	};
 
-	struct gfx::Texture {
-
-	};
-
 	struct gfx::DrawBuffer {
 		FrameData frameData{};
 		uint32_t currentFrameIndex = 0; // corresponds to the frameData
@@ -322,7 +318,10 @@ namespace engine {
 		VkDescriptorPool descriptorPool;
 		std::array<std::unordered_set<gfx::UniformBuffer*>, FRAMES_IN_FLIGHT> uniformBufferWriteQueues{};
 
+		// For one-off transfer operations not bound to a specific frame-in-flight
 		VkCommandPool transferCommandPool = VK_NULL_HANDLE;
+		// For one-off operation on the draw queue family not bound to a specific frame-in-flight
+		VkCommandPool graphicsCommandPool = VK_NULL_HANDLE;
 
 		uint64_t FRAMECOUNT = 0;
 
@@ -483,16 +482,25 @@ namespace engine {
 			.queueFamilyIndex = pimpl->device.queues.transferQueueFamily
 		};
 		VKCHECK(vkCreateCommandPool(pimpl->device.device, &transferPoolInfo, nullptr, &pimpl->transferCommandPool));
+		/* create command pool for one-off draw queue operations */
+		VkCommandPoolCreateInfo graphicsPoolInfo{
+			.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+			.pNext = nullptr,
+			.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT, // These command buffers don't last very long
+			.queueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily
+		};
+		VKCHECK(vkCreateCommandPool(pimpl->device.device, &graphicsPoolInfo, nullptr, &pimpl->graphicsCommandPool));
 
 		/* create a global descriptor pool */
 		std::vector<VkDescriptorPoolSize> poolSizes{};
-		poolSizes.push_back({ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 100u }); // purposely low limit
+		poolSizes.push_back({ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 100u });
+		poolSizes.push_back({ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 100u });
 
 		VkDescriptorPoolCreateInfo descriptorPoolInfo{};
 		descriptorPoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 		descriptorPoolInfo.pNext = nullptr;
 		descriptorPoolInfo.flags = 0;
-		descriptorPoolInfo.maxSets = 100; // purposely low limit
+		descriptorPoolInfo.maxSets = 1000u;
 		descriptorPoolInfo.poolSizeCount = (uint32_t)poolSizes.size();
 		descriptorPoolInfo.pPoolSizes = poolSizes.data();
 		VKCHECK(vkCreateDescriptorPool(pimpl->device.device, &descriptorPoolInfo, nullptr, &pimpl->descriptorPool));
@@ -503,6 +511,7 @@ namespace engine {
 	{
 		vkDestroyDescriptorPool(pimpl->device.device, pimpl->descriptorPool, nullptr);
 
+		vkDestroyCommandPool(pimpl->device.device, pimpl->graphicsCommandPool, nullptr);
 		vkDestroyCommandPool(pimpl->device.device, pimpl->transferCommandPool, nullptr);
 
 		for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
@@ -535,8 +544,6 @@ namespace engine {
 		}
 	}
 
-	/* TODO: the descriptor buffer copy command buffers are never freed.
-	 * This causes the program to crash on IGPU after around 1 minute. (VK_ERROR_DEVICE_LOST on a vkQueueSubmit) */
 	gfx::DrawBuffer* GFXDevice::beginRender()
 	{
 		VkResult res;
@@ -951,7 +958,7 @@ namespace engine {
 		depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
 		depthStencil.depthTestEnable = VK_TRUE;
 		depthStencil.depthWriteEnable = VK_TRUE;
-		depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
+		depthStencil.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
 		depthStencil.depthBoundsTestEnable = VK_FALSE;
 		depthStencil.minDepthBounds = 0.0f;
 		depthStencil.maxDepthBounds = 1.0f;
@@ -1315,7 +1322,7 @@ namespace engine {
 		imageInfo.arrayLayers = 1;
 		imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 		imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-		imageInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT;
+		imageInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
@@ -1343,7 +1350,7 @@ namespace engine {
 		VkCommandBufferAllocateInfo allocInfo{};
 		allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 		allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-		allocInfo.commandPool = pimpl->transferCommandPool;
+		allocInfo.commandPool = pimpl->graphicsCommandPool;
 		allocInfo.commandBufferCount = 1;
 
 		VkCommandBuffer commandBuffer;
@@ -1363,8 +1370,8 @@ namespace engine {
 			barrier.dstAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
 			barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 			barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-			barrier.srcQueueFamilyIndex = pimpl->device.queues.transferQueueFamily;
-			barrier.dstQueueFamilyIndex = pimpl->device.queues.transferQueueFamily;
+			barrier.srcQueueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily;
+			barrier.dstQueueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily;
 			barrier.image = out->image;
 			barrier.subresourceRange = viewInfo.subresourceRange;
 
@@ -1397,7 +1404,7 @@ namespace engine {
 			barrier.dstAccessMask = VK_ACCESS_2_SHADER_SAMPLED_READ_BIT;
 			barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 			barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			barrier.srcQueueFamilyIndex = pimpl->device.queues.transferQueueFamily;
+			barrier.srcQueueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily;
 			barrier.dstQueueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily;
 
 			vkCmdPipelineBarrier2(commandBuffer, &depInfo);
@@ -1411,11 +1418,11 @@ namespace engine {
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &commandBuffer;
 
-		VKCHECK(vkQueueSubmit(pimpl->device.queues.transferQueues[0], 1, &submitInfo, VK_NULL_HANDLE));
+		VKCHECK(vkQueueSubmit(pimpl->device.queues.drawQueues[0], 1, &submitInfo, VK_NULL_HANDLE));
 
-		VKCHECK(vkQueueWaitIdle(pimpl->device.queues.transferQueues[0]));
+		VKCHECK(vkQueueWaitIdle(pimpl->device.queues.drawQueues[0]));
 
-		vkFreeCommandBuffers(pimpl->device.device, pimpl->transferCommandPool, 1, &commandBuffer);
+		vkFreeCommandBuffers(pimpl->device.device, pimpl->graphicsCommandPool, 1, &commandBuffer);
 
 		vmaDestroyBuffer(pimpl->allocator, stagingBuffer, stagingAllocation);
 
@@ -1436,15 +1443,15 @@ namespace engine {
 		VkSamplerCreateInfo samplerInfo{};
 		samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 		samplerInfo.magFilter = VK_FILTER_NEAREST;
-		samplerInfo.minFilter = VK_FILTER_NEAREST;
-		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+		samplerInfo.minFilter = VK_FILTER_LINEAR;
+		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 		samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 		samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 		samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		samplerInfo.mipLodBias = 0.0f; // wtf
+		samplerInfo.mipLodBias = 0.0f;
 		samplerInfo.anisotropyEnable = VK_FALSE;
 		samplerInfo.minLod = 0.0f;
-		samplerInfo.maxLod = 0.0f;
+		samplerInfo.maxLod = VK_LOD_CLAMP_NONE;
 
 		VKCHECK(vkCreateSampler(pimpl->device.device, &samplerInfo, nullptr, &out->sampler));
 
@@ -1456,32 +1463,6 @@ namespace engine {
 		vkDestroySampler(pimpl->device.device, sampler->sampler, nullptr);
 		delete sampler;
     }
-
-    gfx::Texture* GFXDevice::createTexture(
-		const void* imageData,
-		uint32_t width,
-		uint32_t height,
-		gfx::TextureFilter minFilter,
-		gfx::TextureFilter magFilter,
-		gfx::MipmapSetting mipmapSetting,
-		bool useAnisotropy)
-	{
-		(void)imageData;
-		(void)width;
-		(void)height;
-		(void)minFilter;
-		(void)magFilter;
-		(void)mipmapSetting;
-		(void)useAnisotropy;
-		auto out = new gfx::Texture;
-
-		return out;
-	}
-
-	void GFXDevice::destroyTexture(const gfx::Texture* texture)
-	{
-		(void)texture;
-	}
 
 	void GFXDevice::logPerformanceInfo()
 	{

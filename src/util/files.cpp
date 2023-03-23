@@ -51,7 +51,6 @@ namespace engine::util {
 		return buffer;
 	}
 
-	// Read an image file into a vector byte buffer. PNG and JPG support at a minimum
 	std::unique_ptr<std::vector<uint8_t>> readImageFile(const std::string& path, int *width, int *height)
 	{
 		int x, y, n;

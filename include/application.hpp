@@ -30,22 +30,24 @@ namespace engine {
 		gfx::DrawBuffer* drawBuffer = nullptr;
 
 		/* uniforms for engine globals */
-		const gfx::DescriptorSetLayout* setZeroLayout;
-		const gfx::DescriptorSet* setZero;
-		struct SetZeroBuffer {
+		const gfx::DescriptorSetLayout* globalSetLayout;
+		const gfx::DescriptorSet* globalSet;
+		struct GlobalSetUniformBuffer {
 			glm::mat4 proj;
 		};
-		const gfx::Image* myImage = nullptr;
-		const gfx::Sampler* mySampler = nullptr;
-
-		gfx::UniformBuffer* setZeroBuffer;
+		gfx::UniformBuffer* globalSetUniformBuffer;
+	
 		/* uniforms for per-frame data */
-		const gfx::DescriptorSetLayout* setOneLayout;
-		const gfx::DescriptorSet* setOne;
-		struct SetOneBuffer {
+		const gfx::DescriptorSetLayout* frameSetLayout;
+		const gfx::DescriptorSet* frameSet;
+		struct FrameSetUniformBuffer {
 			glm::mat4 view;
 		};
-		gfx::UniformBuffer* setOneBuffer;
+		gfx::UniformBuffer* frameSetUniformBuffer;
+
+		/* this descriptor set is bound per-material */
+		const gfx::DescriptorSetLayout* materialSetLayout;
+		const gfx::Sampler* materialSetSampler;
 	};
 
 	class Application {

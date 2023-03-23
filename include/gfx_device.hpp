@@ -55,16 +55,6 @@ namespace engine {
 		gfx::Sampler* createSampler();
 		void destroySampler(const gfx::Sampler* sampler);
 
-		gfx::Texture* createTexture(
-			const void* imageData,
-			uint32_t width,
-			uint32_t height,
-			gfx::TextureFilter minFilter,
-			gfx::TextureFilter magFilter,
-			gfx::MipmapSetting mipmapSetting,
-			bool useAnisotropy = false);
-		void destroyTexture(const gfx::Texture* texture);
-
 		uint64_t getFrameCount();
 
 		void logPerformanceInfo();

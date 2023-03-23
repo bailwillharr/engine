@@ -44,8 +44,9 @@ namespace engine::resources {
 		info.vertexFormat = vertFormat;
 		info.alphaBlending = alphaBlending;
 		info.backfaceCulling = cullBackFace;
-		info.descriptorSetLayouts.push_back(renderData->setZeroLayout);
-		info.descriptorSetLayouts.push_back(renderData->setOneLayout);
+		info.descriptorSetLayouts.push_back(renderData->globalSetLayout);
+		info.descriptorSetLayouts.push_back(renderData->frameSetLayout);
+		info.descriptorSetLayouts.push_back(renderData->materialSetLayout);
 
 		m_pipeline = m_gfx->createPipeline(info);
 

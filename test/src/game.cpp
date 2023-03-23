@@ -85,6 +85,8 @@ void playGame(GameSettings settings)
 	/* shared resources */
 	auto grassTexture = std::make_shared<engine::resources::Texture>(
 		app.gfx(),
+		app.renderData.materialSetLayout,
+		app.renderData.materialSetSampler,
 		app.getResourcePath("textures/grass.jpg"),
 		engine::resources::Texture::Filtering::ANISOTROPIC,
 		true,
@@ -92,22 +94,13 @@ void playGame(GameSettings settings)
 	);
 	auto spaceTexture = std::make_shared<engine::resources::Texture>(
 		app.gfx(),
+		app.renderData.materialSetLayout,
+		app.renderData.materialSetSampler,
 		app.getResourcePath("textures/space2.png"),
 		engine::resources::Texture::Filtering::ANISOTROPIC,
 		true,
 		true
 	);
-
-	/* skybox */
-	if (0) {
-		uint32_t skybox = myScene->createEntity("skybox");
-		auto skyboxRenderable = myScene->addComponent<engine::RenderableComponent>(skybox);
-		skyboxRenderable->material = std::make_unique<engine::resources::Material>(app.getResource<engine::resources::Shader>("builtin.skybox"));
-		skyboxRenderable->material->m_texture = spaceTexture;
-//		skyboxRenderable->mesh = genSphereMesh(app.gfx(), 1.0f, 50, true);
-		skyboxRenderable->mesh = genCuboidMesh(app.gfx(), 10.0f, 10.0f, 10.0f, 1.0f, true);
-		myScene->getComponent<engine::TransformComponent>(skybox)->position = { -5.0f, -5.0f, -5.0f };
-	}
 
 	/* cube */
 	{
@@ -115,6 +108,7 @@ void playGame(GameSettings settings)
 		myScene->getComponent<engine::TransformComponent>(cube)->position = glm::vec3{ -0.5f + 5.0f, -0.5f + 5.0f, -0.5f + 5.0f };
 		auto cubeRenderable = myScene->addComponent<engine::RenderableComponent>(cube);
 		cubeRenderable->material = std::make_shared<engine::resources::Material>(app.getResource<engine::resources::Shader>("builtin.standard"));
+		cubeRenderable->material->m_texture = app.getResource<engine::resources::Texture>("builtin.white");
 		cubeRenderable->mesh = genCuboidMesh(app.gfx(), 1.0f, 1.0f, 1.0f, 1);
 		auto cubeCollider = myScene->addComponent<engine::ColliderComponent>(cube);
 		cubeCollider->isStatic = true;
@@ -136,6 +130,16 @@ void playGame(GameSettings settings)
 	}
 
 	//engine::util::loadMeshFromFile(myScene, app.getResourcePath("models/astronaut/astronaut.dae"));
+
+	/* skybox */
+	{
+		uint32_t skybox = myScene->createEntity("skybox");
+		auto skyboxRenderable = myScene->addComponent<engine::RenderableComponent>(skybox);
+		skyboxRenderable->material = std::make_unique<engine::resources::Material>(app.getResource<engine::resources::Shader>("builtin.skybox"));
+		skyboxRenderable->material->m_texture = spaceTexture;
+		skyboxRenderable->mesh = genCuboidMesh(app.gfx(), 10.0f, 10.0f, 10.0f, 1.0f, true);
+		myScene->getComponent<engine::TransformComponent>(skybox)->position = { -5.0f, -5.0f, -5.0f };
+	}
 
 	app.gameLoop();
 

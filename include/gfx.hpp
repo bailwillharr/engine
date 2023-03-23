@@ -12,7 +12,6 @@ namespace engine::gfx {
 	struct Pipeline;
 	struct UniformBuffer;
 	struct Buffer;
-	struct Texture;
 	struct DrawBuffer;
 	struct DescriptorSetLayout;
 	struct DescriptorSet;

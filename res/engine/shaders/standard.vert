@@ -1,16 +1,16 @@
 #version 450
 
+layout(set = 0, binding = 0) uniform GlobalSetUniformBuffer {
+	mat4 proj;
+} globalSetUniformBuffer;
+
+layout(set = 1, binding = 0) uniform FrameSetUniformBuffer {
+	mat4 view;
+} frameSetUniformBuffer;
+
 layout( push_constant ) uniform Constants {
 	mat4 model;
 } constants;
-
-layout(set = 0, binding = 0) uniform SetZeroBuffer {
-	mat4 proj;
-} setZeroBuffer;
-
-layout(set = 1, binding = 0) uniform SetOneBuffer {
-	mat4 view;
-} setOneBuffer;
 
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inNorm;
@@ -22,12 +22,12 @@ layout(location = 2) out vec2 fragUV;
 layout(location = 3) out vec3 fragLightPos;
 
 void main() {
-	gl_Position = setZeroBuffer.proj * setOneBuffer.view * constants.model * vec4(inPosition, 1.0);
+	gl_Position = globalSetUniformBuffer.proj * frameSetUniformBuffer.view * constants.model * vec4(inPosition, 1.0);
 
-	fragPos = vec3(setOneBuffer.view * constants.model * vec4(inPosition, 1.0));
-	fragNorm = mat3(transpose(inverse(setOneBuffer.view * constants.model))) * inNorm;
+	fragPos = vec3(frameSetUniformBuffer.view * constants.model * vec4(inPosition, 1.0));
+	fragNorm = mat3(transpose(inverse(frameSetUniformBuffer.view * constants.model))) * inNorm;
 	fragUV = inUV;
 
 	vec3 lightPos = vec3(2000.0, 2000.0, -2000.0);
-	fragLightPos = vec3(setOneBuffer.view * vec4(lightPos, 1.0));
+	fragLightPos = vec3(frameSetUniformBuffer.view * vec4(lightPos, 1.0));
 }

@@ -1,5 +1,7 @@
 #version 450
 
+layout(set = 2, binding = 0) uniform sampler2D materialSetSampler;
+
 layout(location = 0) in vec3 fragPos;
 layout(location = 1) in vec3 fragNorm;
 layout(location = 2) in vec2 fragUV;
@@ -7,15 +9,13 @@ layout(location = 3) in vec3 fragLightPos;
 
 layout(location = 0) out vec4 outColor;
 
-layout(set = 0, binding = 1) uniform sampler2D texSampler;
-
 void main() {
 
 	// constants
 	vec3 lightColor = vec3(1.0, 1.0, 1.0);
 	vec3 ambientColor = vec3(1.0, 1.0, 1.0);
 	float ambientStrength = 0.05;
-	vec3 baseColor = vec3(texture(texSampler, fragUV));
+	vec3 baseColor = vec3(texture(materialSetSampler, fragUV));
 	vec3 emission = vec3(0.0, 0.0, 0.0);
 	
 	// code

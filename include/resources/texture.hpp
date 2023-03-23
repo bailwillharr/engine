@@ -16,16 +16,18 @@ public:
 		ANISOTROPIC,
 	};
 
-	Texture(GFXDevice* gfxDevice, const std::string& path, Filtering filtering, bool useMipmaps, bool useLinearMagFilter);
+	Texture(GFXDevice* gfxDevice, const gfx::DescriptorSetLayout* materialSetLayout, const gfx::Sampler* sampler, const std::string& path, Filtering filtering, bool useMipmaps, bool useLinearMagFilter);
 	~Texture();
 	Texture(const Texture&) = delete;
 	Texture& operator=(const Texture&) = delete;
 
-	gfx::Texture* getHandle();
+	const gfx::Image* getImage() { return m_image; }
+	const gfx::DescriptorSet* getDescriptorSet() { return m_descriptorSet; }
 
 private:
 	GFXDevice* m_gfxDevice;
-	gfx::Texture* m_gpuTexture;
+	const gfx::Image* m_image;
+	const gfx::DescriptorSet* m_descriptorSet;
 };
 
 }

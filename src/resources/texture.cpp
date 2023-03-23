@@ -7,12 +7,12 @@
 
 namespace engine::resources {
 
-Texture::Texture(GFXDevice* gfxDevice, const std::string& path, Filtering filtering, bool useMipmaps, bool useLinearMagFilter)
+Texture::Texture(GFXDevice* gfxDevice, const gfx::DescriptorSetLayout* materialSetLayout, const gfx::Sampler* sampler, const std::string& path, Filtering filtering, bool useMipmaps, bool useLinearMagFilter)
 	: m_gfxDevice(gfxDevice)
 {
 
 	int width, height;
-	auto texbuf = util::readImageFile(path, &width, &height);
+	std::unique_ptr<std::vector<uint8_t>> texbuf = util::readImageFile(path, &width, &height);
 
 	gfx::TextureFilter minFilter = gfx::TextureFilter::NEAREST;
 	gfx::TextureFilter magFilter = gfx::TextureFilter::NEAREST;
@@ -51,11 +51,14 @@ Texture::Texture(GFXDevice* gfxDevice, const std::string& path, Filtering filter
 		mipmapSetting = gfx::MipmapSetting::OFF;
 	}
 
-	m_gpuTexture = m_gfxDevice->createTexture(
-		texbuf->data(), (uint32_t)width, (uint32_t)height,
-		minFilter, magFilter,
-		mipmapSetting,
-		anisotropyEnable);
+	(void)minFilter;
+	(void)magFilter;
+	(void)mipmapSetting;
+	(void)anisotropyEnable;
+	
+	m_image = m_gfxDevice->createImage(width, height, texbuf->data());
+	m_descriptorSet = m_gfxDevice->allocateDescriptorSet(materialSetLayout);
+	m_gfxDevice->updateDescriptorCombinedImageSampler(m_descriptorSet, 0, m_image, sampler);
 
 	LOG_INFO("Loaded texture: {}, width: {} height: {}", path, width, height);
 
@@ -63,12 +66,7 @@ Texture::Texture(GFXDevice* gfxDevice, const std::string& path, Filtering filter
 
 Texture::~Texture()
 {
-	m_gfxDevice->destroyTexture(m_gpuTexture);
-}
-
-gfx::Texture* Texture::getHandle()
-{
-	return m_gpuTexture;
+	m_gfxDevice->destroyImage(m_image);
 }
 
 }

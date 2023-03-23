@@ -14,7 +14,7 @@
 #include "resources/shader.hpp"
 #include "resources/texture.hpp"
 
-#include <glm/gtc/matrix_transform.hpp>
+#include <glm/mat4x4.hpp>
 
 // To allow the FPS-limiter to put the thread to sleep
 #include <thread>
@@ -76,49 +76,42 @@ namespace engine {
 		// initialise the render data
 		renderData.gfxdev = std::make_unique<GFXDevice>(appName, appVersion, m_window->getHandle(), graphicsSettings);
 
-		std::vector<gfx::DescriptorSetLayoutBinding> setZeroLayoutBindings;
+		std::vector<gfx::DescriptorSetLayoutBinding> globalSetBindings;
 		{
-			auto& binding0 = setZeroLayoutBindings.emplace_back();
+			auto& binding0 = globalSetBindings.emplace_back();
 			binding0.descriptorType = gfx::DescriptorType::UNIFORM_BUFFER;
 			binding0.stageFlags = gfx::ShaderStageFlags::VERTEX;
-			auto& binding1 = setZeroLayoutBindings.emplace_back();
-			binding1.descriptorType = gfx::DescriptorType::COMBINED_IMAGE_SAMPLER;
-			binding1.stageFlags = gfx::ShaderStageFlags::FRAGMENT;
 		}
-		renderData.setZeroLayout = gfx()->createDescriptorSetLayout(setZeroLayoutBindings);
-		renderData.setZero = gfx()->allocateDescriptorSet(renderData.setZeroLayout);
-		RenderData::SetZeroBuffer initialSetZeroData{
-			.proj = glm::perspectiveZO(glm::radians(70.0f), 1024.0f / 768.0f, 0.1f, 1000.0f),
+		renderData.globalSetLayout = gfx()->createDescriptorSetLayout(globalSetBindings);
+		renderData.globalSet = gfx()->allocateDescriptorSet(renderData.globalSetLayout);
+		RenderData::GlobalSetUniformBuffer globalSetUniformBufferData{
+			.proj = glm::mat4{ 1.0f },
 		};
-		renderData.setZeroBuffer = gfx()->createUniformBuffer(sizeof(RenderData::SetZeroBuffer), &initialSetZeroData);
-		gfx()->updateDescriptorUniformBuffer(renderData.setZero, 0, renderData.setZeroBuffer, 0, sizeof(RenderData::SetZeroBuffer));
+		renderData.globalSetUniformBuffer = gfx()->createUniformBuffer(sizeof(RenderData::GlobalSetUniformBuffer), &globalSetUniformBufferData);
+		gfx()->updateDescriptorUniformBuffer(renderData.globalSet, 0, renderData.globalSetUniformBuffer, 0, sizeof(RenderData::GlobalSetUniformBuffer));
 
-		uint8_t* imageData = new uint8_t[16*16*4];
-		for (int i = 0; i < 16*16*4; i += 4) {
-			imageData[i + 0] = ((i / 4u) % 16u) * 16u;
-			imageData[i + 1] = (i / 4u) & 0xF0u;
-			imageData[i + 2] = 0x00;
-			imageData[i + 3] = 0xFF;
-		}
-		renderData.myImage = gfx()->createImage(16, 16, imageData);
-		delete[] imageData;
-
-		renderData.mySampler = gfx()->createSampler();
-		gfx()->updateDescriptorCombinedImageSampler(renderData.setZero, 1, renderData.myImage, renderData.mySampler);
-
-		std::vector<gfx::DescriptorSetLayoutBinding> setOneLayoutBindings;
+		std::vector<gfx::DescriptorSetLayoutBinding> frameSetBindings;
 		{
-			auto& binding0 = setOneLayoutBindings.emplace_back();
+			auto& binding0 = frameSetBindings.emplace_back();
 			binding0.descriptorType = gfx::DescriptorType::UNIFORM_BUFFER;
 			binding0.stageFlags = gfx::ShaderStageFlags::VERTEX;
 		}
-		renderData.setOneLayout = gfx()->createDescriptorSetLayout(setOneLayoutBindings);
-		renderData.setOne = gfx()->allocateDescriptorSet(renderData.setOneLayout);
-		RenderData::SetOneBuffer initialSetOneData{
+		renderData.frameSetLayout = gfx()->createDescriptorSetLayout(frameSetBindings);
+		renderData.frameSet = gfx()->allocateDescriptorSet(renderData.frameSetLayout);
+		RenderData::FrameSetUniformBuffer initialSetOneData{
 			.view = glm::mat4{ 1.0f },
 		};
-		renderData.setOneBuffer = gfx()->createUniformBuffer(sizeof(RenderData::SetOneBuffer), &initialSetOneData);
-		gfx()->updateDescriptorUniformBuffer(renderData.setOne, 0, renderData.setOneBuffer, 0, sizeof(RenderData::SetOneBuffer));
+		renderData.frameSetUniformBuffer = gfx()->createUniformBuffer(sizeof(RenderData::FrameSetUniformBuffer), &initialSetOneData);
+		gfx()->updateDescriptorUniformBuffer(renderData.frameSet, 0, renderData.frameSetUniformBuffer, 0, sizeof(RenderData::FrameSetUniformBuffer));
+
+		std::vector<gfx::DescriptorSetLayoutBinding> materialSetBindings;
+		{
+			auto& binding0 = materialSetBindings.emplace_back();
+			binding0.descriptorType = gfx::DescriptorType::COMBINED_IMAGE_SAMPLER;
+			binding0.stageFlags = gfx::ShaderStageFlags::FRAGMENT;
+		}
+		renderData.materialSetLayout = gfx()->createDescriptorSetLayout(materialSetBindings);
+		renderData.materialSetSampler = gfx()->createSampler();
 
 		// default resources
 		{
@@ -135,11 +128,11 @@ namespace engine {
 			);
 			getResourceManager<resources::Shader>()->addPersistent("builtin.standard", std::move(texturedShader));
 		}
-		if (0) {
+		{
 			resources::Shader::VertexParams vertParams{};
 			vertParams.hasNormal = true;
 			vertParams.hasUV0 = true;
-			auto texturedShader = std::make_unique<resources::Shader>(
+			auto skyboxShader = std::make_unique<resources::Shader>(
 				&renderData,
 				getResourcePath("engine/shaders/skybox.vert").c_str(),
 				getResourcePath("engine/shaders/skybox.frag").c_str(),
@@ -147,11 +140,13 @@ namespace engine {
 				false,
 				true
 			);
-			getResourceManager<resources::Shader>()->addPersistent("builtin.skybox", std::move(texturedShader));
+			getResourceManager<resources::Shader>()->addPersistent("builtin.skybox", std::move(skyboxShader));
 		}
 		{
 			auto whiteTexture = std::make_unique<resources::Texture>(
 				gfx(),
+				renderData.materialSetLayout,
+				renderData.materialSetSampler,
 				getResourcePath("engine/textures/white.png"),
 				resources::Texture::Filtering::OFF,
 				false,
@@ -163,13 +158,14 @@ namespace engine {
 
 	Application::~Application()
 	{
-		gfx()->destroyUniformBuffer(renderData.setOneBuffer);
-		gfx()->destroyDescriptorSetLayout(renderData.setOneLayout);
+		gfx()->destroySampler(renderData.materialSetSampler);
+		gfx()->destroyDescriptorSetLayout(renderData.materialSetLayout);
 
-		gfx()->destroySampler(renderData.mySampler);
-		gfx()->destroyImage(renderData.myImage);
-		gfx()->destroyUniformBuffer(renderData.setZeroBuffer);
-		gfx()->destroyDescriptorSetLayout(renderData.setZeroLayout);
+		gfx()->destroyUniformBuffer(renderData.frameSetUniformBuffer);
+		gfx()->destroyDescriptorSetLayout(renderData.frameSetLayout);
+
+		gfx()->destroyUniformBuffer(renderData.globalSetUniformBuffer);
+		gfx()->destroyDescriptorSetLayout(renderData.globalSetLayout);
 	}
 
 	void Application::gameLoop()
