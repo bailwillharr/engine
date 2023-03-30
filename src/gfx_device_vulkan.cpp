@@ -548,6 +548,12 @@ namespace engine {
 	{
 		VkResult res;
 
+		if (pimpl->FRAMECOUNT == 0) {
+			// perform clean-up before any rendering
+			vkResetCommandPool(pimpl->device.device, pimpl->transferCommandPool, VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT);
+			vkResetCommandPool(pimpl->device.device, pimpl->graphicsCommandPool, VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT);
+		}
+
 		const uint32_t currentFrameIndex = pimpl->FRAMECOUNT % FRAMES_IN_FLIGHT;
 		const FrameData frameData = pimpl->frameData[currentFrameIndex];
 
