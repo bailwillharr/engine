@@ -1284,6 +1284,9 @@ namespace engine {
 
 		gfx::Image* out = new gfx::Image{};
 
+		uint32_t mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(w, h)))) + 1;
+		VkFormat imageFormat = VK_FORMAT_R8G8B8A8_SRGB;
+
 		VkBuffer stagingBuffer = VK_NULL_HANDLE;
 		VmaAllocation stagingAllocation = VK_NULL_HANDLE;
 		VkDeviceSize stagingBufferSize = (VkDeviceSize)w * (VkDeviceSize)h * 4;
@@ -1314,15 +1317,15 @@ namespace engine {
 		imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 		imageInfo.flags = 0;
 		imageInfo.imageType = VK_IMAGE_TYPE_2D;
-		imageInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
+		imageInfo.format = imageFormat;
 		imageInfo.extent.width = w;
 		imageInfo.extent.height = h;
 		imageInfo.extent.depth = 1;
-		imageInfo.mipLevels = 1;
+		imageInfo.mipLevels = mipLevels;
 		imageInfo.arrayLayers = 1;
 		imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 		imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-		imageInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+		imageInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
@@ -1337,16 +1340,16 @@ namespace engine {
 		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		viewInfo.image = out->image;
 		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		viewInfo.format = imageInfo.format;
+		viewInfo.format = imageFormat;
 		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		viewInfo.subresourceRange.baseMipLevel = 0;
-		viewInfo.subresourceRange.levelCount = 1;
+		viewInfo.subresourceRange.levelCount = mipLevels;
 		viewInfo.subresourceRange.baseArrayLayer = 0;
 		viewInfo.subresourceRange.layerCount = 1;
 
 		VKCHECK(vkCreateImageView(pimpl->device.device, &viewInfo, nullptr, &out->view));
 
-		// Do a pipeline barrier to transition the layout
+		/* begin command buffer */
 		VkCommandBufferAllocateInfo allocInfo{};
 		allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 		allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -1362,31 +1365,37 @@ namespace engine {
 			beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 			VKCHECK(vkBeginCommandBuffer(commandBuffer, &beginInfo));
 
-			VkImageMemoryBarrier2 barrier{};
-			barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
-			barrier.srcStageMask = VK_PIPELINE_STAGE_2_NONE;
-			barrier.srcAccessMask = VK_ACCESS_2_NONE;
-			barrier.dstStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
-			barrier.dstAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
-			barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-			barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-			barrier.srcQueueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily;
-			barrier.dstQueueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily;
-			barrier.image = out->image;
-			barrier.subresourceRange = viewInfo.subresourceRange;
+			// barrier: (all mip levels): UNDEFINED -> TRANSFER_DST_OPTIMAL
+			// Used for copying staging buffer AND blitting mipmaps
+			// Must happen before vkCmdCopyBufferToImage performs a TRANSFER_WRITE in the COPY stage.
+			VkImageMemoryBarrier2 beforeCopyBarrier{};
+			beforeCopyBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+			beforeCopyBarrier.srcStageMask = VK_PIPELINE_STAGE_2_NONE;
+			beforeCopyBarrier.srcAccessMask = VK_ACCESS_2_NONE;
+			beforeCopyBarrier.dstStageMask = VK_PIPELINE_STAGE_2_COPY_BIT;
+			beforeCopyBarrier.dstAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
+			beforeCopyBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			beforeCopyBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+			beforeCopyBarrier.srcQueueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily;
+			beforeCopyBarrier.dstQueueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily;
+			beforeCopyBarrier.image = out->image;
+			beforeCopyBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			beforeCopyBarrier.subresourceRange.baseMipLevel = 0;
+			beforeCopyBarrier.subresourceRange.levelCount = mipLevels;
+			beforeCopyBarrier.subresourceRange.baseArrayLayer = 0;
+			beforeCopyBarrier.subresourceRange.layerCount = 1;
+			VkDependencyInfo beforeCopyDependency{};
+			beforeCopyDependency.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+			beforeCopyDependency.imageMemoryBarrierCount = 1;
+			beforeCopyDependency.pImageMemoryBarriers = &beforeCopyBarrier;
+			vkCmdPipelineBarrier2(commandBuffer, &beforeCopyDependency);
 
-			VkDependencyInfo depInfo{};
-			depInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
-			depInfo.imageMemoryBarrierCount = 1;
-			depInfo.pImageMemoryBarriers = &barrier;
-
-			vkCmdPipelineBarrier2(commandBuffer, &depInfo);
-
+			// copy staging buffer to mipLevel 0 (full res image)
 			VkBufferImageCopy region{};
 			region.bufferOffset = 0;
 			region.bufferRowLength = 0;
 			region.bufferImageHeight = 0;
-			region.imageSubresource.aspectMask = viewInfo.subresourceRange.aspectMask;
+			region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 			region.imageSubresource.mipLevel = 0;
 			region.imageSubresource.baseArrayLayer = 0;
 			region.imageSubresource.layerCount = 1;
@@ -1394,20 +1403,106 @@ namespace engine {
 			region.imageOffset.y = 0;
 			region.imageOffset.z = 0;
 			region.imageExtent = imageInfo.extent;
-
 			vkCmdCopyBufferToImage(commandBuffer, stagingBuffer, out->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
-			// Re-use old struct, only changing some values
-			barrier.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
-			barrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
-			barrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
-			barrier.dstAccessMask = VK_ACCESS_2_SHADER_SAMPLED_READ_BIT;
-			barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-			barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			barrier.srcQueueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily;
-			barrier.dstQueueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily;
+			int32_t mipWidth = w;
+			int32_t mipHeight = h;
+			for (uint32_t i = 1; i < mipLevels; i++) {
 
-			vkCmdPipelineBarrier2(commandBuffer, &depInfo);
+				// barrier: (i - 1) TRANSFER_DST_OPTIMAL -> TRANSFER_SRC_OPTIMAL
+				// Must happen after TRANSFER_WRITE in the COPY stage and BLIT stage.
+				VkImageMemoryBarrier2 beforeBlitBarrier{};
+				beforeBlitBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+				beforeBlitBarrier.srcStageMask = VK_PIPELINE_STAGE_2_COPY_BIT | VK_PIPELINE_STAGE_2_BLIT_BIT;
+				beforeBlitBarrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
+				beforeBlitBarrier.dstStageMask = VK_PIPELINE_STAGE_2_BLIT_BIT;
+				beforeBlitBarrier.dstAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT;
+				beforeBlitBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+				beforeBlitBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+				beforeBlitBarrier.srcQueueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily;
+				beforeBlitBarrier.dstQueueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily;
+				beforeBlitBarrier.image = out->image;
+				beforeBlitBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+				beforeBlitBarrier.subresourceRange.baseMipLevel = (i - 1);
+				beforeBlitBarrier.subresourceRange.levelCount = 1;
+				beforeBlitBarrier.subresourceRange.baseArrayLayer = 0;
+				beforeBlitBarrier.subresourceRange.layerCount = 1;
+				VkDependencyInfo beforeBlitDependency{};
+				beforeBlitDependency.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+				beforeBlitDependency.imageMemoryBarrierCount = 1;
+				beforeBlitDependency.pImageMemoryBarriers = &beforeBlitBarrier;
+				vkCmdPipelineBarrier2(commandBuffer, &beforeBlitDependency);
+
+				VkImageBlit blit{};
+				blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+				blit.srcSubresource.mipLevel = i - 1;
+				blit.srcSubresource.baseArrayLayer = 0;
+				blit.srcSubresource.layerCount = 1;
+				blit.srcOffsets[0] = { 0, 0, 0 };
+				blit.srcOffsets[1] = { mipWidth, mipHeight, 1 };
+				blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+				blit.dstSubresource.mipLevel = i;
+				blit.dstSubresource.baseArrayLayer = 0;
+				blit.dstSubresource.layerCount = 1;
+				blit.dstOffsets[0] = { 0, 0, 0};
+				blit.dstOffsets[1] = { mipWidth > 1 ? mipWidth / 2 : 1, mipHeight > 1 ? mipHeight / 2 : 1, 1 };
+				vkCmdBlitImage(commandBuffer,
+						out->image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+						out->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+						1, &blit, VK_FILTER_LINEAR);
+
+				// barrier: (i - 1) TRANSFER_SRC_OPTIMAL -> SHADER_READ_ONLY_OPTIMALs
+				// Must happen after usage in the BLIT stage.
+				// Must happen before SHADER_SAMPLED_READ in the FRAGMENT_SHADER stage
+				VkImageMemoryBarrier2 afterBlitBarrier{};
+				afterBlitBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+				afterBlitBarrier.srcStageMask = VK_PIPELINE_STAGE_2_BLIT_BIT;
+				afterBlitBarrier.srcAccessMask = 0;
+				afterBlitBarrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
+				afterBlitBarrier.dstAccessMask = VK_ACCESS_2_SHADER_SAMPLED_READ_BIT;
+				afterBlitBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+				afterBlitBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+				afterBlitBarrier.srcQueueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily;
+				afterBlitBarrier.dstQueueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily;
+				afterBlitBarrier.image = out->image;
+				afterBlitBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+				afterBlitBarrier.subresourceRange.baseMipLevel = (i - 1);
+				afterBlitBarrier.subresourceRange.levelCount = 1;
+				afterBlitBarrier.subresourceRange.baseArrayLayer = 0;
+				afterBlitBarrier.subresourceRange.layerCount = 1;
+				VkDependencyInfo afterBlitDependency{};
+				afterBlitDependency.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+				afterBlitDependency.imageMemoryBarrierCount = 1;
+				afterBlitDependency.pImageMemoryBarriers = &afterBlitBarrier;
+				vkCmdPipelineBarrier2(commandBuffer, &afterBlitDependency);
+
+				if (mipWidth > 1) mipWidth /= 2;
+				if (mipHeight > 2) mipHeight /= 2;
+			}
+
+			// Final mipLevel is never transitioned from TRANSFER_DST_OPTIMAL
+			// barrier: (mipLevels - 1) TRANSFER_DST_OPTIMAL -> SHADER_READ_ONLY_OPTIMAL
+			VkImageMemoryBarrier2 finalBlitBarrier{};
+			finalBlitBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+			finalBlitBarrier.srcStageMask = VK_PIPELINE_STAGE_2_BLIT_BIT | VK_PIPELINE_STAGE_2_COPY_BIT;
+			finalBlitBarrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
+			finalBlitBarrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
+			finalBlitBarrier.dstAccessMask = VK_ACCESS_2_SHADER_SAMPLED_READ_BIT;
+			finalBlitBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+			finalBlitBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			finalBlitBarrier.srcQueueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily;
+			finalBlitBarrier.dstQueueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily;
+			finalBlitBarrier.image = out->image;
+			finalBlitBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			finalBlitBarrier.subresourceRange.baseMipLevel = (mipLevels - 1);
+			finalBlitBarrier.subresourceRange.levelCount = 1;
+			finalBlitBarrier.subresourceRange.baseArrayLayer = 0;
+			finalBlitBarrier.subresourceRange.layerCount = 1;
+			VkDependencyInfo afterBlitDependency{};
+			afterBlitDependency.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+			afterBlitDependency.imageMemoryBarrierCount = 1;
+			afterBlitDependency.pImageMemoryBarriers = &finalBlitBarrier;
+			vkCmdPipelineBarrier2(commandBuffer, &afterBlitDependency);
 
 			VKCHECK(vkEndCommandBuffer(commandBuffer));
 		}
@@ -1442,7 +1537,7 @@ namespace engine {
 
 		VkSamplerCreateInfo samplerInfo{};
 		samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-		samplerInfo.magFilter = VK_FILTER_NEAREST;
+		samplerInfo.magFilter = VK_FILTER_LINEAR;
 		samplerInfo.minFilter = VK_FILTER_LINEAR;
 		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 		samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
