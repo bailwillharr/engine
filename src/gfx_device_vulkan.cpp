@@ -364,7 +364,7 @@ namespace engine {
 		deviceRequirements.requiredExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 		deviceRequirements.optionalExtensions.push_back(VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME);
 		deviceRequirements.optionalExtensions.push_back(VK_EXT_MEMORY_BUDGET_EXTENSION_NAME);
-		//deviceRequirements.requiredFeatures.samplerAnisotropy = VK_TRUE;
+		deviceRequirements.requiredFeatures.samplerAnisotropy = VK_TRUE;
 		//deviceRequirements.requiredFeatures.fillModeNonSolid = VK_TRUE;
 		deviceRequirements.formats.push_back(
 			FormatRequirements{
@@ -1544,7 +1544,8 @@ namespace engine {
 		samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 		samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 		samplerInfo.mipLodBias = 0.0f;
-		samplerInfo.anisotropyEnable = VK_FALSE;
+		samplerInfo.anisotropyEnable = VK_TRUE;
+		samplerInfo.maxAnisotropy = pimpl->device.properties.limits.maxSamplerAnisotropy;
 		samplerInfo.minLod = 0.0f;
 		samplerInfo.maxLod = VK_LOD_CLAMP_NONE;
 
