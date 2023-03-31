@@ -4,6 +4,10 @@
 
 #include <string>
 
+namespace engine {
+	struct RenderData;
+}
+
 namespace engine::resources {
 
 class Texture {
@@ -16,7 +20,7 @@ public:
 		ANISOTROPIC,
 	};
 
-	Texture(GFXDevice* gfxDevice, const gfx::DescriptorSetLayout* materialSetLayout, const gfx::Sampler* sampler, const std::string& path, Filtering filtering, bool useMipmaps, bool useLinearMagFilter);
+	Texture(RenderData& renderData, const std::string& path, Filtering filtering);
 	~Texture();
 	Texture(const Texture&) = delete;
 	Texture& operator=(const Texture&) = delete;

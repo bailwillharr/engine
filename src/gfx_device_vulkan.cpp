@@ -154,15 +154,26 @@ namespace engine {
 			}
 		}
 
-		[[maybe_unused]] static VkFilter getTextureFilter(gfx::TextureFilter filter)
+		[[maybe_unused]] static VkFilter getFilter(gfx::Filter filter)
 		{
 			switch (filter) {
-			case gfx::TextureFilter::LINEAR:
+			case gfx::Filter::LINEAR:
 				return VK_FILTER_LINEAR;
-			case gfx::TextureFilter::NEAREST:
+			case gfx::Filter::NEAREST:
 				return VK_FILTER_NEAREST;
 			}
-			throw std::runtime_error("Unknown texture filter");
+			throw std::runtime_error("Unknown filter");
+		}
+
+		[[maybe_unused]] static VkSamplerMipmapMode getSamplerMipmapMode(gfx::Filter filter)
+		{
+			switch (filter) {
+			case gfx::Filter::LINEAR:
+				return VK_SAMPLER_MIPMAP_MODE_LINEAR;
+			case gfx::Filter::NEAREST:
+				return VK_SAMPLER_MIPMAP_MODE_NEAREST;
+			}
+			throw std::runtime_error("Unknown filter");
 		}
 
 		[[maybe_unused]] static VkSampleCountFlags getSampleCountFlags(gfx::MSAALevel level)
@@ -1537,20 +1548,20 @@ namespace engine {
 		delete image;
     }
 
-    gfx::Sampler *GFXDevice::createSampler()
+    const gfx::Sampler *GFXDevice::createSampler(const gfx::SamplerInfo& info)
     {
         gfx::Sampler* out = new gfx::Sampler{};
 
 		VkSamplerCreateInfo samplerInfo{};
 		samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-		samplerInfo.magFilter = VK_FILTER_LINEAR;
-		samplerInfo.minFilter = VK_FILTER_LINEAR;
-		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+		samplerInfo.magFilter = converters::getFilter(info.magnify);
+		samplerInfo.minFilter = converters::getFilter(info.minify);
+		samplerInfo.mipmapMode = converters::getSamplerMipmapMode(info.mipmap);
 		samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 		samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 		samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 		samplerInfo.mipLodBias = 0.0f;
-		samplerInfo.anisotropyEnable = VK_TRUE;
+		samplerInfo.anisotropyEnable = info.anisotropicFiltering ? VK_TRUE : VK_FALSE;
 		samplerInfo.maxAnisotropy = pimpl->device.properties.limits.maxSamplerAnisotropy;
 		samplerInfo.minLod = 0.0f;
 		samplerInfo.maxLod = VK_LOD_CLAMP_NONE;

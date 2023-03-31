@@ -1,5 +1,6 @@
 #include "resources/texture.hpp"
 
+#include "application.hpp"
 #include "util/files.hpp"
 #include "log.hpp"
 
@@ -7,58 +8,46 @@
 
 namespace engine::resources {
 
-Texture::Texture(GFXDevice* gfxDevice, const gfx::DescriptorSetLayout* materialSetLayout, const gfx::Sampler* sampler, const std::string& path, Filtering filtering, bool useMipmaps, bool useLinearMagFilter)
-	: m_gfxDevice(gfxDevice)
+Texture::Texture(RenderData& renderData, const std::string& path, Filtering filtering)
+	: m_gfxDevice(renderData.gfxdev.get())
 {
 
 	int width, height;
 	std::unique_ptr<std::vector<uint8_t>> texbuf = util::readImageFile(path, &width, &height);
 
-	gfx::TextureFilter minFilter = gfx::TextureFilter::NEAREST;
-	gfx::TextureFilter magFilter = gfx::TextureFilter::NEAREST;
-	gfx::MipmapSetting mipmapSetting = gfx::MipmapSetting::OFF;
-	bool anisotropyEnable = false;
+	gfx::SamplerInfo samplerInfo{};
 
-	if (useLinearMagFilter) {
-		magFilter = gfx::TextureFilter::LINEAR;
-	} else {
-		magFilter = gfx::TextureFilter::NEAREST;
-	}
+	samplerInfo.magnify = gfx::Filter::LINEAR;
 
 	switch (filtering) {
 		case Filtering::OFF:
-			minFilter = gfx::TextureFilter::NEAREST;
-			mipmapSetting = gfx::MipmapSetting::NEAREST;
-			anisotropyEnable = false;
+			samplerInfo.minify = gfx::Filter::NEAREST;
+			samplerInfo.mipmap = gfx::Filter::NEAREST;
+			samplerInfo.anisotropicFiltering = false;
 			break;
 		case Filtering::BILINEAR:
-			minFilter = gfx::TextureFilter::LINEAR;
-			mipmapSetting = gfx::MipmapSetting::NEAREST;
-			anisotropyEnable = false;
+			samplerInfo.minify = gfx::Filter::LINEAR;
+			samplerInfo.mipmap = gfx::Filter::NEAREST;
+			samplerInfo.anisotropicFiltering = false;
 			break;
 		case Filtering::TRILINEAR:
-			minFilter = gfx::TextureFilter::LINEAR;
-			mipmapSetting = gfx::MipmapSetting::LINEAR;
-			anisotropyEnable = false;
+			samplerInfo.minify = gfx::Filter::LINEAR;
+			samplerInfo.mipmap = gfx::Filter::LINEAR;
+			samplerInfo.anisotropicFiltering = false;
 			break;
 		case Filtering::ANISOTROPIC:
-			minFilter = gfx::TextureFilter::LINEAR;
-			mipmapSetting = gfx::MipmapSetting::LINEAR;
-			anisotropyEnable = true;
+			samplerInfo.minify = gfx::Filter::LINEAR;
+			samplerInfo.mipmap = gfx::Filter::LINEAR;
+			samplerInfo.anisotropicFiltering = true;
 	}
 
-	if (useMipmaps == false) {
-		mipmapSetting = gfx::MipmapSetting::OFF;
+	if (renderData.samplers.contains(samplerInfo) == false) {
+		renderData.samplers.insert(std::make_pair(samplerInfo, m_gfxDevice->createSampler(samplerInfo)));
 	}
-
-	(void)minFilter;
-	(void)magFilter;
-	(void)mipmapSetting;
-	(void)anisotropyEnable;
 	
 	m_image = m_gfxDevice->createImage(width, height, texbuf->data());
-	m_descriptorSet = m_gfxDevice->allocateDescriptorSet(materialSetLayout);
-	m_gfxDevice->updateDescriptorCombinedImageSampler(m_descriptorSet, 0, m_image, sampler);
+	m_descriptorSet = m_gfxDevice->allocateDescriptorSet(renderData.materialSetLayout);
+	m_gfxDevice->updateDescriptorCombinedImageSampler(m_descriptorSet, 0, m_image, renderData.samplers.at(samplerInfo));
 
 	LOG_INFO("Loaded texture: {}, width: {} height: {}", path, width, height);
 

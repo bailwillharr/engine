@@ -182,8 +182,8 @@ namespace engine::util {
 				absPath /= texPath.C_Str();
 				try {
 					textures[i] = std::make_shared<resources::Texture>(
-						parent->app()->gfx(), parent->app()->renderData.materialSetLayout, parent->app()->renderData.materialSetSampler, absPath.string(),
-						resources::Texture::Filtering::TRILINEAR, true, true);
+						parent->app()->renderData, absPath.string(),
+						resources::Texture::Filtering::TRILINEAR);
 				} catch (const std::runtime_error&) {
 					textures[i] = parent->app()->getResource<resources::Texture>("builtin.white");
 				}

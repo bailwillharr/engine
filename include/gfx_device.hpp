@@ -52,7 +52,7 @@ namespace engine {
 		gfx::Image* createImage(uint32_t w, uint32_t h, const void* imageData);
 		void destroyImage(const gfx::Image* image);
 
-		gfx::Sampler* createSampler();
+		const gfx::Sampler* createSampler(const gfx::SamplerInfo& info);
 		void destroySampler(const gfx::Sampler* sampler);
 
 		uint64_t getFrameCount();

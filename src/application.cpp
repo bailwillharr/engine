@@ -111,7 +111,6 @@ namespace engine {
 			binding0.stageFlags = gfx::ShaderStageFlags::FRAGMENT;
 		}
 		renderData.materialSetLayout = gfx()->createDescriptorSetLayout(materialSetBindings);
-		renderData.materialSetSampler = gfx()->createSampler();
 
 		// default resources
 		{
@@ -144,13 +143,9 @@ namespace engine {
 		}
 		{
 			auto whiteTexture = std::make_unique<resources::Texture>(
-				gfx(),
-				renderData.materialSetLayout,
-				renderData.materialSetSampler,
+				renderData,
 				getResourcePath("engine/textures/white.png"),
-				resources::Texture::Filtering::OFF,
-				false,
-				false
+				resources::Texture::Filtering::OFF
 			);
 			getResourceManager<resources::Texture>()->addPersistent("builtin.white", std::move(whiteTexture));
 		}
@@ -158,7 +153,9 @@ namespace engine {
 
 	Application::~Application()
 	{
-		gfx()->destroySampler(renderData.materialSetSampler);
+		for (const auto& [info, sampler] : renderData.samplers) {
+			gfx()->destroySampler(sampler);
+		}
 		gfx()->destroyDescriptorSetLayout(renderData.materialSetLayout);
 
 		gfx()->destroyUniformBuffer(renderData.frameSetUniformBuffer);

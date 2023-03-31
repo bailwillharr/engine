@@ -47,7 +47,7 @@ namespace engine {
 
 		/* this descriptor set is bound per-material */
 		const gfx::DescriptorSetLayout* materialSetLayout;
-		const gfx::Sampler* materialSetSampler;
+		std::unordered_map<gfx::SamplerInfo, const gfx::Sampler*> samplers{};
 	};
 
 	class Application {

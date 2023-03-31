@@ -84,22 +84,14 @@ void playGame(GameSettings settings)
 
 	/* shared resources */
 	auto grassTexture = std::make_shared<engine::resources::Texture>(
-		app.gfx(),
-		app.renderData.materialSetLayout,
-		app.renderData.materialSetSampler,
+		app.renderData,
 		app.getResourcePath("textures/grass.jpg"),
-		engine::resources::Texture::Filtering::ANISOTROPIC,
-		true,
-		true
+		engine::resources::Texture::Filtering::ANISOTROPIC
 	);
 	auto spaceTexture = std::make_shared<engine::resources::Texture>(
-		app.gfx(),
-		app.renderData.materialSetLayout,
-		app.renderData.materialSetSampler,
+		app.renderData,
 		app.getResourcePath("textures/space2.png"),
-		engine::resources::Texture::Filtering::ANISOTROPIC,
-		true,
-		true
+		engine::resources::Texture::Filtering::ANISOTROPIC
 	);
 
 	/* cube */
