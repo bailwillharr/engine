@@ -8,6 +8,8 @@
 #include <cstdint>
 #include <assert.h>
 
+#include <typeinfo>
+
 namespace engine {
 
 	class Scene;

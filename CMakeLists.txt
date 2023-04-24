@@ -17,6 +17,7 @@ set(SRC_FILES
 
 	src/systems/transform.cpp
 	src/systems/render.cpp
+	src/systems/render2d.cpp
 	src/systems/ui.cpp
 	src/systems/collisions.cpp
 
@@ -56,6 +57,7 @@ set(INCLUDE_FILES
 
 	include/systems/transform.hpp
 	include/systems/render.hpp
+	include/systems/render2d.hpp
 	include/systems/ui.hpp
 	include/systems/collisions.hpp
 
