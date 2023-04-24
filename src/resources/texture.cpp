@@ -8,8 +8,8 @@
 
 namespace engine::resources {
 
-Texture::Texture(RenderData& renderData, const std::string& path, Filtering filtering)
-	: m_gfxDevice(renderData.gfxdev.get())
+Texture::Texture(RenderData* renderData, const std::string& path, Filtering filtering)
+	: m_gfxDevice(renderData->gfxdev.get())
 {
 
 	int width, height;
@@ -41,13 +41,13 @@ Texture::Texture(RenderData& renderData, const std::string& path, Filtering filt
 			samplerInfo.anisotropicFiltering = true;
 	}
 
-	if (renderData.samplers.contains(samplerInfo) == false) {
-		renderData.samplers.insert(std::make_pair(samplerInfo, m_gfxDevice->createSampler(samplerInfo)));
+	if (renderData->samplers.contains(samplerInfo) == false) {
+		renderData->samplers.insert(std::make_pair(samplerInfo, m_gfxDevice->createSampler(samplerInfo)));
 	}
 	
 	m_image = m_gfxDevice->createImage(width, height, texbuf->data());
-	m_descriptorSet = m_gfxDevice->allocateDescriptorSet(renderData.materialSetLayout);
-	m_gfxDevice->updateDescriptorCombinedImageSampler(m_descriptorSet, 0, m_image, renderData.samplers.at(samplerInfo));
+	m_descriptorSet = m_gfxDevice->allocateDescriptorSet(renderData->materialSetLayout);
+	m_gfxDevice->updateDescriptorCombinedImageSampler(m_descriptorSet, 0, m_image, renderData->samplers.at(samplerInfo));
 
 	LOG_INFO("Loaded texture: {}, width: {} height: {}", path, width, height);
 

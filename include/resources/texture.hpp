@@ -20,7 +20,7 @@ public:
 		ANISOTROPIC,
 	};
 
-	Texture(RenderData& renderData, const std::string& path, Filtering filtering);
+	Texture(RenderData* renderData, const std::string& path, Filtering filtering);
 	~Texture();
 	Texture(const Texture&) = delete;
 	Texture& operator=(const Texture&) = delete;

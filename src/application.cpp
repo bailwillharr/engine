@@ -143,7 +143,7 @@ namespace engine {
 		}
 		{
 			auto whiteTexture = std::make_unique<resources::Texture>(
-				renderData,
+				&renderData,
 				getResourcePath("engine/textures/white.png"),
 				resources::Texture::Filtering::OFF
 			);
