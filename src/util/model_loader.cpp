@@ -67,21 +67,21 @@ namespace engine::util {
 		glm::quat rotation = glm::quat_cast(transform);
 
 		// update position, scale, rotation
-		auto parentTransform = scene->getComponent<TransformComponent>(parentObj);
+		auto parentTransform = scene->GetComponent<TransformComponent>(parentObj);
 		parentTransform->position = position;
 		parentTransform->scale = scale;
 		parentTransform->rotation = rotation;
 
 		for (uint32_t i = 0; i < parentNode->mNumMeshes; i++) {
 			// create child node for each mesh
-			auto child = scene->createEntity("_mesh" + std::to_string(i), parentObj);
-			auto childRenderer = scene->addComponent<RenderableComponent>(child);
+			auto child = scene->CreateEntity("_mesh" + std::to_string(i), parentObj);
+			auto childRenderer = scene->AddComponent<RenderableComponent>(child);
 			childRenderer->mesh = meshes[parentNode->mMeshes[i]];
-			childRenderer->material = std::make_shared<resources::Material>(scene->app()->getResource<resources::Shader>("builtin.standard"));
+			childRenderer->material = std::make_shared<resources::Material>(scene->app()->GetResource<resources::Shader>("builtin.standard"));
 			if (textures.contains(meshTextureIndices[parentNode->mMeshes[i]])) {
 				childRenderer->material->m_texture = textures.at(meshTextureIndices[parentNode->mMeshes[i]]);
 			} else {
-				childRenderer->material->m_texture = scene->app()->getResource<resources::Texture>("builtin.white");
+				childRenderer->material->m_texture = scene->app()->GetResource<resources::Texture>("builtin.white");
 			}
 		}
 
@@ -92,7 +92,7 @@ namespace engine::util {
 				meshTextureIndices,
 				parentNode->mChildren[i],
 				scene,
-				scene->createEntity("child" + std::to_string(i), parentObj)
+				scene->CreateEntity("child" + std::to_string(i), parentObj)
 			);
 		}
 	}
@@ -182,10 +182,10 @@ namespace engine::util {
 				absPath /= texPath.C_Str();
 				try {
 					textures[i] = std::make_shared<resources::Texture>(
-						&parent->app()->renderData, absPath.string(),
+						&parent->app()->render_data_, absPath.string(),
 						resources::Texture::Filtering::TRILINEAR);
 				} catch (const std::runtime_error&) {
-					textures[i] = parent->app()->getResource<resources::Texture>("builtin.white");
+					textures[i] = parent->app()->GetResource<resources::Texture>("builtin.white");
 				}
 			}
 		}
@@ -223,10 +223,10 @@ namespace engine::util {
 				indices[(size_t)j * 3 + 1] = m->mFaces[j].mIndices[1];
 				indices[(size_t)j * 3 + 2] = m->mFaces[j].mIndices[2];
 			}
-			meshes.push_back(std::make_shared<resources::Mesh>(parent->app()->gfx(), vertices, indices));
+			meshes.push_back(std::make_shared<resources::Mesh>(parent->app()->gfxdev(), vertices, indices));
 		}
 
-		uint32_t obj = parent->createEntity(scene->GetShortFilename(path.c_str()));
+		uint32_t obj = parent->CreateEntity(scene->GetShortFilename(path.c_str()));
 
 		buildGraph(textures, meshes, meshMaterialIndices, scene->mRootNode, parent, obj);
 

@@ -1,71 +1,108 @@
-#pragma once
-
-#include "gfx.hpp"
+#ifndef ENGINE_INCLUDE_GFX_DEVICE_H_
+#define ENGINE_INCLUDE_GFX_DEVICE_H_
 
 #include <memory>
 
-struct SDL_Window; // <SDL_video.h>
+#include "gfx.hpp"
+
+struct SDL_Window;  // <SDL_video.h>
 
 namespace engine {
-	
-	class GFXDevice {
 
-	public:
-		GFXDevice(const char* appName, const char* appVersion, SDL_Window* window, gfx::GraphicsSettings settings);
+class GFXDevice {
+ public:
+  GFXDevice(const char* app_name, const char* app_version, SDL_Window* window,
+            gfx::GraphicsSettings settings);
 
-		GFXDevice(const GFXDevice&) = delete;
-		GFXDevice& operator=(const GFXDevice&) = delete;
-		~GFXDevice();
+  GFXDevice(const GFXDevice&) = delete;
+  GFXDevice& operator=(const GFXDevice&) = delete;
+  ~GFXDevice();
 
-		void getViewportSize(uint32_t *w, uint32_t *h);
+  void GetViewportSize(uint32_t* w, uint32_t* h);
 
-		gfx::DrawBuffer* beginRender();
-		void finishRender(gfx::DrawBuffer* drawBuffer);
+  gfx::DrawBuffer* BeginRender();
 
-		void cmdBindPipeline(gfx::DrawBuffer* drawBuffer, const gfx::Pipeline* pipeline);
-		void cmdBindVertexBuffer(gfx::DrawBuffer* drawBuffer, uint32_t binding, const gfx::Buffer* buffer);
-		void cmdBindIndexBuffer(gfx::DrawBuffer* drawBuffer, const gfx::Buffer* buffer);
-		void cmdDrawIndexed(gfx::DrawBuffer* drawBuffer, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance);
-		void cmdPushConstants(gfx::DrawBuffer* drawBuffer, const gfx::Pipeline* pipeline, uint32_t offset, uint32_t size, const void* data);
-		void cmdBindDescriptorSet(gfx::DrawBuffer* drawBuffer, const gfx::Pipeline* pipeline, const gfx::DescriptorSet* set, uint32_t setNumber);
-		
-		gfx::Pipeline* createPipeline(const gfx::PipelineInfo& info);
-		void destroyPipeline(const gfx::Pipeline* pipeline);
+  void FinishRender(gfx::DrawBuffer* draw_buffer);
 
-		gfx::DescriptorSetLayout* createDescriptorSetLayout(const std::vector<gfx::DescriptorSetLayoutBinding>& bindings);
-		void destroyDescriptorSetLayout(const gfx::DescriptorSetLayout* layout);
-		
-		gfx::DescriptorSet* allocateDescriptorSet(const gfx::DescriptorSetLayout* layout);
-		// This updates all copies of the descriptor. This cannot be used after any frames have been renderered
-		void updateDescriptorUniformBuffer(const gfx::DescriptorSet* set, uint32_t binding, const gfx::UniformBuffer* buffer, size_t offset, size_t range);
-		void updateDescriptorCombinedImageSampler(const gfx::DescriptorSet* set, uint32_t binding, const gfx::Image* image, const gfx::Sampler* sampler);
+  void CmdBindPipeline(gfx::DrawBuffer* draw_buffer,
+                       const gfx::Pipeline* pipeline);
 
-		gfx::UniformBuffer* createUniformBuffer(uint64_t size, const void* initialData);
-		void destroyUniformBuffer(const gfx::UniformBuffer* descriptorBuffer);
+  void CmdBindVertexBuffer(gfx::DrawBuffer* draw_buffer, uint32_t binding,
+                           const gfx::Buffer* buffer);
 
-		void writeUniformBuffer(gfx::UniformBuffer* buffer, uint64_t offset, uint64_t size, const void* data);
+  void CmdBindIndexBuffer(gfx::DrawBuffer* draw_buffer,
+                          const gfx::Buffer* buffer);
 
-		// Loads data into staging buffer and copies that into a single GPU buffer.
-		gfx::Buffer* createBuffer(gfx::BufferType type, uint64_t size, const void* data);
-		void destroyBuffer(const gfx::Buffer* buffer);
+  void CmdDrawIndexed(gfx::DrawBuffer* draw_buffer, uint32_t index_count,
+                      uint32_t instance_count, uint32_t first_index,
+                      int32_t vertex_offset, uint32_t first_instance);
 
-		gfx::Image* createImage(uint32_t w, uint32_t h, const void* imageData);
-		void destroyImage(const gfx::Image* image);
+  void CmdPushConstants(gfx::DrawBuffer* draw_buffer,
+                        const gfx::Pipeline* pipeline, uint32_t offset,
+                        uint32_t size, const void* data);
 
-		const gfx::Sampler* createSampler(const gfx::SamplerInfo& info);
-		void destroySampler(const gfx::Sampler* sampler);
+  void CmdBindDescriptorSet(gfx::DrawBuffer* draw_buffer,
+                            const gfx::Pipeline* pipeline,
+                            const gfx::DescriptorSet* set, uint32_t set_number);
 
-		uint64_t getFrameCount();
+  gfx::Pipeline* CreatePipeline(const gfx::PipelineInfo& info);
 
-		void logPerformanceInfo();
+  void DestroyPipeline(const gfx::Pipeline* pipeline);
 
-		// wait until all the active GPU queues have finished working
-		void waitIdle();
+  gfx::DescriptorSetLayout* CreateDescriptorSetLayout(
+      const std::vector<gfx::DescriptorSetLayoutBinding>& bindings);
 
-	private:
-		struct Impl;
-		std::unique_ptr<Impl> pimpl;
+  void DestroyDescriptorSetLayout(const gfx::DescriptorSetLayout* layout);
 
-	};
+  gfx::DescriptorSet* AllocateDescriptorSet(
+      const gfx::DescriptorSetLayout* layout);
 
-}
+  // This updates all copies of the descriptor.
+  // This cannot be used after any frames have been renderered
+  void UpdateDescriptorUniformBuffer(const gfx::DescriptorSet* set,
+                                     uint32_t binding,
+                                     const gfx::UniformBuffer* buffer,
+                                     size_t offset, size_t range);
+
+  void UpdateDescriptorCombinedImageSampler(const gfx::DescriptorSet* set,
+                                            uint32_t binding,
+                                            const gfx::Image* image,
+                                            const gfx::Sampler* sampler);
+
+  gfx::UniformBuffer* CreateUniformBuffer(uint64_t size,
+                                          const void* initial_data);
+
+  void DestroyUniformBuffer(const gfx::UniformBuffer* descriptor_buffer);
+
+  void WriteUniformBuffer(gfx::UniformBuffer* buffer, uint64_t offset,
+                          uint64_t size, const void* data);
+
+  // Loads data into staging buffer and copies that into a single GPU buffer.
+  gfx::Buffer* CreateBuffer(gfx::BufferType type, uint64_t size,
+                            const void* data);
+
+  void DestroyBuffer(const gfx::Buffer* buffer);
+
+  gfx::Image* CreateImage(uint32_t w, uint32_t h, const void* image_data);
+
+  void DestroyImage(const gfx::Image* image);
+
+  const gfx::Sampler* CreateSampler(const gfx::SamplerInfo& info);
+
+  void DestroySampler(const gfx::Sampler* sampler);
+
+  uint64_t GetFrameCount();
+
+  void LogPerformanceInfo();
+
+  // wait until all the active GPU queues have finished working
+  void WaitIdle();
+
+ private:
+  struct Impl;
+  std::unique_ptr<Impl> pimpl;
+};
+
+}  // namespace engine
+
+#endif

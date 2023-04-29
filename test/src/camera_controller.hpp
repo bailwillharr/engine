@@ -30,10 +30,10 @@ public:
 	CameraControllerSystem(engine::Scene* scene);
 
 	// engine::System overrides
-	void onUpdate(float ts) override;
+	void OnUpdate(float ts) override;
 
 	// engine::EventHandler overrides
-	void onEvent(engine::PhysicsSystem::CollisionEvent info) override;
+	void OnEvent(engine::PhysicsSystem::CollisionEvent info) override;
 
 	engine::TransformComponent* t = nullptr;
 	engine::ColliderComponent* col = nullptr;

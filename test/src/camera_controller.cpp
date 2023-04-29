@@ -21,14 +21,14 @@ CameraControllerSystem::CameraControllerSystem(engine::Scene* scene)
 {
 }
 
-void CameraControllerSystem::onUpdate(float ts)
+void CameraControllerSystem::OnUpdate(float ts)
 {
 
 	if (t == nullptr || c == nullptr || col == nullptr) {
-		for (uint32_t entity : m_entities) {
-			t = m_scene->getComponent<engine::TransformComponent>(entity);
-			col = m_scene->getComponent<engine::ColliderComponent>(entity);
-			c = m_scene->getComponent<CameraControllerComponent>(entity);
+		for (uint32_t entity : entities_) {
+			t = scene_->GetComponent<engine::TransformComponent>(entity);
+			col = scene_->GetComponent<engine::ColliderComponent>(entity);
+			c = scene_->GetComponent<CameraControllerComponent>(entity);
 			break;
 		}
 		if (t == nullptr) return;
@@ -78,32 +78,32 @@ void CameraControllerSystem::onUpdate(float ts)
 
 	// jumping
 	constexpr float JUMPVEL = (float)2.82231110971133017648; //std::sqrt(2 * G * JUMPHEIGHT);
-	if (m_scene->app()->inputManager()->getButton("jump") && c->isGrounded == true) {
+	if (scene_->app()->input_manager()->GetButton("jump") && c->isGrounded == true) {
 		c->dy = JUMPVEL;
 	}
 
-	if (m_scene->app()->window()->getButton(engine::inputs::MouseButton::M_LEFT)) {
+	if (scene_->app()->window()->getButton(engine::inputs::MouseButton::M_LEFT)) {
 		c->dy += dt * c->thrust;
 	}
 
 	// in metres per second
 	float SPEED = c->walk_speed;
-	if (m_scene->app()->inputManager()->getButton("sprint")) SPEED *= 10.0f;
+	if (scene_->app()->input_manager()->GetButton("sprint")) SPEED *= 10.0f;
 
-	float dx = m_scene->app()->inputManager()->getAxis("movex");
-	float dz = (-m_scene->app()->inputManager()->getAxis("movey"));
+	float dx = scene_->app()->input_manager()->GetAxis("movex");
+	float dz = (-scene_->app()->input_manager()->GetAxis("movey"));
 
 	// calculate new pitch and yaw
 
 	constexpr float MAX_PITCH = glm::half_pi<float>();
 	constexpr float MIN_PITCH = -MAX_PITCH;
 
-	float dPitch = m_scene->app()->inputManager()->getAxis("looky") * -1.0f * c->m_cameraSensitivity;
+	float dPitch = scene_->app()->input_manager()->GetAxis("looky") * -1.0f * c->m_cameraSensitivity;
 	c->m_pitch += dPitch;
 	if (c->m_pitch <= MIN_PITCH || c->m_pitch >= MAX_PITCH) {
 		c->m_pitch -= dPitch;
 	}
-	c->m_yaw += m_scene->app()->inputManager()->getAxis("lookx") * -1.0f * c->m_cameraSensitivity;
+	c->m_yaw += scene_->app()->input_manager()->GetAxis("lookx") * -1.0f * c->m_cameraSensitivity;
 
 	// update position relative to camera direction in xz plane
 	const glm::vec3 d2xRotated = glm::rotateY(glm::vec3{ dx, 0.0f, 0.0f }, c->m_yaw);
@@ -148,27 +148,27 @@ void CameraControllerSystem::onUpdate(float ts)
 
 	/* user interface inputs */
 
-	if (m_scene->app()->window()->getKeyPress(engine::inputs::Key::K_P)) {
+	if (scene_->app()->window()->getKeyPress(engine::inputs::Key::K_P)) {
 		std::string pos_string{
 			 "x: " + std::to_string(t->position.x) +
 			" y: " + std::to_string(t->position.y) +
 			" z: " + std::to_string(t->position.z)
 		};
-		//m_scene->app()->window()->infoBox("POSITION", pos_string);
+		//scene_->app()->window()->infoBox("POSITION", pos_string);
 		LOG_INFO("position: " + pos_string);
 	}
 
-	if (m_scene->app()->window()->getKeyPress(engine::inputs::Key::K_R)) {
+	if (scene_->app()->window()->getKeyPress(engine::inputs::Key::K_R)) {
 		t->position = { 0.0f, 5.0f, 0.0f };
 		c->dy = 0.0f;
 	}
 
-	if (m_scene->app()->inputManager()->getButtonPress("fullscreen")) {
-		m_scene->app()->window()->toggleFullscreen();
+	if (scene_->app()->input_manager()->GetButtonPress("fullscreen")) {
+		scene_->app()->window()->toggleFullscreen();
 	}
 
-	if (m_scene->app()->inputManager()->getButtonPress("exit")) {
-		m_scene->app()->window()->setCloseFlag();
+	if (scene_->app()->input_manager()->GetButtonPress("exit")) {
+		scene_->app()->window()->setCloseFlag();
 	}
 
 	c->justCollided = false;
@@ -176,7 +176,7 @@ void CameraControllerSystem::onUpdate(float ts)
 }
 
 // called once per frame
-void CameraControllerSystem::onEvent(engine::PhysicsSystem::CollisionEvent info)
+void CameraControllerSystem::OnEvent(engine::PhysicsSystem::CollisionEvent info)
 {
 	c->justCollided = info.isCollisionEnter;
 	c->lastCollisionNormal = info.normal;

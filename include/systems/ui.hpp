@@ -9,7 +9,7 @@ namespace engine {
 	public:
 		UISystem(Scene* scene);
 
-		void onUpdate(float ts) override;
+		void OnUpdate(float ts) override;
 
 	private:
 

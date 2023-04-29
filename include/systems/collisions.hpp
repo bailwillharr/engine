@@ -1,10 +1,12 @@
 #pragma once
 
-#include "ecs_system.hpp"
-
-#include "components/collider.hpp"
+#include <cstdint>
+#include <vector>
 
 #include <glm/mat4x4.hpp>
+
+#include "components/collider.hpp"
+#include "ecs_system.hpp"
 
 namespace engine {
 
@@ -13,9 +15,9 @@ namespace engine {
 	public:
 		PhysicsSystem(Scene* scene);
 
-		void onUpdate(float ts) override;
+		void OnUpdate(float ts) override;
 
-		void onComponentInsert(uint32_t entity) override;
+		void OnComponentInsert(uint32_t entity) override;
 
 		struct CollisionEvent {
 			bool isCollisionEnter; // false == collision exit

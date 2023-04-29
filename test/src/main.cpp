@@ -25,7 +25,7 @@ int main(int argc, char* argv[])
 		if (args.contains("gpuvalidation")) settings.enableValidation = true;
 	}
 
-	engine::setupLog(PROJECT_NAME);
+	engine::SetupLog(PROJECT_NAME);
 
 	LOG_INFO("{} v{}", PROJECT_NAME, PROJECT_VERSION);
 

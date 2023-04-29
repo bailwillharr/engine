@@ -1,73 +1,76 @@
-#pragma once
+#ifndef ENGINE_INCLUDE_ECS_SYSTEM_H_
+#define ENGINE_INCLUDE_ECS_SYSTEM_H_
 
-#include <set>
-#include <vector>
-#include <map>
-#include <string>
 #include <bitset>
+#include <cassert>
+#include <cstddef>
 #include <cstdint>
-#include <assert.h>
-
-#include <typeinfo>
+#include <map>
+#include <set>
 
 namespace engine {
 
-	class Scene;
+class Scene;
 
-	constexpr size_t MAX_COMPONENTS = 64;
+constexpr size_t kMaxComponents = 64;
 
-	class IComponentArray {
-	public:
-		virtual ~IComponentArray() = default;
-	};
+class IComponentArray {
+public:
+  virtual ~IComponentArray() = default;
+};
 
-	template<typename T>
-	class ComponentArray : public IComponentArray {
+template<typename T>
+class ComponentArray : public IComponentArray {
 
-	public:
-		void insertData(uint32_t entity, T component)
-		{
-			assert(m_componentArray.find(entity) == m_componentArray.end() && "Adding component which already exists to entity");
-			m_componentArray.emplace(entity, component);
-		}
-		
-		void deleteData(uint32_t entity)
-		{
-			m_componentArray.erase(entity);
-		}
+public:
+  void InsertData(uint32_t entity, T component)
+  {
+    assert(component_array_.find(entity) == component_array_.end() &&
+        "Adding component which already exists to entity");
+    component_array_.emplace(entity, component);
+  }
+  
+  void DeleteData(uint32_t entity)
+  {
+    component_array_.erase(entity);
+  }
 
-		T* getData(uint32_t entity)
-		{
-			if (m_componentArray.contains(entity)) {
-				return &(m_componentArray.at(entity));
-			} else {
-				return nullptr;
-			}
-		}
+  T* GetData(uint32_t entity)
+  {
+    if (component_array_.contains(entity)) {
+      return &(component_array_.at(entity));
+    } else {
+      return nullptr;
+    }
+  }
 
-	private:
-		std::map<uint32_t, T> m_componentArray{};
+private:
+  std::map<uint32_t, T> component_array_{};
 
-	};
+};
 
-	class System {
-	
-	public:
-		System(Scene* scene, std::set<size_t> requiredComponentHashes);
-		virtual ~System() {}
-		System(const System&) = delete;
-		System& operator=(const System&) = delete;
+class System {
 
-		virtual void onUpdate(float ts) = 0;
+public:
+  System(Scene* scene, std::set<size_t> required_component_hashes);
+  virtual ~System() {}
+  System(const System&) = delete;
+  System& operator=(const System&) = delete;
 
-		virtual void onComponentInsert(uint32_t) {}
-		virtual void onComponentRemove(uint32_t) {}
+  virtual void OnUpdate(float ts) = 0;
 
-		Scene* const m_scene;
+  virtual void OnComponentInsert(uint32_t) {}
+  virtual void OnComponentRemove(uint32_t) {}
 
-		std::bitset<MAX_COMPONENTS> m_signature;
-		std::set<uint32_t> m_entities{}; // entities that contain the required components
+  Scene* const scene_;
 
-	};
+  std::bitset<kMaxComponents> signature_;
+  
+  // entities that contain the needed components
+  std::set<uint32_t> entities_{};
 
-}
+};
+
+}  // namespace engine
+
+#endif

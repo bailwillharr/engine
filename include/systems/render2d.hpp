@@ -10,7 +10,7 @@ namespace engine {
 		Render2DSystem(Scene* scene);
 		~Render2DSystem();
 
-		void onUpdate(float ts) override;
+		void OnUpdate(float ts) override;
 
 	private:
 

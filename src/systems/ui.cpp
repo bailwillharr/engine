@@ -12,7 +12,7 @@ namespace engine {
 
 	}
 
-	void UISystem::onUpdate(float ts)
+	void UISystem::OnUpdate(float ts)
 	{
 		(void)ts;
 

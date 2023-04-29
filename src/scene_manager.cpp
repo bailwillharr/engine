@@ -8,25 +8,25 @@
 namespace engine {
 
 	SceneManager::SceneManager(Application* app)
-		: m_app(app)
+		: app_(app)
 	{
 	}
 
 	SceneManager::~SceneManager() {}
 
-	Scene* SceneManager::createEmptyScene()
+	Scene* SceneManager::CreateEmptyScene()
 	{
-		auto scene = std::make_unique<Scene>(m_app);
-		m_scenes.emplace_back(std::move(scene));
-		m_activeSceneIndex = (int)m_scenes.size() - 1;
-		return m_scenes.back().get();
+		auto scene = std::make_unique<Scene>(app_);
+		scenes_.emplace_back(std::move(scene));
+		active_scene_index_ = (int)scenes_.size() - 1;
+		return scenes_.back().get();
 	}
 
-	void SceneManager::updateActiveScene(float ts)
+	void SceneManager::UpdateActiveScene(float ts)
 	{
-		if (m_activeSceneIndex >= 0) [[likely]] {
-			assert((size_t)m_activeSceneIndex < m_scenes.size());
-			m_scenes[m_activeSceneIndex]->update(ts);
+		if (active_scene_index_ >= 0) [[likely]] {
+			assert((size_t)active_scene_index_ < scenes_.size());
+			scenes_[active_scene_index_]->Update(ts);
 		}
 	}
 

@@ -1,34 +1,37 @@
-#pragma once
+#ifndef ENGINE_INCLUDE_SCENE_MANAGER_H_
+#define ENGINE_INCLUDE_SCENE_MANAGER_H_
 
-#include "resource_manager.hpp"
-
-#include <vector>
 #include <memory>
+#include <vector>
+
+#include "scene.hpp"
+#include "resource_manager.hpp"
 
 namespace engine {
 
-	class Application;
-	class Scene; // "scene.hpp"
+class Application;
 
-	class SceneManager {
+class SceneManager {
 
-	public:
-		SceneManager(Application* app);
-		~SceneManager();
-		SceneManager(const SceneManager&) = delete;
-		SceneManager& operator=(const SceneManager&) = delete;
+public:
+  SceneManager(Application* app);
+  ~SceneManager();
+  SceneManager(const SceneManager&) = delete;
+  SceneManager& operator=(const SceneManager&) = delete;
 
-		// creates an empty scene and sets it as active
-		Scene* createEmptyScene();
+  // creates an empty scene and sets it as active
+  Scene* CreateEmptyScene();
 
-		void updateActiveScene(float ts);
+  void UpdateActiveScene(float ts);
 
-	private:
-		Application* const m_app;
+private:
+  Application* const app_;
 
-		std::vector<std::unique_ptr<Scene>> m_scenes;
-		int m_activeSceneIndex = -1;
+  std::vector<std::unique_ptr<Scene>> scenes_;
+  int active_scene_index_ = -1;
 
-	};
+};
 
-}
+}  // namespace engine
+
+#endif

@@ -68,13 +68,13 @@ namespace engine {
 	PhysicsSystem::PhysicsSystem(Scene* scene)
 		: System(scene, { typeid(TransformComponent).hash_code(), typeid(ColliderComponent).hash_code() })
 	{
-		m_scene->events()->registerEventType<CollisionEvent>();
+		scene_->event_system()->RegisterEventType<CollisionEvent>();
 	}
 
-	void PhysicsSystem::onComponentInsert(uint32_t entity)
+	void PhysicsSystem::OnComponentInsert(uint32_t entity)
 	{
 		(void)entity;
-		const size_t size = m_entities.size();
+		const size_t size = entities_.size();
 		m_staticAABBs.reserve(size);
 		m_dynamicAABBs.reserve(size);
 		m_possibleCollisions.reserve(size);
@@ -82,7 +82,7 @@ namespace engine {
 		LOG_TRACE("added entity {} to collider system", entity);
 	}
 
-	void PhysicsSystem::onUpdate(float ts)
+	void PhysicsSystem::OnUpdate(float ts)
 	{
 		(void)ts;
 
@@ -91,9 +91,9 @@ namespace engine {
 		m_possibleCollisions.clear();
 		m_collisionInfos.clear();
 
-		for (uint32_t entity : m_entities) {
-			const auto t = m_scene->getComponent<TransformComponent>(entity);
-			const auto c = m_scene->getComponent<ColliderComponent>(entity);
+		for (uint32_t entity : entities_) {
+			const auto t = scene_->GetComponent<TransformComponent>(entity);
+			const auto c = scene_->GetComponent<ColliderComponent>(entity);
 
 			const glm::vec3 globalPosition = t->worldMatrix[3];
 			const AABB localBoundingBox = c->aabb;
@@ -157,7 +157,7 @@ namespace engine {
 		}
 
 		for (const auto& [entity, info] : m_collisionInfos) {
-			m_scene->events()->queueEvent<CollisionEvent>(EventSubscriberKind::ENTITY, entity, info);
+			scene_->event_system()->QueueEvent<CollisionEvent>(EventSubscriberKind::kEntity, entity, info);
 		}
 	}
 

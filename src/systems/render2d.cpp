@@ -1,5 +1,7 @@
 #include "systems/render2d.hpp"
 
+#include <typeinfo>
+
 #include "components/transform.hpp"
 
 namespace engine {
@@ -13,7 +15,7 @@ namespace engine {
 	{
 	}
 
-	void Render2DSystem::onUpdate(float ts)
+	void Render2DSystem::OnUpdate(float ts)
 	{
 		(void)ts;
 	}

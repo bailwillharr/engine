@@ -9,7 +9,7 @@ namespace engine {
 	public:
 		TransformSystem(Scene* scene);
 
-		void onUpdate(float ts) override;
+		void OnUpdate(float ts) override;
 
 		uint32_t getChildEntity(uint32_t parent, const std::string& tag);
 

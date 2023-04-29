@@ -10,10 +10,10 @@
 namespace engine {
 
 	Scene::Scene(Application* app)
-		: m_app(app)
+		: app_(app)
 	{
 		// event system
-		m_eventSystem = std::make_unique<EventSystem>();
+		event_system_ = std::make_unique<EventSystem>();
 
 		// ecs configuration:
 
@@ -22,22 +22,22 @@ namespace engine {
 		registerComponent<ColliderComponent>();
 
 		// Order here matters:
-		registerSystem<TransformSystem>();
-		registerSystem<PhysicsSystem>();
-		registerSystem<RenderSystem>();
+		RegisterSystem<TransformSystem>();
+		RegisterSystem<PhysicsSystem>();
+		RegisterSystem<RenderSystem>();
 	}
 
 	Scene::~Scene()
 	{
 	}
 
-	uint32_t Scene::createEntity(const std::string& tag, uint32_t parent)
+	uint32_t Scene::CreateEntity(const std::string& tag, uint32_t parent)
 	{
-		uint32_t id = m_nextEntityID++;
+		uint32_t id = next_entity_id_++;
 
-		m_signatures.emplace(id, std::bitset<MAX_COMPONENTS>{});
+		signatures_.emplace(id, std::bitset<kMaxComponents>{});
 
-		auto t = addComponent<TransformComponent>(id);
+		auto t = AddComponent<TransformComponent>(id);
 
 		t->position = {0.0f, 0.0f, 0.0f};
 		t->rotation = {};
@@ -51,21 +51,21 @@ namespace engine {
 
 	uint32_t Scene::getEntity(const std::string& tag, uint32_t parent)
 	{
-		return getSystem<TransformSystem>()->getChildEntity(parent, tag);
+		return GetSystem<TransformSystem>()->getChildEntity(parent, tag);
 	}
 
-	size_t Scene::getComponentSignaturePosition(size_t hash)
+	size_t Scene::GetComponentSignaturePosition(size_t hash)
 	{
-		return m_componentSignaturePositions.at(hash);
+		return component_signature_positions_.at(hash);
 	}
 
-	void Scene::update(float ts)
+	void Scene::Update(float ts)
 	{
-		for (auto& [name, system] : m_systems) {
-			system->onUpdate(ts);
+		for (auto& [name, system] : systems_) {
+			system->OnUpdate(ts);
 		}
 
-		m_eventSystem->dispatchEvents(); // clears event queue
+		event_system_->DespatchEvents(); // clears event queue
 	}
 
 }

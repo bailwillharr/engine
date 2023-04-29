@@ -130,11 +130,11 @@ namespace engine {
 		static VkFormat getVertexAttribFormat(gfx::VertexAttribFormat fmt)
 		{
 			switch (fmt) {
-			case gfx::VertexAttribFormat::FLOAT2:
+			case gfx::VertexAttribFormat::kFloat2:
 				return VK_FORMAT_R32G32_SFLOAT;
-			case gfx::VertexAttribFormat::FLOAT3:
+			case gfx::VertexAttribFormat::kFloat3:
 				return VK_FORMAT_R32G32B32_SFLOAT;
-			case gfx::VertexAttribFormat::FLOAT4:
+			case gfx::VertexAttribFormat::kFloat4:
 				return VK_FORMAT_R32G32B32A32_SFLOAT;
 			}
 			throw std::runtime_error("Unknown vertex attribute format");
@@ -143,11 +143,11 @@ namespace engine {
 		static VkBufferUsageFlagBits getBufferUsageFlag(gfx::BufferType type)
 		{
 			switch (type) {
-			case gfx::BufferType::VERTEX:
+			case gfx::BufferType::kVertex:
 				return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-			case gfx::BufferType::INDEX:
+			case gfx::BufferType::kIndex:
 				return VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-			case gfx::BufferType::UNIFORM:
+			case gfx::BufferType::kUniform:
 				return VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 			default:
 				throw std::runtime_error("This buffer type does not have usage bits");
@@ -157,9 +157,9 @@ namespace engine {
 		[[maybe_unused]] static VkFilter getFilter(gfx::Filter filter)
 		{
 			switch (filter) {
-			case gfx::Filter::LINEAR:
+			case gfx::Filter::kLinear:
 				return VK_FILTER_LINEAR;
-			case gfx::Filter::NEAREST:
+			case gfx::Filter::kNearest:
 				return VK_FILTER_NEAREST;
 			}
 			throw std::runtime_error("Unknown filter");
@@ -168,9 +168,9 @@ namespace engine {
 		[[maybe_unused]] static VkSamplerMipmapMode getSamplerMipmapMode(gfx::Filter filter)
 		{
 			switch (filter) {
-			case gfx::Filter::LINEAR:
+			case gfx::Filter::kLinear:
 				return VK_SAMPLER_MIPMAP_MODE_LINEAR;
-			case gfx::Filter::NEAREST:
+			case gfx::Filter::kNearest:
 				return VK_SAMPLER_MIPMAP_MODE_NEAREST;
 			}
 			throw std::runtime_error("Unknown filter");
@@ -179,15 +179,15 @@ namespace engine {
 		[[maybe_unused]] static VkSampleCountFlags getSampleCountFlags(gfx::MSAALevel level)
 		{
 			switch (level) {
-			case gfx::MSAALevel::MSAA_OFF:
+			case gfx::MSAALevel::kOff:
 				return VK_SAMPLE_COUNT_1_BIT;
-			case gfx::MSAALevel::MSAA_2X:
+			case gfx::MSAALevel::k2X:
 				return VK_SAMPLE_COUNT_2_BIT;
-			case gfx::MSAALevel::MSAA_4X:
+			case gfx::MSAALevel::k4X:
 				return VK_SAMPLE_COUNT_4_BIT;
-			case gfx::MSAALevel::MSAA_8X:
+			case gfx::MSAALevel::k8X:
 				return VK_SAMPLE_COUNT_8_BIT;
-			case gfx::MSAALevel::MSAA_16X:
+			case gfx::MSAALevel::k16X:
 				return VK_SAMPLE_COUNT_16_BIT;
 			default:
 				throw std::runtime_error("Unknown MSAA level");
@@ -197,9 +197,9 @@ namespace engine {
 		static VkDescriptorType getDescriptorType(gfx::DescriptorType type)
 		{
 			switch (type) {
-			case gfx::DescriptorType::UNIFORM_BUFFER:
+			case gfx::DescriptorType::kUniformBuffer:
 				return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			case gfx::DescriptorType::COMBINED_IMAGE_SAMPLER:
+			case gfx::DescriptorType::kCombinedImageSampler:
 				return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 			default:
 				throw std::runtime_error("Unknown descriptor type");
@@ -209,8 +209,8 @@ namespace engine {
 		static VkShaderStageFlags getShaderStageFlags(gfx::ShaderStageFlags::Flags flags)
 		{
 			VkShaderStageFlags out = 0;
-			if (flags & gfx::ShaderStageFlags::VERTEX) out |= VK_SHADER_STAGE_VERTEX_BIT;
-			if (flags & gfx::ShaderStageFlags::FRAGMENT) out |= VK_SHADER_STAGE_FRAGMENT_BIT;
+			if (flags & gfx::ShaderStageFlags::kVertex) out |= VK_SHADER_STAGE_VERTEX_BIT;
+			if (flags & gfx::ShaderStageFlags::kFragment) out |= VK_SHADER_STAGE_FRAGMENT_BIT;
 			return out;
 		}
 
@@ -365,7 +365,7 @@ namespace engine {
 			throw std::runtime_error("The loaded Vulkan version must be at least 1.3");
 		}
 
-		pimpl->instance = createVulkanInstance(pimpl->window, appName, appVersion, pimpl->graphicsSettings.enableValidation, MessageSeverity::SEV_WARNING);
+		pimpl->instance = createVulkanInstance(pimpl->window, appName, appVersion, pimpl->graphicsSettings.enable_validation, MessageSeverity::SEV_WARNING);
 
 		if (SDL_Vulkan_CreateSurface(pimpl->window, pimpl->instance.instance, &pimpl->surface) == false) {
 			throw std::runtime_error("Unable to create window surface");
@@ -440,7 +440,7 @@ namespace engine {
 		pimpl->swapchainInfo.surface = pimpl->surface;
 		pimpl->swapchainInfo.window = pimpl->window;
 		pimpl->swapchainInfo.vsync = pimpl->graphicsSettings.vsync;
-		pimpl->swapchainInfo.waitForPresent = pimpl->graphicsSettings.waitForPresent;
+		pimpl->swapchainInfo.waitForPresent = pimpl->graphicsSettings.wait_for_present;
 		createSwapchain(&pimpl->swapchain, pimpl->swapchainInfo);
 		
 		/* make synchronisation primitives for rendering and allocate command buffers */
@@ -541,7 +541,7 @@ namespace engine {
 		destroyVulkanInstance(pimpl->instance);
 	}
 
-	void GFXDevice::getViewportSize(uint32_t* w, uint32_t* h)
+	void GFXDevice::GetViewportSize(uint32_t* w, uint32_t* h)
 	{
 		int width, height;
 		SDL_Vulkan_GetDrawableSize(pimpl->window, &width, &height);
@@ -555,7 +555,7 @@ namespace engine {
 		}
 	}
 
-	gfx::DrawBuffer* GFXDevice::beginRender()
+	gfx::DrawBuffer* GFXDevice::BeginRender()
 	{
 		VkResult res;
 
@@ -724,7 +724,7 @@ namespace engine {
 
 	}
 
-	void GFXDevice::finishRender(gfx::DrawBuffer* drawBuffer)
+	void GFXDevice::FinishRender(gfx::DrawBuffer* drawBuffer)
 	{
 		assert(drawBuffer != nullptr);
 
@@ -785,68 +785,68 @@ namespace engine {
 		delete drawBuffer;
 	}
 
-	void GFXDevice::cmdBindPipeline(gfx::DrawBuffer* drawBuffer, const gfx::Pipeline* pipeline)
+	void GFXDevice::CmdBindPipeline(gfx::DrawBuffer* drawBuffer, const gfx::Pipeline* pipeline)
 	{
 		assert(drawBuffer != nullptr);
 		vkCmdBindPipeline(drawBuffer->frameData.drawBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->handle);
 	}
 
-	void GFXDevice::cmdBindVertexBuffer(gfx::DrawBuffer* drawBuffer, uint32_t binding, const gfx::Buffer* buffer)
+	void GFXDevice::CmdBindVertexBuffer(gfx::DrawBuffer* drawBuffer, uint32_t binding, const gfx::Buffer* buffer)
 	{
 		assert(drawBuffer != nullptr);
 		assert(buffer != nullptr);
-		assert(buffer->type == gfx::BufferType::VERTEX);
+		assert(buffer->type == gfx::BufferType::kVertex);
 		const VkDeviceSize offset = 0;
 		vkCmdBindVertexBuffers(drawBuffer->frameData.drawBuf, binding, 1, &buffer->buffer, &offset);
 	}
 
-	void GFXDevice::cmdBindIndexBuffer(gfx::DrawBuffer* drawBuffer, const gfx::Buffer* buffer)
+	void GFXDevice::CmdBindIndexBuffer(gfx::DrawBuffer* drawBuffer, const gfx::Buffer* buffer)
 	{
 		assert(drawBuffer != nullptr);
 		assert(buffer != nullptr);
-		assert(buffer->type == gfx::BufferType::INDEX);
+		assert(buffer->type == gfx::BufferType::kIndex);
 		vkCmdBindIndexBuffer(drawBuffer->frameData.drawBuf, buffer->buffer, 0, INDEX_TYPE);
 	}
 
-	void GFXDevice::cmdDrawIndexed(gfx::DrawBuffer* drawBuffer, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance)
+	void GFXDevice::CmdDrawIndexed(gfx::DrawBuffer* drawBuffer, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance)
 	{
 		assert(drawBuffer != nullptr);
 		vkCmdDrawIndexed(drawBuffer->frameData.drawBuf, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
 	}
 
-	void GFXDevice::cmdPushConstants(gfx::DrawBuffer* drawBuffer, const gfx::Pipeline* pipeline, uint32_t offset, uint32_t size, const void* data)
+	void GFXDevice::CmdPushConstants(gfx::DrawBuffer* drawBuffer, const gfx::Pipeline* pipeline, uint32_t offset, uint32_t size, const void* data)
 	{
 		assert(drawBuffer != nullptr);
 		vkCmdPushConstants(drawBuffer->frameData.drawBuf, pipeline->layout, VK_SHADER_STAGE_VERTEX_BIT, offset, size, data);
 	}
 
-	void GFXDevice::cmdBindDescriptorSet(gfx::DrawBuffer* drawBuffer, const gfx::Pipeline* pipeline, const gfx::DescriptorSet* set, uint32_t setNumber)
+	void GFXDevice::CmdBindDescriptorSet(gfx::DrawBuffer* drawBuffer, const gfx::Pipeline* pipeline, const gfx::DescriptorSet* set, uint32_t setNumber)
 	{
 		vkCmdBindDescriptorSets(drawBuffer->frameData.drawBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->layout, setNumber, 1, &set->sets[drawBuffer->currentFrameIndex], 0, nullptr);
 	}
 
-	gfx::Pipeline* GFXDevice::createPipeline(const gfx::PipelineInfo& info)
+	gfx::Pipeline* GFXDevice::CreatePipeline(const gfx::PipelineInfo& info)
 	{
 
 		[[maybe_unused]] VkResult res;
 
 		gfx::Pipeline* pipeline = new gfx::Pipeline;
 
-		auto vertShaderCode = util::readTextFile(info.vertShaderPath);
-		auto fragShaderCode = util::readTextFile(info.fragShaderPath);
+		auto vertShaderCode = util::readTextFile(info.vert_shader_path);
+		auto fragShaderCode = util::readTextFile(info.frag_shader_path);
 
-		VkShaderModule vertShaderModule = compileShader(pimpl->device.device, shaderc_vertex_shader, vertShaderCode->data(), info.vertShaderPath);
-		VkShaderModule fragShaderModule = compileShader(pimpl->device.device, shaderc_fragment_shader, fragShaderCode->data(), info.fragShaderPath);
+		VkShaderModule vertShaderModule = compileShader(pimpl->device.device, shaderc_vertex_shader, vertShaderCode->data(), info.vert_shader_path);
+		VkShaderModule fragShaderModule = compileShader(pimpl->device.device, shaderc_fragment_shader, fragShaderCode->data(), info.frag_shader_path);
 
 		// get vertex attrib layout:
 		VkVertexInputBindingDescription bindingDescription{ };
 		bindingDescription.binding = 0;
-		bindingDescription.stride = info.vertexFormat.stride;
+		bindingDescription.stride = info.vertex_format.stride;
 		bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
 		std::vector<VkVertexInputAttributeDescription> attribDescs{};
-		attribDescs.reserve(info.vertexFormat.attributeDescriptions.size());
-		for (const auto& desc : info.vertexFormat.attributeDescriptions) {
+		attribDescs.reserve(info.vertex_format.attribute_descriptions.size());
+		for (const auto& desc : info.vertex_format.attribute_descriptions) {
 			VkVertexInputAttributeDescription vulkanAttribDesc{};
 			vulkanAttribDesc.location = desc.location;
 			vulkanAttribDesc.binding = 0;
@@ -920,7 +920,7 @@ namespace engine {
 		rasterizer.rasterizerDiscardEnable = VK_FALSE; // enabling this will not run the fragment shaders at all
 		rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
 		rasterizer.lineWidth = 1.0f;
-		if (info.backfaceCulling == true) {
+		if (info.backface_culling == true) {
 			rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
 		}
 		else {
@@ -947,7 +947,7 @@ namespace engine {
 			VK_COLOR_COMPONENT_G_BIT |
 			VK_COLOR_COMPONENT_B_BIT |
 			VK_COLOR_COMPONENT_A_BIT;
-		if (info.alphaBlending) {
+		if (info.alpha_blending) {
 			colorBlendAttachment.blendEnable = VK_TRUE;
 			colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
 			colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
@@ -988,9 +988,9 @@ namespace engine {
 		pushConstantRange.size = PUSH_CONSTANT_MAX_SIZE;
 		pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
-		std::vector<VkDescriptorSetLayout> descriptorSetLayouts(info.descriptorSetLayouts.size());
+		std::vector<VkDescriptorSetLayout> descriptorSetLayouts(info.descriptor_set_layouts.size());
 		for (size_t i = 0; i < descriptorSetLayouts.size(); i++) {
-			descriptorSetLayouts[i] = info.descriptorSetLayouts[i]->layout;
+			descriptorSetLayouts[i] = info.descriptor_set_layouts[i]->layout;
 		}
 
 		VkPipelineLayoutCreateInfo layoutInfo{};
@@ -1031,7 +1031,7 @@ namespace engine {
 
 	}
 
-	void GFXDevice::destroyPipeline(const gfx::Pipeline* pipeline)
+	void GFXDevice::DestroyPipeline(const gfx::Pipeline* pipeline)
 	{
 		vkDestroyPipeline(pimpl->device.device, pipeline->handle, nullptr);
 		vkDestroyPipelineLayout(pimpl->device.device, pipeline->layout, nullptr);
@@ -1039,7 +1039,7 @@ namespace engine {
 		delete pipeline;
 	}
 
-	gfx::DescriptorSetLayout* GFXDevice::createDescriptorSetLayout(const std::vector<gfx::DescriptorSetLayoutBinding>& bindings)
+	gfx::DescriptorSetLayout* GFXDevice::CreateDescriptorSetLayout(const std::vector<gfx::DescriptorSetLayoutBinding>& bindings)
 	{
 		gfx::DescriptorSetLayout* out = new gfx::DescriptorSetLayout{};
 
@@ -1048,9 +1048,9 @@ namespace engine {
 		for (const auto& binding : bindings) {
 			auto& vulkanBinding = vulkanBindings.emplace_back();
 			vulkanBinding.binding = i; // This should be as low as possible to avoid wasting memory
-			vulkanBinding.descriptorType = converters::getDescriptorType(binding.descriptorType);
+			vulkanBinding.descriptorType = converters::getDescriptorType(binding.descriptor_type);
 			vulkanBinding.descriptorCount = 1; // if > 1, accessible as an array in the shader
-			vulkanBinding.stageFlags = converters::getShaderStageFlags(binding.stageFlags);
+			vulkanBinding.stageFlags = converters::getShaderStageFlags(binding.stage_flags);
 
 			++i;
 		}
@@ -1066,13 +1066,13 @@ namespace engine {
 		return out;
 	}
 
-	void GFXDevice::destroyDescriptorSetLayout(const gfx::DescriptorSetLayout* layout)
+	void GFXDevice::DestroyDescriptorSetLayout(const gfx::DescriptorSetLayout* layout)
 	{
 		vkDestroyDescriptorSetLayout(pimpl->device.device, layout->layout, nullptr);
 		delete layout;
 	}
 
-	gfx::DescriptorSet* GFXDevice::allocateDescriptorSet(const gfx::DescriptorSetLayout* layout)
+	gfx::DescriptorSet* GFXDevice::AllocateDescriptorSet(const gfx::DescriptorSetLayout* layout)
 	{
 		gfx::DescriptorSet* set = new gfx::DescriptorSet{};
 
@@ -1094,7 +1094,7 @@ namespace engine {
 		return set;
 	}
 
-	void GFXDevice::updateDescriptorUniformBuffer(const gfx::DescriptorSet* set, uint32_t binding, const gfx::UniformBuffer* buffer, size_t offset, size_t range)
+	void GFXDevice::UpdateDescriptorUniformBuffer(const gfx::DescriptorSet* set, uint32_t binding, const gfx::UniformBuffer* buffer, size_t offset, size_t range)
 	{
 		assert(pimpl->FRAMECOUNT == 0);
 
@@ -1120,7 +1120,7 @@ namespace engine {
 		}
 	}
 
-    void GFXDevice::updateDescriptorCombinedImageSampler(const gfx::DescriptorSet *set, uint32_t binding, const gfx::Image* image, const gfx::Sampler* sampler)
+    void GFXDevice::UpdateDescriptorCombinedImageSampler(const gfx::DescriptorSet *set, uint32_t binding, const gfx::Image* image, const gfx::Sampler* sampler)
     {
 		assert(pimpl->FRAMECOUNT == 0);
 
@@ -1146,13 +1146,13 @@ namespace engine {
 		}
     }
 
-    gfx::UniformBuffer* GFXDevice::createUniformBuffer(uint64_t size, const void* initialData)
+    gfx::UniformBuffer* GFXDevice::CreateUniformBuffer(uint64_t size, const void* initialData)
 	{
 		gfx::UniformBuffer* out = new gfx::UniformBuffer{};
 		
 		/* first make staging buffer */
 		out->stagingBuffer.size = size;
-		out->stagingBuffer.type = gfx::BufferType::UNIFORM;
+		out->stagingBuffer.type = gfx::BufferType::kUniform;
 		{
 			VkBufferCreateInfo stagingBufferInfo{};
 			stagingBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -1177,7 +1177,7 @@ namespace engine {
 		/* create the device-local set of buffers */
 		for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
 			out->gpuBuffers[i].size = out->stagingBuffer.size;
-			out->gpuBuffers[i].type = gfx::BufferType::UNIFORM;
+			out->gpuBuffers[i].type = gfx::BufferType::kUniform;
 
 			VkBufferCreateInfo gpuBufferInfo{};
 			gpuBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -1200,7 +1200,7 @@ namespace engine {
 
 	}
 
-	void GFXDevice::destroyUniformBuffer(const gfx::UniformBuffer* uniformBuffer)
+	void GFXDevice::DestroyUniformBuffer(const gfx::UniformBuffer* uniformBuffer)
 	{
 		for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
 			vmaDestroyBuffer(pimpl->allocator, uniformBuffer->gpuBuffers[i].buffer, uniformBuffer->gpuBuffers[i].allocation);
@@ -1211,7 +1211,7 @@ namespace engine {
 		delete uniformBuffer;
 	}
 
-	void GFXDevice::writeUniformBuffer(gfx::UniformBuffer* buffer, uint64_t offset, uint64_t size, const void* data)
+	void GFXDevice::WriteUniformBuffer(gfx::UniformBuffer* buffer, uint64_t offset, uint64_t size, const void* data)
 	{
 		assert(offset + size <= buffer->stagingBuffer.size);
 
@@ -1229,7 +1229,7 @@ namespace engine {
 
 	}
 
-	gfx::Buffer* GFXDevice::createBuffer(gfx::BufferType type, uint64_t size, const void* data)
+	gfx::Buffer* GFXDevice::CreateBuffer(gfx::BufferType type, uint64_t size, const void* data)
 	{
 		[[maybe_unused]] VkResult res;
 
@@ -1287,14 +1287,14 @@ namespace engine {
 
 	}
 
-	void GFXDevice::destroyBuffer(const gfx::Buffer* buffer)
+	void GFXDevice::DestroyBuffer(const gfx::Buffer* buffer)
 	{
 		vmaDestroyBuffer(pimpl->allocator, buffer->buffer, buffer->allocation);
 		delete buffer;
 	}
 
 	// imageData must have pixel format R8G8B8A8_SRGB
-	gfx::Image* GFXDevice::createImage(uint32_t w, uint32_t h, const void* imageData)
+	gfx::Image* GFXDevice::CreateImage(uint32_t w, uint32_t h, const void* imageData)
 	{
 		assert(imageData != nullptr);
 		assert(pimpl->FRAMECOUNT == 0);
@@ -1541,14 +1541,14 @@ namespace engine {
 		return out;
 	}
 
-    void GFXDevice::destroyImage(const gfx::Image *image)
+    void GFXDevice::DestroyImage(const gfx::Image *image)
     {
 		vkDestroyImageView(pimpl->device.device, image->view, nullptr);
 		vmaDestroyImage(pimpl->allocator, image->image, image->allocation);
 		delete image;
     }
 
-    const gfx::Sampler *GFXDevice::createSampler(const gfx::SamplerInfo& info)
+    const gfx::Sampler *GFXDevice::CreateSampler(const gfx::SamplerInfo& info)
     {
         gfx::Sampler* out = new gfx::Sampler{};
 
@@ -1561,7 +1561,7 @@ namespace engine {
 		samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 		samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 		samplerInfo.mipLodBias = 0.0f;
-		samplerInfo.anisotropyEnable = info.anisotropicFiltering ? VK_TRUE : VK_FALSE;
+		samplerInfo.anisotropyEnable = info.anisotropic_filtering ? VK_TRUE : VK_FALSE;
 		samplerInfo.maxAnisotropy = pimpl->device.properties.limits.maxSamplerAnisotropy;
 		samplerInfo.minLod = 0.0f;
 		samplerInfo.maxLod = VK_LOD_CLAMP_NONE;
@@ -1571,13 +1571,13 @@ namespace engine {
 		return out;
     }
 
-    void GFXDevice::destroySampler(const gfx::Sampler *sampler)
+    void GFXDevice::DestroySampler(const gfx::Sampler *sampler)
     {
 		vkDestroySampler(pimpl->device.device, sampler->sampler, nullptr);
 		delete sampler;
     }
 
-	void GFXDevice::logPerformanceInfo()
+	void GFXDevice::LogPerformanceInfo()
 	{
 		VmaTotalStatistics pStats{};
 		vmaCalculateStatistics(pimpl->allocator, &pStats);
@@ -1601,12 +1601,12 @@ namespace engine {
 		}
 	}
 
-	uint64_t GFXDevice::getFrameCount()
+	uint64_t GFXDevice::GetFrameCount()
 	{
 		return pimpl->FRAMECOUNT;
 	}
 
-	void GFXDevice::waitIdle()
+	void GFXDevice::WaitIdle()
 	{
 		vkDeviceWaitIdle(pimpl->device.device);
 	}

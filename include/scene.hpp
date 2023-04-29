@@ -1,140 +1,145 @@
-#pragma once
+#ifndef ENGINE_INCLUDE_SCENE_H_
+#define ENGINE_INCLUDE_SCENE_H_
 
-#include "log.hpp"
+#include <cassert>
+#include <cstdint>
+#include <map>
+#include <typeinfo>
 
 #include "ecs_system.hpp"
 #include "event_system.hpp"
 
-#include <map>
-#include <cstdint>
-#include <typeinfo>
-#include <assert.h>
-
 namespace engine {
 
-	class Application;
+class Application;
 
-	class Scene {
-	
-	public:
-		Scene(Application* app);
-		Scene(const Scene&) = delete;
-		Scene& operator=(const Scene&) = delete;
-		~Scene();
+class Scene {
 
-		void update(float ts);
+public:
+  Scene(Application* app);
+  Scene(const Scene&) = delete;
+  Scene& operator=(const Scene&) = delete;
+  ~Scene();
 
-		Application* app() { return m_app; }
+  void Update(float ts);
 
-		EventSystem* events() { return m_eventSystem.get(); }
+  Application* app() { return app_; }
 
-		/* ecs stuff */
+  EventSystem* event_system() { return event_system_.get(); }
 
-		uint32_t createEntity(const std::string& tag, uint32_t parent = 0);
-		
-		uint32_t getEntity(const std::string& tag, uint32_t parent = 0);
+  /* ecs stuff */
 
-		size_t getComponentSignaturePosition(size_t hash);
-		
-		template <typename T>
-		void registerComponent()
-		{
-			size_t hash = typeid(T).hash_code();
-			assert(m_componentArrays.contains(hash) == false && "Registering component type more than once.");
-			m_componentArrays.emplace(hash, std::make_unique<ComponentArray<T>>());
+  uint32_t CreateEntity(const std::string& tag, uint32_t parent = 0);
+  
+  uint32_t getEntity(const std::string& tag, uint32_t parent = 0);
 
-			size_t componentSignaturePosition = m_nextSignaturePosition++;
-			assert(componentSignaturePosition < MAX_COMPONENTS && "Registering too many components!");
-			assert(m_componentSignaturePositions.contains(hash) == false);
-			m_componentSignaturePositions.emplace(hash, componentSignaturePosition);
-		}
+  size_t GetComponentSignaturePosition(size_t hash);
+  
+  template <typename T>
+  void registerComponent()
+  {
+    size_t hash = typeid(T).hash_code();
+    assert(component_arrays_.contains(hash) == false &&
+        "Registering component type more than once.");
+    component_arrays_.emplace(hash, std::make_unique<ComponentArray<T>>());
 
-		template <typename T>
-		T* getComponent(uint32_t entity)
-		{
-			auto array = getComponentArray<T>();
-			return array->getData(entity);
-		}
+    size_t signature_position = next_signature_position_;
+    ++next_signature_position_;
+    assert(signature_position < kMaxComponents &&
+        "Registering too many components!");
+    assert(component_signature_positions_.contains(hash) == false);
+    component_signature_positions_.emplace(hash, signature_position);
+  }
 
-		template <typename T>
-		T* addComponent(uint32_t entity)
-		{
-			size_t hash = typeid(T).hash_code();
+  template <typename T>
+  T* GetComponent(uint32_t entity)
+  {
+    auto array = GetComponentArray<T>();
+    return array->GetData(entity);
+  }
 
-			auto array = getComponentArray<T>();
-			array->insertData(entity, T{}); // errors if entity already exists in array
+  template <typename T>
+  T* AddComponent(uint32_t entity)
+  {
+    size_t hash = typeid(T).hash_code();
 
-			// set the component bit for this entity
-			size_t componentSignaturePosition = m_componentSignaturePositions.at(hash);
-			auto& signatureRef = m_signatures.at(entity);
-			signatureRef.set(componentSignaturePosition);
+    auto array = GetComponentArray<T>();
+    array->InsertData(entity, T{});  // errors if entity already exists in array
 
-			for (auto& [systemName, system] : m_systems)
-			{
-				if (system->m_entities.contains(entity)) continue;
-				if ((system->m_signature & signatureRef) == system->m_signature) {
-					system->m_entities.insert(entity);
-					system->onComponentInsert(entity);
-				}
-			}
+    // set the component bit for this entity
+    size_t signature_position = component_signature_positions_.at(hash);
+    auto& signature_ref = signatures_.at(entity);
+    signature_ref.set(signature_position);
 
-			return array->getData(entity);
-		}
+    for (auto& [system_name, system] : systems_)
+    {
+      if (system->entities_.contains(entity)) continue;
+      if ((system->signature_ & signature_ref) == system->signature_) {
+        system->entities_.insert(entity);
+        system->OnComponentInsert(entity);
+      }
+    }
 
-		template <typename T>
-		void registerSystem()
-		{
-			size_t hash = typeid(T).hash_code();
-			assert(m_systems.find(hash) == m_systems.end() && "Registering system more than once.");
-			m_systems.emplace(hash, std::make_unique<T>(this));
-		}
+    return array->GetData(entity);
+  }
 
-		template <typename T>
-		T* getSystem()
-		{
-			size_t hash = typeid(T).hash_code();
-			auto it = m_systems.find(hash);
-			if (it == m_systems.end()) {
-				throw std::runtime_error("Cannot find ecs system.");
-			}
-			auto ptr = it->second.get();
-			auto castedPtr = dynamic_cast<T*>(ptr);
-			assert(castedPtr != nullptr);
-			return castedPtr;
-		}
+  template <typename T>
+  void RegisterSystem()
+  {
+    size_t hash = typeid(T).hash_code();
+    assert(systems_.find(hash) == systems_.end() &&
+        "Registering system more than once.");
+    systems_.emplace(hash, std::make_unique<T>(this));
+  }
 
-	private:
-		Application* const m_app;
-		uint32_t m_nextEntityID = 1000;
+  template <typename T>
+  T* GetSystem()
+  {
+    size_t hash = typeid(T).hash_code();
+    auto it = systems_.find(hash);
+    if (it == systems_.end()) {
+      throw std::runtime_error("Cannot find ecs system.");
+    }
+    auto ptr = it->second.get();
+    auto casted_ptr = dynamic_cast<T*>(ptr);
+    assert(casted_ptr != nullptr);
+    return casted_ptr;
+  }
 
-		/* ecs stuff */
+private:
+  Application* const app_;
+  uint32_t next_entity_id_ = 1000;
 
-		size_t m_nextSignaturePosition = 0;
-		// maps component hashes to signature positions
-		std::map<size_t, size_t> m_componentSignaturePositions{};
-		// maps entity ids to their signatures
-		std::map<uint32_t, std::bitset<MAX_COMPONENTS>> m_signatures{};
-		// maps component hashes to their arrays
-		std::map<size_t, std::unique_ptr<IComponentArray>> m_componentArrays{};
-		// maps system hashes to their class instantiations
-		std::map<size_t, std::unique_ptr<System>> m_systems{};
+  /* ecs stuff */
 
-		template <typename T>
-		ComponentArray<T>* getComponentArray()
-		{
-			size_t hash = typeid(T).hash_code();
-			auto it = m_componentArrays.find(hash);
-			if (it == m_componentArrays.end()) {
-				throw std::runtime_error("Cannot find component array.");
-			}
-			auto ptr = it->second.get();
-			auto castedPtr = dynamic_cast<ComponentArray<T>*>(ptr);
-			assert(castedPtr != nullptr);
-			return castedPtr;
-		}
+  size_t next_signature_position_ = 0;
+  // maps component hashes to signature positions
+  std::map<size_t, size_t> component_signature_positions_{};
+  // maps entity ids to their signatures
+  std::map<uint32_t, std::bitset<kMaxComponents>> signatures_{};
+  // maps component hashes to their arrays
+  std::map<size_t, std::unique_ptr<IComponentArray>> component_arrays_{};
+  // maps system hashes to their class instantiations
+  std::map<size_t, std::unique_ptr<System>> systems_{};
 
-		std::unique_ptr<EventSystem> m_eventSystem{};
+  template <typename T>
+  ComponentArray<T>* GetComponentArray()
+  {
+    size_t hash = typeid(T).hash_code();
+    auto it = component_arrays_.find(hash);
+    if (it == component_arrays_.end()) {
+      throw std::runtime_error("Cannot find component array.");
+    }
+    auto ptr = it->second.get();
+    auto casted_ptr = dynamic_cast<ComponentArray<T>*>(ptr);
+    assert(casted_ptr != nullptr);
+    return casted_ptr;
+  }
 
-	};
+  std::unique_ptr<EventSystem> event_system_{};
 
-}
+};
+
+}  // namespace engine
+
+#endif

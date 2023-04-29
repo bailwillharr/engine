@@ -18,7 +18,7 @@ namespace engine {
 		RenderSystem(Scene* scene);
 		~RenderSystem();
 
-		void onUpdate(float ts) override;
+		void OnUpdate(float ts) override;
 
 		void setCameraEntity(uint32_t entity);
 

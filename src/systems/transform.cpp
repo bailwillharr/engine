@@ -12,13 +12,13 @@ namespace engine {
 	{
 	}
 
-	void TransformSystem::onUpdate(float ts)
+	void TransformSystem::OnUpdate(float ts)
 	{
 		(void)ts;
 
-		for (uint32_t entity : m_entities) {
+		for (uint32_t entity : entities_) {
 
-			auto t = m_scene->getComponent<TransformComponent>(entity);
+			auto t = scene_->GetComponent<TransformComponent>(entity);
 
 			glm::mat4 transform;
 			
@@ -30,7 +30,7 @@ namespace engine {
 			transform = glm::scale(transform, t->scale);
 
 			if (t->parent != 0) {
-				transform = m_scene->getComponent<TransformComponent>(t->parent)->worldMatrix * transform;
+				transform = scene_->GetComponent<TransformComponent>(t->parent)->worldMatrix * transform;
 			}
 
 			t->worldMatrix = transform;
@@ -39,8 +39,8 @@ namespace engine {
 
 	uint32_t TransformSystem::getChildEntity(uint32_t parent, const std::string& tag)
 	{
-		for (uint32_t entity : m_entities) {
-			auto t = m_scene->getComponent<TransformComponent>(entity);
+		for (uint32_t entity : entities_) {
+			auto t = scene_->GetComponent<TransformComponent>(entity);
 			if (t->parent == parent) {
 				if (t->tag == tag) {
 					return entity;

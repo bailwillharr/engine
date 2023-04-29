@@ -17,46 +17,46 @@ namespace engine::resources {
 		uint32_t stride = 0;
 		gfx::VertexFormat vertFormat{};
 
-		vertFormat.attributeDescriptions.emplace_back(index++, gfx::VertexAttribFormat::FLOAT3, stride);
+		vertFormat.attribute_descriptions.emplace_back(index++, gfx::VertexAttribFormat::kFloat3, stride);
 		stride += 3 * sizeof(float);
 
 		if (vertexParams.hasNormal) {
-			vertFormat.attributeDescriptions.emplace_back(index++, gfx::VertexAttribFormat::FLOAT3, stride);
+			vertFormat.attribute_descriptions.emplace_back(index++, gfx::VertexAttribFormat::kFloat3, stride);
 			stride += 3 * sizeof(float);
 		}
 		if (vertexParams.hasTangent) {
-			vertFormat.attributeDescriptions.emplace_back(index++, gfx::VertexAttribFormat::FLOAT4, stride);
+			vertFormat.attribute_descriptions.emplace_back(index++, gfx::VertexAttribFormat::kFloat4, stride);
 			stride += 4 * sizeof(float);
 		}
 		if (vertexParams.hasColor) {
-			vertFormat.attributeDescriptions.emplace_back(index++, gfx::VertexAttribFormat::FLOAT4, stride);
+			vertFormat.attribute_descriptions.emplace_back(index++, gfx::VertexAttribFormat::kFloat4, stride);
 			stride += 4 * sizeof(float);
 		}
 		if (vertexParams.hasUV0) {
-			vertFormat.attributeDescriptions.emplace_back(index++, gfx::VertexAttribFormat::FLOAT2, stride);
+			vertFormat.attribute_descriptions.emplace_back(index++, gfx::VertexAttribFormat::kFloat2, stride);
 			stride += 2 * sizeof(float);
 		}
 		vertFormat.stride = stride;
 
 		gfx::PipelineInfo info{};
-		info.vertShaderPath = vertPath;
-		info.fragShaderPath = fragPath;
-		info.vertexFormat = vertFormat;
-		info.alphaBlending = alphaBlending;
-		info.backfaceCulling = cullBackFace;
-		info.descriptorSetLayouts.push_back(renderData->globalSetLayout);
-		info.descriptorSetLayouts.push_back(renderData->frameSetLayout);
-		info.descriptorSetLayouts.push_back(renderData->materialSetLayout);
+		info.vert_shader_path = vertPath;
+		info.frag_shader_path = fragPath;
+		info.vertex_format = vertFormat;
+		info.alpha_blending = alphaBlending;
+		info.backface_culling = cullBackFace;
+		info.descriptor_set_layouts.push_back(renderData->global_set_layout);
+		info.descriptor_set_layouts.push_back(renderData->frame_set_layout);
+		info.descriptor_set_layouts.push_back(renderData->material_set_layout);
 
-		m_pipeline = m_gfx->createPipeline(info);
+		m_pipeline = m_gfx->CreatePipeline(info);
 
-		LOG_INFO("Loaded shader: {}, vertex attribs: {}", vertPath, vertFormat.attributeDescriptions.size());
+		LOG_INFO("Loaded shader: {}, vertex attribs: {}", vertPath, vertFormat.attribute_descriptions.size());
 
 	}
 
 	Shader::~Shader()
 	{
-		m_gfx->destroyPipeline(m_pipeline);
+		m_gfx->DestroyPipeline(m_pipeline);
 	}
 
 	const gfx::Pipeline* Shader::getPipeline()

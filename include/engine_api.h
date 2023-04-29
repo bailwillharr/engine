@@ -1,4 +1,5 @@
-#pragma once
+#ifndef ENGINE_INCLUDE_ENGINE_API_H_
+#define ENGINE_INCLUDE_ENGINE_API_H_
 
 /*
 #ifndef ENGINE_API
@@ -15,3 +16,5 @@
 */
 
 #define ENGINE_API
+
+#endif

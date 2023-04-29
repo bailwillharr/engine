@@ -17,37 +17,37 @@ Texture::Texture(RenderData* renderData, const std::string& path, Filtering filt
 
 	gfx::SamplerInfo samplerInfo{};
 
-	samplerInfo.magnify = gfx::Filter::LINEAR;
+	samplerInfo.magnify = gfx::Filter::kLinear;
 
 	switch (filtering) {
 		case Filtering::OFF:
-			samplerInfo.minify = gfx::Filter::NEAREST;
-			samplerInfo.mipmap = gfx::Filter::NEAREST;
-			samplerInfo.anisotropicFiltering = false;
+			samplerInfo.minify = gfx::Filter::kNearest;
+			samplerInfo.mipmap = gfx::Filter::kNearest;
+			samplerInfo.anisotropic_filtering = false;
 			break;
 		case Filtering::BILINEAR:
-			samplerInfo.minify = gfx::Filter::LINEAR;
-			samplerInfo.mipmap = gfx::Filter::NEAREST;
-			samplerInfo.anisotropicFiltering = false;
+			samplerInfo.minify = gfx::Filter::kLinear;
+			samplerInfo.mipmap = gfx::Filter::kNearest;
+			samplerInfo.anisotropic_filtering = false;
 			break;
 		case Filtering::TRILINEAR:
-			samplerInfo.minify = gfx::Filter::LINEAR;
-			samplerInfo.mipmap = gfx::Filter::LINEAR;
-			samplerInfo.anisotropicFiltering = false;
+			samplerInfo.minify = gfx::Filter::kLinear;
+			samplerInfo.mipmap = gfx::Filter::kLinear;
+			samplerInfo.anisotropic_filtering = false;
 			break;
 		case Filtering::ANISOTROPIC:
-			samplerInfo.minify = gfx::Filter::LINEAR;
-			samplerInfo.mipmap = gfx::Filter::LINEAR;
-			samplerInfo.anisotropicFiltering = true;
+			samplerInfo.minify = gfx::Filter::kLinear;
+			samplerInfo.mipmap = gfx::Filter::kLinear;
+			samplerInfo.anisotropic_filtering = true;
 	}
 
 	if (renderData->samplers.contains(samplerInfo) == false) {
-		renderData->samplers.insert(std::make_pair(samplerInfo, m_gfxDevice->createSampler(samplerInfo)));
+		renderData->samplers.insert(std::make_pair(samplerInfo, m_gfxDevice->CreateSampler(samplerInfo)));
 	}
 	
-	m_image = m_gfxDevice->createImage(width, height, texbuf->data());
-	m_descriptorSet = m_gfxDevice->allocateDescriptorSet(renderData->materialSetLayout);
-	m_gfxDevice->updateDescriptorCombinedImageSampler(m_descriptorSet, 0, m_image, renderData->samplers.at(samplerInfo));
+	m_image = m_gfxDevice->CreateImage(width, height, texbuf->data());
+	m_descriptorSet = m_gfxDevice->AllocateDescriptorSet(renderData->material_set_layout);
+	m_gfxDevice->UpdateDescriptorCombinedImageSampler(m_descriptorSet, 0, m_image, renderData->samplers.at(samplerInfo));
 
 	LOG_INFO("Loaded texture: {}, width: {} height: {}", path, width, height);
 
@@ -55,7 +55,7 @@ Texture::Texture(RenderData* renderData, const std::string& path, Filtering filt
 
 Texture::~Texture()
 {
-	m_gfxDevice->destroyImage(m_image);
+	m_gfxDevice->DestroyImage(m_image);
 }
 
 }
