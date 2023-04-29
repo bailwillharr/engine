@@ -4,16 +4,15 @@
 #include <memory>
 #include <vector>
 
-#include "scene.hpp"
 #include "resource_manager.hpp"
+#include "scene.hpp"
 
 namespace engine {
 
 class Application;
 
 class SceneManager {
-
-public:
+ public:
   SceneManager(Application* app);
   ~SceneManager();
   SceneManager(const SceneManager&) = delete;
@@ -24,12 +23,11 @@ public:
 
   void UpdateActiveScene(float ts);
 
-private:
+ private:
   Application* const app_;
 
   std::vector<std::unique_ptr<Scene>> scenes_;
   int active_scene_index_ = -1;
-
 };
 
 }  // namespace engine

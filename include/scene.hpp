@@ -14,8 +14,7 @@ namespace engine {
 class Application;
 
 class Scene {
-
-public:
+ public:
   Scene(Application* app);
   Scene(const Scene&) = delete;
   Scene& operator=(const Scene&) = delete;
@@ -30,37 +29,34 @@ public:
   /* ecs stuff */
 
   uint32_t CreateEntity(const std::string& tag, uint32_t parent = 0);
-  
+
   uint32_t getEntity(const std::string& tag, uint32_t parent = 0);
 
   size_t GetComponentSignaturePosition(size_t hash);
-  
+
   template <typename T>
-  void registerComponent()
-  {
+  void registerComponent() {
     size_t hash = typeid(T).hash_code();
     assert(component_arrays_.contains(hash) == false &&
-        "Registering component type more than once.");
+           "Registering component type more than once.");
     component_arrays_.emplace(hash, std::make_unique<ComponentArray<T>>());
 
     size_t signature_position = next_signature_position_;
     ++next_signature_position_;
     assert(signature_position < kMaxComponents &&
-        "Registering too many components!");
+           "Registering too many components!");
     assert(component_signature_positions_.contains(hash) == false);
     component_signature_positions_.emplace(hash, signature_position);
   }
 
   template <typename T>
-  T* GetComponent(uint32_t entity)
-  {
+  T* GetComponent(uint32_t entity) {
     auto array = GetComponentArray<T>();
     return array->GetData(entity);
   }
 
   template <typename T>
-  T* AddComponent(uint32_t entity)
-  {
+  T* AddComponent(uint32_t entity) {
     size_t hash = typeid(T).hash_code();
 
     auto array = GetComponentArray<T>();
@@ -71,8 +67,7 @@ public:
     auto& signature_ref = signatures_.at(entity);
     signature_ref.set(signature_position);
 
-    for (auto& [system_name, system] : systems_)
-    {
+    for (auto& [system_name, system] : systems_) {
       if (system->entities_.contains(entity)) continue;
       if ((system->signature_ & signature_ref) == system->signature_) {
         system->entities_.insert(entity);
@@ -84,17 +79,15 @@ public:
   }
 
   template <typename T>
-  void RegisterSystem()
-  {
+  void RegisterSystem() {
     size_t hash = typeid(T).hash_code();
     assert(systems_.find(hash) == systems_.end() &&
-        "Registering system more than once.");
+           "Registering system more than once.");
     systems_.emplace(hash, std::make_unique<T>(this));
   }
 
   template <typename T>
-  T* GetSystem()
-  {
+  T* GetSystem() {
     size_t hash = typeid(T).hash_code();
     auto it = systems_.find(hash);
     if (it == systems_.end()) {
@@ -106,7 +99,7 @@ public:
     return casted_ptr;
   }
 
-private:
+ private:
   Application* const app_;
   uint32_t next_entity_id_ = 1000;
 
@@ -123,8 +116,7 @@ private:
   std::map<size_t, std::unique_ptr<System>> systems_{};
 
   template <typename T>
-  ComponentArray<T>* GetComponentArray()
-  {
+  ComponentArray<T>* GetComponentArray() {
     size_t hash = typeid(T).hash_code();
     auto it = component_arrays_.find(hash);
     if (it == component_arrays_.end()) {
@@ -137,7 +129,6 @@ private:
   }
 
   std::unique_ptr<EventSystem> event_system_{};
-
 };
 
 }  // namespace engine

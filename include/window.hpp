@@ -4,8 +4,8 @@
 #include <array>
 #include <string>
 
-#include <glm/vec2.hpp>
 #include <SDL.h>
+#include <glm/vec2.hpp>
 
 #include "inputs/keyboard.hpp"
 #include "inputs/mouse.hpp"
@@ -13,80 +13,79 @@
 namespace engine {
 
 class Window {
-
-public:
+ public:
   Window(const std::string& title, bool resizable = true,
          bool fullscreen = true);
   Window(const Window&) = delete;
   Window& operator=(const Window&) = delete;
   ~Window();
 
-  SDL_Window* getHandle() const;
+  SDL_Window* GetHandle() const;
 
   // Return the title name
-  std::string getTitle() const;
+  std::string GetTitle() const;
 
   // Update the window state to capture any events that have occurred.
   // Run this on every frame.
-  void getInputAndEvents();
+  void GetInputAndEvents();
 
-  void setTitle(std::string title);
+  void SetTitle(std::string title);
 
   // Hides the window (it will appear closed to the user).
-  void hide();
+  void Hide();
   // Shows the window again.
-  void show();
+  void Show();
   // Raises the window above other windows and sets the input focus
-  void focus();
+  void Focus();
   // Returns true if the window has focus
-  bool hasFocus() const;
+  bool HasFocus() const;
 
   // Sets the close flag, check this with shouldClose()
-  void setCloseFlag();
+  void SetCloseFlag();
   // Returns true if the window should remain open
-  bool isRunning() const;
+  bool IsRunning() const;
 
-  void setFullscreen(bool fullscreen, bool exclusive = false);
-  void toggleFullscreen();
+  void SetFullscreen(bool fullscreen, bool exclusive = false);
+  void ToggleFullscreen();
 
-  bool isFullscreen() const;
+  bool IsFullscreen() const;
 
   // Relative mouse mode captures the cursor for FPS style use.
   // Returns false if unsupported.
-  bool setRelativeMouseMode(bool enabled);
+  bool SetRelativeMouseMode(bool enabled);
 
   // returns true if relative mouse mode is enabled
-  bool mouseCaptured();
+  bool MouseCaptured();
 
   // window events
 
   // Returns true if the window was just resized during the previous frame
-  bool getWindowResized() const;
+  bool GetWindowResized() const;
   // Set the window resized flag (to recalculate aspect ratios and such)
-  void setResizedFlag();
+  void SetResizedFlag();
 
   // keyboard events
 
   // returns true if key is down
-  bool getKey(inputs::Key key) const;
+  bool GetKey(inputs::Key key) const;
   // returns true if key was just pressed
-  bool getKeyPress(inputs::Key key) const;
+  bool GetKeyPress(inputs::Key key) const;
   // returns true if key was just released
-  bool getKeyRelease(inputs::Key key) const;
+  bool GetKeyRelease(inputs::Key key) const;
 
   // mouse events
 
   // returns true if button is down
-  bool getButton(inputs::MouseButton button) const;
+  bool GetButton(inputs::MouseButton button) const;
   // returns true if button was just pressed
-  bool getButtonPress(inputs::MouseButton button) const;
+  bool GetButtonPress(inputs::MouseButton button) const;
   // returns true if button was just released
-  bool getButtonRelease(inputs::MouseButton button) const;
+  bool GetButtonRelease(inputs::MouseButton button) const;
 
   // retrieves x coordinate of the mouse
-  int getMouseX() const;
+  int GetMouseX() const;
   // retrieves y coordinate of the mouse
-  int getMouseY() const;
+  int GetMouseY() const;
   // retrieves mouse x coordinate normalised for OpenGL
   float getMouseNormX() const;
   // retrieves mouse y coordinate normalised for OpenGL
@@ -102,8 +101,6 @@ public:
 
   // joystick/gamepad events (maybe), other misc events
 
-
-
   // returns the performance counter value in nanoseconds;
   uint64_t getNanos() const;
   // get the time recorded at the end of the last frame
@@ -112,7 +109,7 @@ public:
   // returns the number of frames elapsed since window creation
   uint64_t getFrameCount() const;
   uint64_t getStartTime() const;
-  float dt() const; // returns delta time in seconds
+  float dt() const;  // returns delta time in seconds
   uint64_t getFPS() const;
   uint64_t getAvgFPS() const;
 
@@ -123,8 +120,7 @@ public:
   /* STATIC METHODS */
   static void errorBox(const std::string& message);
 
-private:
-
+ private:
   SDL_Window* m_handle;
 
   bool m_shouldClose = false;
@@ -152,22 +148,18 @@ private:
   // in nanoseconds
   uint64_t m_lastFrameStamp;
   // in nanoseconds; elapsed time between frames
-  uint64_t m_lastFrameTime = 1; // not 0 to avoid division by zero
+  uint64_t m_lastFrameTime = 1;  // not 0 to avoid division by zero
   // in nanoseconds
   uint64_t m_avgFpsStart;
 
   // input stuff
 
-  enum class ButtonDelta {
-    SAME = 0,
-    PRESSED,
-    RELEASED
-  };
+  enum class ButtonDelta { SAME = 0, PRESSED, RELEASED };
 
   struct {
     std::array<bool, SDL_NUM_SCANCODES> keys;
     std::array<enum ButtonDelta, SDL_NUM_SCANCODES> deltas;
-  } m_keyboard{ };
+  } m_keyboard{};
 
   struct {
     std::array<bool, static_cast<int>(inputs::MouseButton::M_SIZE)> buttons;
@@ -179,7 +171,7 @@ private:
     float xscroll;
     float yscroll;
     bool captured = false;
-  } m_mouse{ };
+  } m_mouse{};
 
   // private methods
 
@@ -195,6 +187,6 @@ private:
   void onMouseWheelEvent(SDL_MouseWheelEvent& e);
 };
 
-}
+}  // namespace engine
 
 #endif

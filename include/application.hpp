@@ -2,6 +2,7 @@
 #define ENGINE_INCLUDE_APPLICATION_H_
 
 #include <assert.h>
+
 #include <filesystem>
 #include <memory>
 #include <string>
@@ -44,8 +45,7 @@ struct RenderData {
 };
 
 class Application {
-
-public:
+ public:
   Application(const char* app_name, const char* app_version,
               gfx::GraphicsSettings graphics_settings);
   ~Application();
@@ -55,8 +55,7 @@ public:
   /* resource stuff */
 
   template <typename T>
-  void RegisterResourceManager()
-  {
+  void RegisterResourceManager() {
     size_t hash = typeid(T).hash_code();
     assert(resource_managers_.contains(hash) == false &&
            "Registering resource manager type more than once.");
@@ -65,15 +64,13 @@ public:
 
   template <typename T>
   std::shared_ptr<T> AddResource(const std::string& name,
-                                 std::unique_ptr<T>&& resource)
-  {
+                                 std::unique_ptr<T>&& resource) {
     auto resource_manager = GetResourceManager<T>();
     return resource_manager->Add(name, std::move(resource));
   }
 
   template <typename T>
-  std::shared_ptr<T> GetResource(const std::string& name)
-  {
+  std::shared_ptr<T> GetResource(const std::string& name) {
     auto resource_manager = GetResourceManager<T>();
     return resource_manager->Get(name);
   }
@@ -95,7 +92,7 @@ public:
 
   RenderData render_data_{};
 
-private:
+ private:
   std::unique_ptr<Window> window_;
   std::unique_ptr<InputManager> input_manager_;
   std::unique_ptr<SceneManager> scene_manager_;
@@ -106,8 +103,7 @@ private:
   bool enable_frame_limiter_ = true;
 
   template <typename T>
-  ResourceManager<T>* GetResourceManager()
-  {
+  ResourceManager<T>* GetResourceManager() {
     size_t hash = typeid(T).hash_code();
     auto it = resource_managers_.find(hash);
     if (it == resource_managers_.end()) {
@@ -118,9 +114,8 @@ private:
     assert(casted_ptr != nullptr);
     return casted_ptr;
   }
-
 };
 
-}
+}  // namespace engine
 
 #endif

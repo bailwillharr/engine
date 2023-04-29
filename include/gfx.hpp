@@ -30,9 +30,7 @@ enum class MSAALevel {
 };
 
 struct GraphicsSettings {
-  
-  GraphicsSettings()
-  {
+  GraphicsSettings() {
     // sane defaults
     enable_validation = true;
     vsync = true;
@@ -47,7 +45,6 @@ struct GraphicsSettings {
   // (no affect with V-sync disabled)
   bool wait_for_present;
   MSAALevel msaa_level;
-
 };
 
 enum class ShaderType {
@@ -69,11 +66,7 @@ enum class Primitive {
   kTriangleStrip,
 };
 
-enum class VertexAttribFormat {
-  kFloat2,
-  kFloat3,
-  kFloat4
-};
+enum class VertexAttribFormat { kFloat2, kFloat3, kFloat4 };
 
 enum class Filter : int {
   kLinear,
@@ -86,20 +79,18 @@ enum class DescriptorType {
 };
 
 namespace ShaderStageFlags {
-  enum Bits : uint32_t {
-    kVertex = 1 << 0,
-    kFragment = 1 << 1,
-  };
-  typedef std::underlying_type<Bits>::type Flags;
-}
+enum Bits : uint32_t {
+  kVertex = 1 << 0,
+  kFragment = 1 << 1,
+};
+typedef std::underlying_type<Bits>::type Flags;
+}  // namespace ShaderStageFlags
 
 struct VertexAttribDescription {
   VertexAttribDescription(uint32_t location, VertexAttribFormat format,
-                          uint32_t offset) :
-      location(location),
-      format(format),
-      offset(offset) {}
-  uint32_t location; // the index to use in the shader
+                          uint32_t offset)
+      : location(location), format(format), offset(offset) {}
+  uint32_t location;  // the index to use in the shader
   VertexAttribFormat format;
   uint32_t offset;
 };
@@ -136,21 +127,17 @@ struct SamplerInfo {
 }  // namespace engine
 
 namespace std {
-template<>
-struct std::hash<engine::gfx::SamplerInfo>
-{
-  std::size_t operator()(const engine::gfx::SamplerInfo& k) const
-  {
+template <>
+struct std::hash<engine::gfx::SamplerInfo> {
+  std::size_t operator()(const engine::gfx::SamplerInfo& k) const {
     using std::hash;
-    
+
     size_t h1 = hash<int>()(static_cast<int>(k.minify));
     size_t h2 = hash<int>()(static_cast<int>(k.magnify));
     size_t h3 = hash<int>()(static_cast<int>(k.mipmap));
     size_t h4 = hash<bool>()(k.anisotropic_filtering);
 
-    return ((h1 & 0xFF) << 24) |
-           ((h2 & 0xFF) << 16) |
-           ((h3 & 0xFF) << 8) |
+    return ((h1 & 0xFF) << 24) | ((h2 & 0xFF) << 16) | ((h3 & 0xFF) << 8) |
            ((h4 & 0xFF) << 0);
   }
 };
