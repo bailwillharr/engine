@@ -171,17 +171,17 @@ namespace engine {
 
 	// public methods
 
-	SDL_Window* Window::getHandle() const
+	SDL_Window* Window::GetHandle() const
 	{
 		return m_handle;
 	}
 
-	std::string Window::getTitle() const
+	std::string Window::GetTitle() const
 	{
 		return m_title;
 	}
 
-	void Window::getInputAndEvents()
+	void Window::GetInputAndEvents()
 	{
 
 		m_frames++;
@@ -197,7 +197,7 @@ namespace engine {
 			switch (e.type) {
 
 			case SDL_QUIT:
-				setCloseFlag();
+				SetCloseFlag();
 				break;
 
 			case SDL_WINDOWEVENT:
@@ -227,53 +227,53 @@ namespace engine {
 
 	}
 
-	void Window::setTitle(std::string title)
+	void Window::SetTitle(std::string title)
 	{
 		SDL_SetWindowTitle(m_handle, title.c_str());
 	}
 
-	bool Window::getWindowResized() const
+	bool Window::GetWindowResized() const
 	{
 		return m_justResized;
 	}
 
-	void Window::setResizedFlag()
+	void Window::SetResizedFlag()
 	{
 		m_justResized = true;
 	}
 
-	void Window::show()
+	void Window::Show()
 	{
 		SDL_ShowWindow(m_handle);
 	}
 
-	void Window::hide()
+	void Window::Hide()
 	{
 		SDL_HideWindow(m_handle);
 	}
 
-	void Window::focus()
+	void Window::Focus()
 	{
 		SDL_RaiseWindow(m_handle);
 		m_keyboardFocus = true;
 	}
 
-	bool Window::hasFocus() const
+	bool Window::HasFocus() const
 	{
 		return m_keyboardFocus;
 	}
 
-	void Window::setCloseFlag()
+	void Window::SetCloseFlag()
 	{
 		m_shouldClose = true;
 	}
 
-	bool Window::isRunning() const
+	bool Window::IsRunning() const
 	{
 		return !m_shouldClose;
 	}
 
-	void Window::setFullscreen(bool fullscreen, bool exclusive)
+	void Window::SetFullscreen(bool fullscreen, bool exclusive)
 	{
 
 		if (m_resizable) {
@@ -295,17 +295,17 @@ namespace engine {
 		}
 	}
 
-	void Window::toggleFullscreen()
+	void Window::ToggleFullscreen()
 	{
-		setFullscreen(!m_fullscreen, true);
+		SetFullscreen(!m_fullscreen, true);
 	}
 
-	bool Window::isFullscreen() const
+	bool Window::IsFullscreen() const
 	{
 		return m_fullscreen;
 	}
 
-	bool Window::setRelativeMouseMode(bool enabled)
+	bool Window::SetRelativeMouseMode(bool enabled)
 	{
 		m_mouse.captured = enabled;
 		int code = SDL_SetRelativeMouseMode(static_cast<SDL_bool>(enabled));
@@ -317,51 +317,51 @@ namespace engine {
 		}
 	}
 
-	bool Window::mouseCaptured()
+	bool Window::MouseCaptured()
 	{
 		return m_mouse.captured;
 	}
 
 	// getting input
 
-	bool Window::getKey(inputs::Key key) const
+	bool Window::GetKey(inputs::Key key) const
 	{
 		return m_keyboard.keys[static_cast<int>(key)];
 	}
 
-	bool Window::getKeyPress(inputs::Key key) const
+	bool Window::GetKeyPress(inputs::Key key) const
 	{
 		return m_keyboard.deltas[static_cast<int>(key)] == ButtonDelta::PRESSED;
 	}
 
-	bool Window::getKeyRelease(inputs::Key key) const
+	bool Window::GetKeyRelease(inputs::Key key) const
 	{
 		return m_keyboard.deltas[static_cast<int>(key)] == ButtonDelta::RELEASED;
 	}
 
 	// TODO mouse input
 
-	bool Window::getButton(inputs::MouseButton button) const
+	bool Window::GetButton(inputs::MouseButton button) const
 	{
 		return m_mouse.buttons[static_cast<int>(button)];
 	}
 
-	bool Window::getButtonPress(inputs::MouseButton button) const
+	bool Window::GetButtonPress(inputs::MouseButton button) const
 	{
 		return m_mouse.deltas[static_cast<int>(button)] == ButtonDelta::PRESSED;
 	}
 
-	bool Window::getButtonRelease(inputs::MouseButton button) const
+	bool Window::GetButtonRelease(inputs::MouseButton button) const
 	{
 		return m_mouse.deltas[static_cast<int>(button)] == ButtonDelta::RELEASED;
 	}
 
-	int Window::getMouseX() const
+	int Window::GetMouseX() const
 	{
 		return static_cast<int>(m_mouse.x);
 	}
 
-	int Window::getMouseY() const
+	int Window::GetMouseY() const
 	{
 		return static_cast<int>(m_mouse.y);
 	}
@@ -453,7 +453,7 @@ namespace engine {
 
 	bool Window::infoBox(const std::string& title, const std::string& msg)
 	{
-		if (isFullscreen() == false) {
+		if (IsFullscreen() == false) {
 			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, title.c_str(), msg.c_str(), m_handle);
 			return true;
 		}

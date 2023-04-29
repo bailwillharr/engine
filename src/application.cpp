@@ -75,7 +75,7 @@ namespace engine {
 		RegisterResourceManager<resources::Mesh>();
 
 		// initialise the render data
-		render_data_.gfxdev = std::make_unique<GFXDevice>(appName, appVersion, window_->getHandle(), graphicsSettings);
+		render_data_.gfxdev = std::make_unique<GFXDevice>(appName, appVersion, window_->GetHandle(), graphicsSettings);
 
 		std::vector<gfx::DescriptorSetLayoutBinding> globalSetBindings;
 		{
@@ -178,12 +178,12 @@ namespace engine {
 		auto lastTick = window_->getNanos();
 
 		// single-threaded game loop
-		while (window_->isRunning()) {
+		while (window_->IsRunning()) {
 
 			/* logic */
 			scene_manager_->UpdateActiveScene(window_->dt());
 
-			if(window_->getKeyPress(inputs::Key::K_F)) [[unlikely]] {
+			if(window_->GetKeyPress(inputs::Key::K_F)) [[unlikely]] {
 				window_->infoBox("fps", std::to_string(window_->getFPS()) + " fps " + std::to_string(window_->dt() * 1000.0f) + " ms");
 			}
 
@@ -196,7 +196,7 @@ namespace engine {
 			}
 
 			/* poll events */
-			window_->getInputAndEvents();
+			window_->GetInputAndEvents();
 
 			/* fps limiter */
 			if (enable_frame_limiter_) {

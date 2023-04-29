@@ -56,7 +56,7 @@ void playGame(GameSettings settings)
 	app.SetFrameLimiter(settings.enableFrameLimiter);
 
 	// configure window
-	app.window()->setRelativeMouseMode(true);
+	app.window()->SetRelativeMouseMode(true);
 	
 	configureInputs(app.input_manager());
 

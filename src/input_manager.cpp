@@ -104,9 +104,9 @@ bool InputManager::GetDeviceButton(enum InputDevice device, int button) const
 {
 	switch (device) {
 	case InputDevice::kMouse:
-		return win_->getButton(static_cast<inputs::MouseButton>(button));
+		return win_->GetButton(static_cast<inputs::MouseButton>(button));
 	case InputDevice::kKeyboard:
-		return win_->getKey(static_cast<inputs::Key>(button));
+		return win_->GetKey(static_cast<inputs::Key>(button));
 	case InputDevice::kController:
 		break;
 	default: break;
@@ -118,9 +118,9 @@ bool InputManager::getDeviceButtonDown(enum InputDevice device, int button) cons
 {
 	switch (device) {
 	case InputDevice::kMouse:
-		return win_->getButtonPress(static_cast<enum inputs::MouseButton>(button));
+		return win_->GetButtonPress(static_cast<enum inputs::MouseButton>(button));
 	case InputDevice::kKeyboard:
-		return win_->getKeyPress(static_cast<enum inputs::Key>(button));
+		return win_->GetKeyPress(static_cast<enum inputs::Key>(button));
 	case InputDevice::kController:
 		break;
 	default: break;
@@ -132,9 +132,9 @@ bool InputManager::GetDeviceButtonUp(enum InputDevice device, int button) const
 {
 	switch (device) {
 	case InputDevice::kMouse:
-		return win_->getButtonRelease(static_cast<enum inputs::MouseButton>(button));
+		return win_->GetButtonRelease(static_cast<enum inputs::MouseButton>(button));
 	case InputDevice::kKeyboard:
-		return win_->getKeyRelease(static_cast<enum inputs::Key>(button));
+		return win_->GetKeyRelease(static_cast<enum inputs::Key>(button));
 	case InputDevice::kController:
 		break;
 	default: break;

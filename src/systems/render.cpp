@@ -38,7 +38,7 @@ namespace engine {
 
 		glm::mat4 viewMatrix = glm::inverse(cameraTransform->worldMatrix);
 
-		if (scene_->app()->window()->getWindowResized()) {
+		if (scene_->app()->window()->GetWindowResized()) {
 			uint32_t w, h;
 			m_gfx->GetViewportSize(&w, &h);
 			m_viewportAspectRatio = (float)w / (float)h;

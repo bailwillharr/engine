@@ -130,9 +130,9 @@ namespace engine {
 
 		// get the both the engine and application versions
 		int appVersionMajor = 0, appVersionMinor = 0, appVersionPatch = 0;
-		versionFromCharArray(appVersion, &appVersionMajor, &appVersionMinor, &appVersionPatch);
+		VersionFromCharArray(appVersion, &appVersionMajor, &appVersionMinor, &appVersionPatch);
 		int engineVersionMajor = 0, engineVersionMinor = 0, engineVersionPatch = 0;
-		versionFromCharArray(ENGINE_VERSION, &engineVersionMajor, &engineVersionMinor, &engineVersionPatch);
+		VersionFromCharArray(ENGINE_VERSION, &engineVersionMajor, &engineVersionMinor, &engineVersionPatch);
 
 		VkApplicationInfo applicationInfo{
 			.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,

@@ -5,7 +5,7 @@
 
 namespace engine {
 
-inline bool versionFromCharArray(const char* version, int* major, int* minor,
+inline bool VersionFromCharArray(const char* version, int* major, int* minor,
                                  int* patch) {
   if (sscanf(version, "%d.%d.%d", major, minor, patch) != 3) {
     *major = 0;

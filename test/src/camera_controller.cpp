@@ -82,7 +82,7 @@ void CameraControllerSystem::OnUpdate(float ts)
 		c->dy = JUMPVEL;
 	}
 
-	if (scene_->app()->window()->getButton(engine::inputs::MouseButton::M_LEFT)) {
+	if (scene_->app()->window()->GetButton(engine::inputs::MouseButton::M_LEFT)) {
 		c->dy += dt * c->thrust;
 	}
 
@@ -148,7 +148,7 @@ void CameraControllerSystem::OnUpdate(float ts)
 
 	/* user interface inputs */
 
-	if (scene_->app()->window()->getKeyPress(engine::inputs::Key::K_P)) {
+	if (scene_->app()->window()->GetKeyPress(engine::inputs::Key::K_P)) {
 		std::string pos_string{
 			 "x: " + std::to_string(t->position.x) +
 			" y: " + std::to_string(t->position.y) +
@@ -158,17 +158,17 @@ void CameraControllerSystem::OnUpdate(float ts)
 		LOG_INFO("position: " + pos_string);
 	}
 
-	if (scene_->app()->window()->getKeyPress(engine::inputs::Key::K_R)) {
+	if (scene_->app()->window()->GetKeyPress(engine::inputs::Key::K_R)) {
 		t->position = { 0.0f, 5.0f, 0.0f };
 		c->dy = 0.0f;
 	}
 
 	if (scene_->app()->input_manager()->GetButtonPress("fullscreen")) {
-		scene_->app()->window()->toggleFullscreen();
+		scene_->app()->window()->ToggleFullscreen();
 	}
 
 	if (scene_->app()->input_manager()->GetButtonPress("exit")) {
-		scene_->app()->window()->setCloseFlag();
+		scene_->app()->window()->SetCloseFlag();
 	}
 
 	c->justCollided = false;
