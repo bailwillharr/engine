@@ -1,10 +1,10 @@
 #pragma once
 
-#include "ecs_system.hpp"
-#include "event_system.hpp"
+#include "ecs_system.h"
+#include "event_system.h"
 
-#include "components/transform.hpp"
-#include "systems/collisions.hpp"
+#include "components/transform.h"
+#include "systems/collisions.h"
 
 struct CameraControllerComponent {
 	float m_cameraSensitivity = 0.007f;

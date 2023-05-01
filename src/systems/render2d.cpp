@@ -1,8 +1,8 @@
-#include "systems/render2d.hpp"
+#include "systems/render2d.h"
 
 #include <typeinfo>
 
-#include "components/transform.hpp"
+#include "components/transform.h"
 
 namespace engine {
 

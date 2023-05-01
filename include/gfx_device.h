@@ -3,7 +3,7 @@
 
 #include <memory>
 
-#include "gfx.hpp"
+#include "gfx.h"
 
 struct SDL_Window;  // <SDL_video.h>
 

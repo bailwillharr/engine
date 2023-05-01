@@ -1,7 +1,7 @@
 #ifndef ENGINE_INCLUDE_SYSTEMS_RENDER2D_H_
 #define ENGINE_INCLUDE_SYSTEMS_RENDER2D_H_
 
-#include "ecs_system.hpp"
+#include "ecs_system.h"
 
 namespace engine {
 

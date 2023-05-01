@@ -5,7 +5,7 @@
 #include <cstring>
 #include <assert.h>
 
-#include "log.hpp"
+#include "log.h"
 
 #include "device.h"
 

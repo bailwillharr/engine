@@ -1,14 +1,14 @@
-#include "systems/render.hpp"
+#include "systems/render.h"
 
-#include "application.hpp"
-#include "window.hpp"
-#include "gfx_device.hpp"
+#include "application.h"
+#include "window.h"
+#include "gfx_device.h"
 
-#include "resources/material.hpp"
-#include "resources/shader.hpp"
-#include "resources/texture.hpp"
+#include "resources/material.h"
+#include "resources/shader.h"
+#include "resources/texture.h"
 
-#include "resources/mesh.hpp"
+#include "resources/mesh.h"
 
 #include <glm/mat4x4.hpp>
 

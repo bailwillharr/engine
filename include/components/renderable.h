@@ -3,8 +3,8 @@
 
 #include <memory>
 
-#include "resources/material.hpp"
-#include "resources/mesh.hpp"
+#include "resources/material.h"
+#include "resources/mesh.h"
 
 namespace engine {
 

@@ -1,6 +1,6 @@
-#include "resources/material.hpp"
+#include "resources/material.h"
 
-#include "resources/shader.hpp"
+#include "resources/shader.h"
 
 namespace engine::resources {
 

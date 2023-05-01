@@ -6,7 +6,7 @@
 
 #include <SDL2/SDL_vulkan.h>
 
-#include "log.hpp"
+#include "log.h"
 
 #include "swapchain.h"
 

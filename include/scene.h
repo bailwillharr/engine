@@ -6,8 +6,8 @@
 #include <map>
 #include <typeinfo>
 
-#include "ecs_system.hpp"
-#include "event_system.hpp"
+#include "ecs_system.h"
+#include "event_system.h"
 
 namespace engine {
 

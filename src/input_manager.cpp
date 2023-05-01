@@ -1,6 +1,6 @@
-#include "input_manager.hpp"
+#include "input_manager.h"
 
-#include "window.hpp"
+#include "window.h"
 
 #include <string>
 #include <stdexcept>

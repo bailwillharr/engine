@@ -1,6 +1,6 @@
-#include "ecs_system.hpp"
+#include "ecs_system.h"
 
-#include "scene.hpp"
+#include "scene.h"
 
 namespace engine {
 

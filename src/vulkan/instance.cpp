@@ -5,9 +5,9 @@
 
 #include <SDL2/SDL_vulkan.h>
 
-#include "util.hpp"
+#include "util.h"
 #include "config.h"
-#include "log.hpp"
+#include "log.h"
 
 #include "instance.h"
 

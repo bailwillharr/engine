@@ -4,8 +4,8 @@
 #include <memory>
 #include <vector>
 
-#include "resource_manager.hpp"
-#include "scene.hpp"
+#include "resource_manager.h"
+#include "scene.h"
 
 namespace engine {
 

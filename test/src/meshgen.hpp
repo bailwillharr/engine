@@ -1,7 +1,7 @@
 #pragma once
 
 #include <memory>
-#include "resources/mesh.hpp"
+#include "resources/mesh.h"
 
 // generates a UV sphere
 std::unique_ptr<engine::resources::Mesh> genSphereMesh(engine::GFXDevice* gfx, float r, int detail, bool windInside = false, bool flipNormals = false);

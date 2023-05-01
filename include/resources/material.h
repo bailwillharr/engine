@@ -3,8 +3,8 @@
 
 #include <memory>
 
-#include "resources/shader.hpp"
-#include "resources/texture.hpp"
+#include "resources/shader.h"
+#include "resources/texture.h"
 
 namespace engine {
 namespace resources {

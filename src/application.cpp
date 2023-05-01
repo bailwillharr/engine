@@ -1,4 +1,4 @@
-#include "application.hpp"
+#include "application.h"
 
 #include <filesystem>
 #include <memory>
@@ -8,17 +8,17 @@
 
 #include <glm/mat4x4.hpp>
 
-#include "gfx.hpp"
-#include "gfx_device.hpp"
-#include "input_manager.hpp"
-#include "log.hpp"
-#include "resources/material.hpp"
-#include "resources/mesh.hpp"
-#include "resources/shader.hpp"
-#include "resources/texture.hpp"
-#include "scene.hpp"
-#include "scene_manager.hpp"
-#include "window.hpp"
+#include "gfx.h"
+#include "gfx_device.h"
+#include "input_manager.h"
+#include "log.h"
+#include "resources/material.h"
+#include "resources/mesh.h"
+#include "resources/shader.h"
+#include "resources/texture.h"
+#include "scene.h"
+#include "scene_manager.h"
+#include "window.h"
 
 #ifdef _MSC_VER
 #include <windows.h>

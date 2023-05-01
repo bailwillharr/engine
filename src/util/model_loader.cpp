@@ -1,16 +1,16 @@
-#include "util/model_loader.hpp"
+#include "util/model_loader.h"
 
-#include "log.hpp"
+#include "log.h"
 
-#include "application.hpp"
+#include "application.h"
 
-#include "components/transform.hpp"
-#include "components/renderable.hpp"
+#include "components/transform.h"
+#include "components/renderable.h"
 
-#include "resources/texture.hpp"
-#include "resources/material.hpp"
-#include "resources/shader.hpp"
-#include "resources/mesh.hpp"
+#include "resources/texture.h"
+#include "resources/material.h"
+#include "resources/shader.h"
+#include "resources/mesh.h"
 
 #include <assimp/Importer.hpp>
 #include <assimp/LogStream.hpp>

@@ -1,6 +1,6 @@
-#include "systems/ui.hpp"
+#include "systems/ui.h"
 
-#include "components/ui_element.hpp"
+#include "components/ui_element.h"
 
 #include <typeinfo>
 

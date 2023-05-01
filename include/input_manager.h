@@ -5,9 +5,9 @@
 #include <string>
 #include <vector>
 
-#include "inputs/keyboard.hpp"
-#include "inputs/mouse.hpp"
-#include "window.hpp"
+#include "inputs/keyboard.h"
+#include "inputs/mouse.h"
+#include "window.h"
 
 namespace engine {
 

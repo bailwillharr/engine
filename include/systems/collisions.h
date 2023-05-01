@@ -5,8 +5,8 @@
 #include <glm/mat4x4.hpp>
 #include <vector>
 
-#include "components/collider.hpp"
-#include "ecs_system.hpp"
+#include "components/collider.h"
+#include "ecs_system.h"
 
 namespace engine {
 

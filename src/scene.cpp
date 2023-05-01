@@ -1,11 +1,11 @@
-#include "scene.hpp"
+#include "scene.h"
 
-#include "components/transform.hpp"
-#include "components/renderable.hpp"
-#include "components/collider.hpp"
-#include "systems/transform.hpp"
-#include "systems/render.hpp"
-#include "systems/collisions.hpp"
+#include "components/transform.h"
+#include "components/renderable.h"
+#include "components/collider.h"
+#include "systems/transform.h"
+#include "systems/render.h"
+#include "systems/collisions.h"
 
 namespace engine {
 

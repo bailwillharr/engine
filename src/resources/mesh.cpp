@@ -1,7 +1,7 @@
-#include "resources/mesh.hpp"
+#include "resources/mesh.h"
 
-#include "log.hpp"
-#include "gfx_device.hpp"
+#include "log.h"
+#include "gfx_device.h"
 
 namespace engine::resources {
 

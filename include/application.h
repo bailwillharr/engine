@@ -10,12 +10,12 @@
 
 #include <glm/mat4x4.hpp>
 
-#include "gfx.hpp"
-#include "gfx_device.hpp"
-#include "input_manager.hpp"
-#include "resource_manager.hpp"
-#include "scene_manager.hpp"
-#include "window.hpp"
+#include "gfx.h"
+#include "gfx_device.h"
+#include "input_manager.h"
+#include "resource_manager.h"
+#include "scene_manager.h"
+#include "window.h"
 
 namespace engine {
 

@@ -48,45 +48,45 @@ set(SRC_FILES
 )
 
 set(INCLUDE_FILES
-	include/ecs_system.hpp
-	include/gfx_device.hpp
+	include/ecs_system.h
+	include/gfx_device.h
 
-	include/inputs/mouse.hpp
-	include/inputs/keyboard.hpp
-	include/input_manager.hpp
+	include/inputs/mouse.h
+	include/inputs/keyboard.h
+	include/input_manager.h
 
-	include/systems/transform.hpp
-	include/systems/render.hpp
-	include/systems/render2d.hpp
-	include/systems/ui.hpp
-	include/systems/collisions.hpp
+	include/systems/transform.h
+	include/systems/render.h
+	include/systems/render2d.h
+	include/systems/ui.h
+	include/systems/collisions.h
 
-	include/resources/shader.hpp
-	include/resources/material.hpp
-	include/resources/mesh.hpp
-	include/resources/texture.hpp
+	include/resources/shader.h
+	include/resources/material.h
+	include/resources/mesh.h
+	include/resources/texture.h
 
-	include/event_system.hpp
+	include/event_system.h
 
 	include/engine_api.h
 
-	include/util/files.hpp
-	include/util/model_loader.hpp
+	include/util/files.h
+	include/util/model_loader.h
 
-	include/util.hpp
-	include/logger.hpp
-	include/scene_manager.hpp
-	include/gfx.hpp
-	include/scene.hpp
-	include/window.hpp
-	include/log.hpp
-	include/resource_manager.hpp
-	include/application.hpp
+	include/util.h
+	include/logger.h
+	include/scene_manager.h
+	include/gfx.h
+	include/scene.h
+	include/window.h
+	include/log.h
+	include/resource_manager.h
+	include/application.h
 
-	include/components/transform.hpp
-	include/components/renderable.hpp
-	include/components/collider.hpp
-	include/components/ui_element.hpp
+	include/components/transform.h
+	include/components/renderable.h
+	include/components/collider.h
+	include/components/ui_element.h
 )
 
 add_library(${PROJECT_NAME} STATIC

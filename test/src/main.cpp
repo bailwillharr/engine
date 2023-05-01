@@ -2,8 +2,8 @@
 #include "game.hpp"
 
 // engine
-#include "logger.hpp"
-#include "window.hpp"
+#include "logger.h"
+#include "window.h"
 
 // standard library
 #include <exception>

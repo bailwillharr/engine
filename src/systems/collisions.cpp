@@ -1,11 +1,11 @@
-#include "systems/collisions.hpp"
+#include "systems/collisions.h"
 
-#include "components/transform.hpp"
-#include "components/collider.hpp"
-#include "components/renderable.hpp"
-#include "scene.hpp"
+#include "components/transform.h"
+#include "components/collider.h"
+#include "components/renderable.h"
+#include "scene.h"
 
-#include "log.hpp"
+#include "log.h"
 
 #include <array>
 

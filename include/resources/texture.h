@@ -3,8 +3,8 @@
 
 #include <string>
 
-#include "application.hpp"
-#include "gfx_device.hpp"
+#include "application.h"
+#include "gfx_device.h"
 
 namespace engine {
 namespace resources {

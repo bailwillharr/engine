@@ -5,8 +5,8 @@
 #include <glm/vec3.hpp>
 #include <vector>
 
-#include "gfx.hpp"
-#include "gfx_device.hpp"
+#include "gfx.h"
+#include "gfx_device.h"
 
 namespace engine {
 

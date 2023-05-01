@@ -36,15 +36,15 @@
 
 #include <volk.h>
 
-#include "gfx_device.hpp"
+#include "gfx_device.h"
 #include "vulkan/instance.h"
 #include "vulkan/device.h"
 #include "vulkan/gpu_allocator.h"
 #include "vulkan/swapchain.h"
-#include "util.hpp"
+#include "util.h"
 #include "config.h"
-#include "log.hpp"
-#include "util/files.hpp"
+#include "log.h"
+#include "util/files.h"
 
 inline static void checkVulkanError(VkResult errorCode, int lineNo)
 {

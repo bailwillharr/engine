@@ -1,20 +1,19 @@
 #include "camera_controller.hpp"
 
-#include "application.hpp"
-#include "window.hpp"
-#include "input_manager.hpp"
-#include "scene_manager.hpp"
-#include "scene.hpp"
+#include "application.h"
+#include "window.h"
+#include "input_manager.h"
+#include "scene_manager.h"
+#include "scene.h"
 
-#include "components/transform.hpp"
-#include "components/collider.hpp"
+#include "components/transform.h"
+#include "components/collider.h"
+#include "log.h"
 
 #include <glm/trigonometric.hpp>
 #include <glm/gtc/constants.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/rotate_vector.hpp>
-
-#include <log.hpp>
 
 CameraControllerSystem::CameraControllerSystem(engine::Scene* scene)
 	: System(scene, { typeid(engine::TransformComponent).hash_code(), typeid(CameraControllerComponent).hash_code() })

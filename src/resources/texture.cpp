@@ -1,8 +1,8 @@
-#include "resources/texture.hpp"
+#include "resources/texture.h"
 
-#include "application.hpp"
-#include "util/files.hpp"
-#include "log.hpp"
+#include "application.h"
+#include "util/files.h"
+#include "log.h"
 
 #include <vector>
 

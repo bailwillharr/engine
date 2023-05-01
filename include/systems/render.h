@@ -1,13 +1,13 @@
 #ifndef ENGINE_INCLUDE_SYSTEMS_RENDER_H_
 #define ENGINE_INCLUDE_SYSTEMS_RENDER_H_
 
-#include "components/renderable.hpp"
-#include "components/transform.hpp"
-#include "ecs_system.hpp"
-#include "gfx.hpp"
-#include "gfx_device.hpp"
-#include "log.hpp"
-#include "scene.hpp"
+#include "components/renderable.h"
+#include "components/transform.h"
+#include "ecs_system.h"
+#include "gfx.h"
+#include "gfx_device.h"
+#include "log.h"
+#include "scene.h"
 
 namespace engine {
 

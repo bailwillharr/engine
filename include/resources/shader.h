@@ -1,9 +1,9 @@
 #ifndef ENGINE_INCLUDE_RESOURCES_SHADER_H_
 #define ENGINE_INCLUDE_RESOURCES_SHADER_H_
 
-#include "application.hpp"
-#include "gfx.hpp"
-#include "gfx_device.hpp"
+#include "application.h"
+#include "gfx.h"
+#include "gfx_device.h"
 
 namespace engine {
 namespace resources {

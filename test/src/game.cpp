@@ -1,27 +1,21 @@
+#include "game.hpp"
 #include "config.h"
 
 #include "camera_controller.hpp"
 #include "meshgen.hpp"
-
-#include "application.hpp"
-#include "window.hpp"
-#include "input_manager.hpp"
-#include "scene_manager.hpp"
-#include "scene.hpp"
-
-#include "components/transform.hpp"
-#include "components/collider.hpp"
-#include "components/renderable.hpp"
-
-#include "systems/transform.hpp"
-#include "systems/render.hpp"
-
-#include "resources/material.hpp"
-#include "resources/texture.hpp"
-
-#include "util/model_loader.hpp"
-
-#include "game.hpp"
+#include "application.h"
+#include "window.h"
+#include "input_manager.h"
+#include "scene_manager.h"
+#include "scene.h"
+#include "components/transform.h"
+#include "components/collider.h"
+#include "components/renderable.h"
+#include "systems/transform.h"
+#include "systems/render.h"
+#include "resources/material.h"
+#include "resources/texture.h"
+#include "util/model_loader.h"
 
 static void configureInputs(engine::InputManager* inputManager)
 {

@@ -1,8 +1,8 @@
-#include "resources/shader.hpp"
+#include "resources/shader.h"
 
-#include "application.hpp"
-#include "gfx_device.hpp"
-#include "log.hpp"
+#include "application.h"
+#include "gfx_device.h"
+#include "log.h"
 
 #include <glm/mat4x4.hpp>
 

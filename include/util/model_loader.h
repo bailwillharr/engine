@@ -3,7 +3,7 @@
 
 #include <string>
 
-#include "scene.hpp"
+#include "scene.h"
 
 namespace engine {
 namespace util {
