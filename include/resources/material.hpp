@@ -1,28 +1,31 @@
-#pragma once
+#ifndef ENGINE_INCLUDE_RESOURCES_MATERIAL_H_
+#define ENGINE_INCLUDE_RESOURCES_MATERIAL_H_
 
 #include <memory>
 
-namespace engine::resources {
+#include "resources/shader.hpp"
+#include "resources/texture.hpp"
 
-	class Shader;
-	class Texture;
+namespace engine {
+namespace resources {
 
-	// copyable
-	class Material {
+// copyable
+class Material {
+ public:
+  Material(std::shared_ptr<Shader> shader);
+  ~Material() = default;
+  Material(const Material&);
+  Material& operator=(const Material&) = delete;
 
-	public:
-		Material(std::shared_ptr<Shader> shader);
-		~Material() = default;
-		Material(const Material&);
-		Material& operator=(const Material&) = delete;
+  auto GetShader() { return shader_.get(); }
 
-		auto getShader() { return m_shader.get(); }
+  std::shared_ptr<Texture> texture_;
 
-		std::shared_ptr<Texture> m_texture;
+ private:
+  const std::shared_ptr<Shader> shader_;
+};
 
-	private:
-		const std::shared_ptr<Shader> m_shader;
+}  // namespace resources
+}  // namespace engine
 
-	};
-
-}
+#endif

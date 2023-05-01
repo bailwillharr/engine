@@ -5,13 +5,13 @@
 namespace engine::resources {
 
 	Material::Material(std::shared_ptr<Shader> shader)
-		: m_shader(shader)
+		: shader_(shader)
 	{
 
 	}
 
 	Material::Material(const Material& original)
-		:	m_texture(original.m_texture), m_shader(original.m_shader)
+		:	texture_(original.texture_), shader_(original.shader_)
 	{
 
 	}

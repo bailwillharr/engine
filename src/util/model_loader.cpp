@@ -79,9 +79,9 @@ namespace engine::util {
 			childRenderer->mesh = meshes[parentNode->mMeshes[i]];
 			childRenderer->material = std::make_shared<resources::Material>(scene->app()->GetResource<resources::Shader>("builtin.standard"));
 			if (textures.contains(meshTextureIndices[parentNode->mMeshes[i]])) {
-				childRenderer->material->m_texture = textures.at(meshTextureIndices[parentNode->mMeshes[i]]);
+				childRenderer->material->texture_ = textures.at(meshTextureIndices[parentNode->mMeshes[i]]);
 			} else {
-				childRenderer->material->m_texture = scene->app()->GetResource<resources::Texture>("builtin.white");
+				childRenderer->material->texture_ = scene->app()->GetResource<resources::Texture>("builtin.white");
 			}
 		}
 
@@ -97,7 +97,7 @@ namespace engine::util {
 		}
 	}
 
-	uint32_t loadMeshFromFile(Scene* parent, const std::string& path)
+	uint32_t LoadMeshFromFile(Scene* parent, const std::string& path)
 	{
 		Assimp::Importer importer;
 
@@ -183,7 +183,7 @@ namespace engine::util {
 				try {
 					textures[i] = std::make_shared<resources::Texture>(
 						&parent->app()->render_data_, absPath.string(),
-						resources::Texture::Filtering::TRILINEAR);
+						resources::Texture::Filtering::kTrilinear);
 				} catch (const std::runtime_error&) {
 					textures[i] = parent->app()->GetResource<resources::Texture>("builtin.white");
 				}

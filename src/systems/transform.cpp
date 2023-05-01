@@ -30,14 +30,14 @@ namespace engine {
 			transform = glm::scale(transform, t->scale);
 
 			if (t->parent != 0) {
-				transform = scene_->GetComponent<TransformComponent>(t->parent)->worldMatrix * transform;
+				transform = scene_->GetComponent<TransformComponent>(t->parent)->world_matrix * transform;
 			}
 
-			t->worldMatrix = transform;
+			t->world_matrix = transform;
 		}
 	}
 
-	uint32_t TransformSystem::getChildEntity(uint32_t parent, const std::string& tag)
+	uint32_t TransformSystem::GetChildEntity(uint32_t parent, const std::string& tag)
 	{
 		for (uint32_t entity : entities_) {
 			auto t = scene_->GetComponent<TransformComponent>(entity);

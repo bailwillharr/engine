@@ -51,7 +51,7 @@ namespace engine {
 
 	uint32_t Scene::getEntity(const std::string& tag, uint32_t parent)
 	{
-		return GetSystem<TransformSystem>()->getChildEntity(parent, tag);
+		return GetSystem<TransformSystem>()->GetChildEntity(parent, tag);
 	}
 
 	size_t Scene::GetComponentSignaturePosition(size_t hash)

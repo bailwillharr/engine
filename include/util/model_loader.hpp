@@ -1,13 +1,16 @@
-#pragma once
-
-#include "scene.hpp"
-
-#include "resources/shader.hpp"
+#ifndef ENGINE_INCLUDE_UTIL_MODEL_LOADER_H_
+#define ENGINE_INCLUDE_UTIL_MODEL_LOADER_H_
 
 #include <string>
 
-namespace engine::util {
+#include "scene.hpp"
 
-	uint32_t loadMeshFromFile(Scene* parent, const std::string& path);
+namespace engine {
+namespace util {
 
-}
+uint32_t LoadMeshFromFile(Scene* parent, const std::string& path);
+
+}  // namespace util
+}  // namespace engine
+
+#endif

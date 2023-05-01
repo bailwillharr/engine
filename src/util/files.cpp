@@ -7,7 +7,7 @@
 
 namespace engine::util {
 
-	std::unique_ptr<std::vector<char>> readTextFile(const std::string& path)
+	std::unique_ptr<std::vector<char>> ReadTextFile(const std::string& path)
 	{
 		auto buffer = std::make_unique<std::vector<char>>();
 
@@ -33,7 +33,7 @@ namespace engine::util {
 		return buffer;
 	}
 
-	std::unique_ptr<std::vector<uint8_t>> readBinaryFile(const std::string& path)
+	std::unique_ptr<std::vector<uint8_t>> ReadBinaryFile(const std::string& path)
 	{
 		std::ifstream file(path, std::ios::ate | std::ios::binary);
 		if (file.is_open() == false) {
@@ -51,7 +51,7 @@ namespace engine::util {
 		return buffer;
 	}
 
-	std::unique_ptr<std::vector<uint8_t>> readImageFile(const std::string& path, int *width, int *height)
+	std::unique_ptr<std::vector<uint8_t>> ReadImageFile(const std::string& path, int *width, int *height)
 	{
 		int x, y, n;
 		unsigned char *data = stbi_load(path.c_str(), &x, &y, &n, STBI_rgb_alpha);

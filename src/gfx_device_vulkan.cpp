@@ -832,8 +832,8 @@ namespace engine {
 
 		gfx::Pipeline* pipeline = new gfx::Pipeline;
 
-		auto vertShaderCode = util::readTextFile(info.vert_shader_path);
-		auto fragShaderCode = util::readTextFile(info.frag_shader_path);
+		auto vertShaderCode = util::ReadTextFile(info.vert_shader_path);
+		auto fragShaderCode = util::ReadTextFile(info.frag_shader_path);
 
 		VkShaderModule vertShaderModule = compileShader(pimpl->device.device, shaderc_vertex_shader, vertShaderCode->data(), info.vert_shader_path);
 		VkShaderModule fragShaderModule = compileShader(pimpl->device.device, shaderc_fragment_shader, fragShaderCode->data(), info.frag_shader_path);

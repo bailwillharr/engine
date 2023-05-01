@@ -16,7 +16,7 @@ namespace engine {
 
 	RenderSystem::RenderSystem(Scene* scene)
 		: System(scene, { typeid(TransformComponent).hash_code(), typeid(RenderableComponent).hash_code() }),
-		  m_gfx(scene_->app()->gfxdev())
+		  gfx_(scene_->app()->gfxdev())
 	{
 	}
 
@@ -31,30 +31,30 @@ namespace engine {
 		RenderData& renderData = scene_->app()->render_data_;
 		
 		/* camera stuff */
-		const auto cameraTransform = scene_->GetComponent<TransformComponent>(m_camera.camEntity);
+		const auto cameraTransform = scene_->GetComponent<TransformComponent>(camera_.cam_entity);
 
 		// do not render if camera is not set
 		if (cameraTransform == nullptr) return;
 
-		glm::mat4 viewMatrix = glm::inverse(cameraTransform->worldMatrix);
+		glm::mat4 viewMatrix = glm::inverse(cameraTransform->world_matrix);
 
 		if (scene_->app()->window()->GetWindowResized()) {
 			uint32_t w, h;
-			m_gfx->GetViewportSize(&w, &h);
-			m_viewportAspectRatio = (float)w / (float)h;
-			const float verticalFovRadians = glm::radians(m_camera.verticalFovDegrees);
-			const glm::mat4 projMatrix = glm::perspectiveZO(verticalFovRadians, m_viewportAspectRatio, m_camera.clipNear, m_camera.clipFar);
+			gfx_->GetViewportSize(&w, &h);
+			viewport_aspect_ratio_ = (float)w / (float)h;
+			const float verticalFovRadians = glm::radians(camera_.vertical_fov_degrees);
+			const glm::mat4 projMatrix = glm::perspectiveZO(verticalFovRadians, viewport_aspect_ratio_, camera_.clip_near, camera_.clip_far);
 			/* update SET 0 */
 			RenderData::GlobalSetUniformBuffer globalSetUniformBuffer{
 				.proj = projMatrix
 			};
-			m_gfx->WriteUniformBuffer(renderData.global_set_uniform_buffer, 0, sizeof(RenderData::GlobalSetUniformBuffer), &globalSetUniformBuffer);
+			gfx_->WriteUniformBuffer(renderData.global_set_uniform_buffer, 0, sizeof(RenderData::GlobalSetUniformBuffer), &globalSetUniformBuffer);
 		}
 
 		RenderData::FrameSetUniformBuffer frameSetUniformBuffer{
 			.view = viewMatrix
 		};
-		m_gfx->WriteUniformBuffer(renderData.frame_set_uniform_buffer, 0, sizeof(RenderData::FrameSetUniformBuffer), &frameSetUniformBuffer);
+		gfx_->WriteUniformBuffer(renderData.frame_set_uniform_buffer, 0, sizeof(RenderData::FrameSetUniformBuffer), &frameSetUniformBuffer);
 
 		/* render all renderable entities */
 
@@ -76,52 +76,52 @@ namespace engine {
 			auto r = scene_->GetComponent<RenderableComponent>(entity);
 			assert(r != nullptr);
 			assert(r->material != nullptr);
-			assert(r->material->m_texture != nullptr);
+			assert(r->material->texture_ != nullptr);
 			assert(r->mesh != nullptr);
 			if (r->shown == false) continue;
 
 			auto t = scene_->GetComponent<TransformComponent>(entity);
 			assert(t != nullptr);
 
-			const gfx::Pipeline* pipeline = r->material->getShader()->getPipeline();
+			const gfx::Pipeline* pipeline = r->material->GetShader()->GetPipeline();
 			DrawCallData data{};
-			data.vb = r->mesh->getVB();
-			data.ib = r->mesh->getIB();
-			data.materialSet = r->material->m_texture->getDescriptorSet();
-			data.indexCount = r->mesh->getCount();
-			data.pushConsts.model = t->worldMatrix;
+			data.vb = r->mesh->GetVB();
+			data.ib = r->mesh->GetIB();
+			data.materialSet = r->material->texture_->GetDescriptorSet();
+			data.indexCount = r->mesh->GetCount();
+			data.pushConsts.model = t->world_matrix;
 
 			pipelineDrawCalls[pipeline].push_back(data);
 
 		}
 
 		/* begin rendering */
-		renderData.draw_buffer = m_gfx->BeginRender();
+		renderData.draw_buffer = gfx_->BeginRender();
 
 		/* these descriptor set bindings should persist across pipeline changes */
 		const gfx::Pipeline* firstPipeline = pipelineDrawCalls.begin()->first;
-		m_gfx->CmdBindDescriptorSet(renderData.draw_buffer, firstPipeline, renderData.global_set, 0);
-		m_gfx->CmdBindDescriptorSet(renderData.draw_buffer, firstPipeline, renderData.frame_set, 1);
+		gfx_->CmdBindDescriptorSet(renderData.draw_buffer, firstPipeline, renderData.global_set, 0);
+		gfx_->CmdBindDescriptorSet(renderData.draw_buffer, firstPipeline, renderData.frame_set, 1);
 
 		for (const auto& [pipeline, drawCalls] : pipelineDrawCalls) {
-			m_gfx->CmdBindPipeline(renderData.draw_buffer, pipeline);
+			gfx_->CmdBindPipeline(renderData.draw_buffer, pipeline);
 			for (const auto& drawCall : drawCalls) {
-				m_gfx->CmdBindDescriptorSet(renderData.draw_buffer, pipeline, drawCall.materialSet, 2);
-				m_gfx->CmdPushConstants(renderData.draw_buffer, pipeline, 0, sizeof(PushConstants), &drawCall.pushConsts);
-				m_gfx->CmdBindVertexBuffer(renderData.draw_buffer, 0, drawCall.vb);
-				m_gfx->CmdBindIndexBuffer(renderData.draw_buffer, drawCall.ib);
-				m_gfx->CmdDrawIndexed(renderData.draw_buffer, drawCall.indexCount, 1, 0, 0, 0);
+				gfx_->CmdBindDescriptorSet(renderData.draw_buffer, pipeline, drawCall.materialSet, 2);
+				gfx_->CmdPushConstants(renderData.draw_buffer, pipeline, 0, sizeof(PushConstants), &drawCall.pushConsts);
+				gfx_->CmdBindVertexBuffer(renderData.draw_buffer, 0, drawCall.vb);
+				gfx_->CmdBindIndexBuffer(renderData.draw_buffer, drawCall.ib);
+				gfx_->CmdDrawIndexed(renderData.draw_buffer, drawCall.indexCount, 1, 0, 0, 0);
 			}
 		}
 
 		/* draw */
-		m_gfx->FinishRender(renderData.draw_buffer);
+		gfx_->FinishRender(renderData.draw_buffer);
 
 	}
 
-	void RenderSystem::setCameraEntity(uint32_t entity)
+	void RenderSystem::SetCameraEntity(uint32_t entity)
 	{
-		m_camera.camEntity = entity;
+		camera_.cam_entity = entity;
 	}
 
 }

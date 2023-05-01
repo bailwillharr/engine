@@ -75,10 +75,10 @@ namespace engine {
 	{
 		(void)entity;
 		const size_t size = entities_.size();
-		m_staticAABBs.reserve(size);
-		m_dynamicAABBs.reserve(size);
-		m_possibleCollisions.reserve(size);
-		m_collisionInfos.reserve(size);
+		static_aabbs_.reserve(size);
+		dynamic_aabbs_.reserve(size);
+		possible_collisions_.reserve(size);
+		collision_infos_.reserve(size);
 		LOG_TRACE("added entity {} to collider system", entity);
 	}
 
@@ -86,16 +86,16 @@ namespace engine {
 	{
 		(void)ts;
 
-		m_staticAABBs.clear();
-		m_dynamicAABBs.clear();
-		m_possibleCollisions.clear();
-		m_collisionInfos.clear();
+		static_aabbs_.clear();
+		dynamic_aabbs_.clear();
+		possible_collisions_.clear();
+		collision_infos_.clear();
 
 		for (uint32_t entity : entities_) {
 			const auto t = scene_->GetComponent<TransformComponent>(entity);
 			const auto c = scene_->GetComponent<ColliderComponent>(entity);
 
-			const glm::vec3 globalPosition = t->worldMatrix[3];
+			const glm::vec3 globalPosition = t->world_matrix[3];
 			const AABB localBoundingBox = c->aabb;
 			AABB globalBoundingBox{};
 			globalBoundingBox.pos1 = globalPosition + localBoundingBox.pos1;
@@ -106,10 +106,10 @@ namespace engine {
 			if (a.pos1.y > a.pos2.y) std::swap(a.pos1.y, a.pos2.y);
 			if (a.pos1.z > a.pos2.z) std::swap(a.pos1.z, a.pos2.z);
 
-			if (c->isStatic) {
-				m_staticAABBs.emplace_back(std::make_tuple(entity, globalBoundingBox, c->isTrigger));
+			if (c->is_static) {
+				static_aabbs_.emplace_back(std::make_tuple(entity, globalBoundingBox, c->is_trigger));
 			} else {
-				m_dynamicAABBs.emplace_back(std::make_tuple(entity, globalBoundingBox, c->isTrigger));
+				dynamic_aabbs_.emplace_back(std::make_tuple(entity, globalBoundingBox, c->is_trigger));
 			}
 		}
 
@@ -117,11 +117,11 @@ namespace engine {
 
 		// Check every static collider against every dynamic collider, and every dynamic collider against every other one
 		// This technique is inefficient for many entities.
-		for (const auto& [staticEntity, staticAABB, staticTrigger] : m_staticAABBs) {
-			for (const auto& [dynamicEntity, dynamicAABB, dynamicTrigger] : m_dynamicAABBs) {
+		for (const auto& [staticEntity, staticAABB, staticTrigger] : static_aabbs_) {
+			for (const auto& [dynamicEntity, dynamicAABB, dynamicTrigger] : dynamic_aabbs_) {
 				if (checkCollisionFast(staticAABB, dynamicAABB)) {
 					if (staticTrigger || dynamicTrigger) { // only check collisions involved with triggers
-						m_possibleCollisions.emplace_back(
+						possible_collisions_.emplace_back(
 							staticEntity, staticAABB, staticTrigger,
 							dynamicEntity, dynamicAABB, dynamicTrigger
 						);
@@ -131,32 +131,32 @@ namespace engine {
 		}
 
 		// get collision details and submit events
-		for (const auto& possibleCollision : m_possibleCollisions) {
-			if (possibleCollision.staticTrigger) {
+		for (const auto& possibleCollision : possible_collisions_) {
+			if (possibleCollision.static_trigger) {
 				CollisionEvent info{};
-				info.isCollisionEnter = true;
-				info.collidedEntity = possibleCollision.dynamicEntity;
-				info.normal = getAABBNormal(possibleCollision.staticAABB, possibleCollision.dynamicAABB);
+				info.is_collision_enter = true;
+				info.collided_entity = possibleCollision.dynamic_entity;
+				info.normal = getAABBNormal(possibleCollision.static_aabb, possibleCollision.dynamic_aabb);
 
-				AABB object = possibleCollision.dynamicAABB;
+				AABB object = possibleCollision.dynamic_aabb;
 				info.point = object.pos2;
 
-				m_collisionInfos.emplace_back(possibleCollision.staticEntity, info);
+				collision_infos_.emplace_back(possibleCollision.static_entity, info);
 			}
-			if (possibleCollision.dynamicTrigger) {
+			if (possibleCollision.dynamic_trigger) {
 				CollisionEvent info{};
-				info.isCollisionEnter = true;
-				info.collidedEntity = possibleCollision.staticEntity;
-				info.normal = getAABBNormal(possibleCollision.dynamicAABB, possibleCollision.staticAABB);
+				info.is_collision_enter = true;
+				info.collided_entity = possibleCollision.static_entity;
+				info.normal = getAABBNormal(possibleCollision.dynamic_aabb, possibleCollision.static_aabb);
 
-				AABB object = possibleCollision.staticAABB;
+				AABB object = possibleCollision.static_aabb;
 				info.point = object.pos2;
 
-				m_collisionInfos.emplace_back(possibleCollision.dynamicEntity, info);
+				collision_infos_.emplace_back(possibleCollision.dynamic_entity, info);
 			}
 		}
 
-		for (const auto& [entity, info] : m_collisionInfos) {
+		for (const auto& [entity, info] : collision_infos_) {
 			scene_->event_system()->QueueEvent<CollisionEvent>(EventSubscriberKind::kEntity, entity, info);
 		}
 	}

@@ -178,7 +178,7 @@ void CameraControllerSystem::OnUpdate(float ts)
 // called once per frame
 void CameraControllerSystem::OnEvent(engine::PhysicsSystem::CollisionEvent info)
 {
-	c->justCollided = info.isCollisionEnter;
+	c->justCollided = info.is_collision_enter;
 	c->lastCollisionNormal = info.normal;
 	c->lastCollisionPoint = info.point;
 }

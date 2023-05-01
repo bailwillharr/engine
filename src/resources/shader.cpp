@@ -10,7 +10,7 @@ namespace engine::resources {
 
 
 	Shader::Shader(RenderData* renderData, const char* vertPath, const char* fragPath, const VertexParams& vertexParams, bool alphaBlending, bool cullBackFace)
-		: m_gfx(renderData->gfxdev.get())
+		: gfx_(renderData->gfxdev.get())
 	{
 
 		uint32_t index = 0;
@@ -20,19 +20,19 @@ namespace engine::resources {
 		vertFormat.attribute_descriptions.emplace_back(index++, gfx::VertexAttribFormat::kFloat3, stride);
 		stride += 3 * sizeof(float);
 
-		if (vertexParams.hasNormal) {
+		if (vertexParams.has_normal) {
 			vertFormat.attribute_descriptions.emplace_back(index++, gfx::VertexAttribFormat::kFloat3, stride);
 			stride += 3 * sizeof(float);
 		}
-		if (vertexParams.hasTangent) {
+		if (vertexParams.has_tangent) {
 			vertFormat.attribute_descriptions.emplace_back(index++, gfx::VertexAttribFormat::kFloat4, stride);
 			stride += 4 * sizeof(float);
 		}
-		if (vertexParams.hasColor) {
+		if (vertexParams.has_color) {
 			vertFormat.attribute_descriptions.emplace_back(index++, gfx::VertexAttribFormat::kFloat4, stride);
 			stride += 4 * sizeof(float);
 		}
-		if (vertexParams.hasUV0) {
+		if (vertexParams.has_uv0) {
 			vertFormat.attribute_descriptions.emplace_back(index++, gfx::VertexAttribFormat::kFloat2, stride);
 			stride += 2 * sizeof(float);
 		}
@@ -48,7 +48,7 @@ namespace engine::resources {
 		info.descriptor_set_layouts.push_back(renderData->frame_set_layout);
 		info.descriptor_set_layouts.push_back(renderData->material_set_layout);
 
-		m_pipeline = m_gfx->CreatePipeline(info);
+		pipeline_ = gfx_->CreatePipeline(info);
 
 		LOG_INFO("Loaded shader: {}, vertex attribs: {}", vertPath, vertFormat.attribute_descriptions.size());
 
@@ -56,12 +56,12 @@ namespace engine::resources {
 
 	Shader::~Shader()
 	{
-		m_gfx->DestroyPipeline(m_pipeline);
+		gfx_->DestroyPipeline(pipeline_);
 	}
 
-	const gfx::Pipeline* Shader::getPipeline()
+	const gfx::Pipeline* Shader::GetPipeline()
 	{
-		return m_pipeline;
+		return pipeline_;
 	}
 
 }

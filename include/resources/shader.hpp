@@ -1,37 +1,38 @@
-#pragma once
+#ifndef ENGINE_INCLUDE_RESOURCES_SHADER_H_
+#define ENGINE_INCLUDE_RESOURCES_SHADER_H_
 
+#include "application.hpp"
 #include "gfx.hpp"
+#include "gfx_device.hpp"
 
 namespace engine {
-	class GFXDevice;
-	struct RenderData;
-}
-
-namespace engine::resources {
+namespace resources {
 
 class Shader {
+ public:
+  // defines what vertex inputs are defined, position is always vec3
+  struct VertexParams {
+    bool has_normal;   // vec3
+    bool has_tangent;  // vec3
+    bool has_color;    // vec3
+    bool has_uv0;      // vec2
+  };
 
-public:
+  Shader(RenderData* render_data, const char* vert_path, const char* frag_path,
+         const VertexParams& vertex_params, bool alpha_blending,
+         bool cull_backface);
+  ~Shader();
+  Shader(const Shader&) = delete;
+  Shader& operator=(const Shader&) = delete;
 
-	// defines what vertex inputs are defined, position is always vec3
-	struct VertexParams {
-		bool hasNormal; // vec3
-		bool hasTangent; // vec3
-		bool hasColor; // vec3
-		bool hasUV0; // vec2
-	};
+  const gfx::Pipeline* GetPipeline();
 
-	Shader(RenderData* renderData, const char* vertPath, const char* fragPath, const VertexParams& vertexParams, bool alphaBlending, bool cullBackFace);
-	~Shader();
-	Shader(const Shader&) = delete;
-	Shader& operator=(const Shader&) = delete;
-
-	const gfx::Pipeline* getPipeline();
-
-private:
-	GFXDevice* const m_gfx;
-	const gfx::Pipeline* m_pipeline;
-
+ private:
+  GFXDevice* const gfx_;
+  const gfx::Pipeline* pipeline_;
 };
 
-}
+}  // namespace resources
+}  // namespace engine
+
+#endif

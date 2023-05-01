@@ -1,51 +1,54 @@
-#pragma once
-
-#include "gfx.hpp"
+#ifndef ENGINE_INCLUDE_RESOURCES_MESH_H_
+#define ENGINE_INCLUDE_RESOURCES_MESH_H_
 
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
-
 #include <vector>
+
+#include "gfx.hpp"
+#include "gfx_device.hpp"
 
 namespace engine {
 
-	class GFXDevice;
-
-	struct Vertex {
-		glm::vec3 pos;
-		glm::vec3 norm;
-		glm::vec2 uv;
-	};
-}
-
-namespace engine::resources {
-
-class Mesh {
-
-public:
-	Mesh(GFXDevice* gfx, const std::vector<Vertex>& vertices);
-	Mesh(GFXDevice* gfx, const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices)
-		: m_gfx(gfx)
-	{
-		initMesh(vertices, indices);
-	}
-	~Mesh();
-	Mesh(const Mesh&) = delete;
-	Mesh& operator=(const Mesh&) = delete;
-
-	const gfx::Buffer* getVB();
-	const gfx::Buffer* getIB();
-	uint32_t getCount();
-
-private:
-	GFXDevice* const m_gfx;
-
-	const gfx::Buffer* m_vb;
-	const gfx::Buffer* m_ib;
-	uint32_t m_count;
-
-	void initMesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices);
-
+struct Vertex {
+  glm::vec3 pos;
+  glm::vec3 norm;
+  glm::vec2 uv;
 };
 
-}
+}  // namespace engine
+
+namespace engine {
+namespace resources {
+
+class Mesh {
+ public:
+  Mesh(GFXDevice* gfx, const std::vector<Vertex>& vertices);
+  Mesh(GFXDevice* gfx, const std::vector<Vertex>& vertices,
+       const std::vector<uint32_t>& indices)
+      : gfx_(gfx) {
+    InitMesh(vertices, indices);
+  }
+  ~Mesh();
+  Mesh(const Mesh&) = delete;
+  Mesh& operator=(const Mesh&) = delete;
+
+  const gfx::Buffer* GetVB();
+  const gfx::Buffer* GetIB();
+  uint32_t GetCount();
+
+ private:
+  GFXDevice* const gfx_;
+
+  const gfx::Buffer* vb_;
+  const gfx::Buffer* ib_;
+  uint32_t count_;
+
+  void InitMesh(const std::vector<Vertex>& vertices,
+                const std::vector<uint32_t>& indices);
+};
+
+}  // namespace resources
+}  // namespace engine
+
+#endif

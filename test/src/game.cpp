@@ -70,8 +70,8 @@ void playGame(GameSettings settings)
 		auto camera = myScene->CreateEntity("camera");
 		myScene->GetComponent<engine::TransformComponent>(camera)->position = { 0.0f, 10.0f, 0.0f };
 		auto cameraCollider = myScene->AddComponent<engine::ColliderComponent>(camera);
-		cameraCollider->isStatic = false;
-		cameraCollider->isTrigger = true;
+		cameraCollider->is_static = false;
+		cameraCollider->is_trigger = true;
 		cameraCollider->aabb = { { -0.2f, -1.5f, -0.2f }, { 0.2f, 0.2f, 0.2f} }; // Origin is at eye level
 		myScene->AddComponent<CameraControllerComponent>(camera);
 		myScene->event_system()->SubscribeToEventType<engine::PhysicsSystem::CollisionEvent>(
@@ -79,19 +79,19 @@ void playGame(GameSettings settings)
 			);
 
 		auto renderSystem = myScene->GetSystem<engine::RenderSystem>();
-		renderSystem->setCameraEntity(camera);
+		renderSystem->SetCameraEntity(camera);
 	}
 
 	/* shared resources */
 	auto grassTexture = std::make_shared<engine::resources::Texture>(
 		&app.render_data_,
 		app.GetResourcePath("textures/grass.jpg"),
-		engine::resources::Texture::Filtering::ANISOTROPIC
+		engine::resources::Texture::Filtering::kAnisotropic
 	);
 	auto spaceTexture = std::make_shared<engine::resources::Texture>(
 		&app.render_data_,
 		app.GetResourcePath("textures/space2.png"),
-		engine::resources::Texture::Filtering::ANISOTROPIC
+		engine::resources::Texture::Filtering::kAnisotropic
 	);
 
 	/* cube */
@@ -100,10 +100,10 @@ void playGame(GameSettings settings)
 		myScene->GetComponent<engine::TransformComponent>(cube)->position = glm::vec3{ -0.5f + 5.0f, -0.5f + 5.0f, -0.5f + 5.0f };
 		auto cubeRenderable = myScene->AddComponent<engine::RenderableComponent>(cube);
 		cubeRenderable->material = std::make_shared<engine::resources::Material>(app.GetResource<engine::resources::Shader>("builtin.standard"));
-		cubeRenderable->material->m_texture = app.GetResource<engine::resources::Texture>("builtin.white");
+		cubeRenderable->material->texture_ = app.GetResource<engine::resources::Texture>("builtin.white");
 		cubeRenderable->mesh = genCuboidMesh(app.gfxdev(), 1.0f, 1.0f, 1.0f, 1);
 		auto cubeCollider = myScene->AddComponent<engine::ColliderComponent>(cube);
-		cubeCollider->isStatic = true;
+		cubeCollider->is_static = true;
 		cubeCollider->aabb = { { 0.0f, 0.0f, 0.0f }, { 1.0f, 1.0f, 1.0f } };
 	}
 
@@ -113,22 +113,22 @@ void playGame(GameSettings settings)
 		myScene->GetComponent<engine::TransformComponent>(floor)->position = glm::vec3{-5000.0f, -1.0f, -5000.0f};
 		auto floorRenderable = myScene->AddComponent<engine::RenderableComponent>(floor);
 		floorRenderable->material = std::make_shared<engine::resources::Material>(app.GetResource<engine::resources::Shader>("builtin.standard"));
-		floorRenderable->material->m_texture = grassTexture;
+		floorRenderable->material->texture_ = grassTexture;
 		floorRenderable->mesh = genCuboidMesh(app.gfxdev(), 10000.0f, 1.0f, 10000.0f, 5000.0f);
 		floorRenderable->shown = true;
 		auto floorCollider = myScene->AddComponent<engine::ColliderComponent>(floor);
-		floorCollider->isStatic = true;
+		floorCollider->is_static = true;
 		floorCollider->aabb = { { 0.0f, 0.0f, 0.0f }, { 10000.0f, 1.0f, 10000.0f } };
 	}
 
-	//engine::util::loadMeshFromFile(myScene, app.GetResourcePath("models/astronaut/astronaut.dae"));
+	//engine::util::LoadMeshFromFile(myScene, app.GetResourcePath("models/astronaut/astronaut.dae"));
 
 	/* skybox */
 	{
 		uint32_t skybox = myScene->CreateEntity("skybox");
 		auto skyboxRenderable = myScene->AddComponent<engine::RenderableComponent>(skybox);
 		skyboxRenderable->material = std::make_unique<engine::resources::Material>(app.GetResource<engine::resources::Shader>("builtin.skybox"));
-		skyboxRenderable->material->m_texture = spaceTexture;
+		skyboxRenderable->material->texture_ = spaceTexture;
 		skyboxRenderable->mesh = genCuboidMesh(app.gfxdev(), 10.0f, 10.0f, 10.0f, 1.0f, true);
 		myScene->GetComponent<engine::TransformComponent>(skybox)->position = { -5.0f, -5.0f, -5.0f };
 	}

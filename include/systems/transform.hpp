@@ -1,4 +1,5 @@
-#pragma once
+#ifndef ENGINE_INCLUDE_SYSTEMS_TRANSFORM_H_
+#define ENGINE_INCLUDE_SYSTEMS_TRANSFORM_H_
 
 #include "ecs_system.hpp"
 
@@ -11,9 +12,10 @@ namespace engine {
 
 		void OnUpdate(float ts) override;
 
-		uint32_t getChildEntity(uint32_t parent, const std::string& tag);
+		uint32_t GetChildEntity(uint32_t parent, const std::string& tag);
 
 	};
 
 }
 
+#endif

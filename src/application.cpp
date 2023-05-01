@@ -116,8 +116,8 @@ namespace engine {
 		// default resources
 		{
 			resources::Shader::VertexParams vertParams{};
-			vertParams.hasNormal = true;
-			vertParams.hasUV0 = true;
+			vertParams.has_normal = true;
+			vertParams.has_uv0 = true;
 			auto texturedShader = std::make_unique<resources::Shader>(
 				&render_data_,
 				GetResourcePath("engine/shaders/standard.vert").c_str(),
@@ -130,8 +130,8 @@ namespace engine {
 		}
 		{
 			resources::Shader::VertexParams vertParams{};
-			vertParams.hasNormal = true;
-			vertParams.hasUV0 = true;
+			vertParams.has_normal = true;
+			vertParams.has_uv0 = true;
 			auto skyboxShader = std::make_unique<resources::Shader>(
 				&render_data_,
 				GetResourcePath("engine/shaders/skybox.vert").c_str(),
@@ -146,7 +146,7 @@ namespace engine {
 			auto whiteTexture = std::make_unique<resources::Texture>(
 				&render_data_,
 				GetResourcePath("engine/textures/white.png"),
-				resources::Texture::Filtering::OFF
+				resources::Texture::Filtering::kOff
 			);
 			GetResourceManager<resources::Texture>()->AddPersistent("builtin.white", std::move(whiteTexture));
 		}
