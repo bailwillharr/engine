@@ -154,7 +154,7 @@ void CameraControllerSystem::OnUpdate(float ts)
 			" y: " + std::to_string(t->position.y) +
 			" z: " + std::to_string(t->position.z)
 		};
-		//scene_->app()->window()->infoBox("POSITION", pos_string);
+		//scene_->app()->window()->InfoBox("POSITION", pos_string);
 		LOG_INFO("position: " + pos_string);
 	}
 

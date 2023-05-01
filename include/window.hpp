@@ -87,79 +87,79 @@ class Window {
   // retrieves y coordinate of the mouse
   int GetMouseY() const;
   // retrieves mouse x coordinate normalised for OpenGL
-  float getMouseNormX() const;
+  float GetMouseNormX() const;
   // retrieves mouse y coordinate normalised for OpenGL
-  float getMouseNormY() const;
+  float GetMouseNormY() const;
   // retrieves dx of the mouse since the last frame
-  int getMouseDX() const;
+  int GetMouseDX() const;
   // retrieves dy of the mouse since the last frame
-  int getMouseDY() const;
+  int GetMouseDY() const;
   // retrieves amount scrolled vertically
-  float getMouseScrollX() const;
+  float GetMouseScrollX() const;
   // retrieves amount scrolled horizontally
-  float getMouseScrollY() const;
+  float GetMouseScrollY() const;
 
   // joystick/gamepad events (maybe), other misc events
 
   // returns the performance counter value in nanoseconds;
-  uint64_t getNanos() const;
+  uint64_t GetNanos() const;
   // get the time recorded at the end of the last frame
-  uint64_t getLastFrameStamp() const;
+  uint64_t GetLastFrameStamp() const;
 
   // returns the number of frames elapsed since window creation
-  uint64_t getFrameCount() const;
-  uint64_t getStartTime() const;
+  uint64_t GetFrameCount() const;
+  uint64_t GetStartTime() const;
   float dt() const;  // returns delta time in seconds
-  uint64_t getFPS() const;
-  uint64_t getAvgFPS() const;
+  uint64_t GetFPS() const;
+  uint64_t GetAvgFPS() const;
 
-  void resetAvgFPS();
+  void ResetAvgFPS();
 
-  bool infoBox(const std::string& title, const std::string& msg);
+  bool InfoBox(const std::string& title, const std::string& msg);
 
   /* STATIC METHODS */
-  static void errorBox(const std::string& message);
+  static void ErrorBox(const std::string& message);
 
  private:
-  SDL_Window* m_handle;
+  SDL_Window* handle_;
 
-  bool m_shouldClose = false;
+  bool should_close_ = false;
 
-  std::string m_title;
+  std::string title_;
 
-  bool m_resizable;
+  bool resizable_;
 
-  bool m_fullscreen = false;
-  bool m_justResized = false;
-  bool m_keyboardFocus = true;
+  bool fullscreen_ = false;
+  bool just_resized_ = false;
+  bool keyboard_focus_ = true;
 
   // size in screen coordinates
-  glm::ivec2 m_winSize = glm::vec2(1024, 768);
+  glm::ivec2 win_size_ = glm::vec2(1024, 768);
 
   // performance counter frequency
-  uint64_t m_counterFreq;
+  uint64_t counter_freq_;
 
   // number of frames swapped
-  uint64_t m_frames = 0;
+  uint64_t frames_ = 0;
   // frame count offset for fpsAvg
-  uint64_t m_avgFpsStartCount = 0;
+  uint64_t avg_fps_start_count_ = 0;
   // in nanoseconds
-  uint64_t m_startTime;
+  uint64_t start_time_;
   // in nanoseconds
-  uint64_t m_lastFrameStamp;
+  uint64_t last_frame_stamp_;
   // in nanoseconds; elapsed time between frames
-  uint64_t m_lastFrameTime = 1;  // not 0 to avoid division by zero
+  uint64_t last_frame_time_ = 1;  // not 0 to avoid division by zero
   // in nanoseconds
-  uint64_t m_avgFpsStart;
+  uint64_t avg_fps_start_;
 
   // input stuff
 
-  enum class ButtonDelta { SAME = 0, PRESSED, RELEASED };
+  enum class ButtonDelta { kSame = 0, kPressed, kReleased };
 
   struct {
     std::array<bool, SDL_NUM_SCANCODES> keys;
     std::array<enum ButtonDelta, SDL_NUM_SCANCODES> deltas;
-  } m_keyboard{};
+  } keyboard_{};
 
   struct {
     std::array<bool, static_cast<int>(inputs::MouseButton::M_SIZE)> buttons;
@@ -171,20 +171,20 @@ class Window {
     float xscroll;
     float yscroll;
     bool captured = false;
-  } m_mouse{};
+  } mouse_{};
 
   // private methods
 
-  void onResize(Sint32 width, Sint32 height);
-  void resetInputDeltas();
+  void OnResize(Sint32 width, Sint32 height);
+  void ResetInputDeltas();
 
   // event methods (like callbacks)
 
-  void onWindowEvent(SDL_WindowEvent& e);
-  void onKeyEvent(SDL_KeyboardEvent& e);
-  void onMouseButtonEvent(SDL_MouseButtonEvent& e);
-  void onMouseMotionEvent(SDL_MouseMotionEvent& e);
-  void onMouseWheelEvent(SDL_MouseWheelEvent& e);
+  void OnWindowEvent(SDL_WindowEvent& e);
+  void OnKeyEvent(SDL_KeyboardEvent& e);
+  void OnMouseButtonEvent(SDL_MouseButtonEvent& e);
+  void OnMouseMotionEvent(SDL_MouseMotionEvent& e);
+  void OnMouseWheelEvent(SDL_MouseWheelEvent& e);
 };
 
 }  // namespace engine

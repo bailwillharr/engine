@@ -175,7 +175,7 @@ namespace engine {
 		auto beginFrame = std::chrono::steady_clock::now();
 		auto endFrame = beginFrame + FRAMETIME_LIMIT;
 
-		auto lastTick = window_->getNanos();
+		auto lastTick = window_->GetNanos();
 
 		// single-threaded game loop
 		while (window_->IsRunning()) {
@@ -184,15 +184,15 @@ namespace engine {
 			scene_manager_->UpdateActiveScene(window_->dt());
 
 			if(window_->GetKeyPress(inputs::Key::K_F)) [[unlikely]] {
-				window_->infoBox("fps", std::to_string(window_->getFPS()) + " fps " + std::to_string(window_->dt() * 1000.0f) + " ms");
+				window_->InfoBox("fps", std::to_string(window_->GetFPS()) + " fps " + std::to_string(window_->dt() * 1000.0f) + " ms");
 			}
 
-			uint64_t now = window_->getNanos();
+			uint64_t now = window_->GetNanos();
 			if (now - lastTick >= 1000000000LL * 5LL) [[unlikely]] {
 				lastTick = now;
-				LOG_INFO("fps: {}", window_->getAvgFPS());
+				LOG_INFO("fps: {}", window_->GetAvgFPS());
 				gfxdev()->LogPerformanceInfo();
-				window_->resetAvgFPS();
+				window_->ResetAvgFPS();
 			}
 
 			/* poll events */

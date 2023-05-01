@@ -8,7 +8,7 @@ static const uint64_t BILLION = 1000000000;
 namespace engine {
 
 	Window::Window(const std::string& title, bool resizable, bool fullscreen)
-		: m_title(title), m_resizable(resizable), m_fullscreen(fullscreen)
+		: title_(title), resizable_(resizable), fullscreen_(fullscreen)
 	{
 
 		// init SDL
@@ -17,107 +17,107 @@ namespace engine {
 			throw std::runtime_error(errMsg);
 		}
 
-		m_counterFreq = SDL_GetPerformanceFrequency();
-		m_startTime = getNanos();
-		m_lastFrameStamp = m_startTime - 1;
-		m_avgFpsStart = m_startTime;
+		counter_freq_ = SDL_GetPerformanceFrequency();
+		start_time_ = GetNanos();
+		last_frame_stamp_ = start_time_ - 1;
+		avg_fps_start_ = start_time_;
 
 		Uint32 windowFlags = SDL_WINDOW_SHOWN;
 
 		// use Vulkan 1.3
 		windowFlags |= SDL_WINDOW_VULKAN;
 
-		if (m_resizable) {
+		if (resizable_) {
 			windowFlags |= SDL_WINDOW_RESIZABLE;
 		}
 
-		if (m_fullscreen) {
+		if (fullscreen_) {
 			windowFlags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
 		}
 
 		// create the window
-		m_handle = SDL_CreateWindow(
-			m_title.c_str(),
+		handle_ = SDL_CreateWindow(
+			title_.c_str(),
 			SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-			static_cast<int>(m_winSize.x),
-			static_cast<int>(m_winSize.y),
+			static_cast<int>(win_size_.x),
+			static_cast<int>(win_size_.y),
 			windowFlags);
-		if (m_handle == NULL) {
+		if (handle_ == NULL) {
 			SDL_Quit();
 			throw std::runtime_error("Unable to create window: " + std::string(SDL_GetError()));
 		}
 
 		const int WINDOWED_MIN_WIDTH = 640;
 		const int WINDOWED_MIN_HEIGHT = 480;
-		SDL_SetWindowMinimumSize(m_handle, WINDOWED_MIN_WIDTH, WINDOWED_MIN_HEIGHT);
+		SDL_SetWindowMinimumSize(handle_, WINDOWED_MIN_WIDTH, WINDOWED_MIN_HEIGHT);
 
 		// get window size
 		int winWidth, winHeight;
-		SDL_GetWindowSize(m_handle, &winWidth, &winHeight);
+		SDL_GetWindowSize(handle_, &winWidth, &winHeight);
 
-		onResize(winWidth, winHeight);
+		OnResize(winWidth, winHeight);
 
 	}
 
 	Window::~Window()
 	{
-		SDL_DestroyWindow(m_handle);
+		SDL_DestroyWindow(handle_);
 		SDL_Quit();
 	}
 
 	// private methods
 
-	void Window::onResize(Sint32 width, Sint32 height)
+	void Window::OnResize(Sint32 width, Sint32 height)
 	{
 		// get window size
-		m_winSize.x = static_cast<int>(width);
-		m_winSize.y = static_cast<int>(height);
+		win_size_.x = static_cast<int>(width);
+		win_size_.y = static_cast<int>(height);
 
-		m_justResized = true;
+		just_resized_ = true;
 	}
 
-	void Window::resetInputDeltas()
+	void Window::ResetInputDeltas()
 	{
-		m_justResized = false;
+		just_resized_ = false;
 
-		m_keyboard.deltas.fill(ButtonDelta::SAME);
+		keyboard_.deltas.fill(ButtonDelta::kSame);
 
-		m_mouse.deltas.fill(ButtonDelta::SAME);
-		m_mouse.dx = 0;
-		m_mouse.dy = 0;
-		m_mouse.xscroll = 0.0f;
-		m_mouse.yscroll = 0.0f;
+		mouse_.deltas.fill(ButtonDelta::kSame);
+		mouse_.dx = 0;
+		mouse_.dy = 0;
+		mouse_.xscroll = 0.0f;
+		mouse_.yscroll = 0.0f;
 	}
 
 	// TODO event methods (like callbacks)
 
-	void Window::onWindowEvent(SDL_WindowEvent& e)
+	void Window::OnWindowEvent(SDL_WindowEvent& e)
 	{
 
 		switch (e.event) {
 		case SDL_WINDOWEVENT_SIZE_CHANGED:
-			onResize(e.data1, e.data2);
+			OnResize(e.data1, e.data2);
 			break;
 		case SDL_WINDOWEVENT_FOCUS_GAINED:
-			m_keyboardFocus = true;
+			keyboard_focus_ = true;
 			break;
 		case SDL_WINDOWEVENT_FOCUS_LOST:
-			m_keyboardFocus = false;
+			keyboard_focus_ = false;
 			break;
 		}
 	}
 
-	void Window::onKeyEvent(SDL_KeyboardEvent& e)
+	void Window::OnKeyEvent(SDL_KeyboardEvent& e)
 	{
-		bool keyWasDown = m_keyboard.keys[e.keysym.scancode];
+		bool keyWasDown = keyboard_.keys[e.keysym.scancode];
 		bool keyIsDown = (e.state == SDL_PRESSED);
-		m_keyboard.keys[e.keysym.scancode] = keyIsDown;
+		keyboard_.keys[e.keysym.scancode] = keyIsDown;
 		if (keyIsDown != keyWasDown) { // (if key was pressed or released)
-			m_keyboard.deltas[e.keysym.scancode] = keyIsDown ? ButtonDelta::PRESSED : ButtonDelta::RELEASED;
+			keyboard_.deltas[e.keysym.scancode] = keyIsDown ? ButtonDelta::kPressed : ButtonDelta::kReleased;
 		}
 	}
 
-	void Window::onMouseButtonEvent(SDL_MouseButtonEvent& e)
+	void Window::OnMouseButtonEvent(SDL_MouseButtonEvent& e)
 	{
 		enum inputs::MouseButton button = inputs::MouseButton::M_INVALID;
 		switch (e.button) {
@@ -138,34 +138,34 @@ namespace engine {
 			break;
 		}
 		int buttonIndex = static_cast<int>(button);
-		bool buttonWasDown = m_mouse.buttons.at(buttonIndex);
+		bool buttonWasDown = mouse_.buttons.at(buttonIndex);
 		bool buttonIsDown = (e.state == SDL_PRESSED);
-		m_mouse.buttons.at(buttonIndex) = buttonIsDown;
+		mouse_.buttons.at(buttonIndex) = buttonIsDown;
 		if (buttonIsDown != buttonWasDown) { // (if button was pressed or released)
 			// only sets delta if it hasn't already been set this frame (to detect very fast presses)
-			if (m_mouse.deltas[buttonIndex] == ButtonDelta::SAME) {
-				m_mouse.deltas[buttonIndex] = buttonIsDown ? ButtonDelta::PRESSED : ButtonDelta::RELEASED;
+			if (mouse_.deltas[buttonIndex] == ButtonDelta::kSame) {
+				mouse_.deltas[buttonIndex] = buttonIsDown ? ButtonDelta::kPressed : ButtonDelta::kReleased;
 			}
 		}
 	}
 
-	void Window::onMouseMotionEvent(SDL_MouseMotionEvent& e)
+	void Window::OnMouseMotionEvent(SDL_MouseMotionEvent& e)
 	{
-		m_mouse.x = e.x;
-		m_mouse.y = e.y;
-		m_mouse.dx = e.xrel;
-		m_mouse.dy = e.yrel;
+		mouse_.x = e.x;
+		mouse_.y = e.y;
+		mouse_.dx = e.xrel;
+		mouse_.dy = e.yrel;
 	}
 
-	void Window::onMouseWheelEvent(SDL_MouseWheelEvent& e)
+	void Window::OnMouseWheelEvent(SDL_MouseWheelEvent& e)
 	{
 		if (e.direction == SDL_MOUSEWHEEL_NORMAL) {
-			m_mouse.xscroll = e.preciseX;
-			m_mouse.yscroll = e.preciseY;
+			mouse_.xscroll = e.preciseX;
+			mouse_.yscroll = e.preciseY;
 		}
 		else { // flipped
-			m_mouse.xscroll = -e.preciseX;
-			m_mouse.yscroll = -e.preciseY;
+			mouse_.xscroll = -e.preciseX;
+			mouse_.yscroll = -e.preciseY;
 		}
 	}
 
@@ -173,23 +173,23 @@ namespace engine {
 
 	SDL_Window* Window::GetHandle() const
 	{
-		return m_handle;
+		return handle_;
 	}
 
 	std::string Window::GetTitle() const
 	{
-		return m_title;
+		return title_;
 	}
 
 	void Window::GetInputAndEvents()
 	{
 
-		m_frames++;
-		uint64_t currentFrameStamp = getNanos();
-		m_lastFrameTime = currentFrameStamp - m_lastFrameStamp;
-		m_lastFrameStamp = currentFrameStamp;
+		frames_++;
+		uint64_t currentFrameStamp = GetNanos();
+		last_frame_time_ = currentFrameStamp - last_frame_stamp_;
+		last_frame_stamp_ = currentFrameStamp;
 
-		resetInputDeltas();
+		ResetInputDeltas();
 
 		// loop through all available events
 		SDL_Event e;
@@ -201,25 +201,25 @@ namespace engine {
 				break;
 
 			case SDL_WINDOWEVENT:
-				onWindowEvent(e.window);
+				OnWindowEvent(e.window);
 				break;
 
 			case SDL_KEYDOWN: // FALL THROUGH
 			case SDL_KEYUP:
-				onKeyEvent(e.key);
+				OnKeyEvent(e.key);
 				break;
 
 			case SDL_MOUSEBUTTONDOWN: // FALL THROUGH
 			case SDL_MOUSEBUTTONUP:
-				onMouseButtonEvent(e.button);
+				OnMouseButtonEvent(e.button);
 				break;
 
 			case SDL_MOUSEMOTION:
-				onMouseMotionEvent(e.motion);
+				OnMouseMotionEvent(e.motion);
 				break;
 
 			case SDL_MOUSEWHEEL:
-				onMouseWheelEvent(e.wheel);
+				OnMouseWheelEvent(e.wheel);
 				break;
 
 			}
@@ -229,85 +229,85 @@ namespace engine {
 
 	void Window::SetTitle(std::string title)
 	{
-		SDL_SetWindowTitle(m_handle, title.c_str());
+		SDL_SetWindowTitle(handle_, title.c_str());
 	}
 
 	bool Window::GetWindowResized() const
 	{
-		return m_justResized;
+		return just_resized_;
 	}
 
 	void Window::SetResizedFlag()
 	{
-		m_justResized = true;
+		just_resized_ = true;
 	}
 
 	void Window::Show()
 	{
-		SDL_ShowWindow(m_handle);
+		SDL_ShowWindow(handle_);
 	}
 
 	void Window::Hide()
 	{
-		SDL_HideWindow(m_handle);
+		SDL_HideWindow(handle_);
 	}
 
 	void Window::Focus()
 	{
-		SDL_RaiseWindow(m_handle);
-		m_keyboardFocus = true;
+		SDL_RaiseWindow(handle_);
+		keyboard_focus_ = true;
 	}
 
 	bool Window::HasFocus() const
 	{
-		return m_keyboardFocus;
+		return keyboard_focus_;
 	}
 
 	void Window::SetCloseFlag()
 	{
-		m_shouldClose = true;
+		should_close_ = true;
 	}
 
 	bool Window::IsRunning() const
 	{
-		return !m_shouldClose;
+		return !should_close_;
 	}
 
 	void Window::SetFullscreen(bool fullscreen, bool exclusive)
 	{
 
-		if (m_resizable) {
+		if (resizable_) {
 
 			SDL_DisplayMode mode;
-			SDL_GetDesktopDisplayMode(SDL_GetWindowDisplayIndex(m_handle), &mode);
-			SDL_SetWindowDisplayMode(m_handle, &mode);
+			SDL_GetDesktopDisplayMode(SDL_GetWindowDisplayIndex(handle_), &mode);
+			SDL_SetWindowDisplayMode(handle_, &mode);
 
-			if (SDL_SetWindowFullscreen(m_handle, fullscreen ? (exclusive ? SDL_WINDOW_FULLSCREEN : SDL_WINDOW_FULLSCREEN_DESKTOP) : 0) != 0) {
+			if (SDL_SetWindowFullscreen(handle_, fullscreen ? (exclusive ? SDL_WINDOW_FULLSCREEN : SDL_WINDOW_FULLSCREEN_DESKTOP) : 0) != 0) {
 				throw std::runtime_error("Unable to set window to fullscreen/windowed");
 			}
-			m_fullscreen = fullscreen;
+			fullscreen_ = fullscreen;
 			if (fullscreen) {
 
 				int width, height;
-				SDL_GetWindowSize(m_handle, &width, &height);
-				onResize(width, height);
+				SDL_GetWindowSize(handle_, &width, &height);
+				OnResize(width, height);
 			}
 		}
 	}
 
 	void Window::ToggleFullscreen()
 	{
-		SetFullscreen(!m_fullscreen, true);
+		SetFullscreen(!fullscreen_, true);
 	}
 
 	bool Window::IsFullscreen() const
 	{
-		return m_fullscreen;
+		return fullscreen_;
 	}
 
 	bool Window::SetRelativeMouseMode(bool enabled)
 	{
-		m_mouse.captured = enabled;
+		mouse_.captured = enabled;
 		int code = SDL_SetRelativeMouseMode(static_cast<SDL_bool>(enabled));
 		if (code != 0) {
 			throw std::runtime_error("Unable to set relative mouse mode");
@@ -319,142 +319,142 @@ namespace engine {
 
 	bool Window::MouseCaptured()
 	{
-		return m_mouse.captured;
+		return mouse_.captured;
 	}
 
 	// getting input
 
 	bool Window::GetKey(inputs::Key key) const
 	{
-		return m_keyboard.keys[static_cast<int>(key)];
+		return keyboard_.keys[static_cast<int>(key)];
 	}
 
 	bool Window::GetKeyPress(inputs::Key key) const
 	{
-		return m_keyboard.deltas[static_cast<int>(key)] == ButtonDelta::PRESSED;
+		return keyboard_.deltas[static_cast<int>(key)] == ButtonDelta::kPressed;
 	}
 
 	bool Window::GetKeyRelease(inputs::Key key) const
 	{
-		return m_keyboard.deltas[static_cast<int>(key)] == ButtonDelta::RELEASED;
+		return keyboard_.deltas[static_cast<int>(key)] == ButtonDelta::kReleased;
 	}
 
 	// TODO mouse input
 
 	bool Window::GetButton(inputs::MouseButton button) const
 	{
-		return m_mouse.buttons[static_cast<int>(button)];
+		return mouse_.buttons[static_cast<int>(button)];
 	}
 
 	bool Window::GetButtonPress(inputs::MouseButton button) const
 	{
-		return m_mouse.deltas[static_cast<int>(button)] == ButtonDelta::PRESSED;
+		return mouse_.deltas[static_cast<int>(button)] == ButtonDelta::kPressed;
 	}
 
 	bool Window::GetButtonRelease(inputs::MouseButton button) const
 	{
-		return m_mouse.deltas[static_cast<int>(button)] == ButtonDelta::RELEASED;
+		return mouse_.deltas[static_cast<int>(button)] == ButtonDelta::kReleased;
 	}
 
 	int Window::GetMouseX() const
 	{
-		return static_cast<int>(m_mouse.x);
+		return static_cast<int>(mouse_.x);
 	}
 
 	int Window::GetMouseY() const
 	{
-		return static_cast<int>(m_mouse.y);
+		return static_cast<int>(mouse_.y);
 	}
 
-	float Window::getMouseNormX() const
+	float Window::GetMouseNormX() const
 	{
-		return ((float)m_mouse.x * 2.0f / (float)m_winSize.x) - 1.0f;
+		return ((float)mouse_.x * 2.0f / (float)win_size_.x) - 1.0f;
 	}
 
-	float Window::getMouseNormY() const
+	float Window::GetMouseNormY() const
 	{
-		return ((float)m_mouse.y * -2.0f / (float)m_winSize.y) + 1.0f;
+		return ((float)mouse_.y * -2.0f / (float)win_size_.y) + 1.0f;
 	}
 
-	int Window::getMouseDX() const
+	int Window::GetMouseDX() const
 	{
-		return static_cast<int>(m_mouse.dx);
+		return static_cast<int>(mouse_.dx);
 	}
 
-	int Window::getMouseDY() const
+	int Window::GetMouseDY() const
 	{
-		return static_cast<int>(m_mouse.dy);
+		return static_cast<int>(mouse_.dy);
 	}
 
-	float Window::getMouseScrollX() const
+	float Window::GetMouseScrollX() const
 	{
-		return m_mouse.xscroll;
+		return mouse_.xscroll;
 	}
 
-	float Window::getMouseScrollY() const
+	float Window::GetMouseScrollY() const
 	{
-		return m_mouse.yscroll;
+		return mouse_.yscroll;
 	}
 
 	// TODO game pad
 
 	// get timer value
-	uint64_t Window::getNanos() const
+	uint64_t Window::GetNanos() const
 	{
 		uint64_t count;
 
 		count = SDL_GetPerformanceCounter();
-		if (m_counterFreq == BILLION) {
+		if (counter_freq_ == BILLION) {
 			return count;
 		}
 		else {
-			return count * (BILLION / m_counterFreq);
+			return count * (BILLION / counter_freq_);
 		}
 	}
 
-	uint64_t Window::getLastFrameStamp() const
+	uint64_t Window::GetLastFrameStamp() const
 	{
-		return m_lastFrameStamp;
+		return last_frame_stamp_;
 	}
 
-	uint64_t Window::getFrameCount() const
+	uint64_t Window::GetFrameCount() const
 	{
-		return m_frames;
+		return frames_;
 	}
 
-	uint64_t Window::getStartTime() const
+	uint64_t Window::GetStartTime() const
 	{
-		return m_startTime;
+		return start_time_;
 	}
 
 	float Window::dt() const
 	{
-		return (float)m_lastFrameTime / (float)BILLION;
+		return (float)last_frame_time_ / (float)BILLION;
 	}
 
-	uint64_t Window::getFPS() const
+	uint64_t Window::GetFPS() const
 	{
-		if (m_lastFrameTime == 0) return 0;
-		return BILLION / m_lastFrameTime;
+		if (last_frame_time_ == 0) return 0;
+		return BILLION / last_frame_time_;
 	}
 
-	uint64_t Window::getAvgFPS() const
+	uint64_t Window::GetAvgFPS() const
 	{
-		uint64_t delta_t = getNanos() - m_avgFpsStart;
+		uint64_t delta_t = GetNanos() - avg_fps_start_;
 		if (delta_t == 0) return 0;
-		return BILLION * (m_frames - m_avgFpsStartCount) / delta_t;
+		return BILLION * (frames_ - avg_fps_start_count_) / delta_t;
 	}
 
-	void Window::resetAvgFPS()
+	void Window::ResetAvgFPS()
 	{
-		m_avgFpsStart = getNanos();
-		m_avgFpsStartCount = getFrameCount();
+		avg_fps_start_ = GetNanos();
+		avg_fps_start_count_ = GetFrameCount();
 	}
 
-	bool Window::infoBox(const std::string& title, const std::string& msg)
+	bool Window::InfoBox(const std::string& title, const std::string& msg)
 	{
 		if (IsFullscreen() == false) {
-			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, title.c_str(), msg.c_str(), m_handle);
+			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, title.c_str(), msg.c_str(), handle_);
 			return true;
 		}
 		else {
@@ -465,7 +465,7 @@ namespace engine {
 	/* STATIC METHODS */
 
 	// Display an error message box
-	void Window::errorBox(const std::string& message)
+	void Window::ErrorBox(const std::string& message)
 	{
 		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Game Error", message.c_str(), NULL);
 	}

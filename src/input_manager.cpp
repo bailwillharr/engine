@@ -81,13 +81,13 @@ float InputManager::GetDeviceAxis(enum InputDevice device, int axis) const
 	case InputDevice::kMouse:
 		switch (static_cast<inputs::MouseAxis>(axis)) {
 		case inputs::MouseAxis::X:
-			return static_cast<float>(win_->getMouseDX());
+			return static_cast<float>(win_->GetMouseDX());
 		case inputs::MouseAxis::Y:
-			return static_cast<float>(win_->getMouseDY());
+			return static_cast<float>(win_->GetMouseDY());
 		case inputs::MouseAxis::X_SCR:
-			return win_->getMouseScrollX();
+			return win_->GetMouseScrollX();
 		case inputs::MouseAxis::Y_SCR:
-			return win_->getMouseScrollY();
+			return win_->GetMouseScrollY();
 		default: break;
 		}
 		break;
