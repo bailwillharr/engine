@@ -2,8 +2,9 @@
 #define ENGINE_INCLUDE_SYSTEMS_COLLISIONS_H_
 
 #include <cstdint>
-#include <glm/mat4x4.hpp>
 #include <vector>
+
+#include <glm/mat4x4.hpp>
 
 #include "components/collider.h"
 #include "ecs_system.h"
@@ -28,7 +29,6 @@ class PhysicsSystem : public System {
 
  private:
   // dynamic arrays to avoid realloc on every frame
-
   // entity, aabb, is_trigger
   std::vector<std::tuple<uint32_t, AABB, bool>> static_aabbs_{};
   std::vector<std::tuple<uint32_t, AABB, bool>> dynamic_aabbs_{};

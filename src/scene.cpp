@@ -17,9 +17,9 @@ namespace engine {
 
 		// ecs configuration:
 
-		registerComponent<TransformComponent>();
-		registerComponent<RenderableComponent>();
-		registerComponent<ColliderComponent>();
+		RegisterComponent<TransformComponent>();
+		RegisterComponent<RenderableComponent>();
+		RegisterComponent<ColliderComponent>();
 
 		// Order here matters:
 		RegisterSystem<TransformSystem>();

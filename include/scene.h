@@ -35,7 +35,7 @@ class Scene {
   size_t GetComponentSignaturePosition(size_t hash);
 
   template <typename T>
-  void registerComponent() {
+  void RegisterComponent() {
     size_t hash = typeid(T).hash_code();
     assert(component_arrays_.contains(hash) == false &&
            "Registering component type more than once.");

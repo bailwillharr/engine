@@ -1,41 +1,45 @@
-#pragma once
+#ifndef ENGINE_TEST_SRC_CAMERA_CONTROLLER_H_
+#define ENGINE_TEST_SRC_CAMERA_CONTROLLER_H_
 
-#include "ecs_system.h"
-#include "event_system.h"
+#include <glm/vec3.hpp>
 
 #include "components/transform.h"
+#include "ecs_system.h"
+#include "event_system.h"
 #include "systems/collisions.h"
 
 struct CameraControllerComponent {
-	float m_cameraSensitivity = 0.007f;
+  static constexpr float kWalkSpeed = 4.0f;
+  static constexpr float kThrust = 25.0f;
+  static constexpr float kCameraSensitivity = 0.007f;
 
-	float m_yaw = 0.0f;
-	float m_pitch = 0.0f;
+  float yaw = 0.0f;
+  float pitch = 0.0f;
+  float dy = 0.0f;
 
-	const float walk_speed = 4.0f;
-	
-	bool isGrounded = false;
-	float dy = 0.0f;
-	float standingHeight = 0.0f;
-	const float thrust = 25.0f;
+  glm::vec3 last_collision_normal{};
+  glm::vec3 last_collision_point{};
+  
+  bool just_collided = false;
+  bool is_grounded = false;
 
-	glm::vec3 lastCollisionNormal{};
-	glm::vec3 lastCollisionPoint{};
-	bool justCollided = false;
 };
 
-class CameraControllerSystem : public engine::System, public engine::EventHandler<engine::PhysicsSystem::CollisionEvent> {
+class CameraControllerSystem
+    : public engine::System,
+      public engine::EventHandler<engine::PhysicsSystem::CollisionEvent> {
+ public:
+  CameraControllerSystem(engine::Scene* scene);
 
-public:
-	CameraControllerSystem(engine::Scene* scene);
+  // engine::System overrides
+  void OnUpdate(float ts) override;
 
-	// engine::System overrides
-	void OnUpdate(float ts) override;
+  // engine::EventHandler overrides
+  void OnEvent(engine::PhysicsSystem::CollisionEvent info) override;
 
-	// engine::EventHandler overrides
-	void OnEvent(engine::PhysicsSystem::CollisionEvent info) override;
-
-	engine::TransformComponent* t = nullptr;
-	engine::ColliderComponent* col = nullptr;
-	CameraControllerComponent* c = nullptr;
+  engine::TransformComponent* t = nullptr;
+  engine::ColliderComponent* col = nullptr;
+  CameraControllerComponent* c = nullptr;
 };
+
+#endif
