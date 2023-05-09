@@ -7,26 +7,22 @@ project(enginetest LANGUAGES CXX
 )
 
 set(GAME_SOURCES
-	
-	src/main.cpp
-	src/game.cpp
-	src/game.hpp
-	src/camera_controller.cpp
-	src/camera_controller.hpp
-	src/meshgen.cpp
-	src/meshgen.hpp
-	
+	"src/camera_controller.cpp"
+	"src/camera_controller.hpp"
+  "src/game.cpp"
+  "src/game.hpp"
+  "src/main.cpp"
+  "src/meshgen.cpp"
+  "src/meshgen.hpp"
 )
 
 if (WIN32)
-	#add_executable(${PROJECT_NAME} WIN32 ${GAME_SOURCES} "game.rc")
-	add_executable(${PROJECT_NAME} ${GAME_SOURCES})
+	add_executable(${PROJECT_NAME} WIN32 ${GAME_SOURCES} "game.rc")
 else()
 	add_executable(${PROJECT_NAME} ${GAME_SOURCES})
 endif()
 
 # compiling options:
-
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)

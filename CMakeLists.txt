@@ -9,84 +9,69 @@ project(engine LANGUAGES CXX
 	VERSION "0.1.0"
 )
 
+# from command: find . -regex "^\.\/.*" | sort
 set(SRC_FILES
-	src/ecs_system.cpp
-	src/application.cpp
-
-	src/libs/stb_image.cpp
-
-	src/systems/transform.cpp
-	src/systems/render.cpp
-	src/systems/render2d.cpp
-	src/systems/ui.cpp
-	src/systems/collisions.cpp
-
-	src/resources/shader.cpp
-	src/resources/material.cpp
-	src/resources/mesh.cpp
-	src/resources/texture.cpp
-
-	src/scene.cpp
-
-	src/gfx_device_vulkan.cpp
-
-	src/vulkan/device.cpp
-	src/vulkan/device.h
-	src/vulkan/gpu_allocator.cpp
-	src/vulkan/gpu_allocator.h
-	src/vulkan/instance.cpp
-	src/vulkan/instance.h
-	src/vulkan/swapchain.cpp
-	src/vulkan/swapchain.h
-
-	src/util/files.cpp
-	src/util/model_loader.cpp
-
-	src/scene_manager.cpp
-	src/input_manager.cpp
-	src/window.cpp
+	"src/application.cpp"
+	"src/ecs_system.cpp"
+	"src/gfx_device_vulkan.cpp"
+	"src/input_manager.cpp"
+	"src/libs/stb_image.cpp"
+	"src/resources/material.cpp"
+	"src/resources/mesh.cpp"
+	"src/resources/shader.cpp"
+	"src/resources/texture.cpp"
+	"src/scene.cpp"
+	"src/scene_manager.cpp"
+	"src/systems/collisions.cpp"
+	"src/systems/render.cpp"
+	"src/systems/render2d.cpp"
+	"src/systems/transform.cpp"
+	"src/systems/ui.cpp"
+	"src/util/files.cpp"
+	"src/util/model_loader.cpp"
+	"src/vulkan/device.cpp"
+	"src/vulkan/device.h"
+	"src/vulkan/gpu_allocator.cpp"
+	"src/vulkan/gpu_allocator.h"
+	"src/vulkan/instance.cpp"
+	"src/vulkan/instance.h"
+	"src/vulkan/swapchain.cpp"
+	"src/vulkan/swapchain.h"
+	"src/window.cpp"
 )
 
 set(INCLUDE_FILES
-	include/ecs_system.h
-	include/gfx_device.h
-
-	include/inputs/mouse.h
-	include/inputs/keyboard.h
-	include/input_manager.h
-
-	include/systems/transform.h
-	include/systems/render.h
-	include/systems/render2d.h
-	include/systems/ui.h
-	include/systems/collisions.h
-
-	include/resources/shader.h
-	include/resources/material.h
-	include/resources/mesh.h
-	include/resources/texture.h
-
-	include/event_system.h
-
-	include/engine_api.h
-
-	include/util/files.h
-	include/util/model_loader.h
-
-	include/util.h
-	include/logger.h
-	include/scene_manager.h
-	include/gfx.h
-	include/scene.h
-	include/window.h
-	include/log.h
-	include/resource_manager.h
-	include/application.h
-
-	include/components/transform.h
-	include/components/renderable.h
-	include/components/collider.h
-	include/components/ui_element.h
+	"include/application.h"
+	"include/components/collider.h"
+	"include/components/renderable.h"
+	"include/components/transform.h"
+	"include/components/ui_element.h"
+	"include/ecs_system.h"
+	"include/engine_api.h"
+	"include/event_system.h"
+	"include/gfx.h"
+	"include/gfx_device.h"
+	"include/input_manager.h"
+	"include/inputs/keyboard.h"
+	"include/inputs/mouse.h"
+	"include/log.h"
+	"include/logger.h"
+	"include/resource_manager.h"
+	"include/resources/material.h"
+	"include/resources/mesh.h"
+	"include/resources/shader.h"
+	"include/resources/texture.h"
+	"include/scene.h"
+	"include/scene_manager.h"
+	"include/systems/collisions.h"
+	"include/systems/render.h"
+	"include/systems/render2d.h"
+	"include/systems/transform.h"
+	"include/systems/ui.h"
+	"include/util.h"
+	"include/util/files.h"
+	"include/util/model_loader.h"
+	"include/window.h"
 )
 
 add_library(${PROJECT_NAME} STATIC
@@ -135,12 +120,7 @@ if (ENGINE_BUILD_TEST)
 	set(CMAKE_RUNTIME_OUTPUT_DIRECTORY $<TARGET_FILE_DIR:enginetest>)
 endif()
 
-# external libraries:
-
-# MinGW library if using it
-if (MINGW)
-	target_link_libraries(${PROJECT_NAME} PUBLIC mingw32)
-endif()
+# private libraries:
 
 # Volk
 set(VOLK_STATIC_DEFINES "")
@@ -163,44 +143,16 @@ else()
 	target_link_libraries(${PROJECT_NAME} PRIVATE shaderc_shared)
 endif()
 
-# SDL2:
-find_package(SDL2)
-if (SDL2_FOUND)
-	target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${SDL2_INCLUDE_DIRS})
-else()
-	set(SDL2_DISABLE_INSTALL ON CACHE INTERNAL "" FORCE)
-	set(SDL_SHARED ON CACHE INTERNAL "" FORCE)
-	set(SDL_STATIC OFF CACHE INTERNAL "" FORCE)
-	set(SDL_TEST OFF CACHE INTERNAL "" FORCE)
-	set(BUILD_SHARED_LIBS ON)
-	add_subdirectory(dependencies/SDL)
-	target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC dependencies/SDL/include)
-endif()
-target_link_libraries(${PROJECT_NAME} PUBLIC SDL2::SDL2)
-target_link_libraries(${PROJECT_NAME} PUBLIC SDL2::SDL2main)
-
-# GLM:
-set(BUILD_SHARED_LIBS OFF)
-add_subdirectory(dependencies/glm)
-target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC dependencies/glm)
-
-# spdlog
-set(SPDLOG_BUILD_SHARED OFF CACHE INTERNAL "" FORCE)
-set(BUILD_SHARED_LIBS OFF)
-add_subdirectory(dependencies/spdlog)
-target_link_libraries(${PROJECT_NAME} PUBLIC spdlog)
-target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC dependencies/spdlog/include)
-
 # freetype
-#set(FT_DISABLE_ZLIB TRUE CACHE INTERNAL "" FORCE)
-#set(FT_DISABLE_BZIP2 TRUE CACHE INTERNAL "" FORCE)
-#set(FT_DISABLE_PNG TRUE CACHE INTERNAL "" FORCE)
-#set(FT_DISABLE_HARFBUZZ TRUE CACHE INTERNAL "" FORCE)
-#set(FT_DISABLE_BROTLI TRUE CACHE INTERNAL "" FORCE)
-#set(BUILD_SHARED_LIBS OFF CACHE INTERNAL "" FORCE)
-#add_subdirectory(dependencies/freetype)
-#target_link_libraries(${PROJECT_NAME} PRIVATE freetype)
-#target_include_directories(${PROJECT_NAME} PRIVATE dependencies/freetype/include)
+set(FT_DISABLE_ZLIB TRUE CACHE INTERNAL "" FORCE)
+set(FT_DISABLE_BZIP2 TRUE CACHE INTERNAL "" FORCE)
+set(FT_DISABLE_PNG TRUE CACHE INTERNAL "" FORCE)
+set(FT_DISABLE_HARFBUZZ TRUE CACHE INTERNAL "" FORCE)
+set(FT_DISABLE_BROTLI TRUE CACHE INTERNAL "" FORCE)
+set(BUILD_SHARED_LIBS OFF CACHE INTERNAL "" FORCE)
+add_subdirectory(dependencies/freetype)
+target_link_libraries(${PROJECT_NAME} PRIVATE freetype)
+target_include_directories(${PROJECT_NAME} PRIVATE dependencies/freetype/include)
 
 # stb
 target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE dependencies/stb)
@@ -216,3 +168,28 @@ set(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT OFF CACHE INTERNAL "" FORCE)
 add_subdirectory(dependencies/assimp)
 target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE dependencies/assimp/include)
 target_link_libraries(${PROJECT_NAME} PRIVATE assimp)
+
+# public libraries:
+
+# SDL2:
+set(SDL2_DISABLE_INSTALL ON CACHE INTERNAL "" FORCE)
+set(SDL_SHARED ON CACHE INTERNAL "" FORCE)
+set(SDL_STATIC OFF CACHE INTERNAL "" FORCE)
+set(SDL_TEST OFF CACHE INTERNAL "" FORCE)
+set(BUILD_SHARED_LIBS ON)
+add_subdirectory(dependencies/SDL)
+target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC dependencies/SDL/include)
+target_link_libraries(${PROJECT_NAME} PUBLIC SDL2::SDL2)
+target_link_libraries(${PROJECT_NAME} PUBLIC SDL2::SDL2main)
+
+# GLM:
+set(BUILD_SHARED_LIBS OFF)
+add_subdirectory(dependencies/glm)
+target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC dependencies/glm)
+
+# spdlog
+set(SPDLOG_BUILD_SHARED OFF CACHE INTERNAL "" FORCE)
+set(BUILD_SHARED_LIBS OFF)
+add_subdirectory(dependencies/spdlog)
+target_link_libraries(${PROJECT_NAME} PUBLIC spdlog)
+target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC dependencies/spdlog/include)
