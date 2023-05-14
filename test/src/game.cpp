@@ -102,7 +102,7 @@ void PlayGame(GameSettings settings) {
     cube_renderable->material = std::make_shared<engine::resources::Material>(
         app.GetResource<engine::resources::Shader>("builtin.standard"));
     cube_renderable->material->texture_ = grass_texture;
-//        app.GetResource<engine::resources::Texture>("builtin.white");
+    //        app.GetResource<engine::resources::Texture>("builtin.white");
     cube_renderable->mesh = GenCuboidMesh(app.gfxdev(), 1.0f, 1.0f, 1.0f, 1);
     auto cube_collider =
         my_scene->AddComponent<engine::ColliderComponent>(cube);
@@ -129,8 +129,8 @@ void PlayGame(GameSettings settings) {
     floor_collider->aabb = {{0.0f, 0.0f, 0.0f}, {10000.0f, 1.0f, 10000.0f}};
   }
 
-  //engine::util::LoadMeshFromFile(
-  //    my_scene, app.GetResourcePath("models/astronaut/astronaut.dae"));
+  // engine::util::LoadMeshFromFile(
+  //     my_scene, app.GetResourcePath("models/astronaut/astronaut.dae"));
 
   /* skybox */
   {
@@ -144,6 +144,25 @@ void PlayGame(GameSettings settings) {
         GenCuboidMesh(app.gfxdev(), 10.0f, 10.0f, 10.0f, 1.0f, true);
     my_scene->GetComponent<engine::TransformComponent>(skybox)->position = {
         -5.0f, -5.0f, -5.0f};
+  }
+
+  /* some text */
+  {
+    int width, height;
+    auto bitmap = app.GetResource<engine::resources::Font>("builtin.mono")
+                      ->GetTextBitmap("The", 768.0f, width, height);
+
+    uint32_t textbox = my_scene->CreateEntity("textbox");
+    auto textbox_renderable =
+        my_scene->AddComponent<engine::RenderableComponent>(textbox);
+    textbox_renderable->material =
+        std::make_unique<engine::resources::Material>(
+            app.GetResource<engine::resources::Shader>("builtin.quad"));
+    textbox_renderable->material->texture_ =
+        std::make_unique<engine::resources::Texture>(
+            &app.render_data_, bitmap->data(), width, height,
+            engine::resources::Texture::Filtering::kOff);
+    textbox_renderable->mesh = GenSphereMesh(app.gfxdev(), 1.0f, 8);
   }
 
   app.GameLoop();

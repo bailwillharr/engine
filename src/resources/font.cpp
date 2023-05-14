@@ -78,6 +78,13 @@ std::unique_ptr<std::vector<uint8_t>> Font::GetTextBitmap(
   auto bitmap =
       std::make_unique<std::vector<uint8_t>>(bitmap_width * bitmap_height * 4);
 
+  for (size_t i = 0; i < bitmap->size() / 4; i++) {
+    bitmap->at(i * 4 + 0) = 0x00;
+    bitmap->at(i * 4 + 1) = 0x00;
+    bitmap->at(i * 4 + 2) = 0x00;
+    bitmap->at(i * 4 + 3) = 0xFF;
+  }
+
   int top_left_x = 0;
   for (const auto& renderInfo : characterRenderInfos) {
     if (renderInfo.isEmpty == false) {
