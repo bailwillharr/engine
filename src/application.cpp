@@ -12,6 +12,7 @@
 #include "gfx_device.h"
 #include "input_manager.h"
 #include "log.h"
+#include "resources/font.h"
 #include "resources/material.h"
 #include "resources/mesh.h"
 #include "resources/shader.h"
@@ -69,6 +70,7 @@ namespace engine {
 		resources_path_ = getResourcesPath();
 
 		// register resource managers
+		RegisterResourceManager<resources::Font>();
 		RegisterResourceManager<resources::Texture>();
 		RegisterResourceManager<resources::Shader>();
 		RegisterResourceManager<resources::Material>();
@@ -114,6 +116,12 @@ namespace engine {
 		render_data_.material_set_layout = gfxdev()->CreateDescriptorSetLayout(materialSetBindings);
 
 		// default resources
+    {
+      auto monoFont = std::make_unique<resources::Font>(
+        GetResourcePath("engine/fonts/mono.ttf")
+      );
+      GetResourceManager<resources::Font>()->AddPersistent("builtin.mono", std::move(monoFont));
+    }
 		{
 			resources::Shader::VertexParams vertParams{};
 			vertParams.has_normal = true;

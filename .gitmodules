@@ -10,9 +10,6 @@
 [submodule "dependencies/spdlog"]
 	path = dependencies/spdlog
 	url = https://github.com/gabime/spdlog
-[submodule "dependencies/freetype"]
-	path = dependencies/freetype
-	url = https://gitlab.freedesktop.org/freetype/freetype.git
 [submodule "dependencies/volk"]
 	path = dependencies/volk
 	url = https://github.com/zeux/volk

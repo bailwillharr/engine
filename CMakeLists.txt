@@ -16,6 +16,8 @@ set(SRC_FILES
 	"src/gfx_device_vulkan.cpp"
 	"src/input_manager.cpp"
 	"src/libs/stb_image.cpp"
+	"src/libs/stb_truetype.cpp"
+	"src/resources/font.cpp"
 	"src/resources/material.cpp"
 	"src/resources/mesh.cpp"
 	"src/resources/shader.cpp"
@@ -43,6 +45,7 @@ set(SRC_FILES
 set(INCLUDE_FILES
 	"include/application.h"
 	"include/components/collider.h"
+	"include/components/renderable_text.h"
 	"include/components/renderable.h"
 	"include/components/transform.h"
 	"include/components/ui_element.h"
@@ -57,6 +60,7 @@ set(INCLUDE_FILES
 	"include/log.h"
 	"include/logger.h"
 	"include/resource_manager.h"
+	"include/resources/font.h"
 	"include/resources/material.h"
 	"include/resources/mesh.h"
 	"include/resources/shader.h"
@@ -142,17 +146,6 @@ if (MSVC)
 else()
 	target_link_libraries(${PROJECT_NAME} PRIVATE shaderc_shared)
 endif()
-
-# freetype
-set(FT_DISABLE_ZLIB TRUE CACHE INTERNAL "" FORCE)
-set(FT_DISABLE_BZIP2 TRUE CACHE INTERNAL "" FORCE)
-set(FT_DISABLE_PNG TRUE CACHE INTERNAL "" FORCE)
-set(FT_DISABLE_HARFBUZZ TRUE CACHE INTERNAL "" FORCE)
-set(FT_DISABLE_BROTLI TRUE CACHE INTERNAL "" FORCE)
-set(BUILD_SHARED_LIBS OFF CACHE INTERNAL "" FORCE)
-add_subdirectory(dependencies/freetype)
-target_link_libraries(${PROJECT_NAME} PRIVATE freetype)
-target_include_directories(${PROJECT_NAME} PRIVATE dependencies/freetype/include)
 
 # stb
 target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE dependencies/stb)
