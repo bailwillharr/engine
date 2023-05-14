@@ -148,7 +148,7 @@ else()
 endif()
 
 # stb
-target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE dependencies/stb)
+target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC dependencies/stb)
 
 # assimp
 set(BUILD_SHARED_LIBS OFF CACHE INTERNAL "" FORCE)

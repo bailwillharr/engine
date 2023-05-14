@@ -7,6 +7,7 @@
 #include "components/transform.h"
 #include "input_manager.h"
 #include "meshgen.hpp"
+#include "resources/font.h"
 #include "resources/material.h"
 #include "resources/texture.h"
 #include "scene.h"
@@ -86,6 +87,7 @@ void PlayGame(GameSettings settings) {
   auto grass_texture = std::make_shared<engine::resources::Texture>(
       &app.render_data_, app.GetResourcePath("textures/grass.jpg"),
       engine::resources::Texture::Filtering::kAnisotropic);
+
   auto space_texture = std::make_shared<engine::resources::Texture>(
       &app.render_data_, app.GetResourcePath("textures/space2.png"),
       engine::resources::Texture::Filtering::kAnisotropic);
@@ -99,8 +101,8 @@ void PlayGame(GameSettings settings) {
         my_scene->AddComponent<engine::RenderableComponent>(cube);
     cube_renderable->material = std::make_shared<engine::resources::Material>(
         app.GetResource<engine::resources::Shader>("builtin.standard"));
-    cube_renderable->material->texture_ =
-        app.GetResource<engine::resources::Texture>("builtin.white");
+    cube_renderable->material->texture_ = grass_texture;
+//        app.GetResource<engine::resources::Texture>("builtin.white");
     cube_renderable->mesh = GenCuboidMesh(app.gfxdev(), 1.0f, 1.0f, 1.0f, 1);
     auto cube_collider =
         my_scene->AddComponent<engine::ColliderComponent>(cube);
@@ -127,8 +129,8 @@ void PlayGame(GameSettings settings) {
     floor_collider->aabb = {{0.0f, 0.0f, 0.0f}, {10000.0f, 1.0f, 10000.0f}};
   }
 
-  engine::util::LoadMeshFromFile(
-      my_scene, app.GetResourcePath("models/astronaut/astronaut.dae"));
+  //engine::util::LoadMeshFromFile(
+  //    my_scene, app.GetResourcePath("models/astronaut/astronaut.dae"));
 
   /* skybox */
   {

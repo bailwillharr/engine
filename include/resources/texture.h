@@ -20,6 +20,9 @@ class Texture {
 
   Texture(RenderData* render_data, const std::string& path,
           Filtering filtering);
+  Texture(RenderData* render_data, const uint8_t* bitmap, int width, int height,
+          Filtering filtering);
+
   ~Texture();
   Texture(const Texture&) = delete;
   Texture& operator=(const Texture&) = delete;
