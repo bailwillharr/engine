@@ -4,6 +4,7 @@
 #include <cassert>
 #include <cstdint>
 #include <map>
+#include <stdexcept>
 #include <typeinfo>
 
 #include "ecs_system.h"
