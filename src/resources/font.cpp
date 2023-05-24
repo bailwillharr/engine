@@ -102,7 +102,7 @@ std::unique_ptr<std::vector<uint8_t>> Font::GetTextBitmap(
           (*bitmap)[out_index + 0] = pixel;
           (*bitmap)[out_index + 1] = pixel;
           (*bitmap)[out_index + 2] = pixel;
-          (*bitmap)[out_index + 3] = 0xFF;
+          (*bitmap)[out_index + 3] = (pixel == 0x00) ? 0x00 : 0xFF;
         }
       }
 

@@ -66,6 +66,13 @@ enum class Primitive {
   kTriangleStrip,
 };
 
+enum class CullMode {
+  kCullNone,
+  kCullFront,
+  kCullBack,
+  kCullFrontAndBack
+};
+
 enum class VertexAttribFormat { kFloat2, kFloat3, kFloat4 };
 
 enum class Filter : int {
@@ -106,6 +113,7 @@ struct PipelineInfo {
   VertexFormat vertex_format;
   bool alpha_blending;
   bool backface_culling;
+  bool write_z;
   std::vector<const DescriptorSetLayout*> descriptor_set_layouts;
 };
 

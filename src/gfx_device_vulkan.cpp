@@ -214,6 +214,19 @@ namespace engine {
 			return out;
 		}
 
+    [[maybe_unused]] static VkCullModeFlags getCullModeFlags(gfx::CullMode mode) {
+      switch (mode) {
+        case gfx::CullMode::kCullNone:
+          return VK_CULL_MODE_NONE;
+        case gfx::CullMode::kCullFront:
+          return VK_CULL_MODE_FRONT_BIT;
+        case gfx::CullMode::kCullBack:
+          return VK_CULL_MODE_BACK_BIT;
+        case gfx::CullMode::kCullFrontAndBack:
+          return VK_CULL_MODE_FRONT_AND_BACK;
+      }
+    }
+
 	}
 
 	// functions
@@ -974,7 +987,7 @@ namespace engine {
 		VkPipelineDepthStencilStateCreateInfo depthStencil{};
 		depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
 		depthStencil.depthTestEnable = VK_TRUE;
-		depthStencil.depthWriteEnable = VK_TRUE;
+		depthStencil.depthWriteEnable = info.write_z ? VK_TRUE : VK_FALSE;
 		depthStencil.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
 		depthStencil.depthBoundsTestEnable = VK_FALSE;
 		depthStencil.minDepthBounds = 0.0f;

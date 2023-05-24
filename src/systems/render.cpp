@@ -71,8 +71,8 @@ void RenderSystem::OnUpdate(float ts) {
     uint32_t index_count;
     PushConstants push_constants;
   };
-  std::unordered_map<const gfx::Pipeline*, std::vector<DrawCallData>>
-      pipeline_draw_calls{};
+  std::vector<std::tuple<int, const gfx::Pipeline*, DrawCallData>>
+      unsorted_draw_calls{};
 
   for (uint32_t entity : entities_) {
     auto r = scene_->GetComponent<RenderableComponent>(entity);
@@ -85,7 +85,10 @@ void RenderSystem::OnUpdate(float ts) {
     auto t = scene_->GetComponent<TransformComponent>(entity);
     assert(t != nullptr);
 
+    int render_order = r->material->GetShader()->GetRenderOrder();
+
     const gfx::Pipeline* pipeline = r->material->GetShader()->GetPipeline();
+
     DrawCallData data{};
     data.vb = r->mesh->GetVB();
     data.ib = r->mesh->GetIB();
@@ -93,31 +96,48 @@ void RenderSystem::OnUpdate(float ts) {
     data.index_count = r->mesh->GetCount();
     data.push_constants.model = t->world_matrix;
 
-    pipeline_draw_calls[pipeline].push_back(data);
+    unsorted_draw_calls.emplace_back(
+        std::make_tuple(render_order, pipeline, data));
+  }
+
+  std::vector<std::pair<const gfx::Pipeline*, DrawCallData>> draw_calls{};
+  draw_calls.reserve(unsorted_draw_calls.size());
+
+  /* sort the draw calls */
+  for (int i = 0; i <= resources::Shader::kHighestRenderOrder; i++) {
+    for (const auto& [render_order, pipeline, data] : unsorted_draw_calls) {
+      if (render_order == i) {
+        draw_calls.emplace_back(std::make_pair(pipeline, data));
+      }
+    }
   }
 
   /* begin rendering */
   render_data.draw_buffer = gfx_->BeginRender();
 
   /* these descriptor set bindings should persist across pipeline changes */
-  const gfx::Pipeline* first_pipeline = pipeline_draw_calls.begin()->first;
+  const gfx::Pipeline* const first_pipeline = draw_calls.begin()->first;
   gfx_->CmdBindDescriptorSet(render_data.draw_buffer, first_pipeline,
                              render_data.global_set, 0);
   gfx_->CmdBindDescriptorSet(render_data.draw_buffer, first_pipeline,
                              render_data.frame_set, 1);
 
-  for (const auto& [pipeline, draw_calls] : pipeline_draw_calls) {
-    gfx_->CmdBindPipeline(render_data.draw_buffer, pipeline);
-    for (const auto& draw_call : draw_calls) {
-      gfx_->CmdBindDescriptorSet(render_data.draw_buffer, pipeline,
-                                 draw_call.material_set, 2);
-      gfx_->CmdPushConstants(render_data.draw_buffer, pipeline, 0,
-                             sizeof(PushConstants), &draw_call.push_constants);
-      gfx_->CmdBindVertexBuffer(render_data.draw_buffer, 0, draw_call.vb);
-      gfx_->CmdBindIndexBuffer(render_data.draw_buffer, draw_call.ib);
-      gfx_->CmdDrawIndexed(render_data.draw_buffer, draw_call.index_count, 1, 0,
-                           0, 0);
+  gfx_->CmdBindPipeline(render_data.draw_buffer, first_pipeline);
+  const gfx::Pipeline* last_bound_pipeline = first_pipeline;
+
+  for (const auto& [pipeline, draw_call] : draw_calls) {
+    if (pipeline != last_bound_pipeline) {
+      gfx_->CmdBindPipeline(render_data.draw_buffer, pipeline);
+      last_bound_pipeline = pipeline;
     }
+    gfx_->CmdBindDescriptorSet(render_data.draw_buffer, pipeline,
+                               draw_call.material_set, 2);
+    gfx_->CmdPushConstants(render_data.draw_buffer, pipeline, 0,
+                           sizeof(PushConstants), &draw_call.push_constants);
+    gfx_->CmdBindVertexBuffer(render_data.draw_buffer, 0, draw_call.vb);
+    gfx_->CmdBindIndexBuffer(render_data.draw_buffer, draw_call.ib);
+    gfx_->CmdDrawIndexed(render_data.draw_buffer, draw_call.index_count, 1, 0,
+                         0, 0);
   }
 
   /* draw */
