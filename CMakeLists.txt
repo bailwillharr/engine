@@ -25,6 +25,7 @@ set(SRC_FILES
 	"src/scene.cpp"
 	"src/scene_manager.cpp"
 	"src/systems/collisions.cpp"
+	"src/systems/custom_behaviour.cpp"
 	"src/systems/render.cpp"
 	"src/systems/transform.cpp"
 	"src/util/files.cpp"
@@ -43,6 +44,7 @@ set(SRC_FILES
 set(INCLUDE_FILES
 	"include/application.h"
 	"include/components/collider.h"
+	"include/components/custom.h"
 	"include/components/renderable.h"
 	"include/components/transform.h"
 	"include/ecs_system.h"
@@ -64,6 +66,7 @@ set(INCLUDE_FILES
 	"include/scene.h"
 	"include/scene_manager.h"
 	"include/systems/collisions.h"
+	"include/systems/custom_behaviour.h"
 	"include/systems/render.h"
 	"include/systems/transform.h"
 	"include/util.h"

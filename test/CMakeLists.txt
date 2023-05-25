@@ -17,6 +17,10 @@ set(GAME_SOURCES
 )
 
 if (WIN32)
+	option(ENGINETEST_BUILD_WIN32_APP "Build as a standalone win32 app (no console window)" ON)
+endif()
+
+if (WIN32 AND ENGINETEST_BUILD_WIN32_APP)
 	add_executable(${PROJECT_NAME} WIN32 ${GAME_SOURCES} "game.rc")
 else()
 	add_executable(${PROJECT_NAME} ${GAME_SOURCES})

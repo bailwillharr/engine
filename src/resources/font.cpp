@@ -82,7 +82,7 @@ std::unique_ptr<std::vector<uint8_t>> Font::GetTextBitmap(
     bitmap->at(i * 4 + 0) = 0x00;
     bitmap->at(i * 4 + 1) = 0x00;
     bitmap->at(i * 4 + 2) = 0x00;
-    bitmap->at(i * 4 + 3) = 0xFF;
+    bitmap->at(i * 4 + 3) = 0x00;
   }
 
   int top_left_x = 0;

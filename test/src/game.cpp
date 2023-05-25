@@ -3,6 +3,7 @@
 #include "application.h"
 #include "camera_controller.hpp"
 #include "components/collider.h"
+#include "components/custom.h"
 #include "components/renderable.h"
 #include "components/transform.h"
 #include "input_manager.h"
@@ -129,8 +130,8 @@ void PlayGame(GameSettings settings) {
     floor_collider->aabb = {{0.0f, 0.0f, 0.0f}, {10000.0f, 1.0f, 10000.0f}};
   }
 
-  // engine::util::LoadMeshFromFile(
-  //     my_scene, app.GetResourcePath("models/astronaut/astronaut.dae"));
+  //engine::util::LoadMeshFromFile(
+  //    my_scene, app.GetResourcePath("models/astronaut/astronaut.dae"));
 
   /* skybox */
   {
@@ -150,7 +151,8 @@ void PlayGame(GameSettings settings) {
   {
     int width, height;
     auto bitmap = app.GetResource<engine::resources::Font>("builtin.mono")
-                      ->GetTextBitmap("The", 768.0f, width, height);
+                      ->GetTextBitmap("ABCDEFGHIJKLMNOPQRSTUVWXYZ12345", 768.0f,
+                                      width, height);
 
     uint32_t textbox = my_scene->CreateEntity("textbox");
     auto textbox_renderable =
@@ -161,8 +163,15 @@ void PlayGame(GameSettings settings) {
     textbox_renderable->material->texture_ =
         std::make_unique<engine::resources::Texture>(
             &app.render_data_, bitmap->data(), width, height,
-            engine::resources::Texture::Filtering::kOff);
-    textbox_renderable->mesh = GenSphereMesh(app.gfxdev(), 1.0f, 8);
+            engine::resources::Texture::Filtering::kBilinear);
+    textbox_renderable->mesh = GenSphereMesh(app.gfxdev(), 1.0f, 5);
+    my_scene->GetComponent<engine::TransformComponent>(textbox)->scale.y =
+        (float)height / (float)width;
+
+    my_scene->AddComponent<engine::CustomComponent>(textbox)->onUpdate =
+        [](float ts) {
+          /* LOG_INFO("Time step: {}", ts); */
+        };
   }
 
   app.GameLoop();

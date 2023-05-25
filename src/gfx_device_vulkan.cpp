@@ -1602,7 +1602,7 @@ namespace engine {
 		LOG_INFO("GPU Memory Statistics:");
 
 		for (uint32_t i = 0; i < memProps.memoryProperties.memoryHeapCount; i++) {
-			const VmaStatistics& statistics = pStats.memoryType[i].statistics;
+			const VmaStatistics& statistics = pStats.memoryHeap[i].statistics;
 			VkMemoryHeap heap = memProps.memoryProperties.memoryHeaps[i];
 			LOG_INFO("Memory heap {}", i);
 			if (heap.flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) {
