@@ -130,8 +130,8 @@ void PlayGame(GameSettings settings) {
     floor_collider->aabb = {{0.0f, 0.0f, 0.0f}, {10000.0f, 1.0f, 10000.0f}};
   }
 
-  //engine::util::LoadMeshFromFile(
-  //    my_scene, app.GetResourcePath("models/astronaut/astronaut.dae"));
+  // engine::util::LoadMeshFromFile(
+  //     my_scene, app.GetResourcePath("models/astronaut/astronaut.dae"));
 
   /* skybox */
   {
@@ -169,8 +169,23 @@ void PlayGame(GameSettings settings) {
         (float)height / (float)width;
 
     my_scene->AddComponent<engine::CustomComponent>(textbox)->onUpdate =
-        [](float ts) {
-          /* LOG_INFO("Time step: {}", ts); */
+        [&](float ts) {
+          (void)ts;
+          static float time_elapsed;
+          time_elapsed += ts;
+          if (time_elapsed >= 1.0f) {
+            time_elapsed = 0;
+            LOG_INFO("Time step: {}", ts);
+
+            int fpsWidth, fpsHeight;
+            auto fpsBitmap =
+                app.GetResource<engine::resources::Font>("builtin.mono")
+                    ->GetTextBitmap("fps", 768.0f, fpsWidth, fpsHeight);
+            textbox_renderable->material->texture_ =
+                std::make_unique<engine::resources::Texture>(
+                    &app.render_data_, fpsBitmap->data(), fpsWidth, fpsHeight,
+                    engine::resources::Texture::Filtering::kBilinear);
+          }
         };
   }
 

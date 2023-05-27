@@ -24,4 +24,9 @@ void CustomBehaviourSystem::OnUpdate(float ts) {
   }
 }
 
+void CustomBehaviourSystem::OnComponentInsert(uint32_t entity)
+{
+  (void)entity;
+}
+
 }  // namespace engine

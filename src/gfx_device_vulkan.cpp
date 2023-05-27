@@ -1135,7 +1135,7 @@ namespace engine {
 
     void GFXDevice::UpdateDescriptorCombinedImageSampler(const gfx::DescriptorSet *set, uint32_t binding, const gfx::Image* image, const gfx::Sampler* sampler)
     {
-		assert(pimpl->FRAMECOUNT == 0);
+		//assert(pimpl->FRAMECOUNT == 0);
 
 		VkDescriptorImageInfo imageInfo{};
 		imageInfo.sampler = sampler->sampler;
@@ -1310,7 +1310,9 @@ namespace engine {
 	gfx::Image* GFXDevice::CreateImage(uint32_t w, uint32_t h, const void* imageData)
 	{
 		assert(imageData != nullptr);
-		assert(pimpl->FRAMECOUNT == 0);
+		if (pimpl->FRAMECOUNT != 0) {
+      //throw std::runtime_error("Framecount must be 0 when creating a texture");
+    }
 
 		gfx::Image* out = new gfx::Image{};
 

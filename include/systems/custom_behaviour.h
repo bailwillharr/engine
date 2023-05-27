@@ -14,6 +14,7 @@ namespace engine {
         ~CustomBehaviourSystem();
 
         void OnUpdate(float ts) override;
+        void OnComponentInsert(uint32_t entity) override;
 
     private:
        

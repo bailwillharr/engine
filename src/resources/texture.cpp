@@ -98,6 +98,9 @@ Texture::Texture(RenderData* render_data, const uint8_t* bitmap, int width,
   LOG_INFO("Loaded texture: BITMAP, width: {} height: {}", width, height);
 }
 
-Texture::~Texture() { gfx_->DestroyImage(image_); }
+Texture::~Texture() { 
+  LOG_INFO("Destroying texture...");
+  gfx_->DestroyImage(image_);
+}
 
 }  // namespace engine::resources
