@@ -136,7 +136,7 @@ struct SamplerInfo {
 
 namespace std {
 template <>
-struct std::hash<engine::gfx::SamplerInfo> {
+struct hash<engine::gfx::SamplerInfo> {
   std::size_t operator()(const engine::gfx::SamplerInfo& k) const {
     using std::hash;
 
