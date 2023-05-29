@@ -93,6 +93,7 @@ void PlayGame(GameSettings settings) {
       &app.render_data_, app.GetResourcePath("textures/space2.png"),
       engine::resources::Texture::Filtering::kAnisotropic);
 
+#if 0
   /* cube */
   {
     uint32_t cube = my_scene->CreateEntity("cube");
@@ -111,27 +112,13 @@ void PlayGame(GameSettings settings) {
     cube_collider->aabb = {{0.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f}};
   }
 
-  /* floor */
-  {
-    uint32_t floor = my_scene->CreateEntity("floor");
-    my_scene->GetComponent<engine::TransformComponent>(floor)->position =
-        glm::vec3{-5000.0f, -1.0f, -5000.0f};
-    auto floor_renderable =
-        my_scene->AddComponent<engine::RenderableComponent>(floor);
-    floor_renderable->material = std::make_shared<engine::resources::Material>(
-        app.GetResource<engine::resources::Shader>("builtin.standard"));
-    floor_renderable->material->texture_ = grass_texture;
-    floor_renderable->mesh =
-        GenCuboidMesh(app.gfxdev(), 10000.0f, 1.0f, 10000.0f, 5000.0f);
-    floor_renderable->shown = true;
-    auto floor_collider =
-        my_scene->AddComponent<engine::ColliderComponent>(floor);
-    floor_collider->is_static = true;
-    floor_collider->aabb = {{0.0f, 0.0f, 0.0f}, {10000.0f, 1.0f, 10000.0f}};
-  }
+  engine::util::LoadMeshFromFile(
+      my_scene, app.GetResourcePath("models/astronaut/astronaut.dae"));
 
-  // engine::util::LoadMeshFromFile(
-  //     my_scene, app.GetResourcePath("models/astronaut/astronaut.dae"));
+  engine::util::LoadMeshFromFile(
+      my_scene, app.GetResourcePath("models/plane/plane.dae"));
+
+#endif
 
   /* skybox */
   {
@@ -146,6 +133,28 @@ void PlayGame(GameSettings settings) {
     my_scene->GetComponent<engine::TransformComponent>(skybox)->position = {
         -5.0f, -5.0f, -5.0f};
   }
+
+  /* floor */
+  {
+    uint32_t floor = my_scene->CreateEntity("floor");
+    my_scene->GetComponent<engine::TransformComponent>(floor)->position =
+        glm::vec3{-50.0f, -0.1f, -50.0f};
+    auto floor_renderable =
+        my_scene->AddComponent<engine::RenderableComponent>(floor);
+    floor_renderable->material = std::make_shared<engine::resources::Material>(
+        app.GetResource<engine::resources::Shader>("builtin.standard"));
+    floor_renderable->material->texture_ = grass_texture;
+    floor_renderable->mesh =
+        GenCuboidMesh(app.gfxdev(), 100.0f, 0.1f, 100.0f, 100.0f);
+    floor_renderable->shown = true;
+    auto floor_collider =
+        my_scene->AddComponent<engine::ColliderComponent>(floor);
+    floor_collider->is_static = true;
+    floor_collider->aabb = {{0.0f, 0.0f, 0.0f}, {100.0f, 0.1f, 100.0f}};
+  }
+
+  engine::util::LoadMeshFromFile(
+      my_scene, app.GetResourcePath("models/test_scene.dae"));
 
   /* some text */
   {
@@ -167,6 +176,7 @@ void PlayGame(GameSettings settings) {
     textbox_renderable->mesh = GenSphereMesh(app.gfxdev(), 1.0f, 5);
     my_scene->GetComponent<engine::TransformComponent>(textbox)->scale.y =
         (float)height / (float)width;
+    textbox_renderable->shown = false;
 
     my_scene->AddComponent<engine::CustomComponent>(textbox)->onUpdate =
         [&](float ts) {
