@@ -175,16 +175,18 @@ void PlayGame(GameSettings settings) {
           time_elapsed += ts;
           if (time_elapsed >= 1.0f) {
             time_elapsed = 0;
-            LOG_INFO("Time step: {}", ts);
 
             int fpsWidth, fpsHeight;
-            auto fpsBitmap =
+            LOG_INFO("Creating new bitmap...");
+            /*auto fpsBitmap =
                 app.GetResource<engine::resources::Font>("builtin.mono")
-                    ->GetTextBitmap("fps", 768.0f, fpsWidth, fpsHeight);
-            textbox_renderable->material->texture_ =
+                    ->GetTextBitmap(std::to_string(ts), 768.0f, fpsWidth, fpsHeight);*/
+            LOG_INFO("Bitmap created! Loading into new texture...");
+            /*textbox_renderable->material->texture_ =
                 std::make_unique<engine::resources::Texture>(
                     &app.render_data_, fpsBitmap->data(), fpsWidth, fpsHeight,
-                    engine::resources::Texture::Filtering::kBilinear);
+                    engine::resources::Texture::Filtering::kBilinear);*/
+            LOG_INFO("Texture created!");
           }
         };
   }

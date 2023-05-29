@@ -100,6 +100,7 @@ Texture::Texture(RenderData* render_data, const uint8_t* bitmap, int width,
 
 Texture::~Texture() { 
   LOG_INFO("Destroying texture...");
+  gfx_->FreeDescriptorSet(descriptor_set_);
   gfx_->DestroyImage(image_);
 }
 

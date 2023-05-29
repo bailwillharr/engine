@@ -22,14 +22,22 @@ class GFXDevice {
 
   gfx::DrawBuffer* BeginRender();
 
+  /* - draw_buffer MUST be a valid pointer returned by BeginRender().
+     - draw_buffer is invalid after this function has been called. */
   void FinishRender(gfx::DrawBuffer* draw_buffer);
 
+  /* - draw_buffer MUST be a valid pointer returned by BeginRender()
+     - pipeline MUST be a valid pointer returned by CreatePipeline() */
   void CmdBindPipeline(gfx::DrawBuffer* draw_buffer,
                        const gfx::Pipeline* pipeline);
 
+  /* - draw_buffer MUST be a valid pointer returned by BeginRender()
+     - buffer MUST be a valid pointer returned by CreateBuffer */
   void CmdBindVertexBuffer(gfx::DrawBuffer* draw_buffer, uint32_t binding,
                            const gfx::Buffer* buffer);
 
+  /* - draw_buffer MUST be a valid pointer returned by BeginRender()
+     - buffer MUST be a valid pointer returned by CreateBuffer */
   void CmdBindIndexBuffer(gfx::DrawBuffer* draw_buffer,
                           const gfx::Buffer* buffer);
 
@@ -56,6 +64,8 @@ class GFXDevice {
 
   gfx::DescriptorSet* AllocateDescriptorSet(
       const gfx::DescriptorSetLayout* layout);
+
+  void FreeDescriptorSet(const gfx::DescriptorSet* set);
 
   // This updates all copies of the descriptor.
   // This cannot be used after any frames have been renderered

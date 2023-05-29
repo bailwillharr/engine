@@ -55,7 +55,7 @@ std::unique_ptr<std::vector<uint8_t>> Font::GetTextBitmap(
 
     CharacterRenderInfo renderInfo{};
 
-    renderInfo.advance = advanceWidth * sf;
+    renderInfo.advance = static_cast<int>(static_cast<float>(advanceWidth) * sf);
 
     if (stbtt_IsGlyphEmpty(font_info_.get(), glyph_index) == 0) {
       renderInfo.isEmpty = false;
