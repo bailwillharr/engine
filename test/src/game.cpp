@@ -156,8 +156,10 @@ void PlayGame(GameSettings settings) {
   engine::util::LoadMeshFromFile(my_scene,
                                  app.GetResourcePath("models/test_scene.dae"));
 
-  engine::util::LoadMeshFromFile(
+  auto cobbleHouse = engine::util::LoadMeshFromFile(
       my_scene, app.GetResourcePath("models/cobble_house/cobble_house.dae"));
+  my_scene->GetComponent<engine::TransformComponent>(cobbleHouse)->position += glm::vec3{
+      33.0f, 0.1f, 35.0f};
 
   /* some text */
   {
