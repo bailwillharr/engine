@@ -153,8 +153,11 @@ void PlayGame(GameSettings settings) {
     floor_collider->aabb = {{0.0f, 0.0f, 0.0f}, {100.0f, 0.1f, 100.0f}};
   }
 
+  engine::util::LoadMeshFromFile(my_scene,
+                                 app.GetResourcePath("models/test_scene.dae"));
+
   engine::util::LoadMeshFromFile(
-      my_scene, app.GetResourcePath("models/test_scene.dae"));
+      my_scene, app.GetResourcePath("models/cobble_house/cobble_house.dae"));
 
   /* some text */
   {
@@ -190,7 +193,8 @@ void PlayGame(GameSettings settings) {
             LOG_INFO("Creating new bitmap...");
             /*auto fpsBitmap =
                 app.GetResource<engine::resources::Font>("builtin.mono")
-                    ->GetTextBitmap(std::to_string(ts), 768.0f, fpsWidth, fpsHeight);*/
+                    ->GetTextBitmap(std::to_string(ts), 768.0f, fpsWidth,
+               fpsHeight);*/
             LOG_INFO("Bitmap created! Loading into new texture...");
             /*textbox_renderable->material->texture_ =
                 std::make_unique<engine::resources::Texture>(
