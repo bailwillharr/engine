@@ -344,8 +344,12 @@ struct GFXDevice::Impl {
   Swapchain swapchain{};
 
   VkDescriptorPool descriptorPool;
-  std::array<std::unordered_set<gfx::UniformBuffer*>, FRAMES_IN_FLIGHT>
-      uniformBufferWriteQueues{};
+
+  struct WriteQueues {
+    std::unordered_set<gfx::UniformBuffer*> uniform_buffer_writes{};
+  };
+
+  std::array<WriteQueues, FRAMES_IN_FLIGHT> write_queues{};
 
   // For one-off transfer operations not bound to a specific frame-in-flight
   VkCommandPool transferCommandPool = VK_NULL_HANDLE;
@@ -610,7 +614,7 @@ gfx::DrawBuffer* GFXDevice::BeginRender() {
 
   std::vector<VkBufferMemoryBarrier2> barriers{};
   for (gfx::UniformBuffer* uniformBuffer :
-       pimpl->uniformBufferWriteQueues[currentFrameIndex]) {
+       pimpl->write_queues[currentFrameIndex].uniform_buffer_writes) {
     VkBufferCopy copyRegion{};
     copyRegion.srcOffset = 0;
     copyRegion.dstOffset = 0;
@@ -632,7 +636,7 @@ gfx::DrawBuffer* GFXDevice::BeginRender() {
     barrier.offset = 0;
     barrier.size = uniformBuffer->gpuBuffers[currentFrameIndex].size;
   }
-  pimpl->uniformBufferWriteQueues[currentFrameIndex].clear();
+  pimpl->write_queues[currentFrameIndex].uniform_buffer_writes.clear();
 
   VkDependencyInfo dependencyInfo{};
   dependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
@@ -1291,7 +1295,7 @@ void GFXDevice::WriteUniformBuffer(gfx::UniformBuffer* buffer, uint64_t offset,
   /* queue the writes to each gpu buffer */
   // This is required as buffers cannot be updated if they are currently in use
   for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
-    pimpl->uniformBufferWriteQueues[i].insert(buffer);
+    pimpl->write_queues[i].uniform_buffer_writes.insert(buffer);
   }
 }
 

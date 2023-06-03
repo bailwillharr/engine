@@ -189,20 +189,19 @@ void PlayGame(GameSettings settings) {
           static float time_elapsed;
           time_elapsed += ts;
           if (time_elapsed >= 1.0f) {
-            time_elapsed = 0;
+            time_elapsed = 0.0f;
 
-            int fpsWidth, fpsHeight;
-            LOG_INFO("Creating new bitmap...");
-            /*auto fpsBitmap =
-                app.GetResource<engine::resources::Font>("builtin.mono")
-                    ->GetTextBitmap(std::to_string(ts), 768.0f, fpsWidth,
-               fpsHeight);*/
-            LOG_INFO("Bitmap created! Loading into new texture...");
-            /*textbox_renderable->material->texture_ =
-                std::make_unique<engine::resources::Texture>(
-                    &app.render_data_, fpsBitmap->data(), fpsWidth, fpsHeight,
-                    engine::resources::Texture::Filtering::kBilinear);*/
-            LOG_INFO("Texture created!");
+            //LOG_INFO("Creating new bitmap...");
+            //auto fpsBitmap =
+            //    app.GetResource<engine::resources::Font>("builtin.mono")
+            //        ->GetTextBitmap(std::to_string(ts), 768.0f, fpsWidth,
+            //   fpsHeight);
+            //LOG_INFO("Bitmap created! Loading into new texture...");
+            //textbox_renderable->material->texture_ =
+            //    std::make_unique<engine::resources::Texture>(
+            //        &app.render_data_, fpsBitmap->data(), fpsWidth, fpsHeight,
+            //        engine::resources::Texture::Filtering::kBilinear);
+            //LOG_INFO("Texture created!");
           }
         };
   }
