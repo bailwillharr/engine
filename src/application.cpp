@@ -33,6 +33,7 @@ static std::filesystem::path getResourcesPath() {
   std::filesystem::path resourcesPath{};
 
 #ifdef _MSC_VER
+  // get the path of the currently running process
   CHAR exeDirBuf[MAX_PATH + 1];
   GetModuleFileNameA(NULL, exeDirBuf, WIN_MAX_PATH + 1);
   std::filesystem::path cwd = std::filesystem::path(exeDirBuf).parent_path();

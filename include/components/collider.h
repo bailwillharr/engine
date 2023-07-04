@@ -12,11 +12,7 @@ struct AABB {
   glm::vec3 pos2;
 };
 
-class PhysicsSystem;
-
 struct ColliderComponent {
-  friend PhysicsSystem;
-
   bool is_static = true;
   bool is_trigger =
       false;    // entity receives an event on collision enter and exit

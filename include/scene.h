@@ -7,6 +7,8 @@
 #include <stdexcept>
 #include <typeinfo>
 
+#include <glm/vec3.hpp>
+
 #include "ecs_system.h"
 #include "event_system.h"
 
@@ -29,9 +31,9 @@ class Scene {
 
   /* ecs stuff */
 
-  uint32_t CreateEntity(const std::string& tag, uint32_t parent = 0);
+  uint32_t CreateEntity(const std::string& tag, uint32_t parent = 0, const glm::vec3& pos = {});
 
-  uint32_t getEntity(const std::string& tag, uint32_t parent = 0);
+  uint32_t GetEntity(const std::string& tag, uint32_t parent = 0);
 
   size_t GetComponentSignaturePosition(size_t hash);
 

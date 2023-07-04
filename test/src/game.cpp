@@ -49,13 +49,10 @@ void PlayGame(GameSettings settings) {
   graphics_settings.vsync = true;
   graphics_settings.wait_for_present = false;
   graphics_settings.msaa_level = engine::gfx::MSAALevel::kOff;
+
   engine::Application app(PROJECT_NAME, PROJECT_VERSION, graphics_settings);
-
   app.SetFrameLimiter(settings.enable_frame_limiter);
-
-  // configure window
   app.window()->SetRelativeMouseMode(true);
-
   ConfigureInputs(app.input_manager());
 
   auto my_scene = app.scene_manager()->CreateEmptyScene();
@@ -68,18 +65,13 @@ void PlayGame(GameSettings settings) {
     auto camera = my_scene->CreateEntity("camera");
     my_scene->GetComponent<engine::TransformComponent>(camera)->position = {
         0.0f, 10.0f, 0.0f};
-    auto camer_collider =
+    auto camera_collider =
         my_scene->AddComponent<engine::ColliderComponent>(camera);
-    camer_collider->is_static = false;
-    camer_collider->is_trigger = true;
-    camer_collider->aabb = {{-0.2f, -1.5f, -0.2f},
+    camera_collider->is_static = false;
+    camera_collider->is_trigger = false;
+    camera_collider->aabb = {{-0.2f, -1.5f, -0.2f},
                             {0.2f, 0.2f, 0.2f}};  // Origin is at eye level
     my_scene->AddComponent<CameraControllerComponent>(camera);
-    my_scene->event_system()
-        ->SubscribeToEventType<engine::PhysicsSystem::CollisionEvent>(
-            engine::EventSubscriberKind::kEntity, camera,
-            my_scene->GetSystem<CameraControllerSystem>());
-
     auto render_system = my_scene->GetSystem<engine::RenderSystem>();
     render_system->SetCameraEntity(camera);
   }
@@ -92,33 +84,6 @@ void PlayGame(GameSettings settings) {
   auto space_texture = std::make_shared<engine::resources::Texture>(
       &app.render_data_, app.GetResourcePath("textures/space2.png"),
       engine::resources::Texture::Filtering::kAnisotropic);
-
-#if 0
-  /* cube */
-  {
-    uint32_t cube = my_scene->CreateEntity("cube");
-    my_scene->GetComponent<engine::TransformComponent>(cube)->position =
-        glm::vec3{-0.5f + 5.0f, -0.5f + 5.0f, -0.5f + 5.0f};
-    auto cube_renderable =
-        my_scene->AddComponent<engine::RenderableComponent>(cube);
-    cube_renderable->material = std::make_shared<engine::resources::Material>(
-        app.GetResource<engine::resources::Shader>("builtin.standard"));
-    cube_renderable->material->texture_ = grass_texture;
-    //        app.GetResource<engine::resources::Texture>("builtin.white");
-    cube_renderable->mesh = GenCuboidMesh(app.gfxdev(), 1.0f, 1.0f, 1.0f, 1);
-    auto cube_collider =
-        my_scene->AddComponent<engine::ColliderComponent>(cube);
-    cube_collider->is_static = true;
-    cube_collider->aabb = {{0.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f}};
-  }
-
-  engine::util::LoadMeshFromFile(
-      my_scene, app.GetResourcePath("models/astronaut/astronaut.dae"));
-
-  engine::util::LoadMeshFromFile(
-      my_scene, app.GetResourcePath("models/plane/plane.dae"));
-
-#endif
 
   /* skybox */
   {
@@ -165,7 +130,7 @@ void PlayGame(GameSettings settings) {
   {
     int width, height;
     auto bitmap = app.GetResource<engine::resources::Font>("builtin.mono")
-                      ->GetTextBitmap("ABCDEFGHIJKLMNOPQRSTUVWXYZ12345", 768.0f,
+                      ->GetTextBitmap("ABCDEFGHIJKLMNOPQRSTUVWXYZ12345", 1080.0f,
                                       width, height);
 
     uint32_t textbox = my_scene->CreateEntity("textbox");
@@ -177,11 +142,11 @@ void PlayGame(GameSettings settings) {
     textbox_renderable->material->texture_ =
         std::make_unique<engine::resources::Texture>(
             &app.render_data_, bitmap->data(), width, height,
-            engine::resources::Texture::Filtering::kBilinear);
+            engine::resources::Texture::Filtering::kAnisotropic);
     textbox_renderable->mesh = GenSphereMesh(app.gfxdev(), 1.0f, 5);
     my_scene->GetComponent<engine::TransformComponent>(textbox)->scale.y =
         (float)height / (float)width;
-    textbox_renderable->shown = false;
+    textbox_renderable->shown = true;
 
     my_scene->AddComponent<engine::CustomComponent>(textbox)->onUpdate =
         [&](float ts) {

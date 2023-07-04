@@ -31,7 +31,8 @@ Scene::Scene(Application* app) : app_(app) {
 
 Scene::~Scene() {}
 
-uint32_t Scene::CreateEntity(const std::string& tag, uint32_t parent) {
+uint32_t Scene::CreateEntity(const std::string& tag, uint32_t parent,
+                             const glm::vec3& pos) {
   uint32_t id = next_entity_id_++;
 
   signatures_.emplace(id, std::bitset<kMaxComponents>{});
@@ -48,7 +49,7 @@ uint32_t Scene::CreateEntity(const std::string& tag, uint32_t parent) {
   return id;
 }
 
-uint32_t Scene::getEntity(const std::string& tag, uint32_t parent) {
+uint32_t Scene::GetEntity(const std::string& tag, uint32_t parent) {
   return GetSystem<TransformSystem>()->GetChildEntity(parent, tag);
 }
 

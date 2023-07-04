@@ -1,11 +1,11 @@
 #ifndef ENGINE_INCLUDE_COMPONENTS_TRANSFORM_H_
 #define ENGINE_INCLUDE_COMPONENTS_TRANSFORM_H_
 
+#include <string>
+
 #include <glm/gtc/quaternion.hpp>
 #include <glm/mat4x4.hpp>
 #include <glm/vec3.hpp>
-
-#include <string>
 
 namespace engine {
 
