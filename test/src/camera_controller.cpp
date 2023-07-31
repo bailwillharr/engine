@@ -30,12 +30,6 @@ void CameraControllerSystem::OnUpdate(float ts) {
 
   const float dt = ts;
 
-  constexpr float G = 9.8f;
- 
-  glm::vec3 dir =
-      glm::normalize(glm::rotateY(glm::vec3{1.0f, 0.0f, 0.0f}, c->yaw) +
-                     glm::rotateY(glm::vec3{0.0f, 0.0f, 1.0f}, c->yaw));
-  
   // in metres per second
   float speed = c->kWalkSpeed;
   if (scene_->app()->input_manager()->GetButton("sprint")) speed *= 10.0f;

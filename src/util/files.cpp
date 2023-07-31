@@ -13,7 +13,7 @@ std::unique_ptr<std::vector<char>> ReadTextFile(const std::string& path) {
     throw std::runtime_error("Unable to open file " + path);
   }
 
-  auto buffer = std::make_unique<std::vector<char>>(file.tellg());
+  auto buffer = std::make_unique<std::vector<char>>(static_cast<size_t>(file.tellg()) + 1);
 
   file.seekg(0);
 
@@ -26,6 +26,9 @@ std::unique_ptr<std::vector<char>> ReadTextFile(const std::string& path) {
 
     ++i;
   }
+
+  // append zero byte
+  buffer->data()[buffer->size()] = '\0';
 
   file.close();
 

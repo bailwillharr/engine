@@ -870,6 +870,8 @@ gfx::Pipeline* GFXDevice::CreatePipeline(const gfx::PipelineInfo& info) {
   auto vertShaderCode = util::ReadTextFile(info.vert_shader_path);
   auto fragShaderCode = util::ReadTextFile(info.frag_shader_path);
 
+  LOG_INFO("vert shader vector size: {}", vertShaderCode->size());
+
   VkShaderModule vertShaderModule =
       compileShader(pimpl->device.device, shaderc_vertex_shader,
                     vertShaderCode->data(), info.vert_shader_path);

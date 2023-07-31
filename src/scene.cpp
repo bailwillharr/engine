@@ -39,7 +39,7 @@ uint32_t Scene::CreateEntity(const std::string& tag, uint32_t parent,
 
   auto t = AddComponent<TransformComponent>(id);
 
-  t->position = {0.0f, 0.0f, 0.0f};
+  t->position = pos;
   t->rotation = {};
   t->scale = {1.0f, 1.0f, 1.0f};
 
