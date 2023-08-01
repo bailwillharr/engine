@@ -70,7 +70,7 @@ void PlayGame(GameSettings settings) {
     camera_collider->is_static = false;
     camera_collider->is_trigger = false;
     camera_collider->aabb = {{-0.2f, -1.5f, -0.2f},
-                            {0.2f, 0.2f, 0.2f}};  // Origin is at eye level
+                             {0.2f, 0.2f, 0.2f}};  // Origin is at eye level
     my_scene->AddComponent<CameraControllerComponent>(camera);
     auto render_system = my_scene->GetSystem<engine::RenderSystem>();
     render_system->SetCameraEntity(camera);
@@ -118,20 +118,28 @@ void PlayGame(GameSettings settings) {
     floor_collider->aabb = {{0.0f, 0.0f, 0.0f}, {100.0f, 0.1f, 100.0f}};
   }
 
-  //engine::util::LoadMeshFromFile(my_scene,
-  //                               app.GetResourcePath("models/test_scene.dae"));
+  // engine::util::LoadMeshFromFile(my_scene,
+  //                                app.GetResourcePath("models/test_scene.dae"));
 
   auto cobbleHouse = engine::util::LoadMeshFromFile(
       my_scene, app.GetResourcePath("models/cobble_house/cobble_house.dae"));
-  my_scene->GetComponent<engine::TransformComponent>(cobbleHouse)->position += glm::vec3{
-      33.0f, 0.1f, 35.0f};
+  my_scene->GetComponent<engine::TransformComponent>(cobbleHouse)->position +=
+      glm::vec3{33.0f, 0.1f, 35.0f};
+  auto cobbleCustom = my_scene->AddComponent<engine::CustomComponent>(cobbleHouse);
+  cobbleCustom->onInit = [](void) {
+    LOG_INFO("Cobble house spin component initialised!");
+  };
+  cobbleCustom->onUpdate = [&](float ts) {
+    static auto t = my_scene->GetComponent<engine::TransformComponent>(cobbleHouse);
+    t->rotation *= glm::angleAxis(ts, glm::vec3{0.0f, 0.0f, 1.0f});
+  };
 
   /* some text */
   {
     int width, height;
     auto bitmap = app.GetResource<engine::resources::Font>("builtin.mono")
-                      ->GetTextBitmap("ABCDEFGHIJKLMNOPQRSTUVWXYZ12345", 1080.0f,
-                                      width, height);
+                      ->GetTextBitmap("ABCDEFGHIJKLMNOPQRSTUVWXYZ12345",
+                                      1080.0f, width, height);
 
     uint32_t textbox = my_scene->CreateEntity("textbox");
     auto textbox_renderable =
@@ -148,27 +156,35 @@ void PlayGame(GameSettings settings) {
         (float)height / (float)width;
     textbox_renderable->shown = true;
 
-    my_scene->AddComponent<engine::CustomComponent>(textbox)->onUpdate =
-        [&](float ts) {
-          (void)ts;
-          static float time_elapsed;
-          time_elapsed += ts;
-          if (time_elapsed >= 1.0f) {
-            time_elapsed = 0.0f;
+    auto textboxComponent =
+        my_scene->AddComponent<engine::CustomComponent>(textbox);
 
-            //LOG_INFO("Creating new bitmap...");
-            //auto fpsBitmap =
-            //    app.GetResource<engine::resources::Font>("builtin.mono")
-            //        ->GetTextBitmap(std::to_string(ts), 768.0f, fpsWidth,
-            //   fpsHeight);
-            //LOG_INFO("Bitmap created! Loading into new texture...");
-            //textbox_renderable->material->texture_ =
-            //    std::make_unique<engine::resources::Texture>(
-            //        &app.render_data_, fpsBitmap->data(), fpsWidth, fpsHeight,
-            //        engine::resources::Texture::Filtering::kBilinear);
-            //LOG_INFO("Texture created!");
-          }
-        };
+    textboxComponent->onInit = [](void) {
+      LOG_INFO("Textbox custom component initialised!");
+    };
+
+    textboxComponent->onUpdate = [&](float ts) {
+      (void)ts;
+      static float time_elapsed;
+      time_elapsed += ts;
+      if (time_elapsed >= 1.0f) {
+        time_elapsed = 0.0f;
+
+        LOG_INFO("COMPONENT UPDATE");
+
+        // LOG_INFO("Creating new bitmap...");
+        // auto fpsBitmap =
+        //     app.GetResource<engine::resources::Font>("builtin.mono")
+        //         ->GetTextBitmap(std::to_string(ts), 768.0f, fpsWidth,
+        //    fpsHeight);
+        // LOG_INFO("Bitmap created! Loading into new texture...");
+        // textbox_renderable->material->texture_ =
+        //     std::make_unique<engine::resources::Texture>(
+        //         &app.render_data_, fpsBitmap->data(), fpsWidth, fpsHeight,
+        //         engine::resources::Texture::Filtering::kBilinear);
+        // LOG_INFO("Texture created!");
+      }
+    };
   }
 
   app.GameLoop();

@@ -106,6 +106,8 @@ class Scene {
   Application* const app_;
   uint32_t next_entity_id_ = 1000;
 
+  uint64_t framecount_ = 0;
+
   /* ecs stuff */
 
   size_t next_signature_position_ = 0;
