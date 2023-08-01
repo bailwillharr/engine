@@ -125,23 +125,26 @@ void PlayGame(GameSettings settings) {
       my_scene, app.GetResourcePath("models/cobble_house/cobble_house.dae"));
   my_scene->GetComponent<engine::TransformComponent>(cobbleHouse)->position +=
       glm::vec3{33.0f, 0.1f, 35.0f};
-  auto cobbleCustom = my_scene->AddComponent<engine::CustomComponent>(cobbleHouse);
+  auto cobbleCustom =
+      my_scene->AddComponent<engine::CustomComponent>(cobbleHouse);
   cobbleCustom->onInit = [](void) {
     LOG_INFO("Cobble house spin component initialised!");
   };
   cobbleCustom->onUpdate = [&](float ts) {
-    static auto t = my_scene->GetComponent<engine::TransformComponent>(cobbleHouse);
+    static auto t =
+        my_scene->GetComponent<engine::TransformComponent>(cobbleHouse);
     t->rotation *= glm::angleAxis(ts, glm::vec3{0.0f, 0.0f, 1.0f});
   };
 
   /* some text */
   {
     int width, height;
-    auto bitmap = app.GetResource<engine::resources::Font>("builtin.mono")
-                      ->GetTextBitmap("ABCDEFGHIJKLMNOPQRSTUVWXYZ12345",
-                                      1080.0f, width, height);
+    auto bitmap =
+        app.GetResource<engine::resources::Font>("builtin.mono")
+            ->GetTextBitmap("Welcome 2 my gaem", 128.0f, width, height);
 
-    uint32_t textbox = my_scene->CreateEntity("textbox");
+    uint32_t textbox =
+        my_scene->CreateEntity("textbox", 0, glm::vec3{0.0f, 0.8f, 0.0f});
     auto textbox_renderable =
         my_scene->AddComponent<engine::RenderableComponent>(textbox);
     textbox_renderable->material =
@@ -152,8 +155,11 @@ void PlayGame(GameSettings settings) {
             &app.render_data_, bitmap->data(), width, height,
             engine::resources::Texture::Filtering::kAnisotropic);
     textbox_renderable->mesh = GenSphereMesh(app.gfxdev(), 1.0f, 5);
-    my_scene->GetComponent<engine::TransformComponent>(textbox)->scale.y =
-        (float)height / (float)width;
+    auto textTransform =
+        my_scene->GetComponent<engine::TransformComponent>(textbox);
+    textTransform->scale.y =
+        (static_cast<float>(height) / static_cast<float>(width));
+    textTransform->scale *= 0.5f;
     textbox_renderable->shown = true;
 
     auto textboxComponent =

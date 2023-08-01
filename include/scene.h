@@ -31,7 +31,7 @@ class Scene {
 
   /* ecs stuff */
 
-  uint32_t CreateEntity(const std::string& tag, uint32_t parent = 0, const glm::vec3& pos = {});
+  uint32_t CreateEntity(const std::string& tag, uint32_t parent = 0, const glm::vec3& pos = glm::vec3{0.0f, 0.0f, 0.0f});
 
   uint32_t GetEntity(const std::string& tag, uint32_t parent = 0);
 
