@@ -118,8 +118,8 @@ void PlayGame(GameSettings settings) {
     floor_collider->aabb = {{0.0f, 0.0f, 0.0f}, {100.0f, 0.1f, 100.0f}};
   }
 
-  engine::util::LoadMeshFromFile(my_scene,
-                                 app.GetResourcePath("models/test_scene.dae"));
+  //engine::util::LoadMeshFromFile(my_scene,
+  //                               app.GetResourcePath("models/test_scene.dae"));
 
   auto cobbleHouse = engine::util::LoadMeshFromFile(
       my_scene, app.GetResourcePath("models/cobble_house/cobble_house.dae"));
