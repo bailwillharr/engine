@@ -12,6 +12,8 @@ struct RenderableComponent {
   std::shared_ptr<resources::Mesh> mesh;
   std::shared_ptr<resources::Material> material;
   bool shown = true;
+  uint32_t index_count_override =
+      0;  // for shaders that don't use vertex/index buffers, 0 means ignored
 };
 
 }  // namespace engine

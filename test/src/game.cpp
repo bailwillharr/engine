@@ -154,7 +154,8 @@ void PlayGame(GameSettings settings) {
         std::make_unique<engine::resources::Texture>(
             &app.render_data_, bitmap->data(), width, height,
             engine::resources::Texture::Filtering::kAnisotropic);
-    textbox_renderable->mesh = GenSphereMesh(app.gfxdev(), 1.0f, 5);
+    textbox_renderable->mesh = nullptr;
+    textbox_renderable->index_count_override = 6;
     auto textTransform =
         my_scene->GetComponent<engine::TransformComponent>(textbox);
     textTransform->scale.y =
@@ -169,26 +170,12 @@ void PlayGame(GameSettings settings) {
       LOG_INFO("Textbox custom component initialised!");
     };
 
-    textboxComponent->onUpdate = [&](float ts) {
-      (void)ts;
+    textboxComponent->onUpdate = [](float ts) {
       static float time_elapsed;
       time_elapsed += ts;
       if (time_elapsed >= 1.0f) {
         time_elapsed = 0.0f;
-
-        LOG_INFO("COMPONENT UPDATE");
-
-        // LOG_INFO("Creating new bitmap...");
-        // auto fpsBitmap =
-        //     app.GetResource<engine::resources::Font>("builtin.mono")
-        //         ->GetTextBitmap(std::to_string(ts), 768.0f, fpsWidth,
-        //    fpsHeight);
-        // LOG_INFO("Bitmap created! Loading into new texture...");
-        // textbox_renderable->material->texture_ =
-        //     std::make_unique<engine::resources::Texture>(
-        //         &app.render_data_, fpsBitmap->data(), fpsWidth, fpsHeight,
-        //         engine::resources::Texture::Filtering::kBilinear);
-        // LOG_INFO("Texture created!");
+      LOG_INFO("COMPONENT UPDATE");
       }
     };
   }

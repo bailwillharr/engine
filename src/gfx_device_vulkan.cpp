@@ -844,6 +844,13 @@ void GFXDevice::CmdDrawIndexed(gfx::DrawBuffer* drawBuffer, uint32_t indexCount,
                    firstIndex, vertexOffset, firstInstance);
 }
 
+void GFXDevice::CmdDraw(gfx::DrawBuffer* drawBuffer, uint32_t vertex_count,
+                               uint32_t instance_count, uint32_t first_vertex,
+                               uint32_t first_instance) {
+  assert(drawBuffer != nullptr);
+  vkCmdDraw(drawBuffer->frameData.drawBuf, vertex_count, instance_count, first_vertex, first_instance);
+}
+
 void GFXDevice::CmdPushConstants(gfx::DrawBuffer* drawBuffer,
                                  const gfx::Pipeline* pipeline, uint32_t offset,
                                  uint32_t size, const void* data) {

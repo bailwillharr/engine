@@ -225,12 +225,6 @@ void Application::GameLoop() {
     /* logic */
     scene_manager_->UpdateActiveScene(window_->dt());
 
-    if (window_->GetKeyPress(inputs::Key::K_F)) [[unlikely]] {
-      window_->InfoBox("fps", std::to_string(window_->GetFPS()) + " fps " +
-                                  std::to_string(window_->dt() * 1000.0f) +
-                                  " ms");
-    }
-
     uint64_t now = window_->GetNanos();
     if (now - lastTick >= 1000000000LL * 5LL) [[unlikely]] {
       lastTick = now;

@@ -45,6 +45,10 @@ class GFXDevice {
                       uint32_t instance_count, uint32_t first_index,
                       int32_t vertex_offset, uint32_t first_instance);
 
+  void CmdDraw(gfx::DrawBuffer* drawBuffer, uint32_t vertex_count,
+               uint32_t instance_count, uint32_t first_vertex,
+               uint32_t first_instance);
+
   void CmdPushConstants(gfx::DrawBuffer* draw_buffer,
                         const gfx::Pipeline* pipeline, uint32_t offset,
                         uint32_t size, const void* data);

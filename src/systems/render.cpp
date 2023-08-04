@@ -79,7 +79,6 @@ void RenderSystem::OnUpdate(float ts) {
     assert(r != nullptr);
     assert(r->material != nullptr);
     assert(r->material->texture_ != nullptr);
-    assert(r->mesh != nullptr);
     if (r->shown == false) continue;
 
     auto t = scene_->GetComponent<TransformComponent>(entity);
@@ -90,10 +89,17 @@ void RenderSystem::OnUpdate(float ts) {
     const gfx::Pipeline* pipeline = r->material->GetShader()->GetPipeline();
 
     DrawCallData data{};
-    data.vb = r->mesh->GetVB();
-    data.ib = r->mesh->GetIB();
+    if (r->mesh) {
+      data.vb = r->mesh->GetVB();
+      data.ib = r->mesh->GetIB();
+    }
     data.material_set = r->material->texture_->GetDescriptorSet();
-    data.index_count = r->mesh->GetCount();
+    if (r->index_count_override == 0) {
+      assert(r->mesh != nullptr);
+      data.index_count = r->mesh->GetCount();
+    } else {
+      data.index_count = r->index_count_override;
+    }
     data.push_constants.model = t->world_matrix;
 
     unsorted_draw_calls.emplace_back(
@@ -134,10 +140,14 @@ void RenderSystem::OnUpdate(float ts) {
                                draw_call.material_set, 2);
     gfx_->CmdPushConstants(render_data.draw_buffer, pipeline, 0,
                            sizeof(PushConstants), &draw_call.push_constants);
-    gfx_->CmdBindVertexBuffer(render_data.draw_buffer, 0, draw_call.vb);
-    gfx_->CmdBindIndexBuffer(render_data.draw_buffer, draw_call.ib);
-    gfx_->CmdDrawIndexed(render_data.draw_buffer, draw_call.index_count, 1, 0,
-                         0, 0);
+    if (draw_call.ib) {
+      gfx_->CmdBindVertexBuffer(render_data.draw_buffer, 0, draw_call.vb);
+      gfx_->CmdBindIndexBuffer(render_data.draw_buffer, draw_call.ib);
+      gfx_->CmdDrawIndexed(render_data.draw_buffer, draw_call.index_count, 1, 0,
+                           0, 0);
+    } else {
+      gfx_->CmdDraw(render_data.draw_buffer, draw_call.index_count, 1, 0, 0);
+    }
   }
 
   /* draw */
