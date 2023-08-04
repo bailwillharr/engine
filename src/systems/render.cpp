@@ -68,7 +68,8 @@ void RenderSystem::OnUpdate(float ts) {
     const gfx::Buffer* vb;
     const gfx::Buffer* ib;
     const gfx::DescriptorSet* material_set;
-    uint32_t index_count;
+    bool draw_indexed;
+    uint32_t draw_count;
     PushConstants push_constants;
   };
   std::vector<std::tuple<int, const gfx::Pipeline*, DrawCallData>>
@@ -96,9 +97,11 @@ void RenderSystem::OnUpdate(float ts) {
     data.material_set = r->material->texture_->GetDescriptorSet();
     if (r->index_count_override == 0) {
       assert(r->mesh != nullptr);
-      data.index_count = r->mesh->GetCount();
+      data.draw_count = r->mesh->GetCount();
+      data.draw_indexed = true;
     } else {
-      data.index_count = r->index_count_override;
+      data.draw_count = r->index_count_override;
+      data.draw_indexed = false;
     }
     data.push_constants.model = t->world_matrix;
 
@@ -140,13 +143,17 @@ void RenderSystem::OnUpdate(float ts) {
                                draw_call.material_set, 2);
     gfx_->CmdPushConstants(render_data.draw_buffer, pipeline, 0,
                            sizeof(PushConstants), &draw_call.push_constants);
-    if (draw_call.ib) {
+    if (draw_call.vb) {
       gfx_->CmdBindVertexBuffer(render_data.draw_buffer, 0, draw_call.vb);
+    }
+    if (draw_call.ib) {
       gfx_->CmdBindIndexBuffer(render_data.draw_buffer, draw_call.ib);
-      gfx_->CmdDrawIndexed(render_data.draw_buffer, draw_call.index_count, 1, 0,
+    }
+    if (draw_call.draw_indexed) {
+      gfx_->CmdDrawIndexed(render_data.draw_buffer, draw_call.draw_count, 1, 0,
                            0, 0);
     } else {
-      gfx_->CmdDraw(render_data.draw_buffer, draw_call.index_count, 1, 0, 0);
+      gfx_->CmdDraw(render_data.draw_buffer, draw_call.draw_count, 1, 0, 0);
     }
   }
 
