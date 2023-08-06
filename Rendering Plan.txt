@@ -1,0 +1,38 @@
+1. Stop the 'RenderSystem' from using GFXDevice at all.
+   It should only read data from the appropriate components to build a 'render list'.
+   This 'render list' should be used outside of the RenderSystem to render explicitly inside the game loop.
+
+A solid justification for this change is that rendering must always be performed to some degree, even if
+no systems are in use.
+
+It also makes more sense for rendering to be an explicit step, instead of being hidden inside an ECS architecture
+where updates should (ideally) have no side effects apart from modifying owned data structures and related components.
+
+Example:
+
+In the main loop, all scene 'Systems' are updated, this will trigger an update for
+'MeshRenderSystem', 'TextRenderSystem', 'ParticleRenderSystem', etc.
+
+After system updates, the main loop will access the (specialised) 'render lists' from these systems,
+and perform rendering operations there.
+
+Systems
+  > MeshRenderSystem
+  > TextRenderSystem
+  > ParticleRenderSystem
+
+Application
+
+Renderer
+  > PreRender() (Get camera transform, update SET 0 and SET 1)
+  > Render() (Use 'render lists' to update GPU state and add calls to the draw buffer)
+
+Order of execution for rendering:
+1. Update systems in scene.
+2. Call PreRender()
+3. Call GFXDevice::BeginRender() to get a draw buffer.
+4. Call Render(), passing in the draw buffer, and all data from relevant systems.
+5. Call GFXDevice::FinishRender()
+
+IMRPOVING RENDER SYSTEMS
+Callbacks such as OnComponentInsert() and OnComponentRemove() should be used to 
