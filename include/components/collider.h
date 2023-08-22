@@ -13,10 +13,9 @@ struct AABB {
 };
 
 struct ColliderComponent {
-  bool is_static = true;
-  bool is_trigger =
-      false;    // entity receives an event on collision enter and exit
-  AABB aabb{};  // broad phase
+  bool is_static;
+  bool is_trigger;  // entity receives an event on collision enter and exit
+  AABB aabb;  // broad phase
 };
 
 }  // namespace engine

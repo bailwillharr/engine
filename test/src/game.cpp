@@ -4,7 +4,7 @@
 #include "camera_controller.hpp"
 #include "components/collider.h"
 #include "components/custom.h"
-#include "components/renderable.h"
+#include "components/mesh_renderable.h"
 #include "components/transform.h"
 #include "input_manager.h"
 #include "meshgen.hpp"
@@ -13,9 +13,10 @@
 #include "resources/texture.h"
 #include "scene.h"
 #include "scene_manager.h"
-#include "systems/render.h"
+#include "systems/mesh_render_system.h"
 #include "systems/transform.h"
 #include "util/model_loader.h"
+#include "log.h"
 #include "window.h"
 
 #include "config.h"
@@ -52,7 +53,7 @@ void PlayGame(GameSettings settings) {
 
   engine::Application app(PROJECT_NAME, PROJECT_VERSION, graphics_settings);
   app.SetFrameLimiter(settings.enable_frame_limiter);
-  app.window()->SetRelativeMouseMode(true);
+  app.window()->SetRelativeMouseMode(false);
   ConfigureInputs(app.input_manager());
 
   auto my_scene = app.scene_manager()->CreateEmptyScene();
@@ -72,8 +73,8 @@ void PlayGame(GameSettings settings) {
     camera_collider->aabb = {{-0.2f, -1.5f, -0.2f},
                              {0.2f, 0.2f, 0.2f}};  // Origin is at eye level
     my_scene->AddComponent<CameraControllerComponent>(camera);
-    auto render_system = my_scene->GetSystem<engine::RenderSystem>();
-    render_system->SetCameraEntity(camera);
+    auto render_system = my_scene->GetSystem<engine::MeshRenderSystem>();
+    // render_system->SetCameraEntity(camera);
   }
 
   /* shared resources */
@@ -111,7 +112,6 @@ void PlayGame(GameSettings settings) {
     floor_renderable->material->texture_ = grass_texture;
     floor_renderable->mesh =
         GenCuboidMesh(app.gfxdev(), 100.0f, 0.1f, 100.0f, 100.0f);
-    floor_renderable->shown = true;
     auto floor_collider =
         my_scene->AddComponent<engine::ColliderComponent>(floor);
     floor_collider->is_static = true;
@@ -138,34 +138,10 @@ void PlayGame(GameSettings settings) {
 
   /* some text */
   {
-    int width, height;
-    auto bitmap =
-        app.GetResource<engine::resources::Font>("builtin.mono")
-            ->GetTextBitmap("Welcome 2 my gaem", 128.0f, width, height);
-
     uint32_t textbox =
         my_scene->CreateEntity("textbox", 0, glm::vec3{0.0f, 0.8f, 0.0f});
-    auto textbox_renderable =
-        my_scene->AddComponent<engine::RenderableComponent>(textbox);
-    textbox_renderable->material =
-        std::make_unique<engine::resources::Material>(
-            app.GetResource<engine::resources::Shader>("builtin.quad"));
-    textbox_renderable->material->texture_ =
-        std::make_unique<engine::resources::Texture>(
-            &app.render_data_, bitmap->data(), width, height,
-            engine::resources::Texture::Filtering::kAnisotropic);
-    textbox_renderable->mesh = nullptr;
-    textbox_renderable->index_count_override = 6;
-    auto textTransform =
-        my_scene->GetComponent<engine::TransformComponent>(textbox);
-    textTransform->scale.y =
-        (static_cast<float>(height) / static_cast<float>(width));
-    textTransform->scale *= 0.5f;
-    textbox_renderable->shown = true;
-
     auto textboxComponent =
         my_scene->AddComponent<engine::CustomComponent>(textbox);
-
     textboxComponent->onInit = [](void) {
       LOG_INFO("Textbox custom component initialised!");
     };
@@ -175,7 +151,7 @@ void PlayGame(GameSettings settings) {
       time_elapsed += ts;
       if (time_elapsed >= 1.0f) {
         time_elapsed = 0.0f;
-      LOG_INFO("COMPONENT UPDATE");
+        LOG_INFO("COMPONENT UPDATE");
       }
     };
   }

@@ -22,6 +22,7 @@ class SceneManager {
   Scene* CreateEmptyScene();
 
   void UpdateActiveScene(float ts);
+  Scene* GetActiveScene() { return scenes_.at(active_scene_index_).get(); }
 
  private:
   Application* const app_;

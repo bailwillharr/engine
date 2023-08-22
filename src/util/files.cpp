@@ -28,7 +28,10 @@ std::unique_ptr<std::vector<char>> ReadTextFile(const std::string& path) {
   }
 
   // append zero byte
-  buffer->data()[buffer->size()] = '\0';
+  // this used to be:
+  // buffer->data()[buffer->size()] = '\0';
+  // errors happened; i'm retarded
+  buffer->data()[buffer->size() - 1] = '\0';
 
   file.close();
 

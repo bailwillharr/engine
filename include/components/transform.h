@@ -10,14 +10,16 @@
 namespace engine {
 
 struct TransformComponent {
-  glm::vec3 position;
-  glm::quat rotation;
-  glm::vec3 scale;
-
   glm::mat4 world_matrix;
+
+  glm::quat rotation;
+  glm::vec3 position;
+  glm::vec3 scale;
 
   std::string tag;
   uint32_t parent;
+
+  bool is_static;
 };
 
 }  // namespace engine

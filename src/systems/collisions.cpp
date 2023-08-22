@@ -2,7 +2,7 @@
 
 #include "components/transform.h"
 #include "components/collider.h"
-#include "components/renderable.h"
+#include "components/mesh_renderable.h"
 #include "scene.h"
 
 #include "log.h"

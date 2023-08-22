@@ -35,4 +35,10 @@ Order of execution for rendering:
 5. Call GFXDevice::FinishRender()
 
 IMRPOVING RENDER SYSTEMS
-Callbacks such as OnComponentInsert() and OnComponentRemove() should be used to 
+The systems should maintain a cache of the buffer pointers, material info, etc. A RebuildCache() function
+should be added to update the cache
+
+
+
+PROFILING
+Fps before: 3271

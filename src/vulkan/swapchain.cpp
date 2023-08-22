@@ -14,6 +14,7 @@ namespace engine {
 
 	void createSwapchain(Swapchain* sc, const SwapchainInfo& info)
 	{
+		assert(sc != nullptr);
 		sc->device = info.device;
 		sc->allocator = info.allocator;
 

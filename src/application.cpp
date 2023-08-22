@@ -233,6 +233,9 @@ void Application::GameLoop() {
       window_->ResetAvgFPS();
     }
 
+    /* render */
+    
+
     /* poll events */
     window_->GetInputAndEvents();
 

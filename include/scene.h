@@ -31,7 +31,8 @@ class Scene {
 
   /* ecs stuff */
 
-  uint32_t CreateEntity(const std::string& tag, uint32_t parent = 0, const glm::vec3& pos = glm::vec3{0.0f, 0.0f, 0.0f});
+  uint32_t CreateEntity(const std::string& tag, uint32_t parent = 0,
+                        const glm::vec3& pos = glm::vec3{0.0f, 0.0f, 0.0f});
 
   uint32_t GetEntity(const std::string& tag, uint32_t parent = 0);
 
@@ -70,7 +71,7 @@ class Scene {
     auto& signature_ref = signatures_.at(entity);
     signature_ref.set(signature_position);
 
-    for (auto& [system_name, system] : systems_) {
+    for (auto& [system_hash, system] : ecs_systems_) {
       if (system->entities_.contains(entity)) continue;
       if ((system->signature_ & signature_ref) == system->signature_) {
         system->entities_.insert(entity);
@@ -84,27 +85,29 @@ class Scene {
   template <typename T>
   void RegisterSystem() {
     size_t hash = typeid(T).hash_code();
-    assert(systems_.find(hash) == systems_.end() &&
-           "Registering system more than once.");
-    systems_.emplace(hash, std::make_unique<T>(this));
+    ecs_systems_.emplace_back(hash, std::make_unique<T>(this));
   }
 
   template <typename T>
   T* GetSystem() {
     size_t hash = typeid(T).hash_code();
-    auto it = systems_.find(hash);
-    if (it == systems_.end()) {
-      throw std::runtime_error("Cannot find ecs system.");
+    System* found_system = nullptr;
+    for (auto& [system_hash, system] : ecs_systems_) {
+      if (hash == system_hash) found_system = system.get();
     }
-    auto ptr = it->second.get();
-    auto casted_ptr = dynamic_cast<T*>(ptr);
-    assert(casted_ptr != nullptr);
+    if (found_system == nullptr) {
+      throw std::runtime_error("Unable to find system");
+    }
+    T* casted_ptr = dynamic_cast<T*>(found_system);
+    if (casted_ptr == nullptr) {
+      throw std::runtime_error("Failed to cast system pointer!");
+    }
     return casted_ptr;
   }
 
  private:
   Application* const app_;
-  uint32_t next_entity_id_ = 1000;
+  uint32_t next_entity_id_ = 1;  // 0 is not a valid entity
 
   uint64_t framecount_ = 0;
 
@@ -112,13 +115,15 @@ class Scene {
 
   size_t next_signature_position_ = 0;
   // maps component hashes to signature positions
-  std::map<size_t, size_t> component_signature_positions_{};
+  std::unordered_map<size_t, size_t> component_signature_positions_{};
   // maps entity ids to their signatures
-  std::map<uint32_t, std::bitset<kMaxComponents>> signatures_{};
+  std::unordered_map<uint32_t, std::bitset<kMaxComponents>> signatures_{};
   // maps component hashes to their arrays
-  std::map<size_t, std::unique_ptr<IComponentArray>> component_arrays_{};
-  // maps system hashes to their class instantiations
-  std::map<size_t, std::unique_ptr<System>> systems_{};
+  std::unordered_map<size_t, std::unique_ptr<IComponentArray>>
+      component_arrays_{};
+
+  // hashes and associated systems
+  std::vector<std::pair<size_t, std::unique_ptr<System>>> ecs_systems_{};
 
   template <typename T>
   ComponentArray<T>* GetComponentArray() {

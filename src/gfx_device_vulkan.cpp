@@ -845,10 +845,11 @@ void GFXDevice::CmdDrawIndexed(gfx::DrawBuffer* drawBuffer, uint32_t indexCount,
 }
 
 void GFXDevice::CmdDraw(gfx::DrawBuffer* drawBuffer, uint32_t vertex_count,
-                               uint32_t instance_count, uint32_t first_vertex,
-                               uint32_t first_instance) {
+                        uint32_t instance_count, uint32_t first_vertex,
+                        uint32_t first_instance) {
   assert(drawBuffer != nullptr);
-  vkCmdDraw(drawBuffer->frameData.drawBuf, vertex_count, instance_count, first_vertex, first_instance);
+  vkCmdDraw(drawBuffer->frameData.drawBuf, vertex_count, instance_count,
+            first_vertex, first_instance);
 }
 
 void GFXDevice::CmdPushConstants(gfx::DrawBuffer* drawBuffer,
@@ -874,17 +875,20 @@ gfx::Pipeline* GFXDevice::CreatePipeline(const gfx::PipelineInfo& info) {
 
   gfx::Pipeline* pipeline = new gfx::Pipeline;
 
-  auto vertShaderCode = util::ReadTextFile(info.vert_shader_path);
-  auto fragShaderCode = util::ReadTextFile(info.frag_shader_path);
-
-  LOG_INFO("vert shader vector size: {}", vertShaderCode->size());
-
-  VkShaderModule vertShaderModule =
-      compileShader(pimpl->device.device, shaderc_vertex_shader,
-                    vertShaderCode->data(), info.vert_shader_path);
-  VkShaderModule fragShaderModule =
-      compileShader(pimpl->device.device, shaderc_fragment_shader,
-                    fragShaderCode->data(), info.frag_shader_path);
+  VkShaderModule vertShaderModule;
+  VkShaderModule fragShaderModule;
+  {
+    auto vertShaderCode = util::ReadTextFile(info.vert_shader_path);
+    vertShaderModule =
+        compileShader(pimpl->device.device, shaderc_vertex_shader,
+                      vertShaderCode->data(), info.vert_shader_path);
+  }
+  {
+    auto fragShaderCode = util::ReadTextFile(info.frag_shader_path);
+    fragShaderModule =
+        compileShader(pimpl->device.device, shaderc_fragment_shader,
+                      fragShaderCode->data(), info.frag_shader_path);
+  }
 
   // get vertex attrib layout:
   VkVertexInputBindingDescription bindingDescription{};

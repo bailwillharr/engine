@@ -5,7 +5,7 @@
 #include "application.h"
 
 #include "components/transform.h"
-#include "components/renderable.h"
+#include "components/mesh_renderable.h"
 
 #include "resources/texture.h"
 #include "resources/material.h"

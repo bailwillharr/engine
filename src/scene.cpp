@@ -1,11 +1,11 @@
 #include "scene.h"
 
 #include "components/transform.h"
-#include "components/renderable.h"
+#include "components/mesh_renderable.h"
 #include "components/collider.h"
 #include "components/custom.h"
 #include "systems/transform.h"
-#include "systems/render.h"
+#include "systems/mesh_render_system.h"
 #include "systems/collisions.h"
 #include "systems/custom_behaviour.h"
 
@@ -25,8 +25,8 @@ Scene::Scene(Application* app) : app_(app) {
   // Order here matters:
   RegisterSystem<TransformSystem>();
   RegisterSystem<PhysicsSystem>();
-  RegisterSystem<RenderSystem>();
   RegisterSystem<CustomBehaviourSystem>();
+  RegisterSystem<MeshRenderSystem>();
 }
 
 Scene::~Scene() {}
@@ -58,7 +58,7 @@ size_t Scene::GetComponentSignaturePosition(size_t hash) {
 }
 
 void Scene::Update(float ts) {
-  for (auto& [name, system] : systems_) {
+  for (auto& [name, system] : ecs_systems_) {
     system->OnUpdate(ts);
   }
 
