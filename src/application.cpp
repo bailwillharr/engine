@@ -70,11 +70,11 @@ Application::Application(const char* appName, const char* appVersion,
   resources_path_ = getResourcesPath();
 
   // register resource managers
-  RegisterResourceManager<resources::Font>();
+  RegisterResourceManager<resources::Mesh>();
+  RegisterResourceManager<resources::Material>();
   RegisterResourceManager<resources::Texture>();
   RegisterResourceManager<resources::Shader>();
-  RegisterResourceManager<resources::Material>();
-  RegisterResourceManager<resources::Mesh>();
+  RegisterResourceManager<resources::Font>();
 
   renderer_ = std::make_unique<Renderer>(
       appName, appVersion, window_->GetHandle(), graphicsSettings);
@@ -148,10 +148,11 @@ Application::Application(const char* appName, const char* appVersion,
   }
 }
 
-Application::~Application() {}
+Application::~Application() {
+}
 
 void Application::GameLoop() {
-  LOG_TRACE("Begin game loop...");
+  LOG_DEBUG("Begin game loop...");
 
   constexpr int FPS_LIMIT = 240;
   constexpr auto FRAMETIME_LIMIT =
@@ -170,11 +171,13 @@ void Application::GameLoop() {
     if (now - lastTick >= 1000000000LL * 5LL) [[unlikely]] {
       lastTick = now;
       LOG_INFO("fps: {}", window_->GetAvgFPS());
-      renderer()->GetDevice()->LogPerformanceInfo();
+      //renderer()->GetDevice()->LogPerformanceInfo();
       window_->ResetAvgFPS();
     }
 
     /* render */
+    renderer_->PreRender(window()->GetWindowResized(), glm::mat4{1.0f});
+    renderer_->Render();
 
     /* poll events */
     window_->GetInputAndEvents();

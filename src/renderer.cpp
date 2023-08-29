@@ -1,5 +1,9 @@
 #include "renderer.h"
 
+#include <glm/mat4x4.hpp>
+#include <glm/trigonometric.hpp>
+#include <glm/ext/matrix_clip_space.hpp>
+
 namespace engine {
 
 Renderer::Renderer(const char* app_name, const char* app_version,
@@ -60,6 +64,37 @@ Renderer::~Renderer() {
 
   device_->DestroyUniformBuffer(global_uniform.uniform_buffer);
   device_->DestroyDescriptorSetLayout(global_uniform.layout);
+}
+
+void Renderer::PreRender(bool window_is_resized, glm::mat4 camera_transform) {
+  if (window_is_resized) {
+    uint32_t w, h;
+    device_->GetViewportSize(&w, &h);
+    viewport_aspect_ratio_ = (float)w / (float)h;
+    const glm::mat4 proj_matrix = glm::perspectiveZO(
+        camera_settings_.vertical_fov_radians, viewport_aspect_ratio_,
+        camera_settings_.clip_near, camera_settings_.clip_far);
+    /* update SET 0 (rarely changing uniforms)*/
+    global_uniform.uniform_buffer_data.data = proj_matrix;
+    device_->WriteUniformBuffer(global_uniform.uniform_buffer, 0,
+                                sizeof(global_uniform.uniform_buffer_data),
+                                &global_uniform.uniform_buffer_data);
+  }
+
+  // set camera view matrix uniform
+  /* update SET 1 (per frame uniforms) */
+  const glm::mat4 view_matrix = glm::inverse(camera_transform);
+  frame_uniform.uniform_buffer_data.data = view_matrix;
+  device_->WriteUniformBuffer(frame_uniform.uniform_buffer, 0,
+                              sizeof(frame_uniform.uniform_buffer_data),
+                              &frame_uniform.uniform_buffer_data);
+}
+
+void Renderer::Render()
+{
+  gfx::DrawBuffer* draw_buffer = device_->BeginRender();
+
+  device_->FinishRender(draw_buffer);
 }
 
 }  // namespace engine

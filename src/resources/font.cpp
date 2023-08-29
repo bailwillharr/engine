@@ -18,10 +18,10 @@ Font::Font(const std::string& path) {
     throw std::runtime_error("Failed to initialise font!");
   }
 
-  LOG_INFO("Loaded font: {}", path);
+  LOG_DEBUG("Created font: {}", path);
 }
 
-Font::~Font() {}
+Font::~Font() { LOG_DEBUG("Destroying font..."); }
 
 std::unique_ptr<std::vector<uint8_t>> Font::GetTextBitmap(
     const std::string& text, float height_px, int& width_out, int& height_out) {

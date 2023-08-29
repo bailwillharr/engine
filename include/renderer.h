@@ -5,6 +5,7 @@
 #include <unordered_map>
 
 #include <glm/mat4x4.hpp>
+#include <glm/trigonometric.hpp>
 
 #include "gfx_device.h"
 
@@ -28,6 +29,12 @@ class Renderer {
 
   ~Renderer();
 
+  void PreRender(bool window_is_resized, glm::mat4 camera_transform);
+
+  void Render();
+
+  // getters
+
   GFXDevice* GetDevice() { return device_.get(); }
 
   const gfx::DescriptorSetLayout* GetGlobalSetLayout() {
@@ -46,6 +53,12 @@ class Renderer {
 
  private:
   std::unique_ptr<GFXDevice> device_;
+
+  struct CameraSettings {
+    float vertical_fov_radians = glm::radians(70.0f);
+    float clip_near = 0.5f;
+    float clip_far = 1000.0f;
+  } camera_settings_;
 
   // ALL vertex shaders must begin with:
   /*
@@ -71,6 +84,8 @@ class Renderer {
   UniformDescriptor<glm::mat4> frame_uniform;   // updates once per frame; set 1
   // in fragment shader
   const gfx::DescriptorSetLayout* material_set_layout;  // set 2
+
+  float viewport_aspect_ratio_ = 1.0f;
 };
 
 }  // namespace engine

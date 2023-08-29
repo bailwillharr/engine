@@ -52,7 +52,7 @@ Texture::Texture(Renderer* renderer, const std::string& path,
   gfx_->UpdateDescriptorCombinedImageSampler(
       descriptor_set_, 0, image_, renderer->samplers.at(samplerInfo));
 
-  LOG_INFO("Loaded texture: {}, width: {} height: {}", path, width, height);
+  LOG_DEBUG("Created texture: {}, width: {} height: {}", path, width, height);
 }
 
 Texture::Texture(Renderer* renderer, const uint8_t* bitmap, int width,
@@ -95,11 +95,11 @@ Texture::Texture(Renderer* renderer, const uint8_t* bitmap, int width,
   gfx_->UpdateDescriptorCombinedImageSampler(
       descriptor_set_, 0, image_, renderer->samplers.at(samplerInfo));
 
-  LOG_INFO("Loaded texture: BITMAP, width: {} height: {}", width, height);
+  LOG_DEBUG("Created texture: BITMAP, width: {} height: {}", width, height);
 }
 
 Texture::~Texture() { 
-  LOG_INFO("Destroying texture...");
+  LOG_DEBUG("Destroying texture...");
   gfx_->FreeDescriptorSet(descriptor_set_);
   gfx_->DestroyImage(image_);
 }

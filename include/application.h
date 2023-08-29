@@ -68,11 +68,13 @@ class Application {
  private:
   std::unique_ptr<Window> window_;
   std::unique_ptr<InputManager> input_manager_;
-  std::unique_ptr<SceneManager> scene_manager_;
   std::unique_ptr<Renderer> renderer_;
   std::unordered_map<size_t, std::unique_ptr<IResourceManager>>
       resource_managers_{};
   std::filesystem::path resources_path_;
+
+  // Most resources and class instances in the game exist in this object
+  std::unique_ptr<SceneManager> scene_manager_;
 
   bool enable_frame_limiter_ = true;
 

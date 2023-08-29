@@ -56,11 +56,14 @@ Shader::Shader(Renderer* renderer, const char* vertPath, const char* fragPath,
 
   pipeline_ = gfx_->CreatePipeline(info);
 
-  LOG_INFO("Loaded shader: {}, vertex attribs: {}", vertPath,
-           vertFormat.attribute_descriptions.size());
+  LOG_DEBUG("Created shader: {}, pipeline: {}", vertPath,
+           static_cast<const void*>(pipeline_));
 }
 
-Shader::~Shader() { gfx_->DestroyPipeline(pipeline_); }
+Shader::~Shader() {
+  LOG_DEBUG("Destroying shader... pipeline: {}", static_cast<const void*>(pipeline_));
+  gfx_->DestroyPipeline(pipeline_);
+}
 
 const gfx::Pipeline* Shader::GetPipeline() { return pipeline_; }
 

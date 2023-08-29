@@ -6,17 +6,26 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <typeinfo>
+
+#include "log.h"
+
+#include "resources/mesh.h"
 
 namespace engine {
 
 class IResourceManager {
  public:
-  virtual ~IResourceManager() = default;
+  virtual ~IResourceManager(){};
 };
 
 template <class T>
 class ResourceManager : public IResourceManager {
  public:
+  ~ResourceManager() override {
+    LOG_DEBUG("Destroying resource manager... '{}'", typeid(T).name());
+  }
+
   std::shared_ptr<T> Add(const std::string& name,
                          std::unique_ptr<T>&& resource) {
     if (resources_.contains(name) == false) {

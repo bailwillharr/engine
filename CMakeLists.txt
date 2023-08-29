@@ -92,8 +92,6 @@ source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/include" PREFIX "Include" FILES $
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE DEFINITIONS "ENGINE_EXPORTS")
 
-target_compile_definitions(${PROJECT_NAME} PUBLIC DEFINITIONS "VMA_DEBUG_LOG=printf")
-
 if (WIN32)
 	target_compile_definitions(${PROJECT_NAME} PRIVATE DEFINITIONS "NOMINMAX") # stop windows.h conflicting with 'std::max'
 endif()

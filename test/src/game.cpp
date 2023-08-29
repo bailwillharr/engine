@@ -79,14 +79,14 @@ void PlayGame(GameSettings settings) {
     }
 
     /* shared resources */
-    auto grass_texture = std::make_shared<engine::resources::Texture>(
+    /* auto grass_texture = std::make_shared<engine::resources::Texture>(
         app.renderer(), app.GetResourcePath("textures/grass.jpg"),
         engine::resources::Texture::Filtering::kAnisotropic);
 
     auto space_texture = std::make_shared<engine::resources::Texture>(
         app.renderer(), app.GetResourcePath("textures/space2.png"),
         engine::resources::Texture::Filtering::kAnisotropic);
-
+        */
     /* skybox */
     {
       uint32_t skybox = my_scene->CreateEntity("skybox");
@@ -96,7 +96,8 @@ void PlayGame(GameSettings settings) {
       skybox_renderable->material =
           std::make_unique<engine::resources::Material>(
               app.GetResource<engine::resources::Shader>("builtin.skybox"));
-      skybox_renderable->material->texture_ = space_texture;
+      skybox_renderable->material->texture_ =
+          app.GetResource<engine::resources::Texture>("builtin.white");
       skybox_renderable->mesh = GenCuboidMesh(app.renderer()->GetDevice(),
                                               10.0f, 10.0f, 10.0f, 1.0f, true);
 
@@ -120,7 +121,8 @@ void PlayGame(GameSettings settings) {
       floor_renderable->material =
           std::make_shared<engine::resources::Material>(
               app.GetResource<engine::resources::Shader>("builtin.standard"));
-      floor_renderable->material->texture_ = grass_texture;
+      floor_renderable->material->texture_ =
+          app.GetResource<engine::resources::Texture>("builtin.white");
       floor_renderable->mesh = GenCuboidMesh(app.renderer()->GetDevice(),
                                              100.0f, 0.1f, 100.0f, 100.0f);
 
@@ -155,7 +157,7 @@ void PlayGame(GameSettings settings) {
       auto textboxComponent =
           my_scene->AddComponent<engine::CustomComponent>(textbox);
       textboxComponent->onInit = [](void) {
-        LOG_INFO("Textbox custom component initialised!");
+        LOG_DEBUG("Textbox custom component initialised!");
       };
 
       textboxComponent->onUpdate = [](float ts) {
@@ -163,7 +165,7 @@ void PlayGame(GameSettings settings) {
         time_elapsed += ts;
         if (time_elapsed >= 1.0f) {
           time_elapsed = 0.0f;
-          LOG_INFO("COMPONENT UPDATE");
+          //LOG_INFO("COMPONENT UPDATE");
         }
       };
     }
