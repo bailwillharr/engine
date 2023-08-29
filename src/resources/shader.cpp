@@ -8,10 +8,11 @@
 
 namespace engine::resources {
 
-Shader::Shader(RenderData* renderData, const char* vertPath,
-               const char* fragPath, const ShaderSettings& settings)
-    : gfx_(renderData->gfxdev.get()), render_order_(settings.render_order) {
-      assert(settings.render_order <= kHighestRenderOrder && settings.render_order >= 0);
+Shader::Shader(Renderer* renderer, const char* vertPath, const char* fragPath,
+               const ShaderSettings& settings)
+    : gfx_(renderer->GetDevice()), render_order_(settings.render_order) {
+  assert(settings.render_order <= kHighestRenderOrder &&
+         settings.render_order >= 0);
   uint32_t index = 0;
   uint32_t stride = 0;
   gfx::VertexFormat vertFormat{};
@@ -49,9 +50,9 @@ Shader::Shader(RenderData* renderData, const char* vertPath,
   info.alpha_blending = settings.alpha_blending;
   info.backface_culling = settings.cull_backface;
   info.write_z = settings.write_z;
-  info.descriptor_set_layouts.push_back(renderData->global_set_layout);
-  info.descriptor_set_layouts.push_back(renderData->frame_set_layout);
-  info.descriptor_set_layouts.push_back(renderData->material_set_layout);
+  info.descriptor_set_layouts.push_back(renderer->GetGlobalSetLayout());
+  info.descriptor_set_layouts.push_back(renderer->GetFrameSetLayout());
+  info.descriptor_set_layouts.push_back(renderer->GetMaterialSetLayout());
 
   pipeline_ = gfx_->CreatePipeline(info);
 

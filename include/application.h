@@ -11,38 +11,13 @@
 #include <glm/mat4x4.hpp>
 
 #include "gfx.h"
-#include "gfx_device.h"
+#include "renderer.h"
 #include "input_manager.h"
 #include "resource_manager.h"
 #include "scene_manager.h"
 #include "window.h"
 
 namespace engine {
-
-struct RenderData {
-  std::unique_ptr<GFXDevice> gfxdev;
-  gfx::DrawBuffer* draw_buffer = nullptr;
-
-  /* uniforms for engine globals */
-  const gfx::DescriptorSetLayout* global_set_layout;
-  const gfx::DescriptorSet* global_set;
-  struct GlobalSetUniformBuffer {
-    glm::mat4 proj;
-  };
-  gfx::UniformBuffer* global_set_uniform_buffer;
-
-  /* uniforms for per-frame data */
-  const gfx::DescriptorSetLayout* frame_set_layout;
-  const gfx::DescriptorSet* frame_set;
-  struct FrameSetUniformBuffer {
-    glm::mat4 view;
-  };
-  gfx::UniformBuffer* frame_set_uniform_buffer;
-
-  /* this descriptor set is bound per-material */
-  const gfx::DescriptorSetLayout* material_set_layout;
-  std::unordered_map<gfx::SamplerInfo, const gfx::Sampler*> samplers{};
-};
 
 class Application {
  public:
@@ -82,20 +57,19 @@ class Application {
 
   /* getters */
   Window* window() { return window_.get(); }
-  GFXDevice* gfxdev() { return render_data_.gfxdev.get(); }
   InputManager* input_manager() { return input_manager_.get(); }
   SceneManager* scene_manager() { return scene_manager_.get(); }
+  Renderer* renderer() { return renderer_.get(); }
 
   std::string GetResourcePath(const std::string relative_path) {
     return (resources_path_ / relative_path).string();
   }
 
-  RenderData render_data_{};
-
  private:
   std::unique_ptr<Window> window_;
   std::unique_ptr<InputManager> input_manager_;
   std::unique_ptr<SceneManager> scene_manager_;
+  std::unique_ptr<Renderer> renderer_;
   std::unordered_map<size_t, std::unique_ptr<IResourceManager>>
       resource_managers_{};
   std::filesystem::path resources_path_;

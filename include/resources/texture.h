@@ -18,9 +18,9 @@ class Texture {
     kAnisotropic,
   };
 
-  Texture(RenderData* render_data, const std::string& path,
+  Texture(Renderer* renderer, const std::string& path,
           Filtering filtering);
-  Texture(RenderData* render_data, const uint8_t* bitmap, int width, int height,
+  Texture(Renderer* renderer, const uint8_t* bitmap, int width, int height,
           Filtering filtering);
 
   ~Texture();

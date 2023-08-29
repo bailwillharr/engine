@@ -16,7 +16,6 @@ struct MeshRenderListEntry {
   const gfx::DescriptorSet* base_colour_texture;
   glm::mat4 model_matrix;
   uint32_t index_count;
-  // 100 bytes
 };
 
 class MeshRenderSystem : public System {

@@ -28,7 +28,7 @@ class Shader {
 
   static constexpr int kHighestRenderOrder = 1;
 
-  Shader(RenderData* render_data, const char* vert_path, const char* frag_path,
+  Shader(Renderer* renderer, const char* vert_path, const char* frag_path,
          const ShaderSettings& settings);
   ~Shader();
   Shader(const Shader&) = delete;

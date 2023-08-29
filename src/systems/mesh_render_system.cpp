@@ -22,6 +22,9 @@ void MeshRenderSystem::RebuildRenderList() {
 
   for (uint32_t entity : entities_) {
     auto transform = scene_->GetComponent<engine::TransformComponent>(entity);
+
+    if (transform->is_static == false) continue;
+
     auto renderable = scene_->GetComponent<engine::RenderableComponent>(entity);
 
     const gfx::Pipeline* pipeline =
@@ -52,21 +55,20 @@ void MeshRenderSystem::RebuildRenderList() {
   std::sort(static_render_list_.begin(), static_render_list_.end(),
             sort_by_pipeline);
 
-  LOG_INFO("\nPRINTING RENDER LIST:\n");
-
-  // DEBUG PRINT
+#ifndef NDEBUG
+  LOG_TRACE("\nPRINTING RENDER LIST:\n");
   for (const auto& entry : static_render_list_) {
-    LOG_INFO("pipeline: {}", static_cast<const void*>(entry.pipeline));
-    LOG_INFO("vertex_buffer: {}",
-             static_cast<const void*>(entry.vertex_buffer));
-    LOG_INFO("index_buffer: {}", static_cast<const void*>(entry.index_buffer));
-    LOG_INFO("base_color_texture: {}",
-             static_cast<const void*>(entry.base_colour_texture));
-    LOG_INFO("transform position: {}, {}, {}", entry.model_matrix[3][0],
-             entry.model_matrix[3][1], entry.model_matrix[3][2]);
+    LOG_TRACE("pipeline: {}", static_cast<const void*>(entry.pipeline));
+    LOG_TRACE("vertex_buffer: {}",
+              static_cast<const void*>(entry.vertex_buffer));
+    LOG_TRACE("index_buffer: {}", static_cast<const void*>(entry.index_buffer));
+    LOG_TRACE("base_color_texture: {}",
+              static_cast<const void*>(entry.base_colour_texture));
+    LOG_TRACE("transform position: {}, {}, {}", entry.model_matrix[3][0],
+              entry.model_matrix[3][1], entry.model_matrix[3][2]);
   }
-
-  LOG_INFO("\nRENDER LIST END\n");
+  LOG_TRACE("\nRENDER LIST END\n");
+#endif
 
   list_needs_rebuild_ = false;
 }

@@ -8,9 +8,9 @@
 
 namespace engine::resources {
 
-Texture::Texture(RenderData* renderData, const std::string& path,
+Texture::Texture(Renderer* renderer, const std::string& path,
                  Filtering filtering)
-    : gfx_(renderData->gfxdev.get()) {
+    : gfx_(renderer->GetDevice()) {
   int width, height;
   std::unique_ptr<std::vector<uint8_t>> texbuf =
       util::ReadImageFile(path, &width, &height);
@@ -41,23 +41,23 @@ Texture::Texture(RenderData* renderData, const std::string& path,
       samplerInfo.anisotropic_filtering = true;
   }
 
-  if (renderData->samplers.contains(samplerInfo) == false) {
-    renderData->samplers.insert(
+  if (renderer->samplers.contains(samplerInfo) == false) {
+    renderer->samplers.insert(
         std::make_pair(samplerInfo, gfx_->CreateSampler(samplerInfo)));
   }
 
   image_ = gfx_->CreateImage(width, height, texbuf->data());
   descriptor_set_ =
-      gfx_->AllocateDescriptorSet(renderData->material_set_layout);
+      gfx_->AllocateDescriptorSet(renderer->GetMaterialSetLayout());
   gfx_->UpdateDescriptorCombinedImageSampler(
-      descriptor_set_, 0, image_, renderData->samplers.at(samplerInfo));
+      descriptor_set_, 0, image_, renderer->samplers.at(samplerInfo));
 
   LOG_INFO("Loaded texture: {}, width: {} height: {}", path, width, height);
 }
 
-Texture::Texture(RenderData* render_data, const uint8_t* bitmap, int width,
+Texture::Texture(Renderer* renderer, const uint8_t* bitmap, int width,
                  int height, Filtering filtering)
-    : gfx_(render_data->gfxdev.get()) {
+    : gfx_(renderer->GetDevice()) {
   gfx::SamplerInfo samplerInfo{};
 
   samplerInfo.magnify = gfx::Filter::kLinear;
@@ -84,16 +84,16 @@ Texture::Texture(RenderData* render_data, const uint8_t* bitmap, int width,
       samplerInfo.anisotropic_filtering = true;
   }
 
-  if (render_data->samplers.contains(samplerInfo) == false) {
-    render_data->samplers.insert(
+  if (renderer->samplers.contains(samplerInfo) == false) {
+    renderer->samplers.insert(
         std::make_pair(samplerInfo, gfx_->CreateSampler(samplerInfo)));
   }
 
   image_ = gfx_->CreateImage(width, height, bitmap);
   descriptor_set_ =
-      gfx_->AllocateDescriptorSet(render_data->material_set_layout);
+      gfx_->AllocateDescriptorSet(renderer->GetMaterialSetLayout());
   gfx_->UpdateDescriptorCombinedImageSampler(
-      descriptor_set_, 0, image_, render_data->samplers.at(samplerInfo));
+      descriptor_set_, 0, image_, renderer->samplers.at(samplerInfo));
 
   LOG_INFO("Loaded texture: BITMAP, width: {} height: {}", width, height);
 }

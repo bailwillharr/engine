@@ -182,7 +182,8 @@ namespace engine::util {
 				absPath /= texPath.C_Str();
 				try {
 					textures[i] = std::make_shared<resources::Texture>(
-						&parent->app()->render_data_, absPath.string(),
+                                          parent->app()->renderer(),
+                                          absPath.string(),
 						resources::Texture::Filtering::kTrilinear);
 				} catch (const std::runtime_error&) {
 					textures[i] = parent->app()->GetResource<resources::Texture>("builtin.white");
@@ -223,7 +224,9 @@ namespace engine::util {
 				indices[(size_t)j * 3 + 1] = m->mFaces[j].mIndices[1];
 				indices[(size_t)j * 3 + 2] = m->mFaces[j].mIndices[2];
 			}
-			meshes.push_back(std::make_shared<resources::Mesh>(parent->app()->gfxdev(), vertices, indices));
+                        meshes.push_back(std::make_shared<resources::Mesh>(
+                            parent->app()->renderer()->GetDevice(), vertices,
+                            indices));
 		}
 
 		uint32_t obj = parent->CreateEntity(scene->GetShortFilename(path.c_str()));

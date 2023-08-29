@@ -76,56 +76,8 @@ Application::Application(const char* appName, const char* appVersion,
   RegisterResourceManager<resources::Material>();
   RegisterResourceManager<resources::Mesh>();
 
-  // initialise the render data
-  render_data_.gfxdev = std::make_unique<GFXDevice>(
+  renderer_ = std::make_unique<Renderer>(
       appName, appVersion, window_->GetHandle(), graphicsSettings);
-
-  std::vector<gfx::DescriptorSetLayoutBinding> globalSetBindings;
-  {
-    auto& binding0 = globalSetBindings.emplace_back();
-    binding0.descriptor_type = gfx::DescriptorType::kUniformBuffer;
-    binding0.stage_flags = gfx::ShaderStageFlags::kVertex;
-  }
-  render_data_.global_set_layout =
-      gfxdev()->CreateDescriptorSetLayout(globalSetBindings);
-  render_data_.global_set =
-      gfxdev()->AllocateDescriptorSet(render_data_.global_set_layout);
-  RenderData::GlobalSetUniformBuffer globalSetUniformBufferData{
-      .proj = glm::mat4{1.0f},
-  };
-  render_data_.global_set_uniform_buffer = gfxdev()->CreateUniformBuffer(
-      sizeof(RenderData::GlobalSetUniformBuffer), &globalSetUniformBufferData);
-  gfxdev()->UpdateDescriptorUniformBuffer(
-      render_data_.global_set, 0, render_data_.global_set_uniform_buffer, 0,
-      sizeof(RenderData::GlobalSetUniformBuffer));
-
-  std::vector<gfx::DescriptorSetLayoutBinding> frameSetBindings;
-  {
-    auto& binding0 = frameSetBindings.emplace_back();
-    binding0.descriptor_type = gfx::DescriptorType::kUniformBuffer;
-    binding0.stage_flags = gfx::ShaderStageFlags::kVertex;
-  }
-  render_data_.frame_set_layout =
-      gfxdev()->CreateDescriptorSetLayout(frameSetBindings);
-  render_data_.frame_set =
-      gfxdev()->AllocateDescriptorSet(render_data_.frame_set_layout);
-  RenderData::FrameSetUniformBuffer initialSetOneData{
-      .view = glm::mat4{1.0f},
-  };
-  render_data_.frame_set_uniform_buffer = gfxdev()->CreateUniformBuffer(
-      sizeof(RenderData::FrameSetUniformBuffer), &initialSetOneData);
-  gfxdev()->UpdateDescriptorUniformBuffer(
-      render_data_.frame_set, 0, render_data_.frame_set_uniform_buffer, 0,
-      sizeof(RenderData::FrameSetUniformBuffer));
-
-  std::vector<gfx::DescriptorSetLayoutBinding> materialSetBindings;
-  {
-    auto& binding0 = materialSetBindings.emplace_back();
-    binding0.descriptor_type = gfx::DescriptorType::kCombinedImageSampler;
-    binding0.stage_flags = gfx::ShaderStageFlags::kFragment;
-  }
-  render_data_.material_set_layout =
-      gfxdev()->CreateDescriptorSetLayout(materialSetBindings);
 
   /* default fonts */
   {
@@ -147,7 +99,7 @@ Application::Application(const char* appName, const char* appVersion,
     shaderSettings.write_z = true;
     shaderSettings.render_order = 0;
     auto texturedShader = std::make_unique<resources::Shader>(
-        &render_data_, GetResourcePath("engine/shaders/standard.vert").c_str(),
+        renderer(), GetResourcePath("engine/shaders/standard.vert").c_str(),
         GetResourcePath("engine/shaders/standard.frag").c_str(),
         shaderSettings);
     GetResourceManager<resources::Shader>()->AddPersistent(
@@ -164,7 +116,7 @@ Application::Application(const char* appName, const char* appVersion,
     shaderSettings.write_z = true;
     shaderSettings.render_order = 0;
     auto skyboxShader = std::make_unique<resources::Shader>(
-        &render_data_, GetResourcePath("engine/shaders/skybox.vert").c_str(),
+        renderer(), GetResourcePath("engine/shaders/skybox.vert").c_str(),
         GetResourcePath("engine/shaders/skybox.frag").c_str(), shaderSettings);
     GetResourceManager<resources::Shader>()->AddPersistent(
         "builtin.skybox", std::move(skyboxShader));
@@ -180,7 +132,7 @@ Application::Application(const char* appName, const char* appVersion,
     shaderSettings.write_z = false;
     shaderSettings.render_order = 1;
     auto quadShader = std::make_unique<resources::Shader>(
-        &render_data_, GetResourcePath("engine/shaders/quad.vert").c_str(),
+        renderer(), GetResourcePath("engine/shaders/quad.vert").c_str(),
         GetResourcePath("engine/shaders/quad.frag").c_str(), shaderSettings);
     GetResourceManager<resources::Shader>()->AddPersistent(
         "builtin.quad", std::move(quadShader));
@@ -189,25 +141,14 @@ Application::Application(const char* appName, const char* appVersion,
   /* default textures */
   {
     auto whiteTexture = std::make_unique<resources::Texture>(
-        &render_data_, GetResourcePath("engine/textures/white.png"),
+        renderer(), GetResourcePath("engine/textures/white.png"),
         resources::Texture::Filtering::kOff);
     GetResourceManager<resources::Texture>()->AddPersistent(
         "builtin.white", std::move(whiteTexture));
   }
 }
 
-Application::~Application() {
-  for (const auto& [info, sampler] : render_data_.samplers) {
-    gfxdev()->DestroySampler(sampler);
-  }
-  gfxdev()->DestroyDescriptorSetLayout(render_data_.material_set_layout);
-
-  gfxdev()->DestroyUniformBuffer(render_data_.frame_set_uniform_buffer);
-  gfxdev()->DestroyDescriptorSetLayout(render_data_.frame_set_layout);
-
-  gfxdev()->DestroyUniformBuffer(render_data_.global_set_uniform_buffer);
-  gfxdev()->DestroyDescriptorSetLayout(render_data_.global_set_layout);
-}
+Application::~Application() {}
 
 void Application::GameLoop() {
   LOG_TRACE("Begin game loop...");
@@ -229,12 +170,11 @@ void Application::GameLoop() {
     if (now - lastTick >= 1000000000LL * 5LL) [[unlikely]] {
       lastTick = now;
       LOG_INFO("fps: {}", window_->GetAvgFPS());
-      gfxdev()->LogPerformanceInfo();
+      renderer()->GetDevice()->LogPerformanceInfo();
       window_->ResetAvgFPS();
     }
 
     /* render */
-    
 
     /* poll events */
     window_->GetInputAndEvents();
@@ -247,7 +187,7 @@ void Application::GameLoop() {
     endFrame = beginFrame + FRAMETIME_LIMIT;
   }
 
-  gfxdev()->WaitIdle();
+  renderer()->GetDevice()->WaitIdle();
 }
 
 }  // namespace engine
