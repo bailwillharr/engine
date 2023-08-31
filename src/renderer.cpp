@@ -90,40 +90,52 @@ void Renderer::PreRender(bool window_is_resized, glm::mat4 camera_transform) {
                               &frame_uniform.uniform_buffer_data);
 }
 
-void Renderer::Render(const StaticRenderList* staticList) {
+void Renderer::Render(const RenderList* static_list,
+                      const RenderList* dynamic_list) {
+  assert(static_list != nullptr);
+  assert(dynamic_list != nullptr);
+
+  last_bound_pipeline_ = nullptr;
+
   gfx::DrawBuffer* draw_buffer = device_->BeginRender();
 
-  if (staticList && !staticList->empty()) {
-    const gfx::Pipeline* const first_pipeline = staticList->begin()->pipeline;
+  if (!static_list->empty()) {
+    DrawRenderList(draw_buffer, *static_list);
+  }
+  if (!dynamic_list->empty()) {
+    DrawRenderList(draw_buffer, *dynamic_list);
+  }
+
+  device_->FinishRender(draw_buffer);
+}
+
+void Renderer::DrawRenderList(gfx::DrawBuffer* draw_buffer,
+                              const RenderList& render_list) {
+  // if a pipeline hasn't been bound yet at all
+  if (last_bound_pipeline_ == nullptr) {
+    const gfx::Pipeline* first_pipeline = render_list.begin()->pipeline;
+    // these bindings persist between all pipelines
     device_->CmdBindDescriptorSet(draw_buffer, first_pipeline,
                                   global_uniform.set, 0);
     device_->CmdBindDescriptorSet(draw_buffer, first_pipeline,
                                   frame_uniform.set, 1);
-
     device_->CmdBindPipeline(draw_buffer, first_pipeline);
-    const gfx::Pipeline* last_bound_pipeline = first_pipeline;
-
-    for (const auto& entry : *staticList) {
-      if (entry.pipeline != last_bound_pipeline) {
-        device_->CmdBindPipeline(draw_buffer, entry.pipeline);
-        last_bound_pipeline = entry.pipeline;
-      }
-      device_->CmdBindDescriptorSet(draw_buffer, entry.pipeline,
-                                    entry.base_colour_texture, 2);
-      device_->CmdPushConstants(draw_buffer, entry.pipeline, 0,
-                                sizeof(entry.model_matrix),
-                                &entry.model_matrix);
-      if (entry.vertex_buffer) {
-        device_->CmdBindVertexBuffer(draw_buffer, 0, entry.vertex_buffer);
-      }
-      if (entry.index_buffer) {
-        device_->CmdBindIndexBuffer(draw_buffer, entry.index_buffer);
-      }
-      device_->CmdDrawIndexed(draw_buffer, entry.index_count, 1, 0, 0, 0);
-    }
+    last_bound_pipeline_ = first_pipeline;
   }
 
-  device_->FinishRender(draw_buffer);
+  for (const auto& entry : render_list) {
+    if (entry.pipeline != last_bound_pipeline_) {
+      device_->CmdBindPipeline(draw_buffer, entry.pipeline);
+      last_bound_pipeline_ = entry.pipeline;
+    }
+    device_->CmdBindDescriptorSet(draw_buffer, entry.pipeline,
+                                  entry.base_colour_texture, 2);
+    device_->CmdPushConstants(draw_buffer, entry.pipeline, 0,
+                              sizeof(entry.model_matrix), &entry.model_matrix);
+    device_->CmdBindVertexBuffer(draw_buffer, 0, entry.vertex_buffer);
+    device_->CmdBindIndexBuffer(draw_buffer, entry.index_buffer);
+    device_->CmdDrawIndexed(draw_buffer, entry.index_count, 1, 0, 0, 0);
+  }
 }
 
 }  // namespace engine

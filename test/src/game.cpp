@@ -136,7 +136,7 @@ void PlayGame(GameSettings settings) {
     //                                app.GetResourcePath("models/test_scene.dae"));
 
     auto cobbleHouse = engine::util::LoadMeshFromFile(
-        my_scene, app.GetResourcePath("models/cobble_house/cobble_house.dae"), true);
+        my_scene, app.GetResourcePath("models/cobble_house/cobble_house.dae"), false);
     my_scene->GetComponent<engine::TransformComponent>(cobbleHouse)->position +=
         glm::vec3{33.0f, 0.1f, 35.0f};
     auto cobbleCustom =
@@ -148,6 +148,9 @@ void PlayGame(GameSettings settings) {
       static auto t =
           my_scene->GetComponent<engine::TransformComponent>(cobbleHouse);
       t->rotation *= glm::angleAxis(ts, glm::vec3{0.0f, 0.0f, 1.0f});
+      if (app.window()->GetKeyPress(engine::inputs::Key::K_F)) {
+        my_scene->GetSystem<engine::MeshRenderSystem>()->RebuildStaticRenderList();
+      }
     };
 
     /* some text */

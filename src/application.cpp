@@ -179,11 +179,12 @@ void Application::GameLoop() {
     /* render */
     renderer_->PreRender(window()->GetWindowResized(), scene->GetComponent<TransformComponent>(scene->GetEntity("camera"))->world_matrix);
 
-    const StaticRenderList* staticList = nullptr;
     if (scene) {
-      staticList = scene->GetSystem<MeshRenderSystem>()->GetStaticRenderList();
+      auto mesh_render_system = scene->GetSystem<MeshRenderSystem>();
+      const RenderList* static_list = mesh_render_system->GetStaticRenderList();
+      const RenderList* dynamic_list = mesh_render_system->GetDynamicRenderList();
+      renderer_->Render(static_list, dynamic_list);
     }
-    renderer_->Render(staticList);
 
     /* poll events */
     window_->GetInputAndEvents();

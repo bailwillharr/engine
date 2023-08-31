@@ -33,7 +33,7 @@ class Renderer {
   void PreRender(bool window_is_resized, glm::mat4 camera_transform);
 
   // staticList can be nullptr to render nothing
-  void Render(const StaticRenderList* staticList);
+  void Render(const RenderList* static_list, const RenderList* dynamic_list);
 
   // getters
 
@@ -88,6 +88,10 @@ class Renderer {
   const gfx::DescriptorSetLayout* material_set_layout;  // set 2
 
   float viewport_aspect_ratio_ = 1.0f;
+
+  const gfx::Pipeline* last_bound_pipeline_ = nullptr;
+
+  void DrawRenderList(gfx::DrawBuffer* draw_buffer, const RenderList& render_list);
 };
 
 }  // namespace engine
