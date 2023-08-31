@@ -53,7 +53,7 @@ void PlayGame(GameSettings settings) {
 
   engine::Application app(PROJECT_NAME, PROJECT_VERSION, graphics_settings);
   app.SetFrameLimiter(settings.enable_frame_limiter);
-  app.window()->SetRelativeMouseMode(false);
+  app.window()->SetRelativeMouseMode(true);
   ConfigureInputs(app.input_manager());
 
   {
@@ -79,14 +79,14 @@ void PlayGame(GameSettings settings) {
     }
 
     /* shared resources */
-    /* auto grass_texture = std::make_shared<engine::resources::Texture>(
+    auto grass_texture = std::make_shared<engine::resources::Texture>(
         app.renderer(), app.GetResourcePath("textures/grass.jpg"),
         engine::resources::Texture::Filtering::kAnisotropic);
 
     auto space_texture = std::make_shared<engine::resources::Texture>(
         app.renderer(), app.GetResourcePath("textures/space2.png"),
         engine::resources::Texture::Filtering::kAnisotropic);
-        */
+
     /* skybox */
     {
       uint32_t skybox = my_scene->CreateEntity("skybox");
@@ -97,7 +97,7 @@ void PlayGame(GameSettings settings) {
           std::make_unique<engine::resources::Material>(
               app.GetResource<engine::resources::Shader>("builtin.skybox"));
       skybox_renderable->material->texture_ =
-          app.GetResource<engine::resources::Texture>("builtin.white");
+          space_texture;
       skybox_renderable->mesh = GenCuboidMesh(app.renderer()->GetDevice(),
                                               10.0f, 10.0f, 10.0f, 1.0f, true);
 
@@ -122,7 +122,7 @@ void PlayGame(GameSettings settings) {
           std::make_shared<engine::resources::Material>(
               app.GetResource<engine::resources::Shader>("builtin.standard"));
       floor_renderable->material->texture_ =
-          app.GetResource<engine::resources::Texture>("builtin.white");
+          grass_texture;
       floor_renderable->mesh = GenCuboidMesh(app.renderer()->GetDevice(),
                                              100.0f, 0.1f, 100.0f, 100.0f);
 
@@ -135,20 +135,20 @@ void PlayGame(GameSettings settings) {
     // engine::util::LoadMeshFromFile(my_scene,
     //                                app.GetResourcePath("models/test_scene.dae"));
 
-    //auto cobbleHouse = engine::util::LoadMeshFromFile(
-    //    my_scene, app.GetResourcePath("models/cobble_house/cobble_house.dae"));
-    //my_scene->GetComponent<engine::TransformComponent>(cobbleHouse)->position +=
-    //    glm::vec3{33.0f, 0.1f, 35.0f};
-    //auto cobbleCustom =
-    //    my_scene->AddComponent<engine::CustomComponent>(cobbleHouse);
-    //cobbleCustom->onInit = [](void) {
-    //  LOG_INFO("Cobble house spin component initialised!");
-    //};
-    //cobbleCustom->onUpdate = [&](float ts) {
-    //  static auto t =
-    //      my_scene->GetComponent<engine::TransformComponent>(cobbleHouse);
-    //  t->rotation *= glm::angleAxis(ts, glm::vec3{0.0f, 0.0f, 1.0f});
-    //};
+    auto cobbleHouse = engine::util::LoadMeshFromFile(
+        my_scene, app.GetResourcePath("models/cobble_house/cobble_house.dae"), true);
+    my_scene->GetComponent<engine::TransformComponent>(cobbleHouse)->position +=
+        glm::vec3{33.0f, 0.1f, 35.0f};
+    auto cobbleCustom =
+        my_scene->AddComponent<engine::CustomComponent>(cobbleHouse);
+    cobbleCustom->onInit = [](void) {
+      LOG_INFO("Cobble house spin component initialised!");
+    };
+    cobbleCustom->onUpdate = [&](float ts) {
+      static auto t =
+          my_scene->GetComponent<engine::TransformComponent>(cobbleHouse);
+      t->rotation *= glm::angleAxis(ts, glm::vec3{0.0f, 0.0f, 1.0f});
+    };
 
     /* some text */
     {

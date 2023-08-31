@@ -17,6 +17,8 @@
 #include "resources/mesh.h"
 #include "resources/shader.h"
 #include "resources/texture.h"
+#include "systems/mesh_render_system.h"
+#include "components/transform.h"
 #include "scene.h"
 #include "scene_manager.h"
 #include "window.h"
@@ -148,8 +150,7 @@ Application::Application(const char* appName, const char* appVersion,
   }
 }
 
-Application::~Application() {
-}
+Application::~Application() {}
 
 void Application::GameLoop() {
   LOG_DEBUG("Begin game loop...");
@@ -165,19 +166,24 @@ void Application::GameLoop() {
   // single-threaded game loop
   while (window_->IsRunning()) {
     /* logic */
-    scene_manager_->UpdateActiveScene(window_->dt());
+    Scene* scene = scene_manager_->UpdateActiveScene(window_->dt());
 
     uint64_t now = window_->GetNanos();
     if (now - lastTick >= 1000000000LL * 5LL) [[unlikely]] {
       lastTick = now;
       LOG_INFO("fps: {}", window_->GetAvgFPS());
-      //renderer()->GetDevice()->LogPerformanceInfo();
+      // renderer()->GetDevice()->LogPerformanceInfo();
       window_->ResetAvgFPS();
     }
 
     /* render */
-    renderer_->PreRender(window()->GetWindowResized(), glm::mat4{1.0f});
-    renderer_->Render();
+    renderer_->PreRender(window()->GetWindowResized(), scene->GetComponent<TransformComponent>(scene->GetEntity("camera"))->world_matrix);
+
+    const StaticRenderList* staticList = nullptr;
+    if (scene) {
+      staticList = scene->GetSystem<MeshRenderSystem>()->GetStaticRenderList();
+    }
+    renderer_->Render(staticList);
 
     /* poll events */
     window_->GetInputAndEvents();
@@ -190,7 +196,7 @@ void Application::GameLoop() {
     endFrame = beginFrame + FRAMETIME_LIMIT;
   }
 
-  renderer()->GetDevice()->WaitIdle();
+  renderer_->GetDevice()->WaitIdle();
 }
 
 }  // namespace engine

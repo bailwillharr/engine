@@ -90,9 +90,38 @@ void Renderer::PreRender(bool window_is_resized, glm::mat4 camera_transform) {
                               &frame_uniform.uniform_buffer_data);
 }
 
-void Renderer::Render()
-{
+void Renderer::Render(const StaticRenderList* staticList) {
   gfx::DrawBuffer* draw_buffer = device_->BeginRender();
+
+  if (staticList && !staticList->empty()) {
+    const gfx::Pipeline* const first_pipeline = staticList->begin()->pipeline;
+    device_->CmdBindDescriptorSet(draw_buffer, first_pipeline,
+                                  global_uniform.set, 0);
+    device_->CmdBindDescriptorSet(draw_buffer, first_pipeline,
+                                  frame_uniform.set, 1);
+
+    device_->CmdBindPipeline(draw_buffer, first_pipeline);
+    const gfx::Pipeline* last_bound_pipeline = first_pipeline;
+
+    for (const auto& entry : *staticList) {
+      if (entry.pipeline != last_bound_pipeline) {
+        device_->CmdBindPipeline(draw_buffer, entry.pipeline);
+        last_bound_pipeline = entry.pipeline;
+      }
+      device_->CmdBindDescriptorSet(draw_buffer, entry.pipeline,
+                                    entry.base_colour_texture, 2);
+      device_->CmdPushConstants(draw_buffer, entry.pipeline, 0,
+                                sizeof(entry.model_matrix),
+                                &entry.model_matrix);
+      if (entry.vertex_buffer) {
+        device_->CmdBindVertexBuffer(draw_buffer, 0, entry.vertex_buffer);
+      }
+      if (entry.index_buffer) {
+        device_->CmdBindIndexBuffer(draw_buffer, entry.index_buffer);
+      }
+      device_->CmdDrawIndexed(draw_buffer, entry.index_count, 1, 0, 0, 0);
+    }
+  }
 
   device_->FinishRender(draw_buffer);
 }

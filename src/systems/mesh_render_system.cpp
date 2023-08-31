@@ -30,7 +30,7 @@ void MeshRenderSystem::RebuildRenderList() {
     const gfx::Pipeline* pipeline =
         renderable->material->GetShader()->GetPipeline();
 
-    static_render_list_.emplace_back(MeshRenderListEntry{
+    static_render_list_.emplace_back(StaticRenderListEntry{
         .pipeline = pipeline,
         .vertex_buffer = renderable->mesh->GetVB(),
         .index_buffer = renderable->mesh->GetIB(),
@@ -47,8 +47,8 @@ void MeshRenderSystem::RebuildRenderList() {
 
   // sort the meshes by pipeline
   auto sort_by_pipeline = [&render_orders](
-                              const MeshRenderListEntry& e1,
-                              const MeshRenderListEntry& e2) -> bool {
+                              const StaticRenderListEntry& e1,
+                              const StaticRenderListEntry& e2) -> bool {
     return (render_orders.at(e1.pipeline) < render_orders.at(e2.pipeline));
   };
 
@@ -74,6 +74,7 @@ void MeshRenderSystem::RebuildRenderList() {
 }
 
 void MeshRenderSystem::OnComponentInsert(uint32_t entity) {
+  (void)entity;
   list_needs_rebuild_ = true;
 }
 

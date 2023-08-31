@@ -22,12 +22,16 @@ namespace engine {
 		return scenes_.back().get();
 	}
 
-	void SceneManager::UpdateActiveScene(float ts)
+	Scene* SceneManager::UpdateActiveScene(float ts)
 	{
 		if (active_scene_index_ >= 0) [[likely]] {
 			assert((size_t)active_scene_index_ < scenes_.size());
-			scenes_[active_scene_index_]->Update(ts);
-		}
+			Scene* activeScene = scenes_[active_scene_index_].get();
+      activeScene->Update(ts);
+      return activeScene;
+		} else {
+      return nullptr;
+    }
 	}
 
 }

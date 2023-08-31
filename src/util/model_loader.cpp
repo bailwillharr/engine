@@ -31,7 +31,7 @@ namespace engine::util {
 		const std::map<int, std::shared_ptr<resources::Texture>>& textures,
 		const std::vector<std::shared_ptr<resources::Mesh>>& meshes,
 		const std::vector<unsigned int>& meshTextureIndices,
-		aiNode* parentNode, Scene* scene, uint32_t parentObj)
+		aiNode* parentNode, Scene* scene, uint32_t parentObj, bool is_static)
 	{
 
 		// convert to glm column major
@@ -71,10 +71,12 @@ namespace engine::util {
 		parentTransform->position = position;
 		parentTransform->scale = scale;
 		parentTransform->rotation = rotation;
+    parentTransform->is_static = is_static;
 
 		for (uint32_t i = 0; i < parentNode->mNumMeshes; i++) {
 			// create child node for each mesh
 			auto child = scene->CreateEntity("_mesh" + std::to_string(i), parentObj);
+      scene->GetComponent<TransformComponent>(child)->is_static = is_static;
 			auto childRenderer = scene->AddComponent<RenderableComponent>(child);
 			childRenderer->mesh = meshes[parentNode->mMeshes[i]];
 			childRenderer->material = std::make_shared<resources::Material>(scene->app()->GetResource<resources::Shader>("builtin.standard"));
@@ -92,12 +94,12 @@ namespace engine::util {
 				meshTextureIndices,
 				parentNode->mChildren[i],
 				scene,
-				scene->CreateEntity("child" + std::to_string(i), parentObj)
+				scene->CreateEntity("child" + std::to_string(i), parentObj), is_static
 			);
 		}
 	}
 
-	uint32_t LoadMeshFromFile(Scene* parent, const std::string& path)
+	uint32_t LoadMeshFromFile(Scene* parent, const std::string& path, bool is_static)
 	{
 		Assimp::Importer importer;
 
@@ -231,7 +233,7 @@ namespace engine::util {
 
 		uint32_t obj = parent->CreateEntity(scene->GetShortFilename(path.c_str()));
 
-		buildGraph(textures, meshes, meshMaterialIndices, scene->mRootNode, parent, obj);
+		buildGraph(textures, meshes, meshMaterialIndices, scene->mRootNode, parent, obj, is_static);
 
 		LOG_INFO("Loaded model: {}, meshes: {}, textures: {}", scene->GetShortFilename(path.c_str()), meshes.size(), textures.size());
 

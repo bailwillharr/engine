@@ -9,7 +9,7 @@
 
 namespace engine {
 
-struct MeshRenderListEntry {
+struct StaticRenderListEntry {
   const gfx::Pipeline* pipeline;
   const gfx::Buffer* vertex_buffer;
   const gfx::Buffer* index_buffer;
@@ -18,18 +18,21 @@ struct MeshRenderListEntry {
   uint32_t index_count;
 };
 
+using StaticRenderList = std::vector<StaticRenderListEntry>;
+
 class MeshRenderSystem : public System {
  public:
   MeshRenderSystem(Scene* scene);
   ~MeshRenderSystem();
 
   void RebuildRenderList();
+  const StaticRenderList* GetStaticRenderList() const { return &static_render_list_; }
 
   void OnComponentInsert(uint32_t entity) override;
   void OnUpdate(float ts) override;
 
  private:
-  std::vector<MeshRenderListEntry> static_render_list_;
+  StaticRenderList static_render_list_;
   bool list_needs_rebuild_ = false;
 
 };

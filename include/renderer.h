@@ -8,6 +8,7 @@
 #include <glm/trigonometric.hpp>
 
 #include "gfx_device.h"
+#include "systems/mesh_render_system.h"
 
 namespace engine {
 
@@ -31,7 +32,8 @@ class Renderer {
 
   void PreRender(bool window_is_resized, glm::mat4 camera_transform);
 
-  void Render();
+  // staticList can be nullptr to render nothing
+  void Render(const StaticRenderList* staticList);
 
   // getters
 

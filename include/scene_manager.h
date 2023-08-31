@@ -21,7 +21,8 @@ class SceneManager {
   // creates an empty scene and sets it as active
   Scene* CreateEmptyScene();
 
-  void UpdateActiveScene(float ts);
+// returns active scene, nullptr if no scene active
+  Scene* UpdateActiveScene(float ts);
   Scene* GetActiveScene() { return scenes_.at(active_scene_index_).get(); }
 
  private:
