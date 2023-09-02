@@ -183,7 +183,7 @@ void Application::GameLoop() {
       auto mesh_render_system = scene->GetSystem<MeshRenderSystem>();
       const RenderList* static_list = mesh_render_system->GetStaticRenderList();
       const RenderList* dynamic_list = mesh_render_system->GetDynamicRenderList();
-      renderer_->Render(static_list, dynamic_list);
+      renderer_->Render(*static_list, *dynamic_list);
     }
 
     /* poll events */

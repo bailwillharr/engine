@@ -27,9 +27,11 @@ void MeshRenderSystem::OnComponentInsert(uint32_t entity) {
 void MeshRenderSystem::OnUpdate(float ts) {
   // do stuff
   (void)ts;
+  // update the static render list only if it needs updating
   if (list_needs_rebuild_) {
     RebuildStaticRenderList();
   }
+  // update the dynamic render list always
   BuildRenderList(dynamic_render_list_, false);
 }
 

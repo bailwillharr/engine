@@ -90,20 +90,17 @@ void Renderer::PreRender(bool window_is_resized, glm::mat4 camera_transform) {
                               &frame_uniform.uniform_buffer_data);
 }
 
-void Renderer::Render(const RenderList* static_list,
-                      const RenderList* dynamic_list) {
-  assert(static_list != nullptr);
-  assert(dynamic_list != nullptr);
-
+void Renderer::Render(const RenderList& static_list,
+                      const RenderList& dynamic_list) {
   last_bound_pipeline_ = nullptr;
 
   gfx::DrawBuffer* draw_buffer = device_->BeginRender();
 
-  if (!static_list->empty()) {
-    DrawRenderList(draw_buffer, *static_list);
+  if (!static_list.empty()) {
+    DrawRenderList(draw_buffer, static_list);
   }
-  if (!dynamic_list->empty()) {
-    DrawRenderList(draw_buffer, *dynamic_list);
+  if (!dynamic_list.empty()) {
+    DrawRenderList(draw_buffer, dynamic_list);
   }
 
   device_->FinishRender(draw_buffer);
