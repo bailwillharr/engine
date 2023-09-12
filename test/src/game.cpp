@@ -92,12 +92,11 @@ void PlayGame(GameSettings settings) {
       uint32_t skybox = my_scene->CreateEntity("skybox");
 
       auto skybox_renderable =
-          my_scene->AddComponent<engine::RenderableComponent>(skybox);
+          my_scene->AddComponent<engine::MeshRenderableComponent>(skybox);
       skybox_renderable->material =
           std::make_unique<engine::resources::Material>(
               app.GetResource<engine::resources::Shader>("builtin.skybox"));
-      skybox_renderable->material->texture_ =
-          space_texture;
+      skybox_renderable->material->texture_ = space_texture;
       skybox_renderable->mesh = GenCuboidMesh(app.renderer()->GetDevice(),
                                               10.0f, 10.0f, 10.0f, 1.0f, true);
 
@@ -109,34 +108,23 @@ void PlayGame(GameSettings settings) {
 
     /* floor */
     {
-      uint32_t floor = my_scene->CreateEntity("floor");
+      uint32_t floor = engine::util::LoadMeshFromFile(
+          my_scene, app.GetResourcePath("models/terrain.dae"), true);
 
       auto floor_transform =
           my_scene->GetComponent<engine::TransformComponent>(floor);
       floor_transform->is_static = true;
-      floor_transform->position = glm::vec3{-50.0f, -0.1f, -50.0f};
+      //floor_transform->position = glm::vec3{-50.0f, -0.1f, -50.0f};
 
-      auto floor_renderable =
-          my_scene->AddComponent<engine::RenderableComponent>(floor);
-      floor_renderable->material =
-          std::make_shared<engine::resources::Material>(
-              app.GetResource<engine::resources::Shader>("builtin.standard"));
-      floor_renderable->material->texture_ =
-          grass_texture;
-      floor_renderable->mesh = GenCuboidMesh(app.renderer()->GetDevice(),
-                                             100.0f, 0.1f, 100.0f, 100.0f);
-
-      auto floor_collider =
-          my_scene->AddComponent<engine::ColliderComponent>(floor);
-      floor_collider->is_static = true;
-      floor_collider->aabb = {{0.0f, 0.0f, 0.0f}, {100.0f, 0.1f, 100.0f}};
+      
     }
 
     // engine::util::LoadMeshFromFile(my_scene,
     //                                app.GetResourcePath("models/test_scene.dae"));
 
     auto cobbleHouse = engine::util::LoadMeshFromFile(
-        my_scene, app.GetResourcePath("models/cobble_house/cobble_house.dae"), false);
+        my_scene, app.GetResourcePath("models/cobble_house/cobble_house.dae"),
+        false);
     my_scene->GetComponent<engine::TransformComponent>(cobbleHouse)->position +=
         glm::vec3{33.0f, 0.1f, 35.0f};
     auto cobbleCustom =
@@ -149,7 +137,8 @@ void PlayGame(GameSettings settings) {
           my_scene->GetComponent<engine::TransformComponent>(cobbleHouse);
       t->rotation *= glm::angleAxis(ts, glm::vec3{0.0f, 0.0f, 1.0f});
       if (app.window()->GetKeyPress(engine::inputs::Key::K_F)) {
-        my_scene->GetSystem<engine::MeshRenderSystem>()->RebuildStaticRenderList();
+        my_scene->GetSystem<engine::MeshRenderSystem>()
+            ->RebuildStaticRenderList();
       }
     };
 
@@ -168,7 +157,7 @@ void PlayGame(GameSettings settings) {
         time_elapsed += ts;
         if (time_elapsed >= 1.0f) {
           time_elapsed = 0.0f;
-          //LOG_INFO("COMPONENT UPDATE");
+          // LOG_INFO("COMPONENT UPDATE");
         }
       };
     }

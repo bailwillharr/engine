@@ -147,6 +147,8 @@ namespace engine {
 		const std::vector<const char*> windowExtensions = getWindowExtensions(window);
 		std::vector<const char*> instanceExtensionsToUse = windowExtensions;
 
+		instanceExtensionsToUse.push_back(VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME);
+
 		const char* validationLayer = nullptr;
 		if (useValidation) {
 			validationLayer = getValidationLayer();

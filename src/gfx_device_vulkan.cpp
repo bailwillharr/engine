@@ -271,7 +271,7 @@ static VkShaderModule compileShader(VkDevice device, shaderc_shader_kind kind,
   VkShaderModuleCreateInfo createInfo{};
   createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
   createInfo.codeSize = shaderBytecode.size() * sizeof(uint32_t);
-  createInfo.pCode = compiledShader.cbegin();
+      createInfo.pCode = compiledShader.cbegin();
 
   VkShaderModule shaderModule;
   if (vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule) !=
@@ -398,6 +398,8 @@ GFXDevice::GFXDevice(const char* appName, const char* appVersion,
   DeviceRequirements deviceRequirements{};
   deviceRequirements.requiredExtensions.push_back(
       VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+  deviceRequirements.requiredExtensions.push_back(
+      VK_EXT_FULL_SCREEN_EXCLUSIVE_EXTENSION_NAME);
   deviceRequirements.optionalExtensions.push_back(
       VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME);
   deviceRequirements.optionalExtensions.push_back(
@@ -856,6 +858,8 @@ void GFXDevice::CmdPushConstants(gfx::DrawBuffer* drawBuffer,
                                  const gfx::Pipeline* pipeline, uint32_t offset,
                                  uint32_t size, const void* data) {
   assert(drawBuffer != nullptr);
+  assert(pipeline != nullptr);
+  assert(data != nullptr);
   vkCmdPushConstants(drawBuffer->frameData.drawBuf, pipeline->layout,
                      VK_SHADER_STAGE_VERTEX_BIT, offset, size, data);
 }
@@ -864,6 +868,9 @@ void GFXDevice::CmdBindDescriptorSet(gfx::DrawBuffer* drawBuffer,
                                      const gfx::Pipeline* pipeline,
                                      const gfx::DescriptorSet* set,
                                      uint32_t setNumber) {
+  assert(drawBuffer != nullptr);
+  assert(pipeline != nullptr);
+  assert(set != nullptr);
   vkCmdBindDescriptorSets(
       drawBuffer->frameData.drawBuf, VK_PIPELINE_BIND_POINT_GRAPHICS,
       pipeline->layout, setNumber, 1, &set->sets[drawBuffer->currentFrameIndex],
@@ -1092,9 +1099,9 @@ gfx::Pipeline* GFXDevice::CreatePipeline(const gfx::PipelineInfo& info) {
 }
 
 void GFXDevice::DestroyPipeline(const gfx::Pipeline* pipeline) {
+  assert(pipeline != nullptr);
   vkDestroyPipeline(pimpl->device.device, pipeline->handle, nullptr);
   vkDestroyPipelineLayout(pimpl->device.device, pipeline->layout, nullptr);
-
   delete pipeline;
 }
 
@@ -1138,6 +1145,8 @@ void GFXDevice::DestroyDescriptorSetLayout(
 
 gfx::DescriptorSet* GFXDevice::AllocateDescriptorSet(
     const gfx::DescriptorSetLayout* layout) {
+  assert(layout != nullptr);
+
   gfx::DescriptorSet* set = new gfx::DescriptorSet{};
 
   for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
@@ -1161,14 +1170,18 @@ gfx::DescriptorSet* GFXDevice::AllocateDescriptorSet(
 }
 
 void GFXDevice::FreeDescriptorSet(const gfx::DescriptorSet* set) {
+  assert(set != nullptr);
   VKCHECK(vkFreeDescriptorSets(pimpl->device.device, pimpl->descriptorPool,
-                               set->sets.size(), set->sets.data()));
+                               static_cast<uint32_t>(set->sets.size()), set->sets.data()));
 }
 
 void GFXDevice::UpdateDescriptorUniformBuffer(const gfx::DescriptorSet* set,
                                               uint32_t binding,
                                               const gfx::UniformBuffer* buffer,
                                               size_t offset, size_t range) {
+  assert(set != nullptr);
+  assert(buffer != nullptr);
+
   assert(pimpl->FRAMECOUNT == 0);
 
   for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
@@ -1194,7 +1207,11 @@ void GFXDevice::UpdateDescriptorUniformBuffer(const gfx::DescriptorSet* set,
 void GFXDevice::UpdateDescriptorCombinedImageSampler(
     const gfx::DescriptorSet* set, uint32_t binding, const gfx::Image* image,
     const gfx::Sampler* sampler) {
-  if (pimpl->FRAMECOUNT != 0) abort();
+  assert(set != nullptr);
+  assert(image != nullptr);
+  assert(sampler != nullptr);
+
+  if (pimpl->FRAMECOUNT != 0) abort();  // TODO. This is annoying
 
   VkDescriptorImageInfo imageInfo{};
   imageInfo.sampler = sampler->sampler;
@@ -1220,6 +1237,8 @@ void GFXDevice::UpdateDescriptorCombinedImageSampler(
 
 gfx::UniformBuffer* GFXDevice::CreateUniformBuffer(uint64_t size,
                                                    const void* initialData) {
+  assert(initialData != nullptr);
+
   gfx::UniformBuffer* out = new gfx::UniformBuffer{};
 
   /* first make staging buffer */
@@ -1283,6 +1302,8 @@ gfx::UniformBuffer* GFXDevice::CreateUniformBuffer(uint64_t size,
 }
 
 void GFXDevice::DestroyUniformBuffer(const gfx::UniformBuffer* uniformBuffer) {
+  assert(uniformBuffer != nullptr);
+
   for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
     vmaDestroyBuffer(pimpl->allocator, uniformBuffer->gpuBuffers[i].buffer,
                      uniformBuffer->gpuBuffers[i].allocation);
@@ -1296,6 +1317,9 @@ void GFXDevice::DestroyUniformBuffer(const gfx::UniformBuffer* uniformBuffer) {
 
 void GFXDevice::WriteUniformBuffer(gfx::UniformBuffer* buffer, uint64_t offset,
                                    uint64_t size, const void* data) {
+  assert(buffer != nullptr);
+  assert(data != nullptr);
+
   assert(offset + size <= buffer->stagingBuffer.size);
 
   /* first update the staging buffer */
@@ -1314,7 +1338,7 @@ void GFXDevice::WriteUniformBuffer(gfx::UniformBuffer* buffer, uint64_t offset,
 
 gfx::Buffer* GFXDevice::CreateBuffer(gfx::BufferType type, uint64_t size,
                                      const void* data) {
-  [[maybe_unused]] VkResult res;
+  assert(data != nullptr);
 
   auto out = new gfx::Buffer{};
   out->size = size;
@@ -1379,6 +1403,7 @@ gfx::Buffer* GFXDevice::CreateBuffer(gfx::BufferType type, uint64_t size,
 }
 
 void GFXDevice::DestroyBuffer(const gfx::Buffer* buffer) {
+  assert(buffer != nullptr);
   vmaDestroyBuffer(pimpl->allocator, buffer->buffer, buffer->allocation);
   delete buffer;
 }
@@ -1387,9 +1412,8 @@ void GFXDevice::DestroyBuffer(const gfx::Buffer* buffer) {
 gfx::Image* GFXDevice::CreateImage(uint32_t w, uint32_t h,
                                    const void* imageData) {
   assert(imageData != nullptr);
-  if (pimpl->FRAMECOUNT != 0) {
-    throw std::runtime_error("Framecount must be 0 when creating a texture");
-  }
+
+  if (pimpl->FRAMECOUNT != 0) abort(); //  TODO. This is annoying
 
   gfx::Image* out = new gfx::Image{};
 
@@ -1660,6 +1684,7 @@ gfx::Image* GFXDevice::CreateImage(uint32_t w, uint32_t h,
 }
 
 void GFXDevice::DestroyImage(const gfx::Image* image) {
+  assert(image != nullptr);
   vkDestroyImageView(pimpl->device.device, image->view, nullptr);
   vmaDestroyImage(pimpl->allocator, image->image, image->allocation);
   delete image;
@@ -1691,6 +1716,7 @@ const gfx::Sampler* GFXDevice::CreateSampler(const gfx::SamplerInfo& info) {
 }
 
 void GFXDevice::DestroySampler(const gfx::Sampler* sampler) {
+  assert(sampler != nullptr);
   vkDestroySampler(pimpl->device.device, sampler->sampler, nullptr);
   delete sampler;
 }

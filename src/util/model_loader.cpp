@@ -77,7 +77,7 @@ namespace engine::util {
 			// create child node for each mesh
 			auto child = scene->CreateEntity("_mesh" + std::to_string(i), parentObj);
       scene->GetComponent<TransformComponent>(child)->is_static = is_static;
-			auto childRenderer = scene->AddComponent<RenderableComponent>(child);
+			auto childRenderer = scene->AddComponent<MeshRenderableComponent>(child);
 			childRenderer->mesh = meshes[parentNode->mMeshes[i]];
 			childRenderer->material = std::make_shared<resources::Material>(scene->app()->GetResource<resources::Shader>("builtin.standard"));
 			if (textures.contains(meshTextureIndices[parentNode->mMeshes[i]])) {

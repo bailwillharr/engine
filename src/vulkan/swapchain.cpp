@@ -9,6 +9,7 @@
 #include "log.h"
 
 #include "swapchain.h"
+#include <SDL_syswm.h>
 
 namespace engine {
 
@@ -116,9 +117,14 @@ namespace engine {
 
 		/* create swapchain */
 
+		VkSurfaceFullScreenExclusiveInfoEXT fullscreenInfo{};
+		fullscreenInfo.sType = VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_INFO_EXT;
+		fullscreenInfo.pNext = nullptr;
+		fullscreenInfo.fullScreenExclusive = VK_FULL_SCREEN_EXCLUSIVE_ALLOWED_EXT;
+
 		VkSwapchainCreateInfoKHR scInfo{
 			.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-			.pNext = nullptr,
+			.pNext = &fullscreenInfo,
 			.flags = 0,
 			.surface = info.surface,
 			.minImageCount = minImageCount,

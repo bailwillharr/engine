@@ -10,7 +10,7 @@ namespace engine {
 
 MeshRenderSystem::MeshRenderSystem(Scene* scene)
     : System(scene, {typeid(TransformComponent).hash_code(),
-                     typeid(RenderableComponent).hash_code()}) {}
+                     typeid(MeshRenderableComponent).hash_code()}) {}
 
 MeshRenderSystem::~MeshRenderSystem() {}
 
@@ -47,7 +47,7 @@ void MeshRenderSystem::BuildRenderList(RenderList& render_list,
 
     if (transform->is_static != with_static_entities) continue;
 
-    auto renderable = scene_->GetComponent<engine::RenderableComponent>(entity);
+    auto renderable = scene_->GetComponent<engine::MeshRenderableComponent>(entity);
 
     const gfx::Pipeline* pipeline =
         renderable->material->GetShader()->GetPipeline();

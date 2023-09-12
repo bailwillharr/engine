@@ -1,11 +1,13 @@
 #include "scene.h"
 
 #include "components/transform.h"
-#include "components/mesh_renderable.h"
 #include "components/collider.h"
 #include "components/custom.h"
+#include "components/mesh_renderable.h"
+#include "components/ui_renderable.h"
 #include "systems/transform.h"
 #include "systems/mesh_render_system.h"
+#include "systems/ui_render_system.h"
 #include "systems/collisions.h"
 #include "systems/custom_behaviour.h"
 
@@ -18,15 +20,17 @@ Scene::Scene(Application* app) : app_(app) {
   // ecs configuration:
 
   RegisterComponent<TransformComponent>();
-  RegisterComponent<RenderableComponent>();
   RegisterComponent<ColliderComponent>();
   RegisterComponent<CustomComponent>();
+  RegisterComponent<MeshRenderableComponent>();
+  RegisterComponent<UIRenderableComponent>();
 
   // Order here matters:
   RegisterSystem<TransformSystem>();
   RegisterSystem<PhysicsSystem>();
   RegisterSystem<CustomBehaviourSystem>();
   RegisterSystem<MeshRenderSystem>();
+  RegisterSystem<UIRenderSystem>();
 }
 
 Scene::~Scene() {}
