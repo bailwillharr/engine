@@ -61,30 +61,27 @@ void PlayGame(GameSettings settings) {
 
     /* create camera */
     {
+      auto camera = my_scene->CreateEntity("camera");
+
+      /* as of right now, the entity with tag 'camera' is used to build the view
+       * matrix */
+
+      auto camera_transform =
+          my_scene->GetComponent<engine::TransformComponent>(camera);
+      camera_transform->position = {0.0f, 10.0f, 0.0f};
+
       my_scene->RegisterComponent<CameraControllerComponent>();
       my_scene->RegisterSystem<CameraControllerSystem>();
-
-      auto camera = my_scene->CreateEntity("camera");
-      my_scene->GetComponent<engine::TransformComponent>(camera)->position = {
-          0.0f, 10.0f, 0.0f};
-      auto camera_collider =
-          my_scene->AddComponent<engine::ColliderComponent>(camera);
-      camera_collider->is_static = false;
-      camera_collider->is_trigger = false;
-      camera_collider->aabb = {{-0.2f, -1.5f, -0.2f},
-                               {0.2f, 0.2f, 0.2f}};  // Origin is at eye level
       my_scene->AddComponent<CameraControllerComponent>(camera);
-      // auto render_system = my_scene->GetSystem<engine::MeshRenderSystem>();
-      // render_system->SetCameraEntity(camera);
     }
 
     /* shared resources */
     auto grass_texture = std::make_shared<engine::resources::Texture>(
-        app.renderer(), app.GetResourcePath("textures/grass.jpg"),
+        app.renderer(), app.GetResourcePath("textures/grass.png"),
         engine::resources::Texture::Filtering::kAnisotropic);
 
-    auto space_texture = std::make_shared<engine::resources::Texture>(
-        app.renderer(), app.GetResourcePath("textures/space2.png"),
+    auto sky_texture = std::make_shared<engine::resources::Texture>(
+        app.renderer(), app.GetResourcePath("textures/sky.jpg"),
         engine::resources::Texture::Filtering::kAnisotropic);
 
     /* skybox */
@@ -96,7 +93,7 @@ void PlayGame(GameSettings settings) {
       skybox_renderable->material =
           std::make_unique<engine::resources::Material>(
               app.GetResource<engine::resources::Shader>("builtin.skybox"));
-      skybox_renderable->material->texture_ = space_texture;
+      skybox_renderable->material->texture_ = sky_texture;
       skybox_renderable->mesh = GenCuboidMesh(app.renderer()->GetDevice(),
                                               10.0f, 10.0f, 10.0f, 1.0f, true);
 
@@ -114,33 +111,26 @@ void PlayGame(GameSettings settings) {
       auto floor_transform =
           my_scene->GetComponent<engine::TransformComponent>(floor);
       floor_transform->is_static = true;
-      //floor_transform->position = glm::vec3{-50.0f, -0.1f, -50.0f};
-
-      
     }
 
-    // engine::util::LoadMeshFromFile(my_scene,
-    //                                app.GetResourcePath("models/test_scene.dae"));
-
-    auto cobbleHouse = engine::util::LoadMeshFromFile(
-        my_scene, app.GetResourcePath("models/cobble_house/cobble_house.dae"),
-        false);
-    my_scene->GetComponent<engine::TransformComponent>(cobbleHouse)->position +=
-        glm::vec3{33.0f, 0.1f, 35.0f};
-    auto cobbleCustom =
-        my_scene->AddComponent<engine::CustomComponent>(cobbleHouse);
-    cobbleCustom->onInit = [](void) {
-      LOG_INFO("Cobble house spin component initialised!");
-    };
-    cobbleCustom->onUpdate = [&](float ts) {
-      static auto t =
-          my_scene->GetComponent<engine::TransformComponent>(cobbleHouse);
-      t->rotation *= glm::angleAxis(ts, glm::vec3{0.0f, 0.0f, 1.0f});
-      if (app.window()->GetKeyPress(engine::inputs::Key::K_F)) {
-        my_scene->GetSystem<engine::MeshRenderSystem>()
-            ->RebuildStaticRenderList();
-      }
-    };
+    /* building */
+    {
+      auto cobbleHouse = engine::util::LoadMeshFromFile(
+          my_scene, app.GetResourcePath("models/cobble_house/cobble_house.dae"),
+          false);
+      my_scene->GetComponent<engine::TransformComponent>(cobbleHouse)
+          ->position += glm::vec3{33.0f, 0.1f, 35.0f};
+      auto cobbleCustom =
+          my_scene->AddComponent<engine::CustomComponent>(cobbleHouse);
+      cobbleCustom->onInit = [](void) {
+        LOG_INFO("Cobble house spin component initialised!");
+      };
+      cobbleCustom->onUpdate = [&](float ts) {
+        static auto t =
+            my_scene->GetComponent<engine::TransformComponent>(cobbleHouse);
+        t->rotation *= glm::angleAxis(ts, glm::vec3{0.0f, 0.0f, 1.0f});
+      };
+    }
 
     /* some text */
     {
@@ -157,10 +147,13 @@ void PlayGame(GameSettings settings) {
         time_elapsed += ts;
         if (time_elapsed >= 1.0f) {
           time_elapsed = 0.0f;
-          // LOG_INFO("COMPONENT UPDATE");
+          LOG_INFO("COMPONENT UPDATE");
         }
       };
     }
+
+    /* teapot */
+    my_scene->GetComponent<engine::TransformComponent>(engine::util::LoadMeshFromFile(my_scene, app.GetResourcePath("models/teapot.dae"), true))->position += glm::vec3{10.0f, 10.0f, 10.0f};
 
     app.GameLoop();
   }
