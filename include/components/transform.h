@@ -7,6 +7,8 @@
 #include <glm/mat4x4.hpp>
 #include <glm/vec3.hpp>
 
+#include "ecs.h"
+
 namespace engine {
 
 struct TransformComponent {
@@ -17,7 +19,7 @@ struct TransformComponent {
   glm::vec3 scale;
 
   std::string tag;
-  uint32_t parent;
+  Entity parent;
 
   bool is_static;
 };

@@ -1,7 +1,7 @@
 #ifndef ENGINE_INCLUDE_SYSTEMS_TRANSFORM_H_
 #define ENGINE_INCLUDE_SYSTEMS_TRANSFORM_H_
 
-#include "ecs_system.h"
+#include "ecs.h"
 
 namespace engine {
 
@@ -12,7 +12,7 @@ namespace engine {
 
 		void OnUpdate(float ts) override;
 
-		uint32_t GetChildEntity(uint32_t parent, const std::string& tag);
+		Entity GetChildEntity(Entity parent, const std::string& tag);
 
 	};
 

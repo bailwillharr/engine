@@ -4,7 +4,7 @@
 #include <glm/vec3.hpp>
 
 #include "components/transform.h"
-#include "ecs_system.h"
+#include "ecs.h"
 
 struct CameraControllerComponent {
   static constexpr float kWalkSpeed = 4.0f;

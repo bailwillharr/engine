@@ -7,6 +7,7 @@
 
 #include "application.h"
 #include "components/transform.h"
+#include "ecs.h"
 #include "input_manager.h"
 #include "log.h"
 #include "scene.h"
@@ -19,7 +20,7 @@ CameraControllerSystem::CameraControllerSystem(engine::Scene* scene)
 
 void CameraControllerSystem::OnUpdate(float ts) {
   if (t == nullptr || c == nullptr) {
-    for (uint32_t entity : entities_) {
+    for (engine::Entity entity : entities_) {
       t = scene_->GetComponent<engine::TransformComponent>(entity);
       c = scene_->GetComponent<CameraControllerComponent>(entity);
       break;

@@ -3,7 +3,7 @@
 
 #include <glm/mat4x4.hpp>
 
-#include "ecs_system.h"
+#include "ecs.h"
 #include "scene.h"
 #include "gfx.h"
 
@@ -29,7 +29,7 @@ class MeshRenderSystem : public System {
   const RenderList* GetStaticRenderList() const { return &static_render_list_; }
   const RenderList* GetDynamicRenderList() const { return &dynamic_render_list_; }
 
-  void OnComponentInsert(uint32_t entity) override;
+  void OnComponentInsert(Entity entity) override;
   void OnUpdate(float ts) override;
 
  private:

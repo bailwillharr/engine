@@ -31,7 +31,7 @@ namespace engine::util {
 		const std::map<int, std::shared_ptr<resources::Texture>>& textures,
 		const std::vector<std::shared_ptr<resources::Mesh>>& meshes,
 		const std::vector<unsigned int>& meshTextureIndices,
-		aiNode* parentNode, Scene* scene, uint32_t parentObj, bool is_static)
+		aiNode* parentNode, Scene* scene, Entity parentObj, bool is_static)
 	{
 
 		// convert to glm column major
@@ -99,7 +99,7 @@ namespace engine::util {
 		}
 	}
 
-	uint32_t LoadMeshFromFile(Scene* parent, const std::string& path, bool is_static)
+	Entity LoadMeshFromFile(Scene* parent, const std::string& path, bool is_static)
 	{
 		Assimp::Importer importer;
 
@@ -231,7 +231,7 @@ namespace engine::util {
                             indices));
 		}
 
-		uint32_t obj = parent->CreateEntity(scene->GetShortFilename(path.c_str()));
+		Entity obj = parent->CreateEntity(scene->GetShortFilename(path.c_str()));
 
 		buildGraph(textures, meshes, meshMaterialIndices, scene->mRootNode, parent, obj, is_static);
 

@@ -13,7 +13,7 @@ TransformSystem::TransformSystem(Scene* scene)
 void TransformSystem::OnUpdate(float ts) {
   (void)ts;
 
-  for (uint32_t entity : entities_) {
+  for (Entity entity : entities_) {
     auto t = scene_->GetComponent<TransformComponent>(entity);
 
     glm::mat4 transform;
@@ -37,9 +37,9 @@ void TransformSystem::OnUpdate(float ts) {
   }
 }
 
-uint32_t TransformSystem::GetChildEntity(uint32_t parent,
+Entity TransformSystem::GetChildEntity(Entity parent,
                                          const std::string& tag) {
-  for (uint32_t entity : entities_) {
+  for (Entity entity : entities_) {
     auto t = scene_->GetComponent<TransformComponent>(entity);
     if (t->parent == parent) {
       if (t->tag == tag) {

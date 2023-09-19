@@ -19,7 +19,7 @@ void MeshRenderSystem::RebuildStaticRenderList() {
   list_needs_rebuild_ = false;
 }
 
-void MeshRenderSystem::OnComponentInsert(uint32_t entity) {
+void MeshRenderSystem::OnComponentInsert(Entity entity) {
   (void)entity;
   list_needs_rebuild_ = true;
 }
@@ -42,7 +42,7 @@ void MeshRenderSystem::BuildRenderList(RenderList& render_list,
 
   std::unordered_map<const gfx::Pipeline*, int> render_orders;
 
-  for (uint32_t entity : entities_) {
+  for (Entity entity : entities_) {
     auto transform = scene_->GetComponent<engine::TransformComponent>(entity);
 
     if (transform->is_static != with_static_entities) continue;

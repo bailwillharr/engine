@@ -1,4 +1,4 @@
-#include "ecs_system.h"
+#include "ecs.h"
 
 #include "scene.h"
 

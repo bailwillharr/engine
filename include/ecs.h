@@ -1,5 +1,5 @@
-#ifndef ENGINE_INCLUDE_ECS_SYSTEM_H_
-#define ENGINE_INCLUDE_ECS_SYSTEM_H_
+#ifndef ENGINE_INCLUDE_ECS_H_
+#define ENGINE_INCLUDE_ECS_H_
 
 #include <bitset>
 #include <cassert>
@@ -13,7 +13,9 @@ namespace engine {
 
 class Scene;
 
-constexpr size_t kMaxComponents = 64;
+using Entity = uint32_t; // ECS entity
+
+constexpr size_t kMaxComponents = 10;
 
 class IComponentArray {
  public:
@@ -23,7 +25,7 @@ class IComponentArray {
 template <typename T>
 class ComponentArray : public IComponentArray {
  public:
-  void InsertData(uint32_t entity, T component) {
+  void InsertData(Entity entity, T component) {
     if (component_array_.size() < entity + 1) {
       component_array_.resize(entity + 1);
     }
@@ -31,11 +33,11 @@ class ComponentArray : public IComponentArray {
     component_array_.at(entity) = component;
   }
 
-  void DeleteData(uint32_t entity) {
+  void DeleteData(Entity entity) {
     (void)entity;  // TODO
   }
 
-  T* GetData(uint32_t entity) {
+  T* GetData(Entity entity) {
     assert(entity < component_array_.size());
     return &component_array_[entity];
   }
@@ -53,15 +55,15 @@ class System {
 
   virtual void OnUpdate(float ts) = 0;
 
-  virtual void OnComponentInsert(uint32_t) {}
-  virtual void OnComponentRemove(uint32_t) {}
+  virtual void OnComponentInsert(Entity) {}
+  virtual void OnComponentRemove(Entity) {}
 
   Scene* const scene_;
 
   std::bitset<kMaxComponents> signature_;
 
   // entities that contain the needed components
-  std::set<uint32_t> entities_{};
+  std::set<Entity> entities_{};
 };
 
 }  // namespace engine

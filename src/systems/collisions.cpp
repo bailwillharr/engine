@@ -71,7 +71,7 @@ namespace engine {
 		scene_->event_system()->RegisterEventType<CollisionEvent>();
 	}
 
-	void PhysicsSystem::OnComponentInsert(uint32_t entity)
+	void PhysicsSystem::OnComponentInsert(Entity entity)
 	{
 		(void)entity;
 		const size_t size = entities_.size();
@@ -91,7 +91,7 @@ namespace engine {
 		possible_collisions_.clear();
 		collision_infos_.clear();
 
-		for (uint32_t entity : entities_) {
+		for (Entity entity : entities_) {
 			const auto t = scene_->GetComponent<TransformComponent>(entity);
 			const auto c = scene_->GetComponent<ColliderComponent>(entity);
 

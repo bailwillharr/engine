@@ -3,7 +3,7 @@
 
 #include <unordered_map>
 
-#include "ecs_system.h"
+#include "ecs.h"
 
 /* This system allows for one-off custom components that execute arbitrary code
  * It is similar to Unity's 'MonoBehavior' system */
@@ -16,10 +16,10 @@ class CustomBehaviourSystem : public System {
   ~CustomBehaviourSystem();
 
   void OnUpdate(float ts) override;
-  void OnComponentInsert(uint32_t entity) override;
+  void OnComponentInsert(Entity entity) override;
 
  private:
-  std::unordered_map<uint32_t, bool> entity_is_initialised_{};
+  std::unordered_map<Entity, bool> entity_is_initialised_{};
 };
 
 }  // namespace engine

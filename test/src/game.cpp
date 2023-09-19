@@ -86,7 +86,7 @@ void PlayGame(GameSettings settings) {
 
     /* skybox */
     {
-      uint32_t skybox = my_scene->CreateEntity("skybox");
+        engine::Entity skybox = my_scene->CreateEntity("skybox");
 
       auto skybox_renderable =
           my_scene->AddComponent<engine::MeshRenderableComponent>(skybox);
@@ -105,7 +105,7 @@ void PlayGame(GameSettings settings) {
 
     /* floor */
     {
-      uint32_t floor = engine::util::LoadMeshFromFile(
+      engine::Entity floor = engine::util::LoadMeshFromFile(
           my_scene, app.GetResourcePath("models/terrain.dae"), true);
 
       auto floor_transform =
@@ -134,7 +134,7 @@ void PlayGame(GameSettings settings) {
 
     /* some text */
     {
-      uint32_t textbox =
+        engine::Entity textbox =
           my_scene->CreateEntity("textbox", 0, glm::vec3{0.0f, 0.8f, 0.0f});
       auto textboxComponent =
           my_scene->AddComponent<engine::CustomComponent>(textbox);
@@ -153,7 +153,11 @@ void PlayGame(GameSettings settings) {
     }
 
     /* teapot */
-    my_scene->GetComponent<engine::TransformComponent>(engine::util::LoadMeshFromFile(my_scene, app.GetResourcePath("models/teapot.dae"), true))->position += glm::vec3{10.0f, 10.0f, 10.0f};
+    my_scene
+        ->GetComponent<engine::TransformComponent>(
+            engine::util::LoadMeshFromFile(
+                my_scene, app.GetResourcePath("models/teapot.dae"), true))
+        ->position += glm::vec3{10.0f, 10.0f, 10.0f};
 
     app.GameLoop();
   }

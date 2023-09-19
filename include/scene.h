@@ -9,7 +9,7 @@
 
 #include <glm/vec3.hpp>
 
-#include "ecs_system.h"
+#include "ecs.h"
 #include "event_system.h"
 
 namespace engine {
@@ -31,10 +31,10 @@ class Scene {
 
   /* ecs stuff */
 
-  uint32_t CreateEntity(const std::string& tag, uint32_t parent = 0,
+  Entity CreateEntity(const std::string& tag, Entity parent = 0,
                         const glm::vec3& pos = glm::vec3{0.0f, 0.0f, 0.0f});
 
-  uint32_t GetEntity(const std::string& tag, uint32_t parent = 0);
+  Entity GetEntity(const std::string& tag, Entity parent = 0);
 
   size_t GetComponentSignaturePosition(size_t hash);
 
@@ -54,13 +54,13 @@ class Scene {
   }
 
   template <typename T>
-  T* GetComponent(uint32_t entity) {
+  T* GetComponent(Entity entity) {
     auto array = GetComponentArray<T>();
     return array->GetData(entity);
   }
 
   template <typename T>
-  T* AddComponent(uint32_t entity) {
+  T* AddComponent(Entity entity) {
     size_t hash = typeid(T).hash_code();
 
     auto array = GetComponentArray<T>();
@@ -107,7 +107,7 @@ class Scene {
 
  private:
   Application* const app_;
-  uint32_t next_entity_id_ = 1;  // 0 is not a valid entity
+  Entity next_entity_id_ = 1;  // 0 is not a valid entity
 
   uint64_t framecount_ = 0;
 
@@ -117,7 +117,7 @@ class Scene {
   // maps component hashes to signature positions
   std::unordered_map<size_t, size_t> component_signature_positions_{};
   // maps entity ids to their signatures
-  std::unordered_map<uint32_t, std::bitset<kMaxComponents>> signatures_{};
+  std::unordered_map<Entity, std::bitset<kMaxComponents>> signatures_{};
   // maps component hashes to their arrays
   std::unordered_map<size_t, std::unique_ptr<IComponentArray>>
       component_arrays_{};

@@ -8,7 +8,7 @@
 namespace engine {
 namespace util {
 
-uint32_t LoadMeshFromFile(Scene* parent, const std::string& path, bool is_static = false);
+Entity LoadMeshFromFile(Scene* parent, const std::string& path, bool is_static = false);
 
 }  // namespace util
 }  // namespace engine

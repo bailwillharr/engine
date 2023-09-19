@@ -11,7 +11,7 @@ namespace engine {
 
     UIRenderSystem::~UIRenderSystem() {}
 
-    void UIRenderSystem::OnComponentInsert(uint32_t entity) {
+    void UIRenderSystem::OnComponentInsert(Entity entity) {
         (void)entity;
     }
 
