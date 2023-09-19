@@ -47,6 +47,8 @@
 #include "log.h"
 #include "util/files.h"
 
+static constexpr bool flip_viewport = false;
+
 inline static void checkVulkanError(VkResult errorCode, int lineNo) {
   if (errorCode != VK_SUCCESS) {
     const std::string message("VULKAN ERROR ON LINE " + std::to_string(lineNo));
@@ -271,7 +273,7 @@ static VkShaderModule compileShader(VkDevice device, shaderc_shader_kind kind,
   VkShaderModuleCreateInfo createInfo{};
   createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
   createInfo.codeSize = shaderBytecode.size() * sizeof(uint32_t);
-      createInfo.pCode = compiledShader.cbegin();
+  createInfo.pCode = compiledShader.cbegin();
 
   VkShaderModule shaderModule;
   if (vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule) !=
@@ -398,8 +400,6 @@ GFXDevice::GFXDevice(const char* appName, const char* appVersion,
   DeviceRequirements deviceRequirements{};
   deviceRequirements.requiredExtensions.push_back(
       VK_KHR_SWAPCHAIN_EXTENSION_NAME);
-  deviceRequirements.requiredExtensions.push_back(
-      VK_EXT_FULL_SCREEN_EXCLUSIVE_EXTENSION_NAME);
   deviceRequirements.optionalExtensions.push_back(
       VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME);
   deviceRequirements.optionalExtensions.push_back(
@@ -728,10 +728,17 @@ gfx::DrawBuffer* GFXDevice::BeginRender() {
                          VK_SUBPASS_CONTENTS_INLINE);
 
     VkViewport viewport{};
-    viewport.x = 0.0f;
-    viewport.y = (float)pimpl->swapchain.extent.height;
-    viewport.width = (float)pimpl->swapchain.extent.width;
-    viewport.height = -(float)pimpl->swapchain.extent.height;
+    if (flip_viewport) {
+      viewport.x = 0.0f;
+      viewport.y = (float)pimpl->swapchain.extent.height;
+      viewport.width = (float)pimpl->swapchain.extent.width;
+      viewport.height = -(float)pimpl->swapchain.extent.height;
+    } else {
+      viewport.x = 0.0f;
+      viewport.y = 0.0f;
+      viewport.width = (float)pimpl->swapchain.extent.width;
+      viewport.height = (float)pimpl->swapchain.extent.height;
+    }
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
     vkCmdSetViewport(frameData.drawBuf, 0, 1, &viewport);
@@ -950,10 +957,17 @@ gfx::Pipeline* GFXDevice::CreatePipeline(const gfx::PipelineInfo& info) {
   inputAssembly.primitiveRestartEnable = VK_FALSE;
 
   VkViewport viewport{};
-  viewport.x = 0.0f;
-  viewport.y = (float)pimpl->swapchain.extent.height;
-  viewport.width = (float)pimpl->swapchain.extent.width;
-  viewport.height = -(float)pimpl->swapchain.extent.height;
+  if (flip_viewport) {
+    viewport.x = 0.0f;
+    viewport.y = (float)pimpl->swapchain.extent.height;
+    viewport.width = (float)pimpl->swapchain.extent.width;
+    viewport.height = -(float)pimpl->swapchain.extent.height;
+  } else {
+    viewport.x = 0.0f;
+    viewport.y = 0.0f;
+    viewport.width = (float)pimpl->swapchain.extent.width;
+    viewport.height = (float)pimpl->swapchain.extent.height;
+  }
   viewport.minDepth = 0.0f;
   viewport.maxDepth = 1.0f;
 
@@ -1172,7 +1186,8 @@ gfx::DescriptorSet* GFXDevice::AllocateDescriptorSet(
 void GFXDevice::FreeDescriptorSet(const gfx::DescriptorSet* set) {
   assert(set != nullptr);
   VKCHECK(vkFreeDescriptorSets(pimpl->device.device, pimpl->descriptorPool,
-                               static_cast<uint32_t>(set->sets.size()), set->sets.data()));
+                               static_cast<uint32_t>(set->sets.size()),
+                               set->sets.data()));
 }
 
 void GFXDevice::UpdateDescriptorUniformBuffer(const gfx::DescriptorSet* set,
@@ -1413,7 +1428,7 @@ gfx::Image* GFXDevice::CreateImage(uint32_t w, uint32_t h,
                                    const void* imageData) {
   assert(imageData != nullptr);
 
-  if (pimpl->FRAMECOUNT != 0) abort(); //  TODO. This is annoying
+  if (pimpl->FRAMECOUNT != 0) abort();  //  TODO. This is annoying
 
   gfx::Image* out = new gfx::Image{};
 

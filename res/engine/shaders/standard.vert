@@ -30,4 +30,6 @@ void main() {
 
 	vec3 lightPos = vec3(2000.0, 2000.0, -2000.0);
 	fragLightPos = vec3(frameSetUniformBuffer.view * vec4(lightPos, 1.0));
+
+  gl_Position.y *= -1.0;
 }

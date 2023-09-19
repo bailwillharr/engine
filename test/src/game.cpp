@@ -142,16 +142,17 @@ void PlayGame(GameSettings settings) {
         LOG_DEBUG("Textbox custom component initialised!");
       };
 
-      textboxComponent->onUpdate = [](float ts) {
+      textboxComponent->onUpdate = [&](float ts) {
         static float time_elapsed;
         time_elapsed += ts;
         if (time_elapsed >= 1.0f) {
           time_elapsed = 0.0f;
-          LOG_INFO("COMPONENT UPDATE");
         }
       };
     }
 
+    engine::util::LoadMeshFromFile(my_scene, app.GetResourcePath("models/MY_AXES.dae"), true);
+    my_scene->GetComponent<engine::TransformComponent>(engine::util::LoadMeshFromFile(my_scene, app.GetResourcePath("models/uvcheck.dae"), true))->position += glm::vec3{20.0f, 20.0f, 20.0f};
     /* teapot */
     my_scene
         ->GetComponent<engine::TransformComponent>(

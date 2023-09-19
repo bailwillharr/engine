@@ -144,7 +144,7 @@ namespace engine::util {
 			aiProcess_GenSmoothNormals |
 			aiProcess_GenUVCoords |
 			aiProcess_TransformUVCoords |
-			aiProcess_FlipUVs | // Maybe?
+			aiProcess_FlipUVs | // Collada uses bottom-left origin
 			0
 		);
 

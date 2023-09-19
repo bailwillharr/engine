@@ -107,8 +107,9 @@ class Scene {
 
  private:
   Application* const app_;
+  public:
   Entity next_entity_id_ = 1;  // 0 is not a valid entity
-
+private:
   uint64_t framecount_ = 0;
 
   /* ecs stuff */

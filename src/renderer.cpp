@@ -4,6 +4,24 @@
 #include <glm/trigonometric.hpp>
 #include <glm/ext/matrix_clip_space.hpp>
 
+[[maybe_unused]] static glm::mat4 GenPerspectiveMatrix(float vertical_fov_radians,
+                                      float aspect_ratio, float znear,
+                                      float zfar) {
+  float g = 1.0f / tan(vertical_fov_radians * 0.5);
+  float k1 = zfar / (zfar - znear);
+  float k2 = -(zfar * znear) / (znear - zfar);
+  glm::mat4 m{1.0f};
+
+  m[0][0] = g / aspect_ratio;
+  m[1][1] = g;
+  m[2][2] = k1;
+  m[2][3] = -1.0f;
+  m[3][2] = k2;
+  m[3][3] = 0.0f;
+
+  return m;
+}
+
 namespace engine {
 
 Renderer::Renderer(const char* app_name, const char* app_version,
@@ -71,7 +89,7 @@ void Renderer::PreRender(bool window_is_resized, glm::mat4 camera_transform) {
     uint32_t w, h;
     device_->GetViewportSize(&w, &h);
     viewport_aspect_ratio_ = (float)w / (float)h;
-    const glm::mat4 proj_matrix = glm::perspectiveZO(
+    const glm::mat4 proj_matrix = glm::perspectiveRH_ZO(
         camera_settings_.vertical_fov_radians, viewport_aspect_ratio_,
         camera_settings_.clip_near, camera_settings_.clip_far);
     /* update SET 0 (rarely changing uniforms)*/

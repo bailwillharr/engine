@@ -21,4 +21,5 @@ void main() {
 	vec3 position = mat3(frameSetUniformBuffer.view) * vec3(constants.model * vec4(inPosition, 1.0));
 	gl_Position = (globalSetUniformBuffer.proj * vec4(position, 0.0)).xyzz;
 	fragUV = inUV;
+  gl_Position.y *= -1.0;
 }
