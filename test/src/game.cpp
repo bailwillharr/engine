@@ -57,7 +57,7 @@ void PlayGame(GameSettings settings) {
   ConfigureInputs(app.input_manager());
 
   {
-    auto my_scene = app.scene_manager()->CreateEmptyScene();
+    static auto my_scene = app.scene_manager()->CreateEmptyScene();
 
     /* create camera */
     {
@@ -68,7 +68,7 @@ void PlayGame(GameSettings settings) {
 
       auto camera_transform =
           my_scene->GetComponent<engine::TransformComponent>(camera);
-      camera_transform->position = {0.0f, 10.0f, 0.0f};
+      camera_transform->position = {0.0f, 0.0f, 10.0f};
 
       my_scene->RegisterComponent<CameraControllerComponent>();
       my_scene->RegisterSystem<CameraControllerSystem>();
@@ -119,7 +119,7 @@ void PlayGame(GameSettings settings) {
           my_scene, app.GetResourcePath("models/cobble_house/cobble_house.dae"),
           false);
       my_scene->GetComponent<engine::TransformComponent>(cobbleHouse)
-          ->position += glm::vec3{33.0f, 0.1f, 35.0f};
+          ->position += glm::vec3{33.0f, 35.0f, 0.1f};
       auto cobbleCustom =
           my_scene->AddComponent<engine::CustomComponent>(cobbleHouse);
       cobbleCustom->onInit = [](void) {
@@ -131,6 +131,8 @@ void PlayGame(GameSettings settings) {
         t->rotation *= glm::angleAxis(ts, glm::vec3{0.0f, 0.0f, 1.0f});
       };
     }
+
+    static auto cube = engine::util::LoadMeshFromFile(my_scene, app.GetResourcePath("models/far_away_cube.dae"), true);
 
     /* some text */
     {
@@ -153,6 +155,7 @@ void PlayGame(GameSettings settings) {
 
     engine::util::LoadMeshFromFile(my_scene, app.GetResourcePath("models/MY_AXES.dae"), true);
     my_scene->GetComponent<engine::TransformComponent>(engine::util::LoadMeshFromFile(my_scene, app.GetResourcePath("models/uvcheck.dae"), true))->position += glm::vec3{20.0f, 20.0f, 20.0f};
+
     /* teapot */
     my_scene
         ->GetComponent<engine::TransformComponent>(

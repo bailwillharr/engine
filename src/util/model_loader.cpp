@@ -66,6 +66,13 @@ namespace engine::util {
 		// get rotation
 		glm::quat rotation = glm::quat_cast(transform);
 
+		// ASSIMP always makes the root node Y-up
+		// We want Z-up
+		if (parentNode->mParent == nullptr) {
+			// if this is the root node
+			rotation *= glm::angleAxis(glm::half_pi<float>(), glm::vec3{1.0f, 0.0f, 0.0f});
+		}
+
 		// update position, scale, rotation
 		auto parentTransform = scene->GetComponent<TransformComponent>(parentObj);
 		parentTransform->position = position;
@@ -101,6 +108,7 @@ namespace engine::util {
 
 	Entity LoadMeshFromFile(Scene* parent, const std::string& path, bool is_static)
 	{
+
 		Assimp::Importer importer;
 
 		class myStream : public Assimp::LogStream {

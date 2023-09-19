@@ -28,7 +28,7 @@ void main() {
 	fragNorm = mat3(transpose(inverse(frameSetUniformBuffer.view * constants.model))) * inNorm;
 	fragUV = inUV;
 
-	vec3 lightPos = vec3(2000.0, 2000.0, -2000.0);
+	vec3 lightPos = vec3(2000.0, -2000.0, 2000.0);
 	fragLightPos = vec3(frameSetUniformBuffer.view * vec4(lightPos, 1.0));
 
   gl_Position.y *= -1.0;

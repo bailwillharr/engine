@@ -36,12 +36,12 @@ void CameraControllerSystem::OnUpdate(float ts) {
   if (scene_->app()->input_manager()->GetButton("sprint")) speed *= 10.0f;
 
   float dx = scene_->app()->input_manager()->GetAxis("movex");
-  float dz = (-scene_->app()->input_manager()->GetAxis("movey"));
+  float dy = (-scene_->app()->input_manager()->GetAxis("movey"));
 
   // calculate new pitch and yaw
 
-  constexpr float kMaxPitch = glm::half_pi<float>();
-  constexpr float kMinPitch = -kMaxPitch;
+  constexpr float kMaxPitch = glm::pi<float>();
+  constexpr float kMinPitch = 0.0f;
 
   float d_pitch = scene_->app()->input_manager()->GetAxis("looky") * -1.0f *
                   c->kCameraSensitivity;
@@ -53,10 +53,10 @@ void CameraControllerSystem::OnUpdate(float ts) {
             c->kCameraSensitivity;
 
   // update position relative to camera direction in xz plane
-  const glm::vec3 d2x_rotated = glm::rotateY(glm::vec3{dx, 0.0f, 0.0f}, c->yaw);
-  const glm::vec3 d2z_rotated =
-      glm::rotateY(glm::rotateX(glm::vec3{0.0f, 0.0f, dz}, c->pitch), c->yaw);
-  glm::vec3 h_vel = (d2x_rotated + d2z_rotated);
+  const glm::vec3 d2x_rotated = glm::rotateZ(glm::vec3{dx, 0.0f, 0.0f}, c->yaw);
+  const glm::vec3 d2y_rotated =
+      glm::rotateZ(glm::rotateX(glm::vec3{0.0f, 0.0f, dy}, c->pitch), c->yaw);
+  glm::vec3 h_vel = (d2x_rotated + d2y_rotated);
   h_vel *= speed;
   t->position += h_vel * dt;
 
@@ -80,8 +80,8 @@ void CameraControllerSystem::OnUpdate(float ts) {
   const float half_yaw = c->yaw / 2.0f;
   glm::quat yaw_quat{};
   yaw_quat.x = 0.0f;
-  yaw_quat.y = glm::sin(half_yaw);
-  yaw_quat.z = 0.0f;
+  yaw_quat.y = 0.0f;
+  yaw_quat.z = glm::sin(half_yaw);
   yaw_quat.w = glm::cos(half_yaw);
 
   // update rotation
