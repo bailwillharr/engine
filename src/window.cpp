@@ -3,6 +3,8 @@
 #include <iostream>
 #include <stdexcept>
 
+#include <imgui/imgui_impl_sdl2.h>
+
 static const uint64_t BILLION = 1000000000;
 
 namespace engine {
@@ -109,63 +111,85 @@ namespace engine {
 
 	void Window::OnKeyEvent(SDL_KeyboardEvent& e)
 	{
-		bool keyWasDown = keyboard_.keys[e.keysym.scancode];
-		bool keyIsDown = (e.state == SDL_PRESSED);
-		keyboard_.keys[e.keysym.scancode] = keyIsDown;
-		if (keyIsDown != keyWasDown) { // (if key was pressed or released)
-			keyboard_.deltas[e.keysym.scancode] = keyIsDown ? ButtonDelta::kPressed : ButtonDelta::kReleased;
+		const ImGuiIO& io = ImGui::GetIO();
+		if (io.WantCaptureKeyboard) {
+			keyboard_.deltas.fill(ButtonDelta::kSame);
+		}
+		else {
+			bool keyWasDown = keyboard_.keys[e.keysym.scancode];
+			bool keyIsDown = (e.state == SDL_PRESSED);
+			keyboard_.keys[e.keysym.scancode] = keyIsDown;
+			if (keyIsDown != keyWasDown) { // (if key was pressed or released)
+				keyboard_.deltas[e.keysym.scancode] = keyIsDown ? ButtonDelta::kPressed : ButtonDelta::kReleased;
+			}
 		}
 	}
 
 	void Window::OnMouseButtonEvent(SDL_MouseButtonEvent& e)
 	{
-		enum inputs::MouseButton button = inputs::MouseButton::M_INVALID;
-		switch (e.button) {
-		case SDL_BUTTON_LEFT:
-			button = inputs::MouseButton::M_LEFT;
-			break;
-		case SDL_BUTTON_MIDDLE:
-			button = inputs::MouseButton::M_MIDDLE;
-			break;
-		case SDL_BUTTON_RIGHT:
-			button = inputs::MouseButton::M_RIGHT;
-			break;
-		case SDL_BUTTON_X1:
-			button = inputs::MouseButton::M_X1;
-			break;
-		case SDL_BUTTON_X2:
-			button = inputs::MouseButton::M_X2;
-			break;
+		const ImGuiIO& io = ImGui::GetIO();
+		if (io.WantCaptureMouse) {
+			mouse_.deltas.fill(ButtonDelta::kSame);
 		}
-		int buttonIndex = static_cast<int>(button);
-		bool buttonWasDown = mouse_.buttons.at(buttonIndex);
-		bool buttonIsDown = (e.state == SDL_PRESSED);
-		mouse_.buttons.at(buttonIndex) = buttonIsDown;
-		if (buttonIsDown != buttonWasDown) { // (if button was pressed or released)
-			// only sets delta if it hasn't already been set this frame (to detect very fast presses)
-			if (mouse_.deltas[buttonIndex] == ButtonDelta::kSame) {
-				mouse_.deltas[buttonIndex] = buttonIsDown ? ButtonDelta::kPressed : ButtonDelta::kReleased;
+		else {
+			enum inputs::MouseButton button = inputs::MouseButton::M_INVALID;
+			switch (e.button) {
+			case SDL_BUTTON_LEFT:
+				button = inputs::MouseButton::M_LEFT;
+				break;
+			case SDL_BUTTON_MIDDLE:
+				button = inputs::MouseButton::M_MIDDLE;
+				break;
+			case SDL_BUTTON_RIGHT:
+				button = inputs::MouseButton::M_RIGHT;
+				break;
+			case SDL_BUTTON_X1:
+				button = inputs::MouseButton::M_X1;
+				break;
+			case SDL_BUTTON_X2:
+				button = inputs::MouseButton::M_X2;
+				break;
+			}
+			int buttonIndex = static_cast<int>(button);
+			bool buttonWasDown = mouse_.buttons.at(buttonIndex);
+			bool buttonIsDown = (e.state == SDL_PRESSED);
+			mouse_.buttons.at(buttonIndex) = buttonIsDown;
+			if (buttonIsDown != buttonWasDown) { // (if button was pressed or released)
+				// only sets delta if it hasn't already been set this frame (to detect very fast presses)
+				if (mouse_.deltas[buttonIndex] == ButtonDelta::kSame) {
+					mouse_.deltas[buttonIndex] = buttonIsDown ? ButtonDelta::kPressed : ButtonDelta::kReleased;
+				}
 			}
 		}
 	}
 
 	void Window::OnMouseMotionEvent(SDL_MouseMotionEvent& e)
 	{
-		mouse_.x = e.x;
-		mouse_.y = e.y;
-		mouse_.dx = e.xrel;
-		mouse_.dy = e.yrel;
+		const ImGuiIO& io = ImGui::GetIO();
+		if (io.WantCaptureMouse) {
+			mouse_.dx = 0.0f;
+			mouse_.dy = 0.0f;
+		}
+		else {
+			mouse_.x = e.x;
+			mouse_.y = e.y;
+			mouse_.dx = e.xrel;
+			mouse_.dy = e.yrel;
+		}
 	}
 
 	void Window::OnMouseWheelEvent(SDL_MouseWheelEvent& e)
 	{
-		if (e.direction == SDL_MOUSEWHEEL_NORMAL) {
-			mouse_.xscroll = e.preciseX;
-			mouse_.yscroll = e.preciseY;
-		}
-		else { // flipped
-			mouse_.xscroll = -e.preciseX;
-			mouse_.yscroll = -e.preciseY;
+		const ImGuiIO& io = ImGui::GetIO();
+		if (!io.WantCaptureMouse) {
+			if (e.direction == SDL_MOUSEWHEEL_NORMAL) {
+				mouse_.xscroll = e.preciseX;
+				mouse_.yscroll = e.preciseY;
+			}
+			else { // flipped
+				mouse_.xscroll = -e.preciseX;
+				mouse_.yscroll = -e.preciseY;
+			}
 		}
 	}
 
@@ -194,6 +218,7 @@ namespace engine {
 		// loop through all available events
 		SDL_Event e;
 		while (SDL_PollEvent(&e)) {
+			ImGui_ImplSDL2_ProcessEvent(&e);
 			switch (e.type) {
 
 			case SDL_QUIT:

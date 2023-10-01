@@ -4,10 +4,12 @@
 #include <glm/trigonometric.hpp>
 #include <glm/ext/matrix_clip_space.hpp>
 
+#include "imgui/imgui.h"
+
 [[maybe_unused]] static glm::mat4 GenPerspectiveMatrix(float vertical_fov_radians,
                                       float aspect_ratio, float znear,
                                       float zfar) {
-  float g = 1.0f / tan(vertical_fov_radians * 0.5);
+  float g = 1.0f / tanf(vertical_fov_radians * 0.5f);
   float k1 = zfar / (zfar - znear);
   float k2 = -(zfar * znear) / (znear - zfar);
   glm::mat4 m{1.0f};
@@ -69,6 +71,8 @@ Renderer::Renderer(const char* app_name, const char* app_version,
     binding0.stage_flags = gfx::ShaderStageFlags::kFragment;
   }
   material_set_layout = device_->CreateDescriptorSetLayout(materialSetBindings);
+
+  device_->SetupImguiBackend();
 };
 
 Renderer::~Renderer() {
@@ -120,6 +124,8 @@ void Renderer::Render(const RenderList& static_list,
   if (!dynamic_list.empty()) {
     DrawRenderList(draw_buffer, dynamic_list);
   }
+
+  device_->CmdRenderImguiDrawData(draw_buffer, ImGui::GetDrawData());
 
   device_->FinishRender(draw_buffer);
 }

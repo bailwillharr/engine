@@ -37,6 +37,9 @@
 
 #include <volk.h>
 
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_vulkan.h"
+
 #include "gfx_device.h"
 #include "vulkan/instance.h"
 #include "vulkan/device.h"
@@ -50,10 +53,14 @@
 static constexpr bool flip_viewport = false;
 
 inline static void checkVulkanError(VkResult errorCode, int lineNo) {
-  if (errorCode != VK_SUCCESS) {
-    const std::string message("VULKAN ERROR ON LINE " + std::to_string(lineNo));
-    throw std::runtime_error(message.c_str());
-  }
+    if (errorCode != VK_SUCCESS) {
+        const std::string message("VULKAN ERROR ON LINE " + std::to_string(lineNo));
+        throw std::runtime_error(message.c_str());
+    }
+}
+
+static void check_vk_result(VkResult code) {
+    checkVulkanError(code, -1);
 }
 
 #undef VKCHECK
@@ -584,6 +591,72 @@ void GFXDevice::GetViewportSize(uint32_t* w, uint32_t* h) {
     *w = (uint32_t)width;
     *h = (uint32_t)height;
   }
+}
+
+void GFXDevice::SetupImguiBackend()
+{
+    ImGui_ImplVulkan_InitInfo initInfo{};
+    initInfo.Instance = pimpl->instance.instance;
+    initInfo.PhysicalDevice = pimpl->device.physicalDevice;
+    initInfo.Device = pimpl->device.device;
+    initInfo.QueueFamily = pimpl->device.queues.presentAndDrawQueueFamily;
+    initInfo.Queue = pimpl->device.queues.drawQueues.back(); // hopefully this isn't used by anything else?
+    initInfo.PipelineCache = VK_NULL_HANDLE;
+    initInfo.DescriptorPool = pimpl->descriptorPool;
+    initInfo.Subpass = 0;
+    initInfo.MinImageCount = 3;
+    initInfo.ImageCount = 3;
+    initInfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+    initInfo.Allocator = nullptr;
+    initInfo.CheckVkResultFn = check_vk_result;
+    bool success = ImGui_ImplVulkan_Init(&initInfo, pimpl->swapchain.renderpass);
+    if (!success) throw std::runtime_error("ImGui_ImplVulkan_Init failed!");
+
+    /* begin command buffer */
+    VkCommandBufferAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocInfo.commandPool = pimpl->graphicsCommandPool;
+    allocInfo.commandBufferCount = 1;
+
+    VkCommandBuffer commandBuffer;
+    VKCHECK(vkAllocateCommandBuffers(pimpl->device.device, &allocInfo,
+        &commandBuffer));
+
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    VKCHECK(vkBeginCommandBuffer(commandBuffer, &beginInfo));
+
+    ImGui_ImplVulkan_CreateFontsTexture(commandBuffer);
+
+    VKCHECK(vkEndCommandBuffer(commandBuffer));
+
+    // submit
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &commandBuffer;
+
+    VKCHECK(vkQueueSubmit(pimpl->device.queues.drawQueues[0], 1, &submitInfo,
+        VK_NULL_HANDLE));
+
+    VKCHECK(vkQueueWaitIdle(pimpl->device.queues.drawQueues[0]));
+
+    vkFreeCommandBuffers(pimpl->device.device, pimpl->graphicsCommandPool, 1,
+        &commandBuffer);
+
+    ImGui_ImplVulkan_DestroyFontUploadObjects();
+}
+
+void GFXDevice::ShutdownImguiBackend()
+{
+    ImGui_ImplVulkan_Shutdown();
+}
+
+void GFXDevice::CmdRenderImguiDrawData(gfx::DrawBuffer* draw_buffer, ImDrawData* draw_data)
+{
+    ImGui_ImplVulkan_RenderDrawData(draw_data, draw_buffer->frameData.drawBuf);
 }
 
 gfx::DrawBuffer* GFXDevice::BeginRender() {

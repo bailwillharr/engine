@@ -8,6 +8,7 @@
 #include <typeinfo>
 
 #include <glm/vec3.hpp>
+#include <glm/ext/quaternion_float.hpp>
 
 #include "ecs.h"
 #include "event_system.h"
@@ -32,7 +33,9 @@ class Scene {
   /* ecs stuff */
 
   Entity CreateEntity(const std::string& tag, Entity parent = 0,
-                        const glm::vec3& pos = glm::vec3{0.0f, 0.0f, 0.0f});
+                      const glm::vec3& pos = glm::vec3{0.0f, 0.0f, 0.0f},
+                      const glm::quat& rot = glm::quat{1.0f, 0.0f, 0.0f, 0.0f},
+                      const glm::vec3& scl = glm::vec3{1.0f, 1.0f, 1.0f});
 
   Entity GetEntity(const std::string& tag, Entity parent = 0);
 
@@ -107,9 +110,10 @@ class Scene {
 
  private:
   Application* const app_;
-  public:
+
+ public:
   Entity next_entity_id_ = 1;  // 0 is not a valid entity
-private:
+ private:
   uint64_t framecount_ = 0;
 
   /* ecs stuff */

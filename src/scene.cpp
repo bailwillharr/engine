@@ -36,7 +36,8 @@ Scene::Scene(Application* app) : app_(app) {
 Scene::~Scene() {}
 
 Entity Scene::CreateEntity(const std::string& tag, Entity parent,
-                             const glm::vec3& pos) {
+                           const glm::vec3& pos, const glm::quat& rot,
+                           const glm::vec3& scl) {
   Entity id = next_entity_id_++;
 
   signatures_.emplace(id, std::bitset<kMaxComponents>{});
@@ -44,8 +45,8 @@ Entity Scene::CreateEntity(const std::string& tag, Entity parent,
   auto t = AddComponent<TransformComponent>(id);
 
   t->position = pos;
-  t->rotation = {};
-  t->scale = {1.0f, 1.0f, 1.0f};
+  t->rotation = rot;
+  t->scale = scl;
 
   t->tag = tag;
   t->parent = parent;

@@ -6,6 +6,7 @@
 #include "gfx.h"
 
 struct SDL_Window;  // <SDL_video.h>
+struct ImDrawData;  // "imgui/imgui.h"
 
 namespace engine {
 
@@ -19,6 +20,10 @@ class GFXDevice {
   ~GFXDevice();
 
   void GetViewportSize(uint32_t* w, uint32_t* h);
+
+  void SetupImguiBackend();
+  void ShutdownImguiBackend();
+  void CmdRenderImguiDrawData(gfx::DrawBuffer* draw_buffer, ImDrawData* draw_data);
 
   gfx::DrawBuffer* BeginRender();
 
