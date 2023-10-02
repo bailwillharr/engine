@@ -26,12 +26,9 @@ set(SRC_FILES
 	"src/imgui/imgui_internal.h"
 	"src/imgui/imgui_tables.cpp"
 	"src/imgui/imgui_widgets.cpp"
-	"src/imgui/imstb_rectpack.h"
 	"src/imgui/imstb_textedit.h"
-	"src/imgui/imstb_truetype.h"
 	"src/input_manager.cpp"
-	"src/libs/stb_image.cpp"
-	"src/libs/stb_truetype.cpp"
+	"src/libs/stb_impl.cpp"
 	"src/renderer.cpp"
 	"src/resources/font.cpp"
 	"src/resources/material.cpp"
@@ -46,6 +43,7 @@ set(SRC_FILES
 	"src/systems/ui_render_system.cpp"
 	"src/systems/transform.cpp"
 	"src/util/files.cpp"
+	"src/util/gltf_loader.cpp"
 	"src/util/model_loader.cpp"
 	"src/vulkan/device.cpp"
 	"src/vulkan/device.h"
@@ -91,6 +89,7 @@ set(INCLUDE_FILES
 	"include/systems/transform.h"
 	"include/util.h"
 	"include/util/files.h"
+	"include/util/gltf_loader.h"
 	"include/util/model_loader.h"
 	"include/window.h"
 )
@@ -139,6 +138,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 if (ENGINE_BUILD_TEST)
 	add_subdirectory(test)
 	set(CMAKE_RUNTIME_OUTPUT_DIRECTORY $<TARGET_FILE_DIR:enginetest>)
+	set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT enginetest)
 endif()
 
 # private libraries:
