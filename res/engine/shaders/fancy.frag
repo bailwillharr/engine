@@ -5,12 +5,10 @@ layout(set = 2, binding = 1) uniform sampler2D materialSetNormalSampler;
 layout(set = 2, binding = 2) uniform sampler2D materialSetOcclusionSampler;
 layout(set = 2, binding = 3) uniform sampler2D materialSetMetallicRoughnessSampler;
 
-layout(location = 0) in vec3 fragPos;
-layout(location = 1) in vec3 fragNorm;
-layout(location = 2) in vec2 fragUV;
-layout(location = 3) in vec3 fragViewPos;
-layout(location = 4) in vec3 fragLightPos;
-layout(location = 5) in mat3 fragTBN;
+layout(location = 0) in vec2 fragUV;
+layout(location = 1) in vec3 fragPosTangentSpace;
+layout(location = 2) in vec3 fragViewPosTangentSpace;
+layout(location = 3) in vec3 fragLightPosTangentSpace;
 
 layout(location = 0) out vec4 outColor;
 
@@ -25,10 +23,11 @@ void main() {
 	vec3 baseColor = vec3(texture(materialSetAlbedoSampler, fragUV));
 	
 	vec3 norm = vec3(texture(materialSetNormalSampler, fragUV));
+	//norm.y = 1.0 - norm.y;
 	norm = normalize(norm * 2.0 - 1.0);
 	
-	vec3 lightDir = fragTBN * normalize(fragLightPos - fragPos);
-	vec3 viewDir = fragTBN * normalize(fragViewPos - fragPos);
+	vec3 lightDir = normalize(fragLightPosTangentSpace - fragPosTangentSpace);
+	vec3 viewDir = normalize(fragViewPosTangentSpace - fragPosTangentSpace);
 	
 	vec3 diffuse = max(dot(norm, lightDir), 0.0) * lightColor;
 	vec3 ambient = ambientColor * ambientStrength;
@@ -36,7 +35,7 @@ void main() {
 	float spec = pow(max(dot(norm, halfwayDir), 0.0), 32.0);
 	vec3 specular = spec * lightColor;
 	
-	vec3 lighting = min(diffuse + ambient + specular, 1.0);
-	outColor = min( ( vec4(baseColor, 1.0) ) * vec4(lighting + emission, 1.0), vec4(1.0));
+	vec3 lighting = diffuse + ambient + specular;
+	outColor = vec4(min(baseColor * (lighting + emission), 1.0), 1.0);
 }
 

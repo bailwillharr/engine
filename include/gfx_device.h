@@ -102,7 +102,7 @@ class GFXDevice {
 
   void DestroyBuffer(const gfx::Buffer* buffer);
 
-  gfx::Image* CreateImage(uint32_t w, uint32_t h, const void* image_data);
+  gfx::Image* CreateImage(uint32_t w, uint32_t h, gfx::ImageFormat input_format, const void* image_data);
 
   void DestroyImage(const gfx::Image* image);
 

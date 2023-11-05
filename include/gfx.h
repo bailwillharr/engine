@@ -47,6 +47,11 @@ struct GraphicsSettings {
   MSAALevel msaa_level;
 };
 
+enum class ImageFormat {
+    kLinear,
+    kSRGB,
+};
+
 enum class ShaderType {
   kVertex,
   kFragment,

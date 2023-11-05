@@ -17,7 +17,7 @@ class Texture {
         kAnisotropic,
     };
 
-    Texture(Renderer* renderer, const uint8_t* bitmap, int width, int height, Filtering filtering);
+    Texture(Renderer* renderer, const uint8_t* bitmap, int width, int height, Filtering filtering, bool srgb);
 
     ~Texture();
     Texture(const Texture&) = delete;
@@ -32,7 +32,7 @@ class Texture {
     const gfx::Sampler* sampler_; // not owned by Texture, owned by Renderer
 };
 
-std::unique_ptr<Texture> LoadTextureFromFile(const std::string& path, Texture::Filtering filtering, Renderer* renderer);
+std::unique_ptr<Texture> LoadTextureFromFile(const std::string& path, Texture::Filtering filtering, Renderer* renderer, bool srgb = true);
 
 } // namespace engine
 

@@ -8,7 +8,7 @@
 
 namespace engine {
 
-Texture::Texture(Renderer* renderer, const uint8_t* bitmap, int width, int height, Filtering filtering) : gfx_(renderer->GetDevice())
+Texture::Texture(Renderer* renderer, const uint8_t* bitmap, int width, int height, Filtering filtering, bool srgb) : gfx_(renderer->GetDevice())
 {
     gfx::SamplerInfo samplerInfo{};
 
@@ -40,7 +40,12 @@ Texture::Texture(Renderer* renderer, const uint8_t* bitmap, int width, int heigh
         renderer->samplers.insert(std::make_pair(samplerInfo, gfx_->CreateSampler(samplerInfo)));
     }
 
-    image_ = gfx_->CreateImage(width, height, bitmap);
+    gfx::ImageFormat format = gfx::ImageFormat::kLinear;
+    if (srgb) {
+        format = gfx::ImageFormat::kSRGB;
+    }
+
+    image_ = gfx_->CreateImage(width, height, format, bitmap);
     sampler_ = renderer->samplers.at(samplerInfo);
 
     LOG_DEBUG("Created texture: width: {}, height: {}", width, height);
@@ -52,11 +57,11 @@ Texture::~Texture()
     gfx_->DestroyImage(image_);
 }
 
-std::unique_ptr<Texture> LoadTextureFromFile(const std::string& path, Texture::Filtering filtering, Renderer* renderer)
+std::unique_ptr<Texture> LoadTextureFromFile(const std::string& path, Texture::Filtering filtering, Renderer* renderer, bool srgb)
 {
     int width, height;
     auto bitmap = util::ReadImageFile(path, width, height);
-    return std::make_unique<Texture>(renderer, bitmap->data(), width, height, filtering);
+    return std::make_unique<Texture>(renderer, bitmap->data(), width, height, filtering, srgb);
 }
 
 } // namespace engine

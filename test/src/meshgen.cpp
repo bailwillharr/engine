@@ -93,26 +93,26 @@ std::unique_ptr<engine::Mesh> GenCuboidMesh(engine::GFXDevice* gfx, float x, flo
     v.push_back({{x, 0.0f, z}, {0.0f, -1.0f, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f}, {tiling, 0.0f}});
     v.push_back({{0.0f, 0.0f, z}, {0.0f, -1.0f, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}});
     // back
-    v.push_back({{x, y, z}, {0.0f, 1.0f, 0.0f}, {}, {0.0f, 0.0f}});
-    v.push_back({{x, y, 0.0f}, {0.0f, 1.0f, 0.0f}, {}, {0.0f, tiling}});
-    v.push_back({{0.0f, y, 0.0f}, {0.0f, 1.0f, 0.0f}, {}, {tiling, tiling}});
-    v.push_back({{0.0f, y, 0.0f}, {0.0f, 1.0f, 0.0f}, {}, {tiling, tiling}});
-    v.push_back({{0.0f, y, z}, {0.0f, 1.0f, 0.0f}, {}, {tiling, 0.0f}});
-    v.push_back({{x, y, z}, {0.0f, 1.0f, 0.0f}, {}, {0.0f, 0.0f}});
+    v.push_back({{x, y, z}, {0.0f, 1.0f, 0.0f}, {-1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}});
+    v.push_back({{x, y, 0.0f}, {0.0f, 1.0f, 0.0f}, {-1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, tiling}});
+    v.push_back({{0.0f, y, 0.0f}, {0.0f, 1.0f, 0.0f}, {-1.0f, 0.0f, 0.0f, 1.0f}, {tiling, tiling}});
+    v.push_back({{0.0f, y, 0.0f}, {0.0f, 1.0f, 0.0f}, {-1.0f, 0.0f, 0.0f, 1.0f}, {tiling, tiling}});
+    v.push_back({{0.0f, y, z}, {0.0f, 1.0f, 0.0f}, {-1.0f, 0.0f, 0.0f, 1.0f}, {tiling, 0.0f}});
+    v.push_back({{x, y, z}, {0.0f, 1.0f, 0.0f}, {-1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}});
     // left
-    v.push_back({{0.0f, y, z}, {-1.0f, 0.0f, 0.0f}, {}, {0.0f, 0.0f}});
-    v.push_back({{0.0f, y, 0.0f}, {-1.0f, 0.0f, 0.0f}, {}, {0.0f, tiling}});
-    v.push_back({{0.0f, 0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}, {}, {tiling, tiling}});
-    v.push_back({{0.0f, 0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}, {}, {tiling, tiling}});
-    v.push_back({{0.0f, 0.0f, z}, {-1.0f, 0.0f, 0.0f}, {}, {tiling, 0.0f}});
-    v.push_back({{0.0f, y, z}, {-1.0f, 0.0f, 0.0f}, {}, {0.0f, 0.0f}});
+    v.push_back({{0.0f, y, z}, {-1.0f, 0.0f, 0.0f}, {0.0f, -1.0f, 0.0f, 1.0f}, {0.0f, 0.0f}});
+    v.push_back({{0.0f, y, 0.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, -1.0f, 0.0f, 1.0f}, {0.0f, tiling}});
+    v.push_back({{0.0f, 0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, -1.0f, 0.0f, 1.0f}, {tiling, tiling}});
+    v.push_back({{0.0f, 0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, -1.0f, 0.0f, 1.0f}, {tiling, tiling}});
+    v.push_back({{0.0f, 0.0f, z}, {-1.0f, 0.0f, 0.0f}, {0.0f, -1.0f, 0.0f, 1.0f}, {tiling, 0.0f}});
+    v.push_back({{0.0f, y, z}, {-1.0f, 0.0f, 0.0f}, {0.0f, -1.0f, 0.0f, 1.0f}, {0.0f, 0.0f}});
     // right
-    v.push_back({{x, 0.0f, z}, {1.0f, 0.0f, 0.0f}, {}, {0.0f, 0.0f}});
-    v.push_back({{x, 0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {}, {0.0f, tiling}});
-    v.push_back({{x, y, 0.0f}, {1.0f, 0.0f, 0.0f}, {}, {tiling, tiling}});
-    v.push_back({{x, y, 0.0f}, {1.0f, 0.0f, 0.0f}, {}, {tiling, tiling}});
-    v.push_back({{x, y, z}, {1.0f, 0.0f, 0.0f}, {}, {tiling, 0.0f}});
-    v.push_back({{x, 0.0f, z}, {1.0f, 0.0f, 0.0f}, {}, {0.0f, 0.0f}});
+    v.push_back({{x, 0.0f, z}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f}});
+    v.push_back({{x, 0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f, 1.0f}, {0.0f, tiling}});
+    v.push_back({{x, y, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f, 1.0f}, {tiling, tiling}});
+    v.push_back({{x, y, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f, 1.0f}, {tiling, tiling}});
+    v.push_back({{x, y, z}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f, 1.0f}, {tiling, 0.0f}});
+    v.push_back({{x, 0.0f, z}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f}});
     // top
     v.push_back({{0.0f, y, z}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}});
     v.push_back({{0.0f, 0.0f, z}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, tiling}});
@@ -121,12 +121,12 @@ std::unique_ptr<engine::Mesh> GenCuboidMesh(engine::GFXDevice* gfx, float x, flo
     v.push_back({{x, y, z}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f, 0.0f, 1.0f}, {tiling, 0.0f}});
     v.push_back({{0.0f, y, z}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}});
     // bottom
-    v.push_back({{x, y, 0.0f}, {0.0f, 0.0f, -1.0f}, {}, {0.0f, 0.0f}});
-    v.push_back({{x, 0.0f, 0.0f}, {0.0f, 0.0f, -1.0f}, {}, {0.0f, tiling}});
-    v.push_back({{0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, -1.0f}, {}, {tiling, tiling}});
-    v.push_back({{0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, -1.0f}, {}, {tiling, tiling}});
-    v.push_back({{0.0f, y, 0.0f}, {0.0f, 0.0f, -1.0f}, {}, {tiling, 0.0f}});
-    v.push_back({{x, y, 0.0f}, {0.0f, 0.0f, -1.0f}, {}, {0.0f, 0.0f}});
+    v.push_back({{x, y, 0.0f}, {0.0f, 0.0f, -1.0f}, {-1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}});
+    v.push_back({{x, 0.0f, 0.0f}, {0.0f, 0.0f, -1.0f}, {-1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, tiling}});
+    v.push_back({{0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, -1.0f}, {-1.0f, 0.0f, 0.0f, 1.0f}, {tiling, tiling}});
+    v.push_back({{0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, -1.0f}, {-1.0f, 0.0f, 0.0f, 1.0f}, {tiling, tiling}});
+    v.push_back({{0.0f, y, 0.0f}, {0.0f, 0.0f, -1.0f}, {-1.0f, 0.0f, 0.0f, 1.0f}, {tiling, 0.0f}});
+    v.push_back({{x, y, 0.0f}, {0.0f, 0.0f, -1.0f}, {-1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}});
 
     if (wind_inside) {
         for (size_t i = 0; i < v.size(); i += 3) {
