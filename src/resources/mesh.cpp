@@ -3,7 +3,7 @@
 #include "log.h"
 #include "gfx_device.h"
 
-namespace engine::resources {
+namespace engine {
 
 Mesh::Mesh(GFXDevice* gfx, const std::vector<Vertex>& vertices) : gfx_(gfx) {
   std::vector<uint32_t> indices(vertices.size());
@@ -36,4 +36,4 @@ void Mesh::InitMesh(const std::vector<Vertex>& vertices,
             indices.size());
 }
 
-}  // namespace engine::resources
+}  // namespace engine

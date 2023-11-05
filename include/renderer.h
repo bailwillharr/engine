@@ -33,7 +33,7 @@ class Renderer {
   void PreRender(bool window_is_resized, glm::mat4 camera_transform);
 
   // staticList can be nullptr to render nothing
-  void Render(const RenderList& static_list, const RenderList& dynamic_list);
+  void Render(const RenderList* static_list, const RenderList* dynamic_list);
 
   // getters
 
@@ -78,7 +78,10 @@ class Renderer {
   */
   // ALL fragment shaders must begin with:
   /*
-  layout(set = 2, binding = 0) uniform sampler2D materialSetSampler;
+  layout(set = 2, binding = 0) uniform sampler2D materialSetAlbedoSampler;
+  layout(set = 2, binding = 1) uniform sampler2D materialSetNormalSampler;
+  layout(set = 2, binding = 2) uniform sampler2D materialSetOcclusionSampler;
+  layout(set = 2, binding = 3) uniform sampler2D materialSetMetallicRoughnessSampler;
   */
 
   // in vertex shader

@@ -7,36 +7,33 @@
 #include "gfx_device.h"
 
 namespace engine {
-namespace resources {
 
 class Texture {
- public:
-  enum class Filtering {
-    kOff,
-    kBilinear,
-    kTrilinear,
-    kAnisotropic,
-  };
+   public:
+    enum class Filtering {
+        kOff,
+        kBilinear,
+        kTrilinear,
+        kAnisotropic,
+    };
 
-  Texture(Renderer* renderer, const std::string& path,
-          Filtering filtering);
-  Texture(Renderer* renderer, const uint8_t* bitmap, int width, int height,
-          Filtering filtering);
+    Texture(Renderer* renderer, const uint8_t* bitmap, int width, int height, Filtering filtering);
 
-  ~Texture();
-  Texture(const Texture&) = delete;
-  Texture& operator=(const Texture&) = delete;
+    ~Texture();
+    Texture(const Texture&) = delete;
+    Texture& operator=(const Texture&) = delete;
 
-  const gfx::Image* GetImage() { return image_; }
-  const gfx::DescriptorSet* GetDescriptorSet() { return descriptor_set_; }
+    const gfx::Image* GetImage() { return image_; }
+    const gfx::Sampler* GetSampler() { return sampler_; }
 
- private:
-  GFXDevice* gfx_;
-  const gfx::Image* image_;
-  const gfx::DescriptorSet* descriptor_set_;
+   private:
+    GFXDevice* gfx_;
+    const gfx::Image* image_;
+    const gfx::Sampler* sampler_; // not owned by Texture, owned by Renderer
 };
 
-}  // namespace resources
-}  // namespace engine
+std::unique_ptr<Texture> LoadTextureFromFile(const std::string& path, Texture::Filtering filtering, Renderer* renderer);
+
+} // namespace engine
 
 #endif

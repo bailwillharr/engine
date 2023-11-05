@@ -23,6 +23,8 @@ class CameraControllerSystem
 
   engine::TransformComponent* t = nullptr;
   CameraControllerComponent* c = nullptr;
+
+  engine::Scene* next_scene_ = nullptr;
 };
 
 #endif

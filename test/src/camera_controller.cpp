@@ -105,6 +105,7 @@ void CameraControllerSystem::OnUpdate(float ts) {
   }
 
   if (scene_->app()->input_manager()->GetButtonPress("exit")) {
-    scene_->app()->window()->SetCloseFlag();
+    //scene_->app()->window()->SetCloseFlag();
+      scene_->app()->scene_manager()->SetActiveScene(next_scene_);
   }
 }

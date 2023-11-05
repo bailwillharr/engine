@@ -83,11 +83,11 @@ Application::Application(const char* appName, const char* appVersion, gfx::Graph
     resources_path_ = getResourcesPath();
 
     // register resource managers
-    RegisterResourceManager<resources::Mesh>();
-    RegisterResourceManager<resources::Material>();
-    RegisterResourceManager<resources::Texture>();
-    RegisterResourceManager<resources::Shader>();
-    RegisterResourceManager<resources::Font>();
+    RegisterResourceManager<Mesh>();
+    RegisterResourceManager<Material>();
+    RegisterResourceManager<Texture>();
+    RegisterResourceManager<Shader>();
+    RegisterResourceManager<Font>();
 
     im_gui_things.context = ImGui::CreateContext();
     // ImGuiIO& io = ImGui::GetIO()
@@ -97,58 +97,78 @@ Application::Application(const char* appName, const char* appVersion, gfx::Graph
 
     /* default fonts */
     {
-        auto monoFont = std::make_unique<resources::Font>(GetResourcePath("engine/fonts/mono.ttf"));
-        GetResourceManager<resources::Font>()->AddPersistent("builtin.mono", std::move(monoFont));
+        auto monoFont = std::make_unique<Font>(GetResourcePath("engine/fonts/mono.ttf"));
+        GetResourceManager<Font>()->AddPersistent("builtin.mono", std::move(monoFont));
     }
 
     /* default shaders */
     {
-        resources::Shader::VertexParams vertParams{};
+        Shader::VertexParams vertParams{};
         vertParams.has_normal = true;
+        vertParams.has_tangent = true;
         vertParams.has_uv0 = true;
-        resources::Shader::ShaderSettings shaderSettings{};
+        Shader::ShaderSettings shaderSettings{};
         shaderSettings.vertexParams = vertParams;
         shaderSettings.alpha_blending = false;
         shaderSettings.cull_backface = true;
         shaderSettings.write_z = true;
         shaderSettings.render_order = 0;
-        auto texturedShader = std::make_unique<resources::Shader>(renderer(), GetResourcePath("engine/shaders/standard.vert").c_str(),
+        auto texturedShader = std::make_unique<Shader>(renderer(), GetResourcePath("engine/shaders/standard.vert").c_str(),
                                                                   GetResourcePath("engine/shaders/standard.frag").c_str(), shaderSettings);
-        GetResourceManager<resources::Shader>()->AddPersistent("builtin.standard", std::move(texturedShader));
+        GetResourceManager<Shader>()->AddPersistent("builtin.standard", std::move(texturedShader));
     }
     {
-        resources::Shader::VertexParams vertParams{};
+        Shader::VertexParams vertParams{};
         vertParams.has_normal = true;
+        vertParams.has_tangent = true;
         vertParams.has_uv0 = true;
-        resources::Shader::ShaderSettings shaderSettings{};
+        Shader::ShaderSettings shaderSettings{};
         shaderSettings.vertexParams = vertParams;
         shaderSettings.alpha_blending = false;
         shaderSettings.cull_backface = true;
         shaderSettings.write_z = true;
         shaderSettings.render_order = 0;
-        auto skyboxShader = std::make_unique<resources::Shader>(renderer(), GetResourcePath("engine/shaders/skybox.vert").c_str(),
-                                                                GetResourcePath("engine/shaders/skybox.frag").c_str(), shaderSettings);
-        GetResourceManager<resources::Shader>()->AddPersistent("builtin.skybox", std::move(skyboxShader));
+        auto fancyShader = std::make_unique<Shader>(renderer(), GetResourcePath("engine/shaders/fancy.vert").c_str(),
+            GetResourcePath("engine/shaders/fancy.frag").c_str(), shaderSettings);
+        GetResourceManager<Shader>()->AddPersistent("builtin.fancy", std::move(fancyShader));
     }
-    if (0) {
-        resources::Shader::VertexParams vertParams{};
+    {
+        Shader::VertexParams vertParams{};
         vertParams.has_normal = true;
+        vertParams.has_tangent = true;
         vertParams.has_uv0 = true;
-        resources::Shader::ShaderSettings shaderSettings{};
+        Shader::ShaderSettings shaderSettings{};
+        shaderSettings.vertexParams = vertParams;
+        shaderSettings.alpha_blending = false;
+        shaderSettings.cull_backface = true;
+        shaderSettings.write_z = true;
+        shaderSettings.render_order = 0;
+        auto skyboxShader = std::make_unique<Shader>(renderer(), GetResourcePath("engine/shaders/skybox.vert").c_str(),
+                                                                GetResourcePath("engine/shaders/skybox.frag").c_str(), shaderSettings);
+        GetResourceManager<Shader>()->AddPersistent("builtin.skybox", std::move(skyboxShader));
+    }
+#if 0
+    {
+        Shader::VertexParams vertParams{};
+        vertParams.has_normal = true;
+        vertParams.has_tangent = true;
+        vertParams.has_uv0 = true;
+        Shader::ShaderSettings shaderSettings{};
         shaderSettings.vertexParams = vertParams;
         shaderSettings.alpha_blending = true;
         shaderSettings.cull_backface = true;
         shaderSettings.write_z = false;
         shaderSettings.render_order = 1;
-        auto quadShader = std::make_unique<resources::Shader>(renderer(), GetResourcePath("engine/shaders/quad.vert").c_str(),
+        auto quadShader = std::make_unique<Shader>(renderer(), GetResourcePath("engine/shaders/quad.vert").c_str(),
                                                               GetResourcePath("engine/shaders/quad.frag").c_str(), shaderSettings);
-        GetResourceManager<resources::Shader>()->AddPersistent("builtin.quad", std::move(quadShader));
+        GetResourceManager<Shader>()->AddPersistent("builtin.quad", std::move(quadShader));
     }
+#endif
 
     /* default textures */
     {
-        auto whiteTexture = std::make_unique<resources::Texture>(renderer(), GetResourcePath("engine/textures/white.png"), resources::Texture::Filtering::kOff);
-        GetResourceManager<resources::Texture>()->AddPersistent("builtin.white", std::move(whiteTexture));
+        auto whiteTexture = LoadTextureFromFile(GetResourcePath("engine/textures/white.png"), Texture::Filtering::kOff, renderer());
+        GetResourceManager<Texture>()->AddPersistent("builtin.white", std::move(whiteTexture));
     }
 }
 
@@ -228,6 +248,7 @@ void Application::GameLoop()
                         return find_depth(parent, current_depth + 1);
                     }
                 };
+                if (scene)
                 {
                     for (Entity i = 1; i < scene->next_entity_id_; ++i) {
                         auto t = scene->GetComponent<TransformComponent>(i);
@@ -235,7 +256,11 @@ void Application::GameLoop()
                         int depth = find_depth(i, 0);
                         for (int j = 0; j < depth; ++j) tabs += std::string{"    "};
                         ImGui::Text("%s%s", tabs.c_str(), t->tag.c_str());
+                        ImGui::Text("%.1f %.1f %.1f", t->position.x, t->position.y, t->position.z);
                     }
+                }
+                else {
+                    ImGui::Text("No scene active!");
                 }
             }
             ImGui::End();
@@ -253,7 +278,7 @@ void Application::GameLoop()
             dynamic_list = mesh_render_system->GetDynamicRenderList();
         }
         renderer_->PreRender(window()->GetWindowResized(), camera_transform);
-        renderer_->Render(*static_list, *dynamic_list);
+        renderer_->Render(static_list, dynamic_list);
 
         /* poll events */
         window_->GetInputAndEvents();

@@ -167,8 +167,8 @@ namespace engine {
 	{
 		const ImGuiIO& io = ImGui::GetIO();
 		if (io.WantCaptureMouse) {
-			mouse_.dx = 0.0f;
-			mouse_.dy = 0.0f;
+			mouse_.dx = 0;
+			mouse_.dy = 0;
 		}
 		else {
 			mouse_.x = e.x;

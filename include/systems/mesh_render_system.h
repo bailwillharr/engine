@@ -1,5 +1,4 @@
-#ifndef ENGINE_INCLUDE_SYSTEMS_MESH_RENDER_SYSTEM_H_
-#define ENGINE_INCLUDE_SYSTEMS_MESH_RENDER_SYSTEM_H_
+#pragma once
 
 #include <glm/mat4x4.hpp>
 
@@ -13,7 +12,7 @@ struct RenderListEntry {
   const gfx::Pipeline* pipeline;
   const gfx::Buffer* vertex_buffer;
   const gfx::Buffer* index_buffer;
-  const gfx::DescriptorSet* base_colour_texture;
+  const gfx::DescriptorSet* material_set;
   glm::mat4 model_matrix;
   uint32_t index_count;
 };
@@ -44,5 +43,3 @@ class MeshRenderSystem : public System {
 };
 
 }  // namespace engine
-
-#endif

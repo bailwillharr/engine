@@ -54,7 +54,7 @@ std::unique_ptr<std::vector<uint8_t>> ReadBinaryFile(const std::string& path) {
 }
 
 std::unique_ptr<std::vector<uint8_t>> ReadImageFile(const std::string& path,
-                                                    int* width, int* height) {
+                                                    int& width, int& height) {
   int x, y, n;
   unsigned char* data =
       stbi_load(path.c_str(), &x, &y, &n, STBI_rgb_alpha);  // Image is 4 bpp
@@ -68,8 +68,8 @@ std::unique_ptr<std::vector<uint8_t>> ReadImageFile(const std::string& path,
   auto buffer = std::make_unique<std::vector<uint8_t>>(size);
   memcpy(buffer->data(), data, buffer->size());
 
-  *width = x;
-  *height = y;
+  width = x;
+  height = y;
 
   stbi_image_free(data);
 

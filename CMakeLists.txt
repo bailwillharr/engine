@@ -199,7 +199,7 @@ target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC dependencies/glm)
 
 # spdlog
 set(SPDLOG_BUILD_SHARED OFF CACHE INTERNAL "" FORCE)
+set(SPDLOG_SYSTEM_INCLUDES ON CACHE INTERNAL "" FORCE)
 set(BUILD_SHARED_LIBS OFF)
-add_subdirectory(dependencies/spdlog)
+add_subdirectory(dependencies/spdlog) # automatically calls target_include_directories
 target_link_libraries(${PROJECT_NAME} PUBLIC spdlog)
-target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC dependencies/spdlog/include)

@@ -2,18 +2,37 @@
 
 #include "resources/shader.h"
 
-namespace engine::resources {
+namespace engine {
 
-	Material::Material(std::shared_ptr<Shader> shader)
-		: shader_(shader)
-	{
-
-	}
-
-	Material::Material(const Material& original)
-		:	texture_(original.texture_), shader_(original.shader_)
-	{
-
-	}
-
+Material::Material(Renderer* renderer, std::shared_ptr<Shader> shader) : shader_(shader), renderer_(renderer)
+{
+    material_set_ = renderer->GetDevice()->AllocateDescriptorSet(renderer->GetMaterialSetLayout());
 }
+
+Material::~Material() { renderer_->GetDevice()->FreeDescriptorSet(material_set_); }
+
+void Material::SetAlbedoTexture(std::shared_ptr<Texture> texture)
+{
+    renderer_->GetDevice()->UpdateDescriptorCombinedImageSampler(material_set_, 0, texture->GetImage(), texture->GetSampler());
+    texture_albedo_ = texture;
+}
+
+void Material::SetNormalTexture(std::shared_ptr<Texture> texture)
+{
+    renderer_->GetDevice()->UpdateDescriptorCombinedImageSampler(material_set_, 1, texture->GetImage(), texture->GetSampler());
+    texture_normal_ = texture;
+}
+
+void Material::SetOcclusionTexture(std::shared_ptr<Texture> texture)
+{
+    renderer_->GetDevice()->UpdateDescriptorCombinedImageSampler(material_set_, 2, texture->GetImage(), texture->GetSampler());
+    texture_occlusion_ = texture;
+}
+
+void Material::SetMetallicRoughnessTexture(std::shared_ptr<Texture> texture)
+{
+    renderer_->GetDevice()->UpdateDescriptorCombinedImageSampler(material_set_, 3, texture->GetImage(), texture->GetSampler());
+    texture_metallic_roughness_ = texture;
+}
+
+} // namespace engine

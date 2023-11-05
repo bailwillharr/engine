@@ -3,6 +3,7 @@
 
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
+#include <glm/vec4.hpp>
 #include <vector>
 
 #include "gfx.h"
@@ -13,13 +14,13 @@ namespace engine {
 struct Vertex {
   glm::vec3 pos;
   glm::vec3 norm;
+  glm::vec4 tangent; // w component flips binormal if -1. w should be 1 or -1
   glm::vec2 uv;
 };
 
 }  // namespace engine
 
 namespace engine {
-namespace resources {
 
 class Mesh {
  public:
@@ -48,7 +49,6 @@ class Mesh {
                 const std::vector<uint32_t>& indices);
 };
 
-}  // namespace resources
 }  // namespace engine
 
 #endif

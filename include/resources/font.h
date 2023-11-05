@@ -9,7 +9,6 @@
 #include <stb_truetype.h>
 
 namespace engine {
-namespace resources {
 
 class Font {
  public:
@@ -31,7 +30,6 @@ class Font {
   int GetGlyphIndex(int unicode_codepoint);
 };
 
-}  // namespace resources
 }  // namespace engine
 
 #endif

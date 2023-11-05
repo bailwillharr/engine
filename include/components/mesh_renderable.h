@@ -9,8 +9,8 @@
 namespace engine {
 
 struct MeshRenderableComponent {
-  std::shared_ptr<resources::Mesh> mesh;
-  std::shared_ptr<resources::Material> material;
+  std::shared_ptr<Mesh> mesh;
+  std::shared_ptr<Material> material;
 };
 
 }  // namespace engine

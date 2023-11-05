@@ -56,12 +56,11 @@ void PlayGame(GameSettings settings)
     app.window()->SetRelativeMouseMode(true);
     ConfigureInputs(app.input_manager());
 
+    engine::Scene* my_scene = app.scene_manager()->CreateEmptyScene();
     {
-        static auto my_scene = app.scene_manager()->CreateEmptyScene();
 
-        /* create camera */
-        {
-            auto camera = my_scene->CreateEntity("camera");
+        { /* create camera */
+            engine::Entity camera = my_scene->CreateEntity("camera");
 
             /* as of right now, the entity with tag 'camera' is used to build the view
              * matrix */
@@ -74,33 +73,29 @@ void PlayGame(GameSettings settings)
             my_scene->AddComponent<CameraControllerComponent>(camera);
         }
 
-        /* shared resources */
-        auto grass_texture = std::make_shared<engine::resources::Texture>(app.renderer(), app.GetResourcePath("textures/grass.png"),
-                                                                          engine::resources::Texture::Filtering::kAnisotropic);
+        { /* floor */
+            engine::Entity floor = engine::util::LoadMeshFromFile(my_scene, app.GetResourcePath("models/terrain.dae"), true);
+        }
 
-        auto sky_texture = std::make_shared<engine::resources::Texture>(app.renderer(), app.GetResourcePath("textures/sky.jpg"),
-                                                                        engine::resources::Texture::Filtering::kAnisotropic);
+#if 0
+
+        /* shared resources */
+        auto grass_texture = engine::LoadTextureFromFile(app.GetResourcePath("textures/grass.png"), engine::Texture::Filtering::kAnisotropic, app.renderer());
+
+        std::shared_ptr<engine::Texture> sky_texture = engine::LoadTextureFromFile(app.GetResourcePath("textures/sky.jpg"), engine::Texture::Filtering::kAnisotropic, app.renderer());
 
         /* skybox */
         {
             engine::Entity skybox = my_scene->CreateEntity("skybox");
 
             auto skybox_renderable = my_scene->AddComponent<engine::MeshRenderableComponent>(skybox);
-            skybox_renderable->material = std::make_unique<engine::resources::Material>(app.GetResource<engine::resources::Shader>("builtin.skybox"));
+            skybox_renderable->material = std::make_unique<engine::Material>(app.GetResource<engine::Shader>("builtin.skybox"));
             skybox_renderable->material->texture_ = sky_texture;
             skybox_renderable->mesh = GenCuboidMesh(app.renderer()->GetDevice(), 10.0f, 10.0f, 10.0f, 1.0f, true);
 
             auto skybox_transform = my_scene->GetComponent<engine::TransformComponent>(skybox);
             skybox_transform->is_static = true;
             skybox_transform->position = {-5.0f, -5.0f, -5.0f};
-        }
-
-        /* floor */
-        {
-            engine::Entity floor = engine::util::LoadMeshFromFile(my_scene, app.GetResourcePath("models/terrain.dae"), true);
-
-            auto floor_transform = my_scene->GetComponent<engine::TransformComponent>(floor);
-            floor_transform->is_static = true;
         }
 
         /* building */
@@ -119,9 +114,9 @@ void PlayGame(GameSettings settings)
             engine::Entity cube = my_scene->CreateEntity("cube", 0, glm::vec3{40.0f, 10.0f, 5.0f});
             auto cubeRenderable = my_scene->AddComponent<engine::MeshRenderableComponent>(cube);
             cubeRenderable->mesh = GenCuboidMesh(app.renderer()->GetDevice(), 1.0f, 1.0f, 1.0f);
-            cubeRenderable->material = std::make_unique<engine::resources::Material>(app.GetResource<engine::resources::Shader>("builtin.standard"));
-            cubeRenderable->material->texture_ = std::make_unique<engine::resources::Texture>(app.renderer(), app.GetResourcePath("textures/uvcheck.png"),
-                                                                                              engine::resources::Texture::Filtering::kAnisotropic);
+            cubeRenderable->material = std::make_unique<engine::Material>(app.GetResource<engine::Shader>("builtin.standard"));
+            cubeRenderable->material->texture_ =
+                engine::LoadTextureFromFile(app.GetResourcePath("textures/uvcheck.png"), engine::Texture::Filtering::kAnisotropic, app.renderer());
         }
 
         /* some text */
@@ -147,8 +142,61 @@ void PlayGame(GameSettings settings)
         my_scene->GetComponent<engine::TransformComponent>(engine::util::LoadMeshFromFile(my_scene, app.GetResourcePath("models/teapot.dae"), true))
             ->position += glm::vec3{10.0f, 10.0f, 10.0f};
 
-        //engine::util::LoadGLTF(*my_scene, app.GetResourcePath("engine/models/test/test.gltf"));
+        // engine::util::LoadGLTF(*my_scene, app.GetResourcePath("engine/models/test/test.gltf"));
 
-        app.GameLoop();
+#endif
     }
+
+    engine::Scene* scene2 = app.scene_manager()->CreateEmptyScene();
+    {
+
+        { /* create camera */
+            engine::Entity camera = scene2->CreateEntity("camera");
+
+            /* as of right now, the entity with tag 'camera' is used to build the view
+             * matrix */
+
+            auto camera_transform = scene2->GetComponent<engine::TransformComponent>(camera);
+            camera_transform->position = {0.0f, 0.0f, 10.0f};
+
+            scene2->RegisterComponent<CameraControllerComponent>();
+            scene2->RegisterSystem<CameraControllerSystem>();
+            scene2->AddComponent<CameraControllerComponent>(camera);
+        }
+
+        { /* house */
+            engine::Entity floor = engine::util::LoadMeshFromFile(scene2, app.GetResourcePath("models/cobble_house/cobble_house.dae"), true);
+        }
+
+        { /* axes */
+            engine::util::LoadMeshFromFile(scene2, app.GetResourcePath("models/MY_AXES.dae"), true);
+        }
+
+        { /* a wall */
+            engine::Entity wall = scene2->CreateEntity("wall", 0, glm::vec3{50.0f, 0.0f, 0.0f});
+            auto wall_renderable = scene2->AddComponent<engine::MeshRenderableComponent>(wall);
+            wall_renderable->mesh = GenCuboidMesh(app.renderer()->GetDevice(), 8.0f, 8.0f, 8.0f);
+            wall_renderable->material = std::make_unique<engine::Material>(app.renderer(), app.GetResource<engine::Shader>("builtin.fancy"));
+
+            std::shared_ptr<engine::Texture> albedo_texture =
+                engine::LoadTextureFromFile(app.GetResourcePath("textures/brickwall_albedo.jpg"), engine::Texture::Filtering::kTrilinear, app.renderer());
+            std::shared_ptr<engine::Texture> normal_texture =
+                engine::LoadTextureFromFile(app.GetResourcePath("textures/testnormal.png"), engine::Texture::Filtering::kTrilinear, app.renderer());
+
+            wall_renderable->material->SetAlbedoTexture(app.GetResource<engine::Texture>("builtin.white"));
+            wall_renderable->material->SetNormalTexture(normal_texture);
+
+            auto custom = scene2->AddComponent<engine::CustomComponent>(wall);
+            custom->onInit = []() {};
+            custom->onUpdate = [&](float dt) {
+                //scene2->GetComponent<engine::TransformComponent>(wall)->rotation *= glm::angleAxis(dt, glm::normalize(glm::vec3{2.0f, 1.0f, 1.0f}));
+            };
+        }
+    }
+
+    my_scene->GetSystem<CameraControllerSystem>()->next_scene_ = scene2;
+    scene2->GetSystem<CameraControllerSystem>()->next_scene_ = my_scene;
+
+    app.scene_manager()->SetActiveScene(my_scene);
+    app.GameLoop();
 }

@@ -8,7 +8,7 @@
 #include "log.h"
 #include "util/files.h"
 
-namespace engine::resources {
+namespace engine {
 
 Font::Font(const std::string& path) {
   font_buffer_ = util::ReadBinaryFile(path);
@@ -131,4 +131,4 @@ int Font::GetGlyphIndex(int unicode_codepoint) {
   }
 }
 
-}  // namespace engine::resources
+}  // namespace engine

@@ -8,7 +8,7 @@
 
 #include "resources/mesh.h"
 
-std::unique_ptr<engine::resources::Mesh> GenSphereMesh(engine::GFXDevice* gfx, float r, int detail, bool wind_inside, bool flip_normals)
+std::unique_ptr<engine::Mesh> GenSphereMesh(engine::GFXDevice* gfx, float r, int detail, bool wind_inside, bool flip_normals)
 {
     using namespace glm;
 
@@ -34,26 +34,26 @@ std::unique_ptr<engine::resources::Mesh> GenSphereMesh(engine::GFXDevice* gfx, f
                 // tris are visible from outside the sphere
 
                 // triangle 1
-                vertices.push_back({top_left, {}, {0.0f, 0.0f}});
-                vertices.push_back({bottom_left, {}, {0.0f, 1.0f}});
-                vertices.push_back({bottom_right, {}, {1.0f, 1.0f}});
+                vertices.push_back({top_left, {}, {}, {0.0f, 0.0f}});
+                vertices.push_back({bottom_left, {}, {}, {0.0f, 1.0f}});
+                vertices.push_back({bottom_right, {}, {}, {1.0f, 1.0f}});
                 // triangle 2
-                vertices.push_back({top_right, {}, {1.0f, 0.0f}});
-                vertices.push_back({top_left, {}, {0.0f, 0.0f}});
-                vertices.push_back({bottom_right, {}, {1.0f, 1.0f}});
+                vertices.push_back({top_right, {}, {}, {1.0f, 0.0f}});
+                vertices.push_back({top_left, {}, {}, {0.0f, 0.0f}});
+                vertices.push_back({bottom_right, {}, {}, {1.0f, 1.0f}});
             }
             else {
                 // tris are visible from inside the sphere
 
                 // triangle 1
-                vertices.push_back({bottom_right, {}, {1.0f, 1.0f}});
-                vertices.push_back({bottom_left, {}, {0.0f, 1.0f}});
-                vertices.push_back({top_left, {}, {0.0f, 0.0f}});
+                vertices.push_back({bottom_right, {}, {}, {1.0f, 1.0f}});
+                vertices.push_back({bottom_left, {}, {}, {0.0f, 1.0f}});
+                vertices.push_back({top_left, {}, {}, {0.0f, 0.0f}});
 
                 // triangle 2
-                vertices.push_back({bottom_right, {}, {1.0f, 1.0f}});
-                vertices.push_back({top_left, {}, {0.0f, 0.0f}});
-                vertices.push_back({top_right, {}, {1.0f, 0.0f}});
+                vertices.push_back({bottom_right, {}, {}, {1.0f, 1.0f}});
+                vertices.push_back({top_left, {}, {}, {0.0f, 0.0f}});
+                vertices.push_back({top_right, {}, {}, {1.0f, 0.0f}});
             }
 
             vec3 vector1 = (vertices.end() - 1)->pos - (vertices.end() - 2)->pos;
@@ -72,10 +72,10 @@ std::unique_ptr<engine::resources::Mesh> GenSphereMesh(engine::GFXDevice* gfx, f
         }
     }
 
-    return std::make_unique<engine::resources::Mesh>(gfx, vertices);
+    return std::make_unique<engine::Mesh>(gfx, vertices);
 }
 
-std::unique_ptr<engine::resources::Mesh> GenCuboidMesh(engine::GFXDevice* gfx, float x, float y, float z, float tiling, bool wind_inside)
+std::unique_ptr<engine::Mesh> GenCuboidMesh(engine::GFXDevice* gfx, float x, float y, float z, float tiling, bool wind_inside)
 {
     // x goes ->
     // y goes ^
@@ -86,47 +86,47 @@ std::unique_ptr<engine::resources::Mesh> GenCuboidMesh(engine::GFXDevice* gfx, f
     std::vector<engine::Vertex> v{};
 
     // front
-    v.push_back({ {0.0f, 0.0f, z}, {0.0f, -1.0f, 0.0f}, {0.0f, 0.0f} });
-    v.push_back({ {0.0f, 0.0f, 0.0f}, {0.0f, -1.0f, 0.0f}, {0.0f, tiling} });
-    v.push_back({ {x, 0.0f, 0.0f}, {0.0f, -1.0f, 0.0f}, {tiling, tiling} });
-    v.push_back({ {x, 0.0f, 0.0f}, {0.0f, -1.0f, 0.0f}, {tiling, tiling} });
-    v.push_back({ {x, 0.0f, z}, {0.0f, -1.0f, 0.0f}, {tiling, 0.0f} });
-    v.push_back({ {0.0f, 0.0f, z}, {0.0f, -1.0f, 0.0f}, {0.0f, 0.0f} });
+    v.push_back({{0.0f, 0.0f, z}, {0.0f, -1.0f, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}});
+    v.push_back({{0.0f, 0.0f, 0.0f}, {0.0f, -1.0f, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, tiling}});
+    v.push_back({{x, 0.0f, 0.0f}, {0.0f, -1.0f, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f}, {tiling, tiling}});
+    v.push_back({{x, 0.0f, 0.0f}, {0.0f, -1.0f, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f}, {tiling, tiling}});
+    v.push_back({{x, 0.0f, z}, {0.0f, -1.0f, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f}, {tiling, 0.0f}});
+    v.push_back({{0.0f, 0.0f, z}, {0.0f, -1.0f, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}});
     // back
-    v.push_back({ {x, y, z}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f} });
-    v.push_back({ {x, y, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, tiling} });
-    v.push_back({ {0.0f, y, 0.0f}, {0.0f, 1.0f, 0.0f}, {tiling, tiling} });
-    v.push_back({ {0.0f, y, 0.0f}, {0.0f, 1.0f, 0.0f}, {tiling, tiling} });
-    v.push_back({ {0.0f, y, z}, {0.0f, 1.0f, 0.0f}, {tiling, 0.0f} });
-    v.push_back({ {x, y, z}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f} });
+    v.push_back({{x, y, z}, {0.0f, 1.0f, 0.0f}, {}, {0.0f, 0.0f}});
+    v.push_back({{x, y, 0.0f}, {0.0f, 1.0f, 0.0f}, {}, {0.0f, tiling}});
+    v.push_back({{0.0f, y, 0.0f}, {0.0f, 1.0f, 0.0f}, {}, {tiling, tiling}});
+    v.push_back({{0.0f, y, 0.0f}, {0.0f, 1.0f, 0.0f}, {}, {tiling, tiling}});
+    v.push_back({{0.0f, y, z}, {0.0f, 1.0f, 0.0f}, {}, {tiling, 0.0f}});
+    v.push_back({{x, y, z}, {0.0f, 1.0f, 0.0f}, {}, {0.0f, 0.0f}});
     // left
-    v.push_back({ {0.0f, y, z}, {-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f} });
-    v.push_back({ {0.0f, y, 0.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, tiling} });
-    v.push_back({ {0.0f, 0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}, {tiling, tiling} });
-    v.push_back({ {0.0f, 0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}, {tiling, tiling} });
-    v.push_back({ {0.0f, 0.0f, z}, {-1.0f, 0.0f, 0.0f}, {tiling, 0.0f} });
-    v.push_back({ {0.0f, y, z}, {-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f} });
+    v.push_back({{0.0f, y, z}, {-1.0f, 0.0f, 0.0f}, {}, {0.0f, 0.0f}});
+    v.push_back({{0.0f, y, 0.0f}, {-1.0f, 0.0f, 0.0f}, {}, {0.0f, tiling}});
+    v.push_back({{0.0f, 0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}, {}, {tiling, tiling}});
+    v.push_back({{0.0f, 0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}, {}, {tiling, tiling}});
+    v.push_back({{0.0f, 0.0f, z}, {-1.0f, 0.0f, 0.0f}, {}, {tiling, 0.0f}});
+    v.push_back({{0.0f, y, z}, {-1.0f, 0.0f, 0.0f}, {}, {0.0f, 0.0f}});
     // right
-    v.push_back({ {x, 0.0f, z}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f} });
-    v.push_back({ {x, 0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, tiling} });
-    v.push_back({ {x, y, 0.0f}, {1.0f, 0.0f, 0.0f}, {tiling, tiling} });
-    v.push_back({ {x, y, 0.0f}, {1.0f, 0.0f, 0.0f}, {tiling, tiling} });
-    v.push_back({ {x, y, z}, {1.0f, 0.0f, 0.0f}, {tiling, 0.0f} });
-    v.push_back({ {x, 0.0f, z}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f} });
+    v.push_back({{x, 0.0f, z}, {1.0f, 0.0f, 0.0f}, {}, {0.0f, 0.0f}});
+    v.push_back({{x, 0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {}, {0.0f, tiling}});
+    v.push_back({{x, y, 0.0f}, {1.0f, 0.0f, 0.0f}, {}, {tiling, tiling}});
+    v.push_back({{x, y, 0.0f}, {1.0f, 0.0f, 0.0f}, {}, {tiling, tiling}});
+    v.push_back({{x, y, z}, {1.0f, 0.0f, 0.0f}, {}, {tiling, 0.0f}});
+    v.push_back({{x, 0.0f, z}, {1.0f, 0.0f, 0.0f}, {}, {0.0f, 0.0f}});
     // top
-    v.push_back({ {0.0f, y, z}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f} });
-    v.push_back({ {0.0f, 0.0f, z}, {0.0f, 0.0f, 1.0f}, {0.0f, tiling} });
-    v.push_back({ {x, 0.0f, z}, {0.0f, 0.0f, 1.0f}, {tiling, tiling} });
-    v.push_back({ {x, 0.0f, z}, {0.0f, 0.0f, 1.0f}, {tiling, tiling} });
-    v.push_back({ {x, y, z}, {0.0f, 0.0f, 1.0f}, {tiling, 0.0f} });
-    v.push_back({ {0.0f, y, z}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f} });
+    v.push_back({{0.0f, y, z}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}});
+    v.push_back({{0.0f, 0.0f, z}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, tiling}});
+    v.push_back({{x, 0.0f, z}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f, 0.0f, 1.0f}, {tiling, tiling}});
+    v.push_back({{x, 0.0f, z}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f, 0.0f, 1.0f}, {tiling, tiling}});
+    v.push_back({{x, y, z}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f, 0.0f, 1.0f}, {tiling, 0.0f}});
+    v.push_back({{0.0f, y, z}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}});
     // bottom
-    v.push_back({ {x, y, 0.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 0.0f} });
-    v.push_back({ {x, 0.0f, 0.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, tiling} });
-    v.push_back({ {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, -1.0f}, {tiling, tiling} });
-    v.push_back({ {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, -1.0f}, {tiling, tiling} });
-    v.push_back({ {0.0f, y, 0.0f}, {0.0f, 0.0f, -1.0f}, {tiling, 0.0f} });
-    v.push_back({ {x, y, 0.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 0.0f} });
+    v.push_back({{x, y, 0.0f}, {0.0f, 0.0f, -1.0f}, {}, {0.0f, 0.0f}});
+    v.push_back({{x, 0.0f, 0.0f}, {0.0f, 0.0f, -1.0f}, {}, {0.0f, tiling}});
+    v.push_back({{0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, -1.0f}, {}, {tiling, tiling}});
+    v.push_back({{0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, -1.0f}, {}, {tiling, tiling}});
+    v.push_back({{0.0f, y, 0.0f}, {0.0f, 0.0f, -1.0f}, {}, {tiling, 0.0f}});
+    v.push_back({{x, y, 0.0f}, {0.0f, 0.0f, -1.0f}, {}, {0.0f, 0.0f}});
 
     if (wind_inside) {
         for (size_t i = 0; i < v.size(); i += 3) {
@@ -134,5 +134,5 @@ std::unique_ptr<engine::resources::Mesh> GenCuboidMesh(engine::GFXDevice* gfx, f
         }
     }
 
-    return std::make_unique<engine::resources::Mesh>(gfx, v);
+    return std::make_unique<engine::Mesh>(gfx, v);
 }

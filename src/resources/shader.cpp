@@ -6,7 +6,7 @@
 
 #include <glm/mat4x4.hpp>
 
-namespace engine::resources {
+namespace engine {
 
 Shader::Shader(Renderer* renderer, const char* vertPath, const char* fragPath,
                const ShaderSettings& settings)
@@ -67,4 +67,4 @@ Shader::~Shader() {
 
 const gfx::Pipeline* Shader::GetPipeline() { return pipeline_; }
 
-}  // namespace engine::resources
+}  // namespace engine
