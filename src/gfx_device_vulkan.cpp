@@ -727,7 +727,7 @@ gfx::DrawBuffer* GFXDevice::BeginRender()
 
         std::array<VkClearValue, 2> clearValues{}; // Using same value for all components enables
                                                    // compression according to NVIDIA Best Practices
-        clearValues[0].color.float32[0] = 0.0f;
+        clearValues[0].color.float32[0] = 0.02f;
         clearValues[0].color.float32[1] = 0.0f;
         clearValues[0].color.float32[2] = 0.0f;
         clearValues[0].color.float32[3] = 1.0f;

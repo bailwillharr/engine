@@ -168,16 +168,19 @@ void PlayGame(GameSettings settings)
             engine::util::LoadMeshFromFile(scene2, app.GetResourcePath("models/MY_AXES.dae"), true);
         }
 
-        { /* a cube with a normal map */
-            engine::Entity wall2 = scene2->CreateEntity("wall2", 0, glm::vec3{ 60.0f, 0.0f, 0.0f });
+        { /* floor */
+
+            engine::Entity pivot = scene2->CreateEntity("pivot", 0, glm::vec3{ 0.0f, 0.0f, 0.0f });
+
+            engine::Entity wall2 = scene2->CreateEntity("wall2", pivot, glm::vec3{-50.0f, -50.0f, 0.0f});
             auto wall_renderable = scene2->AddComponent<engine::MeshRenderableComponent>(wall2);
-            wall_renderable->mesh = GenCuboidMesh(app.renderer()->GetDevice(), 8.0f, 8.0f, 8.0f);
+            wall_renderable->mesh = GenCuboidMesh(app.renderer()->GetDevice(), 100.0f, 100.0f, 0.1f, 100.0f);
             wall_renderable->material = std::make_unique<engine::Material>(app.renderer(), app.GetResource<engine::Shader>("builtin.fancy"));
 
             std::shared_ptr<engine::Texture> albedo_texture =
-                engine::LoadTextureFromFile(app.GetResourcePath("textures/brickwall_albedo.jpg"), engine::Texture::Filtering::kBilinear, app.renderer());
+                engine::LoadTextureFromFile(app.GetResourcePath("textures/brickwall_albedo.jpg"), engine::Texture::Filtering::kAnisotropic, app.renderer());
             std::shared_ptr<engine::Texture> normal_texture =
-                engine::LoadTextureFromFile(app.GetResourcePath("textures/brickwall_normal.jpg"), engine::Texture::Filtering::kBilinear, app.renderer(), false);
+                engine::LoadTextureFromFile(app.GetResourcePath("textures/brickwall_normal.jpg"), engine::Texture::Filtering::kAnisotropic, app.renderer(), false);
 
             wall_renderable->material->SetAlbedoTexture(albedo_texture);
             wall_renderable->material->SetNormalTexture(normal_texture);
@@ -185,8 +188,8 @@ void PlayGame(GameSettings settings)
             auto custom = scene2->AddComponent<engine::CustomComponent>(wall2);
             custom->onInit = []() {};
             custom->onUpdate = [&](float dt) {
-                scene2->GetComponent<engine::TransformComponent>(wall2)->rotation *= glm::angleAxis(dt * 0.2f, glm::normalize(glm::vec3{ 0.3f, 2.1f, 1.0f }));
-                };
+                scene2->GetComponent<engine::TransformComponent>(pivot)->rotation *= glm::angleAxis(dt * 0.03f, glm::normalize(glm::vec3{0.0f, 0.0f, 1.0f}));
+            };
         }
 
         { /* light */
@@ -196,6 +199,8 @@ void PlayGame(GameSettings settings)
             wall_renderable->material = std::make_unique<engine::Material>(app.renderer(), app.GetResource<engine::Shader>("builtin.standard"));
             wall_renderable->material->SetAlbedoTexture(app.GetResource<engine::Texture>("builtin.white"));
         }
+
+        engine::util::LoadGLTF(*scene2, app.GetResourcePath("models/teapot.glb"));
     }
 
     my_scene->GetSystem<CameraControllerSystem>()->next_scene_ = scene2;

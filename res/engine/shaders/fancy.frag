@@ -15,8 +15,8 @@ layout(location = 0) out vec4 outColor;
 void main() {
 
 	// constants
-	vec3 lightColor = vec3(1.0, 1.0, 1.0);
-	vec3 ambientColor = vec3(1.0, 1.0, 1.0);
+	vec3 lightColor = vec3(1.0, 0.9, 0.9);
+	vec3 ambientColor = vec3(1.0, 0.0, 0.0);
 	float ambientStrength = 0.05;
 	vec3 emission = vec3(0.0, 0.0, 0.0);
 	

@@ -83,13 +83,14 @@ static void buildGraph(const std::map<int, std::shared_ptr<Texture>>& textures, 
         scene->GetComponent<TransformComponent>(child)->is_static = is_static;
         auto childRenderer = scene->AddComponent<MeshRenderableComponent>(child);
         childRenderer->mesh = meshes[parentNode->mMeshes[i]];
-        childRenderer->material = std::make_shared<Material>(scene->app()->renderer(), scene->app()->GetResource<Shader>("builtin.standard"));
+        childRenderer->material = std::make_shared<Material>(scene->app()->renderer(), scene->app()->GetResource<Shader>("builtin.fancy"));
         if (textures.contains(meshTextureIndices[parentNode->mMeshes[i]])) {
             childRenderer->material->SetAlbedoTexture(textures.at(meshTextureIndices[parentNode->mMeshes[i]]));
         }
         else {
             childRenderer->material->SetAlbedoTexture(scene->app()->GetResource<Texture>("builtin.white"));
         }
+        childRenderer->material->SetNormalTexture(scene->app()->GetResource<Texture>("builtin.normal"));
     }
 
     for (uint32_t i = 0; i < parentNode->mNumChildren; i++) {

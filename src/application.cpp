@@ -167,8 +167,12 @@ Application::Application(const char* appName, const char* appVersion, gfx::Graph
 
     /* default textures */
     {
-        auto whiteTexture = LoadTextureFromFile(GetResourcePath("engine/textures/white.png"), Texture::Filtering::kOff, renderer());
+        auto whiteTexture = LoadTextureFromFile(GetResourcePath("engine/textures/white.png"), Texture::Filtering::kOff, renderer(), true);
         GetResourceManager<Texture>()->AddPersistent("builtin.white", std::move(whiteTexture));
+    }
+    {
+        auto normalTexture = LoadTextureFromFile(GetResourcePath("engine/textures/normal.png"), Texture::Filtering::kOff, renderer(), false);
+        GetResourceManager<Texture>()->AddPersistent("builtin.normal", std::move(normalTexture));
     }
 }
 
