@@ -29,6 +29,8 @@ set(SRC_FILES
 	"src/imgui/imstb_textedit.h"
 	"src/input_manager.cpp"
 	"src/libs/json.hpp"
+	"src/libs/mikktspace.c"
+	"src/libs/mikktspace.h"
 	"src/libs/stb_impl.cpp"
 	"src/libs/tiny_gltf.h"
 	"src/libs/tiny_gltf_impl.cpp"

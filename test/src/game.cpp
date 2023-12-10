@@ -184,12 +184,6 @@ void PlayGame(GameSettings settings)
 
             wall_renderable->material->SetAlbedoTexture(albedo_texture);
             wall_renderable->material->SetNormalTexture(normal_texture);
-
-            auto custom = scene2->AddComponent<engine::CustomComponent>(wall2);
-            custom->onInit = []() {};
-            custom->onUpdate = [&](float dt) {
-                scene2->GetComponent<engine::TransformComponent>(pivot)->rotation *= glm::angleAxis(dt * 0.03f, glm::normalize(glm::vec3{0.0f, 0.0f, 1.0f}));
-            };
         }
 
         { /* light */

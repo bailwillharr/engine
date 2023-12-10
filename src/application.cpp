@@ -231,7 +231,7 @@ void Application::GameLoop()
         ImGui::NewFrame();
 
         if (debug_menu_state.menu_active) {
-            if (ImGui::Begin("debugMenu")) {
+            if (ImGui::Begin("debugMenu", 0)) {
                 ImGui::Text("Test!");
                 ImGui::Text("FPS: %.3f", std::roundf(avg_fps));
             }
