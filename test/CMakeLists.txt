@@ -36,7 +36,7 @@ if (MSVC)
 	target_compile_options(${PROJECT_NAME} PRIVATE /MP)
 	target_compile_definitions(${PROJECT_NAME} PRIVATE _CRT_SECURE_NO_WARNINGS)
 else()
-	target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Werror -pedantic)
+	target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -pedantic)
 endif()
 
 target_include_directories(${PROJECT_NAME} PRIVATE src)

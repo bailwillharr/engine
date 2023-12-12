@@ -36,7 +36,7 @@ class SceneManager {
                 }
                 ++index;
             }
-            if (index >= scenes_.size()) {
+            if (static_cast<size_t>(index) >= scenes_.size()) {
                 throw std::runtime_error("Failed to find active scene!");
             }
             else {

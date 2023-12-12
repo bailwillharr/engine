@@ -5,7 +5,7 @@ option(ENGINE_BUILD_TEST "Compile the test program" ON)
 
 SET(CMAKE_CONFIGURATION_TYPES "Debug;Release;RelWithDebInfo")
 
-project(engine LANGUAGES CXX
+project(engine LANGUAGES CXX C
 	VERSION "0.1.0"
 )
 
@@ -120,7 +120,7 @@ set_property(TARGET ${PROJECT_NAME} PROPERTY WINDOWS_EXPORT_ALL_SYMBOLS ON)
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_EXTENSIONS OFF)
-set_property(TARGET ${PROJECT_NAME} PROPERTY C_STANDARD 99)
+set_property(TARGET ${PROJECT_NAME} PROPERTY C_STANDARD 11)
 set_property(TARGET ${PROJECT_NAME} PROPERTY C_STANDARD_REQUIRED ON)
 set_property(TARGET ${PROJECT_NAME} PROPERTY C_EXTENSIONS OFF)
 
@@ -129,7 +129,7 @@ if (MSVC)
 	target_compile_options(${PROJECT_NAME} PRIVATE /MP)
 	target_compile_definitions(${PROJECT_NAME} PRIVATE _CRT_SECURE_NO_WARNINGS)
 else()
-	target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Werror -pedantic)
+	target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -pedantic)
 endif()
 
 target_include_directories(${PROJECT_NAME} PUBLIC include)

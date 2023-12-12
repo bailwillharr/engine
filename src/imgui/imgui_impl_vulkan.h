@@ -40,7 +40,7 @@
 #if defined(IMGUI_IMPL_VULKAN_NO_PROTOTYPES) && !defined(VK_NO_PROTOTYPES)
 #define VK_NO_PROTOTYPES
 #endif
-#include "volk/volk.h"
+#include "volk.h"
 
 // Initialization data, for ImGui_ImplVulkan_Init()
 // [Please zero-clear before use!]

@@ -74,7 +74,7 @@ void PlayGame(GameSettings settings)
         }
 
         { /* floor */
-            engine::Entity floor = engine::util::LoadMeshFromFile(my_scene, app.GetResourcePath("models/terrain.dae"), true);
+            [[maybe_unused]] engine::Entity floor = engine::util::LoadMeshFromFile(my_scene, app.GetResourcePath("models/terrain.dae"), true);
         }
 
 #if 0
