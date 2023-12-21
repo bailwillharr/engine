@@ -67,7 +67,7 @@ namespace engine {
 			msgType += " (GENERAL)";
 		if (messageTypes & VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT)
 			msgType += " (PERF.)";
-		if (messageTypes & VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT)
+		if (messageTypes & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT)
 			msgType += " (VALID.)";
 
 		switch (messageSeverity) {
