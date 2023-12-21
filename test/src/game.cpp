@@ -165,7 +165,7 @@ void PlayGame(GameSettings settings)
         }
 
         { /* axes */
-            engine::util::LoadMeshFromFile(scene2, app.GetResourcePath("models/MY_AXES.dae"), true);
+            //engine::util::LoadMeshFromFile(scene2, app.GetResourcePath("models/MY_AXES.dae"), true);
         }
 
         { /* floor */
@@ -175,7 +175,7 @@ void PlayGame(GameSettings settings)
             engine::Entity wall2 = scene2->CreateEntity("wall2", pivot, glm::vec3{-50.0f, -50.0f, 0.0f});
             auto wall_renderable = scene2->AddComponent<engine::MeshRenderableComponent>(wall2);
             wall_renderable->mesh = GenCuboidMesh(app.renderer()->GetDevice(), 100.0f, 100.0f, 0.1f, 100.0f);
-            wall_renderable->material = std::make_unique<engine::Material>(app.renderer(), app.GetResource<engine::Shader>("builtin.fancy"));
+            wall_renderable->material = std::make_unique<engine::Material>(app.renderer(), app.GetResource<engine::Shader>("builtin.standard"));
 
             std::shared_ptr<engine::Texture> albedo_texture =
                 engine::LoadTextureFromFile(app.GetResourcePath("textures/brickwall_albedo.jpg"), engine::Texture::Filtering::kAnisotropic, app.renderer());
@@ -194,7 +194,12 @@ void PlayGame(GameSettings settings)
             wall_renderable->material->SetAlbedoTexture(app.GetResource<engine::Texture>("builtin.white"));
         }
 
-        engine::util::LoadGLTF(*scene2, app.GetResourcePath("models/teapot.glb"));
+        auto teapot = engine::util::LoadGLTF(*scene2, app.GetResourcePath("models/teapot_with_tangents.glb"));
+        scene2->GetComponent<engine::TransformComponent>(teapot)->scale *= 10.0f;
+        auto teapot2 = engine::util::LoadGLTF(*scene2, app.GetResourcePath("models/teapot.glb"));
+        scene2->GetComponent<engine::TransformComponent>(teapot2)->scale *= 10.0f;
+        scene2->GetComponent<engine::TransformComponent>(teapot2)->position.y += 10.0f;
+        scene2->GetComponent<engine::TransformComponent>(teapot2)->rotation = glm::angleAxis(glm::half_pi<float>(), glm::vec3{1.0f, 0.0f, 0.0f});
     }
 
     my_scene->GetSystem<CameraControllerSystem>()->next_scene_ = scene2;

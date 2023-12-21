@@ -55,13 +55,35 @@ static glm::mat4 MatFromDoubleArray(const std::vector<double>& arr)
 
 static void CreateNodes(engine::Scene& app_scene, const tg::Scene& gl_scene, const tg::Model& gl_model, engine::Entity parent_entity, const tg::Node& node)
 {
-    static int node_uuid = 0;
+    static int node_count = 0;
+    int node_uuid = node_count++;
 
-    const glm::mat4 matrix = MatFromDoubleArray(node.matrix);
-    glm::vec3 pos;
-    glm::quat rot;
-    glm::vec3 scale;
-    DecomposeTransform(matrix, pos, rot, scale);
+    glm::vec3 pos{0.0f, 0.0f, 0.0f};
+    glm::quat rot{0.0f, 0.0f, 0.0f, 1.0f};
+    glm::vec3 scale{1.0f, 1.0f, 1.0f};
+
+    if (node.matrix.size() == 16) {
+        const glm::mat4 matrix = MatFromDoubleArray(node.matrix);
+        DecomposeTransform(matrix, pos, rot, scale);
+    }
+    else {
+        if (node.translation.size() == 3) {
+            pos.x = node.translation[0];
+            pos.y = node.translation[1];
+            pos.z = node.translation[2];
+        }
+        if (node.rotation.size() == 4) {
+            rot.x = node.rotation[0];
+            rot.y = node.rotation[1];
+            rot.z = node.rotation[2];
+            rot.w = node.rotation[3];
+        }
+        if (node.scale.size() == 3) {
+            scale.x = node.scale[0];
+            scale.y = node.scale[1];
+            scale.z = node.scale[2];
+        }
+    }
 
     engine::Entity entity = app_scene.CreateEntity(std::string("test_node") + std::to_string(node_uuid), parent_entity, pos, rot, scale);
 
@@ -79,10 +101,24 @@ static void CreateNodes(engine::Scene& app_scene, const tg::Scene& gl_scene, con
         const tg::BufferView& indices_bufferview = gl_model.bufferViews.at(indices_accessor.bufferView); // required for TG
         const size_t indices_byteoffset = indices_accessor.byteOffset + indices_bufferview.byteOffset;
         const tg::Buffer& indices_buffer = gl_model.buffers.at(indices_bufferview.buffer);
-        if (indices_int_size != 4) throw std::runtime_error("TODO: handle and support this");
-        const uint32_t* const indices_data = reinterpret_cast<const uint32_t*>(indices_buffer.data.data() + indices_byteoffset);
-        // in future, let Mesh constructor use spans to avoid unneccesary copy here
-        const std::vector<uint32_t> indices(indices_data, indices_data + indices_accessor.count);
+
+        std::unique_ptr<std::vector<uint32_t>> indices = nullptr;
+        if (indices_int_size == 4) {
+            const uint32_t* const indices_data = reinterpret_cast<const uint32_t*>(indices_buffer.data.data() + indices_byteoffset);
+            // in future, let Mesh constructor use spans to avoid unneccesary copy here
+            indices = std::make_unique<std::vector<uint32_t>>(indices_data, indices_data + indices_accessor.count);
+        }
+        else if (indices_int_size == 2) {
+            indices = std::make_unique<std::vector<uint32_t>>();
+            const uint16_t* const indices_data = reinterpret_cast<const uint16_t*>(indices_buffer.data.data() + indices_byteoffset);
+            for (size_t i = 0; i < indices_accessor.count; ++i) {
+                indices->push_back(indices_data[i]);
+            }
+        }
+
+        if (indices == nullptr) {
+            throw std::runtime_error("TODO: handle and support this");
+        }
 
         const tg::Accessor& pos_accessor = gl_model.accessors.at(prim.attributes.at("POSITION"));
         if (pos_accessor.componentType != TINYGLTF_COMPONENT_TYPE_FLOAT) throw std::runtime_error("Position att. must be float!");
@@ -108,77 +144,150 @@ static void CreateNodes(engine::Scene& app_scene, const tg::Scene& gl_scene, con
         const size_t uv_bytestride = uv_accessor.ByteStride(uv_bufferview);
         const tg::Buffer& uv_buffer = gl_model.buffers.at(uv_bufferview.buffer);
 
+        bool has_tangents = false;
+        if (prim.attributes.contains("TANGENT")) {
+            has_tangents = true;
+        }
+
         std::vector<engine::Vertex> vertices(pos_accessor.count);
+
+        // copy everything except tangents
         for (size_t i = 0; i < vertices.size(); ++i) {
             vertices[i].pos = *reinterpret_cast<const glm::vec3*>(&pos_buffer.data[pos_byteoffset + pos_bytestride * i]);
             vertices[i].norm = *reinterpret_cast<const glm::vec3*>(&norm_buffer.data[norm_byteoffset + norm_bytestride * i]);
             vertices[i].uv = *reinterpret_cast<const glm::vec2*>(&uv_buffer.data[uv_byteoffset + uv_bytestride * i]);
         }
 
-        // create tangents
+        if (has_tangents) {
+            const tg::Accessor& tangent_accessor = gl_model.accessors.at(prim.attributes.at("TANGENT"));
+            if (tangent_accessor.componentType != TINYGLTF_COMPONENT_TYPE_FLOAT) throw std::runtime_error("Tangent att. must be float!");
+            if (tangent_accessor.type != 4) throw std::runtime_error("Tangent att. dim. must be 4!");
+            const tg::BufferView& tangent_bufferview = gl_model.bufferViews.at(tangent_accessor.bufferView);
+            const size_t tangent_byteoffset = tangent_accessor.byteOffset + tangent_bufferview.byteOffset;
+            const size_t tangent_bytestride = tangent_accessor.ByteStride(tangent_bufferview);
+            const tg::Buffer& tangent_buffer = gl_model.buffers.at(tangent_bufferview.buffer);
+            for (size_t i = 0; i < vertices.size(); ++i) {
+                vertices[i].tangent = *reinterpret_cast<const glm::vec4*>(&tangent_buffer.data[tangent_byteoffset + tangent_bytestride * i]);
+            }
+        }
+        else {
+          // generate tangents if they're not in the file
+            struct MeshData {
+                engine::Vertex* vertices;
+                const uint32_t* indices;
+                size_t count;
+            };
 
-        struct MeshData {
-            engine::Vertex* vertices;
-            const uint32_t* indices;
-            size_t count;
-        };
+            MeshData meshData{};
+            meshData.vertices = vertices.data();
+            meshData.indices = indices->data();
+            meshData.count = indices->size();
 
-        MeshData meshData{};
-        meshData.vertices = vertices.data();
-        meshData.indices = indices.data();
-        meshData.count = indices.size();
+            SMikkTSpaceInterface mts_interface{};
+            mts_interface.m_getNumFaces = [](const SMikkTSpaceContext* pContext) -> int {
+                const MeshData* meshData = static_cast<const MeshData*>(pContext->m_pUserData);
+                assert(meshData->count % 3 == 0);
+                return meshData->count / 3;
+            };
+            mts_interface.m_getNumVerticesOfFace = [](const SMikkTSpaceContext*, const int) -> int { return 3; };
+            mts_interface.m_getPosition = [](const SMikkTSpaceContext* pContext, float fvPosOut[], const int iFace, const int iVert) -> void {
+                const MeshData* const meshData = static_cast<const MeshData*>(pContext->m_pUserData);
+                const glm::vec3 pos = meshData->vertices[meshData->indices[iFace * 3 + iVert]].pos;
+                fvPosOut[0] = pos.x;
+                fvPosOut[1] = pos.y;
+                fvPosOut[2] = pos.z;
+            };
+            mts_interface.m_getNormal = [](const SMikkTSpaceContext* pContext, float fvNormOut[], const int iFace, const int iVert) -> void {
+                const MeshData* const meshData = static_cast<const MeshData*>(pContext->m_pUserData);
+                const glm::vec3 norm = meshData->vertices[meshData->indices[iFace * 3 + iVert]].norm;
+                fvNormOut[0] = norm.x;
+                fvNormOut[1] = norm.y;
+                fvNormOut[2] = norm.z;
+            };
+            mts_interface.m_getTexCoord = [](const SMikkTSpaceContext* pContext, float fvTexcOut[], const int iFace, const int iVert) -> void {
+                const MeshData* const meshData = static_cast<const MeshData*>(pContext->m_pUserData);
+                const glm::vec2 uv = meshData->vertices[meshData->indices[iFace * 3 + iVert]].uv;
+                fvTexcOut[0] = uv.x;
+                fvTexcOut[1] = uv.y;
+            };
+            mts_interface.m_setTSpaceBasic = [](const SMikkTSpaceContext* pContext, const float fvTangent[], const float fSign, const int iFace,
+                                                const int iVert) -> void {
+                MeshData* const meshData = static_cast<MeshData*>(pContext->m_pUserData);
+                glm::vec4& tangent = meshData->vertices[meshData->indices[iFace * 3 + iVert]].tangent;
+                tangent.x = fvTangent[0];
+                tangent.y = fvTangent[1];
+                tangent.z = fvTangent[2];
+                tangent.w = fSign;
+            };
+            SMikkTSpaceContext mts_context{};
+            mts_context.m_pInterface = &mts_interface;
+            mts_context.m_pUserData = &meshData;
 
-        SMikkTSpaceInterface mts_interface{};
-        mts_interface.m_getNumFaces = [](const SMikkTSpaceContext* pContext) -> int { return static_cast<const MeshData*>(pContext->m_pUserData)->count / 3; };
-        mts_interface.m_getNumVerticesOfFace = [](const SMikkTSpaceContext*, const int) -> int { return 3; };
-        mts_interface.m_getPosition = [](const SMikkTSpaceContext* pContext, float fvPosOut[], const int iFace, const int iVert) -> void {
-            const MeshData* const meshData = static_cast<const MeshData*>(pContext->m_pUserData);
-            const glm::vec3 pos = meshData->vertices[meshData->indices[iFace * 3 + iVert]].pos;
-            fvPosOut[0] = pos.x;
-            fvPosOut[1] = pos.y;
-            fvPosOut[2] = pos.z;
-        };
-        mts_interface.m_getNormal = [](const SMikkTSpaceContext* pContext, float fvNormOut[], const int iFace, const int iVert) -> void {
-            const MeshData* const meshData = static_cast<const MeshData*>(pContext->m_pUserData);
-            const glm::vec3 norm = meshData->vertices[meshData->indices[iFace * 3 + iVert]].norm;
-            fvNormOut[0] = norm.x;
-            fvNormOut[1] = norm.y;
-            fvNormOut[2] = norm.z;
-        };
-        mts_interface.m_getTexCoord = [](const SMikkTSpaceContext* pContext, float fvTexcOut[], const int iFace, const int iVert) -> void {
-            const MeshData* const meshData = static_cast<const MeshData*>(pContext->m_pUserData);
-            const glm::vec2 uv = meshData->vertices[meshData->indices[iFace * 3 + iVert]].uv;
-            fvTexcOut[0] = uv.x;
-            fvTexcOut[1] = uv.y;
-        };
-        mts_interface.m_setTSpaceBasic = [](const SMikkTSpaceContext* pContext, const float fvTangent[], const float fSign, const int iFace,
-                                            const int iVert) -> void {
-            MeshData* const meshData = static_cast<MeshData*>(pContext->m_pUserData);
-            glm::vec4& tangent = meshData->vertices[meshData->indices[iFace * 3 + iVert]].tangent;
-            tangent.x = fvTangent[0];
-            tangent.y = fvTangent[1];
-            tangent.z = fvTangent[2];
-            tangent.w = fSign;
-        };
-        SMikkTSpaceContext mts_context{};
-        mts_context.m_pInterface = &mts_interface;
-        mts_context.m_pUserData = &meshData;
-
-        bool tan_result = genTangSpaceDefault(&mts_context);
-        if (tan_result == false) throw std::runtime_error("Failed to generate tangents!");
+            bool tan_result = genTangSpaceDefault(&mts_context);
+            if (tan_result == false) throw std::runtime_error("Failed to generate tangents!");
+        }
 
         auto mesh_comp = app_scene.AddComponent<engine::MeshRenderableComponent>(entity);
-        mesh_comp->mesh = std::make_unique<engine::Mesh>(app_scene.app()->renderer()->GetDevice(), vertices, indices);
+        mesh_comp->mesh = std::make_unique<engine::Mesh>(app_scene.app()->renderer()->GetDevice(), vertices, *indices);
+
+        // now get material
         mesh_comp->material = std::make_unique<engine::Material>(app_scene.app()->renderer(), app_scene.app()->GetResource<Shader>("builtin.fancy"));
+
         mesh_comp->material->SetAlbedoTexture(app_scene.app()->GetResource<Texture>("builtin.white"));
         mesh_comp->material->SetNormalTexture(app_scene.app()->GetResource<Texture>("builtin.normal"));
+
+        if (prim.material >= 0) {
+            const tg::Material& mat = gl_model.materials.at(prim.material);
+            if (mat.alphaMode != "OPAQUE") {
+                LOG_WARN("Non-opaque alpha modes are not supported yet");
+            }
+            if (mat.doubleSided == true) {
+                LOG_WARN("Double-sided materials are not supported yet");
+            }
+            if (mat.normalTexture.index != -1) {
+                if (mat.normalTexture.texCoord == 0) {
+                    if (mat.normalTexture.scale == 1.0) {
+                        const tg::Texture& norm_texture = gl_model.textures.at(mat.normalTexture.index);
+                        if (norm_texture.source != -1) {
+                            const tg::Image& norm_image = gl_model.images.at(norm_texture.source);
+                            if (norm_image.as_is == false && norm_image.bits == 8 && norm_image.pixel_type == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE) {
+                                // create texture on GPU
+                                mesh_comp->material->SetNormalTexture(std::make_unique<Texture>(app_scene.app()->renderer(), norm_image.image.data(),
+                                                                                                norm_image.width, norm_image.height,
+                                                                                                Texture::Filtering::kAnisotropic, false));
+                            }
+                        }
+                    }
+                    else {
+                        LOG_WARN("Normal texture has scaling which is unsupported. Ignoring normal map.");
+                    }
+                }
+                else {
+                    LOG_WARN("Normal texture doesn't specify UV0. Ignoring normal map.");
+                }
+            }
+            if (mat.pbrMetallicRoughness.baseColorTexture.index != -1) {
+                if (mat.pbrMetallicRoughness.baseColorTexture.texCoord == 0) {
+                    const tg::Texture& texture = gl_model.textures.at(mat.pbrMetallicRoughness.baseColorTexture.index);
+                    if (texture.source != -1) {
+                        const tg::Image& image = gl_model.images.at(texture.source);
+                        if (image.as_is == false && image.bits == 8 && image.pixel_type == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE) {
+                            // create texture on GPU
+                            mesh_comp->material->SetAlbedoTexture(std::make_unique<Texture>(app_scene.app()->renderer(), image.image.data(), image.width,
+                                                                                            image.height, Texture::Filtering::kAnisotropic, true));
+                        }
+                    }
+                }
+                else {
+                    LOG_WARN("Color texture doesn't specify UV0. Ignoring.");
+                }
+            }
+        }
     }
 
     for (const int node : node.children) {
         CreateNodes(app_scene, gl_scene, gl_model, entity, gl_model.nodes.at(node));
     }
-
-    ++node_uuid;
 }
 
 engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
