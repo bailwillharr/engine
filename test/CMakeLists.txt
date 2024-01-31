@@ -16,15 +16,20 @@ set(GAME_SOURCES
   "src/meshgen.hpp"
 )
 
+file(GLOB_RECURSE GAME_RESOURCES RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/res/*")
+
 if (WIN32)
 	option(ENGINETEST_BUILD_WIN32_APP "Build as a standalone win32 app (no console window)" ON)
 endif()
 
 if (WIN32 AND ENGINETEST_BUILD_WIN32_APP)
-	add_executable(${PROJECT_NAME} WIN32 ${GAME_SOURCES} "game.rc")
+	add_executable(${PROJECT_NAME} WIN32 ${GAME_SOURCES} ${GAME_RESOURCES} "game.rc")
 else()
-	add_executable(${PROJECT_NAME} ${GAME_SOURCES})
+	add_executable(${PROJECT_NAME} ${GAME_SOURCES} ${GAME_RESOURCES})
 endif()
+
+# vs source view
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/res" PREFIX "Resources" FILES ${GAME_RESOURCES})
 
 # compiling options:
 

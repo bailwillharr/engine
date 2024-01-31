@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.24)
 
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+
 # options
 option(ENGINE_BUILD_TEST "Compile the test program" ON)
 
@@ -99,13 +101,17 @@ set(INCLUDE_FILES
 	"include/window.h"
 )
 
+file(GLOB_RECURSE RES_FILES RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/res/engine/*")
+
 add_library(${PROJECT_NAME} STATIC
 	${SRC_FILES}
 	${INCLUDE_FILES}
+	${RES_FILES}
 )
 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src" PREFIX "Source" FILES ${SRC_FILES})
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/include" PREFIX "Include" FILES ${INCLUDE_FILES})
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/res/engine" PREFIX "Resources" FILES ${RES_FILES})
 
 # compiling options:
 
