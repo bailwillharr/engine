@@ -136,26 +136,31 @@ static void CreateNodes(engine::Scene& app_scene, const tg::Scene& gl_scene, con
         const size_t norm_bytestride = norm_accessor.ByteStride(norm_bufferview);
         const tg::Buffer& norm_buffer = gl_model.buffers.at(norm_bufferview.buffer);
 
-        const tg::Accessor& uv_accessor = gl_model.accessors.at(prim.attributes.at("TEXCOORD_0"));
-        if (uv_accessor.componentType != TINYGLTF_COMPONENT_TYPE_FLOAT) throw std::runtime_error("UV att. must be float!");
-        if (uv_accessor.type != 2) throw std::runtime_error("UV att. dim. must be 2!");
-        const tg::BufferView& uv_bufferview = gl_model.bufferViews.at(uv_accessor.bufferView);
-        const size_t uv_byteoffset = uv_accessor.byteOffset + uv_bufferview.byteOffset;
-        const size_t uv_bytestride = uv_accessor.ByteStride(uv_bufferview);
-        const tg::Buffer& uv_buffer = gl_model.buffers.at(uv_bufferview.buffer);
+        std::vector<engine::Vertex> vertices(pos_accessor.count);
+
+        if (prim.attributes.contains("TEXCOORD_0")) {
+            const tg::Accessor& uv_accessor = gl_model.accessors.at(prim.attributes.at("TEXCOORD_0"));
+            if (uv_accessor.componentType != TINYGLTF_COMPONENT_TYPE_FLOAT) throw std::runtime_error("UV att. must be float!");
+            if (uv_accessor.type != 2) throw std::runtime_error("UV att. dim. must be 2!");
+            const tg::BufferView& uv_bufferview = gl_model.bufferViews.at(uv_accessor.bufferView);
+            const size_t uv_byteoffset = uv_accessor.byteOffset + uv_bufferview.byteOffset;
+            const size_t uv_bytestride = uv_accessor.ByteStride(uv_bufferview);
+            const tg::Buffer& uv_buffer = gl_model.buffers.at(uv_bufferview.buffer);
+            
+            for (size_t i = 0; i < vertices.size(); ++i) {
+                vertices[i].uv = *reinterpret_cast<const glm::vec2*>(&uv_buffer.data[uv_byteoffset + uv_bytestride * i]);
+            }
+        }
 
         bool has_tangents = false;
         if (prim.attributes.contains("TANGENT")) {
             has_tangents = true;
         }
 
-        std::vector<engine::Vertex> vertices(pos_accessor.count);
-
-        // copy everything except tangents
+        // copy everything except tangents and uvs
         for (size_t i = 0; i < vertices.size(); ++i) {
             vertices[i].pos = *reinterpret_cast<const glm::vec3*>(&pos_buffer.data[pos_byteoffset + pos_bytestride * i]);
             vertices[i].norm = *reinterpret_cast<const glm::vec3*>(&norm_buffer.data[norm_byteoffset + norm_bytestride * i]);
-            vertices[i].uv = *reinterpret_cast<const glm::vec2*>(&uv_buffer.data[uv_byteoffset + uv_bytestride * i]);
         }
 
         if (has_tangents) {
@@ -176,12 +181,14 @@ static void CreateNodes(engine::Scene& app_scene, const tg::Scene& gl_scene, con
                 engine::Vertex* vertices;
                 const uint32_t* indices;
                 size_t count;
+                std::vector<uint32_t> new_indices;
             };
 
             MeshData meshData{};
             meshData.vertices = vertices.data();
             meshData.indices = indices->data();
             meshData.count = indices->size();
+            meshData.new_indices.reserve(meshData.count);
 
             SMikkTSpaceInterface mts_interface{};
             mts_interface.m_getNumFaces = [](const SMikkTSpaceContext* pContext) -> int {
