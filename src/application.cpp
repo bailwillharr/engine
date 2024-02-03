@@ -167,12 +167,20 @@ Application::Application(const char* appName, const char* appVersion, gfx::Graph
 
     /* default textures */
     {
-        auto whiteTexture = LoadTextureFromFile(GetResourcePath("engine/textures/white.png"), Texture::Filtering::kOff, renderer(), true);
+        auto whiteTexture = LoadTextureFromFile(GetResourcePath("engine/textures/white.png"), gfx::SamplerInfo{}, renderer(), true);
         GetResourceManager<Texture>()->AddPersistent("builtin.white", std::move(whiteTexture));
     }
     {
-        auto normalTexture = LoadTextureFromFile(GetResourcePath("engine/textures/normal.png"), Texture::Filtering::kOff, renderer(), false);
+        auto normalTexture = LoadTextureFromFile(GetResourcePath("engine/textures/normal.png"), gfx::SamplerInfo{}, renderer(), false);
         GetResourceManager<Texture>()->AddPersistent("builtin.normal", std::move(normalTexture));
+    }
+
+    /* default materials */
+    {
+        auto defaultMaterial = std::make_unique<Material>(renderer(), GetResource<Shader>("builtin.fancy"));
+        defaultMaterial->SetAlbedoTexture(GetResource<Texture>("builtin.white"));
+        defaultMaterial->SetNormalTexture(GetResource<Texture>("builtin.normal"));
+        GetResourceManager<Material>()->AddPersistent("builtin.default", std::move(defaultMaterial));
     }
 }
 

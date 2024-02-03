@@ -8,42 +8,13 @@
 
 namespace engine {
 
-Texture::Texture(Renderer* renderer, const uint8_t* bitmap, int width, int height, Filtering filtering, bool srgb) : gfx_(renderer->GetDevice())
+Texture::Texture(Renderer* renderer, const uint8_t* bitmap, int width, int height, gfx::SamplerInfo samplerInfo, bool srgb) : gfx_(renderer->GetDevice())
 {
-    gfx::SamplerInfo samplerInfo{};
-
-    samplerInfo.magnify = gfx::Filter::kLinear;
-
-    switch (filtering) {
-        case Filtering::kOff:
-            samplerInfo.minify = gfx::Filter::kNearest;
-            samplerInfo.mipmap = gfx::Filter::kNearest;
-            samplerInfo.anisotropic_filtering = false;
-            break;
-        case Filtering::kBilinear:
-            samplerInfo.minify = gfx::Filter::kLinear;
-            samplerInfo.mipmap = gfx::Filter::kNearest;
-            samplerInfo.anisotropic_filtering = false;
-            break;
-        case Filtering::kTrilinear:
-            samplerInfo.minify = gfx::Filter::kLinear;
-            samplerInfo.mipmap = gfx::Filter::kLinear;
-            samplerInfo.anisotropic_filtering = false;
-            break;
-        case Filtering::kAnisotropic:
-            samplerInfo.minify = gfx::Filter::kLinear;
-            samplerInfo.mipmap = gfx::Filter::kLinear;
-            samplerInfo.anisotropic_filtering = true;
-    }
-
     if (renderer->samplers.contains(samplerInfo) == false) {
         renderer->samplers.insert(std::make_pair(samplerInfo, gfx_->CreateSampler(samplerInfo)));
     }
 
-    gfx::ImageFormat format = gfx::ImageFormat::kLinear;
-    if (srgb) {
-        format = gfx::ImageFormat::kSRGB;
-    }
+    gfx::ImageFormat format = srgb ? gfx::ImageFormat::kSRGB : gfx::ImageFormat::kLinear;
 
     image_ = gfx_->CreateImage(width, height, format, bitmap);
     sampler_ = renderer->samplers.at(samplerInfo);
@@ -57,11 +28,11 @@ Texture::~Texture()
     gfx_->DestroyImage(image_);
 }
 
-std::unique_ptr<Texture> LoadTextureFromFile(const std::string& path, Texture::Filtering filtering, Renderer* renderer, bool srgb)
+std::unique_ptr<Texture> LoadTextureFromFile(const std::string& path, gfx::SamplerInfo samplerInfo, Renderer* renderer, bool srgb)
 {
     int width, height;
     auto bitmap = util::ReadImageFile(path, width, height);
-    return std::make_unique<Texture>(renderer, bitmap->data(), width, height, filtering, srgb);
+    return std::make_unique<Texture>(renderer, bitmap->data(), width, height, samplerInfo, srgb);
 }
 
 } // namespace engine

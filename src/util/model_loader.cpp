@@ -165,7 +165,7 @@ Entity LoadMeshFromFile(Scene* parent, const std::string& path, bool is_static)
             absPath = absPath.parent_path();
             absPath /= texPath.C_Str();
             try {
-                textures[i] = LoadTextureFromFile(absPath.string(), Texture::Filtering::kTrilinear, parent->app()->renderer());
+                textures[i] = LoadTextureFromFile(absPath.string(), gfx::SamplerInfo{}, parent->app()->renderer());
             }
             catch (const std::runtime_error&) {
                 textures[i] = parent->app()->GetResource<Texture>("builtin.white");

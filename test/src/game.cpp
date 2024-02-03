@@ -178,9 +178,9 @@ void PlayGame(GameSettings settings)
             wall_renderable->material = std::make_unique<engine::Material>(app.renderer(), app.GetResource<engine::Shader>("builtin.fancy"));
 
             std::shared_ptr<engine::Texture> albedo_texture =
-                engine::LoadTextureFromFile(app.GetResourcePath("textures/brickwall_albedo.jpg"), engine::Texture::Filtering::kAnisotropic, app.renderer());
+                engine::LoadTextureFromFile(app.GetResourcePath("textures/brickwall_albedo.jpg"), engine::gfx::SamplerInfo{}, app.renderer());
             std::shared_ptr<engine::Texture> normal_texture =
-                engine::LoadTextureFromFile(app.GetResourcePath("textures/brickwall_normal.jpg"), engine::Texture::Filtering::kAnisotropic, app.renderer(), false);
+                engine::LoadTextureFromFile(app.GetResourcePath("textures/brickwall_normal.jpg"), engine::gfx::SamplerInfo{}, app.renderer(), false);
 
             wall_renderable->material->SetAlbedoTexture(albedo_texture);
             wall_renderable->material->SetNormalTexture(normal_texture);

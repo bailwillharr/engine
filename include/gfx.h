@@ -128,10 +128,10 @@ struct DescriptorSetLayoutBinding {
 };
 
 struct SamplerInfo {
-  Filter minify;
-  Filter magnify;
-  Filter mipmap;
-  bool anisotropic_filtering;
+  Filter minify = gfx::Filter::kLinear;
+  Filter magnify = gfx::Filter::kLinear;
+  Filter mipmap = gfx::Filter::kLinear;
+  bool anisotropic_filtering = true;
 
   bool operator==(const SamplerInfo&) const = default;
 };

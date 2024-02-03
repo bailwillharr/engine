@@ -10,14 +10,8 @@ namespace engine {
 
 class Texture {
    public:
-    enum class Filtering {
-        kOff,
-        kBilinear,
-        kTrilinear,
-        kAnisotropic,
-    };
-
-    Texture(Renderer* renderer, const uint8_t* bitmap, int width, int height, Filtering filtering, bool srgb);
+    
+    Texture(Renderer* renderer, const uint8_t* bitmap, int width, int height, gfx::SamplerInfo samplerInfo, bool srgb);
 
     ~Texture();
     Texture(const Texture&) = delete;
@@ -32,7 +26,7 @@ class Texture {
     const gfx::Sampler* sampler_; // not owned by Texture, owned by Renderer
 };
 
-std::unique_ptr<Texture> LoadTextureFromFile(const std::string& path, Texture::Filtering filtering, Renderer* renderer, bool srgb = true);
+std::unique_ptr<Texture> LoadTextureFromFile(const std::string& path, gfx::SamplerInfo samplerInfo, Renderer* renderer, bool srgb = true);
 
 } // namespace engine
 
