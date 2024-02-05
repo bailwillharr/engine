@@ -196,12 +196,12 @@ void PlayGame(GameSettings settings)
 
         auto teapot = engine::util::LoadGLTF(*scene2, app.GetResourcePath("models/teapot_with_tangents.glb"));
         scene2->GetComponent<engine::TransformComponent>(teapot)->scale *= 10.0f;
-        auto teapot2 = engine::util::LoadGLTF(*scene2, app.GetResourcePath("models/teapot.glb"));
-        scene2->GetComponent<engine::TransformComponent>(teapot2)->scale *= 10.0f;
-        scene2->GetComponent<engine::TransformComponent>(teapot2)->position.y += 5.0f;
-        scene2->GetComponent<engine::TransformComponent>(teapot2)->rotation = glm::angleAxis(glm::pi<float>(), glm::vec3{ 0.0f, 0.0f, 1.0f });
-        scene2->GetComponent<engine::TransformComponent>(teapot2)->rotation *= glm::angleAxis(glm::half_pi<float>(), glm::vec3{1.0f, 0.0f, 0.0f});
-        auto walls = engine::util::LoadGLTF(*scene2, app.GetResourcePath("models/walls.glb"));
+        //auto teapot2 = engine::util::LoadGLTF(*scene2, app.GetResourcePath("models/teapot.glb"));
+        //scene2->GetComponent<engine::TransformComponent>(teapot2)->scale *= 10.0f;
+        //scene2->GetComponent<engine::TransformComponent>(teapot2)->position.y += 5.0f;
+        //scene2->GetComponent<engine::TransformComponent>(teapot2)->rotation = glm::angleAxis(glm::pi<float>(), glm::vec3{ 0.0f, 0.0f, 1.0f });
+        //scene2->GetComponent<engine::TransformComponent>(teapot2)->rotation *= glm::angleAxis(glm::half_pi<float>(), glm::vec3{1.0f, 0.0f, 0.0f});
+        //auto walls = engine::util::LoadGLTF(*scene2, app.GetResourcePath("models/walls.glb"));
     }
 
     my_scene->GetSystem<CameraControllerSystem>()->next_scene_ = scene2;

@@ -13,6 +13,14 @@ namespace tg = tinygltf;
 
 namespace engine::util {
 
+template <typename T>
+struct Attribute {
+    const uint8_t* buffer;
+    size_t offset;
+    size_t stride;
+    const T& operator[](size_t i) { return *reinterpret_cast<const T*>(&buffer[offset + stride * i]); }
+};
+
 static void DecomposeTransform(glm::mat4 transform, glm::vec3& pos, glm::quat& rot, glm::vec3& scale)
 {
     // get position
@@ -98,7 +106,7 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
         // find the image first
         // use missing texture image by default
         textures.emplace_back(scene.app()->GetResource<Texture>("builtin.white"));
-        
+
         if (texture.source == -1) continue;
 
         gfx::SamplerInfo samplerInfo{};
@@ -109,36 +117,36 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
         if (texture.sampler != -1) {
             const tg::Sampler& sampler = model.samplers.at(texture.sampler);
             switch (sampler.minFilter) {
-            case TINYGLTF_TEXTURE_FILTER_NEAREST:
-            case TINYGLTF_TEXTURE_FILTER_NEAREST_MIPMAP_LINEAR:
-                samplerInfo.minify = gfx::Filter::kNearest;
-                samplerInfo.mipmap = gfx::Filter::kLinear;
-                break;
-            case TINYGLTF_TEXTURE_FILTER_NEAREST_MIPMAP_NEAREST:
-                samplerInfo.minify = gfx::Filter::kNearest;
-                samplerInfo.mipmap = gfx::Filter::kNearest;
-                break;
-            case TINYGLTF_TEXTURE_FILTER_LINEAR:
-            case TINYGLTF_TEXTURE_FILTER_LINEAR_MIPMAP_LINEAR:
-                samplerInfo.minify = gfx::Filter::kLinear;
-                samplerInfo.mipmap = gfx::Filter::kLinear;
-                break;
-            case TINYGLTF_TEXTURE_FILTER_LINEAR_MIPMAP_NEAREST:
-                samplerInfo.minify = gfx::Filter::kLinear;
-                samplerInfo.mipmap = gfx::Filter::kNearest;
-                break;
-            default:
-                break;
+                case TINYGLTF_TEXTURE_FILTER_NEAREST:
+                case TINYGLTF_TEXTURE_FILTER_NEAREST_MIPMAP_LINEAR:
+                    samplerInfo.minify = gfx::Filter::kNearest;
+                    samplerInfo.mipmap = gfx::Filter::kLinear;
+                    break;
+                case TINYGLTF_TEXTURE_FILTER_NEAREST_MIPMAP_NEAREST:
+                    samplerInfo.minify = gfx::Filter::kNearest;
+                    samplerInfo.mipmap = gfx::Filter::kNearest;
+                    break;
+                case TINYGLTF_TEXTURE_FILTER_LINEAR:
+                case TINYGLTF_TEXTURE_FILTER_LINEAR_MIPMAP_LINEAR:
+                    samplerInfo.minify = gfx::Filter::kLinear;
+                    samplerInfo.mipmap = gfx::Filter::kLinear;
+                    break;
+                case TINYGLTF_TEXTURE_FILTER_LINEAR_MIPMAP_NEAREST:
+                    samplerInfo.minify = gfx::Filter::kLinear;
+                    samplerInfo.mipmap = gfx::Filter::kNearest;
+                    break;
+                default:
+                    break;
             }
             switch (sampler.magFilter) {
-            case TINYGLTF_TEXTURE_FILTER_NEAREST:
-                samplerInfo.magnify = gfx::Filter::kNearest;
-                break;
-            case TINYGLTF_TEXTURE_FILTER_LINEAR:
-                samplerInfo.magnify = gfx::Filter::kLinear;
-                break;
-            default:
-                break;
+                case TINYGLTF_TEXTURE_FILTER_NEAREST:
+                    samplerInfo.magnify = gfx::Filter::kNearest;
+                    break;
+                case TINYGLTF_TEXTURE_FILTER_LINEAR:
+                    samplerInfo.magnify = gfx::Filter::kLinear;
+                    break;
+                default:
+                    break;
             }
         }
         // use aniso if min filter is LINEAR_MIPMAP_LINEAR
@@ -147,8 +155,7 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
         const tg::Image& image = model.images.at(texture.source);
         if (image.as_is == false && image.bits == 8 && image.component == 4 && image.pixel_type == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE) {
             // create texture on GPU
-            textures.back() = std::make_shared<Texture>(scene.app()->renderer(), image.image.data(), image.width,
-                image.height, samplerInfo, true);
+            textures.back() = std::make_shared<Texture>(scene.app()->renderer(), image.image.data(), image.width, image.height, samplerInfo, true);
         }
     }
 
@@ -163,15 +170,142 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
 
     /* load all meshes found in model */
 
-    std::vector<std::shared_ptr<Mesh>> meshes{};
-    meshes.reserve(model.meshes.size());
+    struct EnginePrimitive {
+        std::shared_ptr<Mesh> mesh;
+        std::shared_ptr<Material> material;
+    };
+    std::vector<std::vector<EnginePrimitive>> primitive_arrays{}; // sub-array is all primitives for a given mesh
+    primitive_arrays.reserve(model.meshes.size());
     for (const tg::Mesh& mesh : model.meshes) {
-        // placeholder mesh for now
-        
+        auto& primitive_array = primitive_arrays.emplace_back();
+        for (const tg::Primitive& primitive : mesh.primitives) {
+            if (primitive.attributes.contains("POSITION")) {
+                const tg::Accessor& pos_accessor = model.accessors.at(primitive.attributes.at("POSITION"));
+
+                const size_t num_vertices = pos_accessor.count;
+
+                // these checks are probably unneccesary assuming a valid glTF file
+                // if (pos_accessor.componentType != TINYGLTF_COMPONENT_TYPE_FLOAT) throw std::runtime_error("Position att. must be float!");
+                // if (pos_accessor.type != 3) throw std::runtime_error("Position att. dim. must be 3!");
+
+                const tg::BufferView& pos_bufferview = model.bufferViews.at(pos_accessor.bufferView);
+                const tg::Buffer& pos_buffer = model.buffers.at(pos_bufferview.buffer);
+
+                Attribute<glm::vec3> positions{.buffer = pos_buffer.data.data(),
+                                               .offset = pos_accessor.byteOffset + pos_bufferview.byteOffset,
+                                               .stride = static_cast<size_t>(pos_accessor.ByteStride(pos_bufferview))};
+
+                Attribute<glm::vec3> normals{};
+                if (primitive.attributes.contains("NORMAL")) {
+                    const tg::Accessor& norm_accessor = model.accessors.at(primitive.attributes.at("NORMAL"));
+                    const tg::BufferView& norm_bufferview = model.bufferViews.at(norm_accessor.bufferView);
+                    const tg::Buffer& norm_buffer = model.buffers.at(norm_bufferview.buffer);
+                    normals.buffer = norm_buffer.data.data();
+                    normals.offset = norm_accessor.byteOffset + norm_bufferview.byteOffset;
+                    normals.stride = static_cast<size_t>(norm_accessor.ByteStride(norm_bufferview));
+                }
+                else {
+                    // TODO: generate flat normals
+                    throw std::runtime_error(std::string("No normals found in primitive from ") + mesh.name);
+                }
+
+                Attribute<glm::vec4> tangents{};
+                if (primitive.attributes.contains("TANGENT")) {
+                    const tg::Accessor& tang_accessor = model.accessors.at(primitive.attributes.at("TANGENT"));
+                    const tg::BufferView& tang_bufferview = model.bufferViews.at(tang_accessor.bufferView);
+                    const tg::Buffer& tang_buffer = model.buffers.at(tang_bufferview.buffer);
+                    tangents.buffer = tang_buffer.data.data();
+                    tangents.offset = tang_accessor.byteOffset + tang_bufferview.byteOffset;
+                    tangents.stride = static_cast<size_t>(tang_accessor.ByteStride(tang_bufferview));
+                }
+                else {
+                    // TODO: use MikkTSpace to generate tangents
+                    throw std::runtime_error(std::string("No tangents found in primitive from ") + mesh.name);
+                }
+
+                // UV0
+                Attribute<glm::vec2> uv0s{};
+                if (primitive.attributes.contains("TEXCOORD_0")) {
+                    const tg::Accessor& uv0_accessor = model.accessors.at(primitive.attributes.at("TEXCOORD_0"));
+                    const tg::BufferView& uv0_bufferview = model.bufferViews.at(uv0_accessor.bufferView);
+                    const tg::Buffer& uv0_buffer = model.buffers.at(uv0_bufferview.buffer);
+                    uv0s.buffer = uv0_buffer.data.data();
+                    uv0s.offset = uv0_accessor.byteOffset + uv0_bufferview.byteOffset;
+                    uv0s.stride = static_cast<size_t>(uv0_accessor.ByteStride(uv0_bufferview));
+                }
+                else {
+                    // TODO: Possibly create a shader variant that doesn't need UVs?
+                    throw std::runtime_error(std::string("No TEXCOORD_0 found in primitive from ") + mesh.name);
+                }
+
+                // Indices
+                const tg::Accessor& indices_accessor = model.accessors.at(primitive.indices);
+                const tg::BufferView& indices_bufferview = model.bufferViews.at(indices_accessor.bufferView);
+                const tg::Buffer& indices_buffer = model.buffers.at(indices_bufferview.buffer);
+                const uint8_t* const indices_data_start = indices_buffer.data.data() + indices_accessor.byteOffset + indices_bufferview.byteOffset;
+
+                const size_t num_indices = indices_accessor.count;
+                std::vector<uint32_t> indices;
+                indices.reserve(num_indices);
+
+                if (indices_accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE) {
+                    for (size_t i = 0; i < num_indices; ++i) {
+                        indices.push_back(*reinterpret_cast<const uint8_t*>(&indices_data_start[i * 1]));
+                    }
+                }
+                else if (indices_accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) {
+                    for (size_t i = 0; i < num_indices; ++i) {
+                        indices.push_back(*reinterpret_cast<const uint16_t*>(&indices_data_start[i * 2]));
+                    }
+                }
+                else if (indices_accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT) {
+                    for (size_t i = 0; i < num_indices; ++i) {
+                        indices.push_back(*reinterpret_cast<const uint32_t*>(&indices_data_start[i * 4]));
+                    }
+                }
+                else {
+                    throw std::runtime_error(std::string("Invalid index buffer in primtive from: ") + mesh.name);
+                }
+
+                // combine vertices into one array
+                std::vector<Vertex> vertices;
+                vertices.reserve(num_vertices);
+                for (size_t i = 0; i < num_vertices; ++i) {
+                    Vertex v;
+                    v.pos = positions[i];
+                    v.norm = normals[i];
+                    v.tangent = tangents[i];
+                    v.uv = uv0s[i];
+                    vertices.push_back(v);
+                }
+
+                // generate mesh on GPU
+                std::shared_ptr<Mesh> engine_mesh = std::make_shared<Mesh>(scene.app()->renderer()->GetDevice(), vertices, indices);
+
+                // get material
+                std::shared_ptr<Material> engine_material = nullptr;
+                if (primitive.material != -1) {
+                    engine_material = materials.at(primitive.material);
+                }
+                else {
+                    engine_material = scene.app()->GetResource<Material>("builtin.default");
+                }
+
+                primitive_array.emplace_back(engine_mesh, engine_material);
+            }
+            else {
+                // skip primitive's rendering
+                continue;
+            }
+        }
     }
-    
+
     const Entity parent =
         scene.CreateEntity("test_node", 0, glm::vec3{}, glm::quat{glm::one_over_root_two<float>(), glm::one_over_root_two<float>(), 0.0f, 0.0f});
+
+    auto ren = scene.AddComponent<MeshRenderableComponent>(parent);
+    ren->material = primitive_arrays.at(0).at(0).material;
+    ren->mesh = primitive_arrays.at(0).at(0).mesh;
 
     return parent;
 }
