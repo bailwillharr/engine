@@ -84,7 +84,7 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
         throw std::runtime_error("Failed to load glTF file!");
     }
 
-    LOG_INFO("Loaded glTF model, contains {} scenes", model.scenes.size());
+    LOG_INFO("Loaded glTF model: {}, contains {} scenes", path, model.scenes.size());
 
     // test model loading
 
@@ -155,6 +155,7 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
         const tg::Image& image = model.images.at(texture.source);
         if (image.as_is == false && image.bits == 8 && image.component == 4 && image.pixel_type == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE) {
             // create texture on GPU
+            // TODO: somehow detect if the textue should be srgb or not
             textures.back() = std::make_shared<Texture>(scene.app()->renderer(), image.image.data(), image.width, image.height, samplerInfo, true);
         }
     }
@@ -164,8 +165,67 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
     std::vector<std::shared_ptr<Material>> materials{};
     materials.reserve(model.materials.size());
     for (const tg::Material& material : model.materials) {
-        // use default material unless a material is found
-        materials.emplace_back(scene.app()->GetResource<Material>("builtin.default"));
+        if (material.alphaMode != "OPAQUE") {
+            LOG_WARN("Material {} contains alphaMode {} which isn't supported yet", material.name, material.alphaMode);
+            LOG_WARN("Material will be opaque");
+        }
+        if (material.doubleSided == true) {
+            LOG_WARN("Material {} specifies double-sided mesh rendering which isn't supported yet", material.name);
+            LOG_WARN("Material will be single-sided.");
+        }
+        if (material.emissiveTexture.index != -1 || material.emissiveFactor[0] != 0.0 || material.emissiveFactor[1] != 0.0 ||
+            material.emissiveFactor[2] != 0.0) {
+            LOG_WARN("Material {} contains an emissive texture or non-zero emissive factor. Emission is currently unsupported.", material.name);
+            LOG_WARN("Material will be created without emission.");
+        }
+        if (material.occlusionTexture.index != -1) {
+            LOG_WARN("Material {} contains an ambient occlusion texture which isn't supported yet.", material.name);
+            LOG_WARN("Material will be created without an occlusion map.");
+        }
+        const auto& baseColorFactor4 = material.pbrMetallicRoughness.baseColorFactor;
+        if (baseColorFactor4[0] != 1.0 || baseColorFactor4[1] != 1.0 || baseColorFactor4[2] != 1.0 || baseColorFactor4[3] != 1.0) {
+            LOG_WARN("Material {} contains a base color value which isn't supported yet.", material.name);
+            if (material.pbrMetallicRoughness.baseColorTexture.index == -1) {
+                LOG_WARN("Material will be created with a white base color texture.");
+            }
+            else {
+                LOG_WARN("The material's base color texture will be used as-is.");
+            }
+        }
+        if (material.pbrMetallicRoughness.metallicRoughnessTexture.index != -1) {
+            LOG_WARN("Material {} contains a metallic-roughness texture which isn't supported yet.", material.name);
+            LOG_WARN("This texture will be ignored.");
+        }
+        if (material.pbrMetallicRoughness.metallicFactor != 1.0) {
+            LOG_WARN("Material {} contains a metallic factor != 1.0 which isn't supported yet.", material.name);
+            LOG_WARN("Material will be created as fully metallic");
+        }
+        if (material.pbrMetallicRoughness.roughnessFactor != 1.0) {
+            LOG_WARN("Material {} contains a roughness factor != 1.0 which isn't supported yet.", material.name);
+            LOG_WARN("Material will be created as fully rough");
+        }
+
+        materials.emplace_back(std::make_shared<Material>(scene.app()->renderer(), scene.app()->GetResource<Shader>("builtin.fancy")));
+        materials.back()->SetAlbedoTexture(scene.app()->GetResource<Texture>("builtin.white"));
+        if (material.pbrMetallicRoughness.baseColorTexture.index != -1) {
+            if (material.pbrMetallicRoughness.baseColorTexture.texCoord == 0) {
+                materials.back()->SetAlbedoTexture(textures.at(material.pbrMetallicRoughness.baseColorTexture.index));
+            } else {
+                LOG_WARN("Material {} base color texture specifies a UV channel other than zero which is unsupported.");
+                LOG_WARN("Material will be created with a white base color");
+            }
+        }
+
+        materials.back()->SetNormalTexture(scene.app()->GetResource<Texture>("builtin.normal"));
+        if (material.normalTexture.index != -1) {
+            if (material.normalTexture.texCoord == 0) {
+                materials.back()->SetNormalTexture(textures.at(material.normalTexture.index));
+            }
+            else {
+                LOG_WARN("Material {} normal texture specifies a UV channel other than zero which is unsupported.");
+                LOG_WARN("Material will be created with no normal map");
+            }
+        }
     }
 
     /* load all meshes found in model */
@@ -301,7 +361,8 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
     }
 
     const Entity parent =
-        scene.CreateEntity("test_node", 0, glm::vec3{}, glm::quat{glm::one_over_root_two<float>(), glm::one_over_root_two<float>(), 0.0f, 0.0f});
+        // scene.CreateEntity("test_node", 0, glm::vec3{}, glm::quat{glm::one_over_root_two<float>(), glm::one_over_root_two<float>(), 0.0f, 0.0f});
+        scene.CreateEntity("test_node", 0);
 
     auto ren = scene.AddComponent<MeshRenderableComponent>(parent);
     ren->material = primitive_arrays.at(0).at(0).material;
