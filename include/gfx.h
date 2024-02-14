@@ -37,6 +37,7 @@ struct GraphicsSettings {
     // not all GPUs/drivers support immediate present with V-sync enabled
     wait_for_present = true;
     msaa_level = MSAALevel::kOff;
+    enable_anisotropy = false; // anisotropic filtering can severely affect performance on intel iGPUs
   }
 
   bool enable_validation;
@@ -45,6 +46,7 @@ struct GraphicsSettings {
   // (no affect with V-sync disabled)
   bool wait_for_present;
   MSAALevel msaa_level;
+  bool enable_anisotropy;
 };
 
 enum class ImageFormat {
@@ -131,7 +133,7 @@ struct SamplerInfo {
   Filter minify = gfx::Filter::kLinear;
   Filter magnify = gfx::Filter::kLinear;
   Filter mipmap = gfx::Filter::kLinear;
-  bool anisotropic_filtering = true;
+  bool anisotropic_filtering = true; // this can be force disabled by a global setting
 
   bool operator==(const SamplerInfo&) const = default;
 };

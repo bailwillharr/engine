@@ -22,22 +22,22 @@
 
 #include "config.h"
 
-static void ConfigureInputs(engine::InputManager* input_manager)
+static void ConfigureInputs(engine::InputManager& input_manager)
 {
     // user interface mappings
-    input_manager->AddInputButton("fullscreen", engine::inputs::Key::K_F11);
-    input_manager->AddInputButton("exit", engine::inputs::Key::K_ESCAPE);
+    input_manager.AddInputButton("fullscreen", engine::inputs::Key::K_F11);
+    input_manager.AddInputButton("exit", engine::inputs::Key::K_ESCAPE);
     // game buttons
-    input_manager->AddInputButton("fire", engine::inputs::MouseButton::M_LEFT);
-    input_manager->AddInputButton("aim", engine::inputs::MouseButton::M_RIGHT);
-    input_manager->AddInputButton("jump", engine::inputs::Key::K_SPACE);
-    input_manager->AddInputButton("sprint", engine::inputs::Key::K_LSHIFT);
+    input_manager.AddInputButton("fire", engine::inputs::MouseButton::M_LEFT);
+    input_manager.AddInputButton("aim", engine::inputs::MouseButton::M_RIGHT);
+    input_manager.AddInputButton("jump", engine::inputs::Key::K_SPACE);
+    input_manager.AddInputButton("sprint", engine::inputs::Key::K_LSHIFT);
     // game movement
-    input_manager->AddInputButtonAsAxis("movex", engine::inputs::Key::K_D, engine::inputs::Key::K_A);
-    input_manager->AddInputButtonAsAxis("movey", engine::inputs::Key::K_W, engine::inputs::Key::K_S);
+    input_manager.AddInputButtonAsAxis("movex", engine::inputs::Key::K_D, engine::inputs::Key::K_A);
+    input_manager.AddInputButtonAsAxis("movey", engine::inputs::Key::K_W, engine::inputs::Key::K_S);
     // looking around
-    input_manager->AddInputAxis("lookx", engine::inputs::MouseAxis::X);
-    input_manager->AddInputAxis("looky", engine::inputs::MouseAxis::Y);
+    input_manager.AddInputAxis("lookx", engine::inputs::MouseAxis::X);
+    input_manager.AddInputAxis("looky", engine::inputs::MouseAxis::Y);
 }
 
 void PlayGame(GameSettings settings)
@@ -50,11 +50,14 @@ void PlayGame(GameSettings settings)
     graphics_settings.vsync = true;
     graphics_settings.wait_for_present = false;
     graphics_settings.msaa_level = engine::gfx::MSAALevel::kOff;
+    graphics_settings.enable_anisotropy = false;
 
-    engine::Application app(PROJECT_NAME, PROJECT_VERSION, graphics_settings);
-    app.SetFrameLimiter(settings.enable_frame_limiter);
+    engine::Application::Configuration configuration{};
+    configuration.enable_frame_limiter = settings.enable_frame_limiter;
+
+    engine::Application app(PROJECT_NAME, PROJECT_VERSION, graphics_settings, configuration);
     app.window()->SetRelativeMouseMode(true);
-    ConfigureInputs(app.input_manager());
+    ConfigureInputs(*app.input_manager());
 
     engine::Scene* my_scene = app.scene_manager()->CreateEmptyScene();
     {
@@ -201,7 +204,7 @@ void PlayGame(GameSettings settings)
         //scene2->GetComponent<engine::TransformComponent>(teapot2)->position.y += 5.0f;
         //scene2->GetComponent<engine::TransformComponent>(teapot2)->rotation = glm::angleAxis(glm::pi<float>(), glm::vec3{ 0.0f, 0.0f, 1.0f });
         //scene2->GetComponent<engine::TransformComponent>(teapot2)->rotation *= glm::angleAxis(glm::half_pi<float>(), glm::vec3{1.0f, 0.0f, 0.0f});
-        //auto walls = engine::util::LoadGLTF(*scene2, app.GetResourcePath("models/walls.glb"));
+        auto walls = engine::util::LoadGLTF(*scene2, app.GetResourcePath("models/walls_with_tangents.glb"));
     }
 
     my_scene->GetSystem<CameraControllerSystem>()->next_scene_ = scene2;

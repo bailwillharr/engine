@@ -233,6 +233,8 @@ static VkShaderStageFlags getShaderStageFlags(gfx::ShaderStageFlags::Flags flags
             return VK_CULL_MODE_BACK_BIT;
         case gfx::CullMode::kCullFrontAndBack:
             return VK_CULL_MODE_FRONT_AND_BACK;
+        default:
+            throw std::runtime_error("Unknown cull mode");
     }
 }
 
@@ -243,6 +245,8 @@ static VkFormat getImageFormat(gfx::ImageFormat format)
         return VK_FORMAT_R8G8B8A8_UNORM;
     case gfx::ImageFormat::kSRGB:
         return VK_FORMAT_R8G8B8A8_SRGB;
+    default:
+        throw std::runtime_error("Unknown image format");
     }
 }
 
@@ -352,7 +356,7 @@ struct GFXDevice::Impl {
     SwapchainInfo swapchainInfo{};
     Swapchain swapchain{};
 
-    VkDescriptorPool descriptorPool;
+    VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
 
     struct WriteQueues {
         std::unordered_set<gfx::UniformBuffer*> uniform_buffer_writes{};
@@ -1640,7 +1644,7 @@ const gfx::Sampler* GFXDevice::CreateSampler(const gfx::SamplerInfo& info)
     samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
     samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
     samplerInfo.mipLodBias = 0.0f;
-    samplerInfo.anisotropyEnable = info.anisotropic_filtering ? VK_TRUE : VK_FALSE;
+    samplerInfo.anisotropyEnable = (info.anisotropic_filtering && pimpl->graphicsSettings.enable_anisotropy) ? VK_TRUE : VK_FALSE;
     samplerInfo.maxAnisotropy = pimpl->device.properties.limits.maxSamplerAnisotropy;
     samplerInfo.minLod = 0.0f;
     samplerInfo.maxLod = VK_LOD_CLAMP_NONE;

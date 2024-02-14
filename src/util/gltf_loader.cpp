@@ -53,10 +53,10 @@ static glm::mat4 MatFromDoubleArray(const std::vector<double>& arr)
 {
     glm::mat4 mat{};
     for (int i = 0; i < 4; ++i) {
-        mat[i][0] = static_cast<float>(arr[i * 4 + 0]);
-        mat[i][1] = static_cast<float>(arr[i * 4 + 1]);
-        mat[i][2] = static_cast<float>(arr[i * 4 + 2]);
-        mat[i][3] = static_cast<float>(arr[i * 4 + 3]);
+        mat[i][0] = static_cast<float>(arr[static_cast<size_t>(i) * 4 + 0]);
+        mat[i][1] = static_cast<float>(arr[static_cast<size_t>(i) * 4 + 1]);
+        mat[i][2] = static_cast<float>(arr[static_cast<size_t>(i) * 4 + 2]);
+        mat[i][3] = static_cast<float>(arr[static_cast<size_t>(i) * 4 + 3]);
     }
     return mat;
 }
@@ -83,8 +83,6 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
     if (!success) {
         throw std::runtime_error("Failed to load glTF file!");
     }
-
-    LOG_INFO("Loaded glTF model: {}, contains {} scenes", path, model.scenes.size());
 
     // test model loading
 
@@ -210,7 +208,8 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
         if (material.pbrMetallicRoughness.baseColorTexture.index != -1) {
             if (material.pbrMetallicRoughness.baseColorTexture.texCoord == 0) {
                 materials.back()->SetAlbedoTexture(textures.at(material.pbrMetallicRoughness.baseColorTexture.index));
-            } else {
+            }
+            else {
                 LOG_WARN("Material {} base color texture specifies a UV channel other than zero which is unsupported.");
                 LOG_WARN("Material will be created with a white base color");
             }
@@ -331,11 +330,7 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
                 std::vector<Vertex> vertices;
                 vertices.reserve(num_vertices);
                 for (size_t i = 0; i < num_vertices; ++i) {
-                    Vertex v;
-                    v.pos = positions[i];
-                    v.norm = normals[i];
-                    v.tangent = tangents[i];
-                    v.uv = uv0s[i];
+                    Vertex v{.pos = positions[i], .norm = normals[i], .tangent = tangents[i], .uv = uv0s[i]};
                     vertices.push_back(v);
                 }
 
@@ -360,13 +355,76 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
         }
     }
 
+    // glTF uses the Y-up convention so objects must be rotated to Z-up
     const Entity parent =
-        // scene.CreateEntity("test_node", 0, glm::vec3{}, glm::quat{glm::one_over_root_two<float>(), glm::one_over_root_two<float>(), 0.0f, 0.0f});
-        scene.CreateEntity("test_node", 0);
+        scene.CreateEntity("test_node", 0, glm::vec3{}, glm::quat{glm::one_over_root_two<float>(), glm::one_over_root_two<float>(), 0.0f, 0.0f});
 
-    auto ren = scene.AddComponent<MeshRenderableComponent>(parent);
-    ren->material = primitive_arrays.at(0).at(0).material;
-    ren->mesh = primitive_arrays.at(0).at(0).mesh;
+    std::vector<Entity> entities(model.nodes.size(), 0);
+    std::function<void(Entity, const tg::Node&)> generateEntities = [&](Entity parent_entity, const tg::Node& node) -> void {
+        const Entity e = scene.CreateEntity(node.name.empty() ? "anode" : node.name, parent_entity);
+
+        // transform
+        auto t = scene.GetComponent<TransformComponent>(e);
+        t->position.x = 0.0f;
+        t->position.y = 0.0f;
+        t->position.z = 0.0f;
+        t->rotation.x = 0.0f;
+        t->rotation.y = 0.0f;
+        t->rotation.z = 0.0f;
+        t->rotation.w = 1.0f;
+        t->scale.x = 1.0f;
+        t->scale.y = 1.0f;
+        t->scale.z = 1.0f;
+
+        if (node.matrix.size() == 16) {
+            const glm::mat4 matrix = MatFromDoubleArray(node.matrix);
+            DecomposeTransform(matrix, t->position, t->rotation, t->scale);
+        }
+        else {
+            if (node.translation.size() == 3) {
+                t->position.x = static_cast<float>(node.translation[0]);
+                t->position.y = static_cast<float>(node.translation[1]);
+                t->position.z = static_cast<float>(node.translation[2]);
+            }
+            if (node.rotation.size() == 4) {
+                t->rotation.x = static_cast<float>(node.rotation[0]);
+                t->rotation.y = static_cast<float>(node.rotation[1]);
+                t->rotation.z = static_cast<float>(node.rotation[2]);
+                t->rotation.w = static_cast<float>(node.rotation[3]);
+            }
+            if (node.scale.size() == 3) {
+                t->scale.x = static_cast<float>(node.scale[0]);
+                t->scale.y = static_cast<float>(node.scale[1]);
+                t->scale.z = static_cast<float>(node.scale[2]);
+            }
+        }
+
+        // ignoring cameras
+        // ignoring skin
+        // ignoring weights
+
+        if (node.mesh != -1) {
+            const auto& primitives = primitive_arrays.at(node.mesh);
+            int i = 0;
+            for (const EnginePrimitive& prim : primitives) {
+                auto prim_entity = scene.CreateEntity(std::string("_mesh") + std::to_string(i), e);
+                auto meshren = scene.AddComponent<MeshRenderableComponent>(prim_entity);
+                meshren->mesh = prim.mesh;
+                meshren->material = prim.material;
+                ++i;
+            }
+        }
+
+        for (int i : node.children) {
+            generateEntities(e, model.nodes.at(i));
+        }
+    };
+
+    for (int i : s.nodes) {
+        generateEntities(parent, model.nodes.at(i));
+    }
+
+    LOG_INFO("Loaded glTF model: {}", path);
 
     return parent;
 }

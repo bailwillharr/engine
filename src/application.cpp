@@ -73,7 +73,8 @@ static std::filesystem::path getResourcesPath()
     return resourcesPath;
 }
 
-Application::Application(const char* appName, const char* appVersion, gfx::GraphicsSettings graphicsSettings)
+Application::Application(const char* appName, const char* appVersion, gfx::GraphicsSettings graphicsSettings, Configuration configuration)
+    : configuration_(configuration)
 {
     window_ = std::make_unique<Window>(appName, true, false);
     input_manager_ = std::make_unique<InputManager>(window_.get());
@@ -114,7 +115,7 @@ Application::Application(const char* appName, const char* appVersion, gfx::Graph
         shaderSettings.write_z = true;
         shaderSettings.render_order = 0;
         auto texturedShader = std::make_unique<Shader>(renderer(), GetResourcePath("engine/shaders/standard.vert").c_str(),
-                                                                  GetResourcePath("engine/shaders/standard.frag").c_str(), shaderSettings);
+                                                       GetResourcePath("engine/shaders/standard.frag").c_str(), shaderSettings);
         GetResourceManager<Shader>()->AddPersistent("builtin.standard", std::move(texturedShader));
     }
     {
@@ -129,7 +130,7 @@ Application::Application(const char* appName, const char* appVersion, gfx::Graph
         shaderSettings.write_z = true;
         shaderSettings.render_order = 0;
         auto fancyShader = std::make_unique<Shader>(renderer(), GetResourcePath("engine/shaders/fancy.vert").c_str(),
-            GetResourcePath("engine/shaders/fancy.frag").c_str(), shaderSettings);
+                                                    GetResourcePath("engine/shaders/fancy.frag").c_str(), shaderSettings);
         GetResourceManager<Shader>()->AddPersistent("builtin.fancy", std::move(fancyShader));
     }
     {
@@ -144,7 +145,7 @@ Application::Application(const char* appName, const char* appVersion, gfx::Graph
         shaderSettings.write_z = true;
         shaderSettings.render_order = 0;
         auto skyboxShader = std::make_unique<Shader>(renderer(), GetResourcePath("engine/shaders/skybox.vert").c_str(),
-                                                                GetResourcePath("engine/shaders/skybox.frag").c_str(), shaderSettings);
+                                                     GetResourcePath("engine/shaders/skybox.frag").c_str(), shaderSettings);
         GetResourceManager<Shader>()->AddPersistent("builtin.skybox", std::move(skyboxShader));
     }
 #if 0
@@ -260,8 +261,7 @@ void Application::GameLoop()
                         return find_depth(parent, current_depth + 1);
                     }
                 };
-                if (scene)
-                {
+                if (scene) {
                     for (Entity i = 1; i < scene->next_entity_id_; ++i) {
                         auto t = scene->GetComponent<TransformComponent>(i);
                         std::string tabs{};
@@ -296,7 +296,7 @@ void Application::GameLoop()
         window_->GetInputAndEvents();
 
         /* fps limiter */
-        if (enable_frame_limiter_) {
+        if (configuration_.enable_frame_limiter) {
             std::this_thread::sleep_until(endFrame);
         }
         beginFrame = endFrame;
