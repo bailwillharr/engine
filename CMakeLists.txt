@@ -36,6 +36,8 @@ set(SRC_FILES
 	"src/libs/stb_impl.cpp"
 	"src/libs/tiny_gltf.h"
 	"src/libs/tiny_gltf_impl.cpp"
+	"src/libs/weldmesh.c"
+	"src/libs/weldmesh.h"
 	"src/renderer.cpp"
 	"src/resources/font.cpp"
 	"src/resources/material.cpp"

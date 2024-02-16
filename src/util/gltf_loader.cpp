@@ -4,6 +4,7 @@
 #include "util/files.h"
 
 #include "libs/mikktspace.h"
+#include "libs/weldmesh.h"
 #include "libs/tiny_gltf.h"
 
 #include "components/mesh_renderable.h"
@@ -160,6 +161,19 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
 
     /* load all materials found in model */
 
+    // store some 1x1 colour textures as a hack to render solid colours
+    struct Color {
+        uint8_t r, g, b, a;
+        Color(const double* doubles)
+        {
+            r = static_cast<uint8_t>(lround(doubles[0] * 255.0));
+            g = static_cast<uint8_t>(lround(doubles[1] * 255.0));
+            b = static_cast<uint8_t>(lround(doubles[2] * 255.0));
+            a = static_cast<uint8_t>(lround(doubles[3] * 255.0));
+        }
+    };
+    //std::unordered_map<Color, std::shared_ptr<Texture>> colour_textures;
+
     std::vector<std::shared_ptr<Material>> materials{};
     materials.reserve(model.materials.size());
     for (const tg::Material& material : model.materials) {
@@ -182,11 +196,16 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
         }
         const auto& baseColorFactor4 = material.pbrMetallicRoughness.baseColorFactor;
         if (baseColorFactor4[0] != 1.0 || baseColorFactor4[1] != 1.0 || baseColorFactor4[2] != 1.0 || baseColorFactor4[3] != 1.0) {
-            LOG_WARN("Material {} contains a base color value which isn't supported yet.", material.name);
             if (material.pbrMetallicRoughness.baseColorTexture.index == -1) {
-                LOG_WARN("Material will be created with a white base color texture.");
+                LOG_INFO("Making color texture!");
+                throw std::runtime_error("TODO");
+                // convert double colors to integers
+                //Color col(baseColorFactor4.data());
+                //if (colour_textures.contains(col)) {
+               // }
             }
             else {
+                LOG_WARN("Material {} contains a base color multiplier which isn't supported yet.", material.name);
                 LOG_WARN("The material's base color texture will be used as-is.");
             }
         }
@@ -243,6 +262,8 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
 
                 const size_t num_vertices = pos_accessor.count;
 
+                bool generate_tangents = false; // generating tangents creates a new index list and therefore all attribute accessors must be reassigned
+
                 // these checks are probably unneccesary assuming a valid glTF file
                 // if (pos_accessor.componentType != TINYGLTF_COMPONENT_TYPE_FLOAT) throw std::runtime_error("Position att. must be float!");
                 // if (pos_accessor.type != 3) throw std::runtime_error("Position att. dim. must be 3!");
@@ -279,7 +300,7 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
                 }
                 else {
                     // TODO: use MikkTSpace to generate tangents
-                    throw std::runtime_error(std::string("No tangents found in primitive from ") + mesh.name);
+                    generate_tangents = true;
                 }
 
                 // UV0
@@ -326,12 +347,104 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
                     throw std::runtime_error(std::string("Invalid index buffer in primtive from: ") + mesh.name);
                 }
 
-                // combine vertices into one array
                 std::vector<Vertex> vertices;
-                vertices.reserve(num_vertices);
-                for (size_t i = 0; i < num_vertices; ++i) {
-                    Vertex v{.pos = positions[i], .norm = normals[i], .tangent = tangents[i], .uv = uv0s[i]};
-                    vertices.push_back(v);
+
+                if (generate_tangents) {
+                    // generate tangents if they're not in the file
+                    struct MeshData {
+                        Attribute<glm::vec3>* positions;
+                        Attribute<glm::vec3>* normals;
+                        Attribute<glm::vec2>* uvs;
+                        const uint32_t* indices;
+                        size_t num_indices;
+                        std::vector<Vertex>* new_vertices;
+                    };
+
+                    MeshData meshData{};
+                    meshData.positions = &positions;
+                    meshData.normals = &normals;
+                    meshData.uvs = &uv0s;
+                    meshData.indices = indices.data();
+                    meshData.num_indices = num_indices;
+                    meshData.new_vertices = &vertices;
+                    vertices.resize(num_indices);
+
+                    SMikkTSpaceInterface mts_interface{};
+                    mts_interface.m_getNumFaces = [](const SMikkTSpaceContext* pContext) -> int {
+                        const MeshData* meshData = static_cast<const MeshData*>(pContext->m_pUserData);
+                        assert(meshData->num_indices % 3 == 0);
+                        return meshData->num_indices / 3;
+                    };
+                    mts_interface.m_getNumVerticesOfFace = [](const SMikkTSpaceContext*, const int) -> int { return 3; };
+                    mts_interface.m_getPosition = [](const SMikkTSpaceContext* pContext, float fvPosOut[], const int iFace, const int iVert) -> void {
+                        const MeshData* const meshData = static_cast<const MeshData*>(pContext->m_pUserData);
+                        const size_t i = iFace * 3 + iVert;
+                        assert(i < meshData->num_indices);
+                        const size_t vertex_index = meshData->indices[i];
+                        const glm::vec3 pos = meshData->positions->operator[](vertex_index);
+                        fvPosOut[0] = pos.x;
+                        fvPosOut[1] = pos.y;
+                        fvPosOut[2] = pos.z;
+                    };
+                    mts_interface.m_getNormal = [](const SMikkTSpaceContext* pContext, float fvNormOut[], const int iFace, const int iVert) -> void {
+                        const MeshData* const meshData = static_cast<const MeshData*>(pContext->m_pUserData);
+                        const size_t i = iFace * 3 + iVert;
+                        assert(i < meshData->num_indices);
+                        const size_t vertex_index = meshData->indices[i];
+                        const glm::vec3 norm = meshData->normals->operator[](vertex_index);
+                        fvNormOut[0] = norm.x;
+                        fvNormOut[1] = norm.y;
+                        fvNormOut[2] = norm.z;
+                    };
+                    mts_interface.m_getTexCoord = [](const SMikkTSpaceContext* pContext, float fvTexcOut[], const int iFace, const int iVert) -> void {
+                        const MeshData* const meshData = static_cast<const MeshData*>(pContext->m_pUserData);
+                        const size_t i = iFace * 3 + iVert;
+                        assert(i < meshData->num_indices);
+                        const size_t vertex_index = meshData->indices[i];
+                        const glm::vec2 uv = meshData->uvs->operator[](vertex_index);
+                        fvTexcOut[0] = uv.x;
+                        fvTexcOut[1] = uv.y;
+                    };
+                    mts_interface.m_setTSpaceBasic = [](const SMikkTSpaceContext* pContext, const float fvTangent[], const float fSign, const int iFace,
+                                                        const int iVert) -> void {
+                        MeshData* const meshData = static_cast<MeshData*>(pContext->m_pUserData);
+                        const size_t i = iFace * 3 + iVert;
+                        assert(i < meshData->num_indices);
+                        const size_t vertex_index = meshData->indices[i];
+
+                        Vertex& new_v = meshData->new_vertices->operator[](i);
+
+                        new_v.pos = meshData->positions->operator[](vertex_index);
+                        new_v.norm = meshData->normals->operator[](vertex_index);
+                        new_v.uv = meshData->uvs->operator[](vertex_index);
+                        new_v.tangent.x = fvTangent[0];
+                        new_v.tangent.y = fvTangent[1];
+                        new_v.tangent.z = fvTangent[2];
+                        new_v.tangent.w = fSign;
+                    };
+                    SMikkTSpaceContext mts_context{};
+                    mts_context.m_pInterface = &mts_interface;
+                    mts_context.m_pUserData = &meshData;
+
+                    bool tan_result = genTangSpaceDefault(&mts_context);
+                    if (tan_result == false) throw std::runtime_error("Failed to generate tangents!");
+
+                    // regenerate indices as simple ones
+                    indices.clear();
+                    indices.reserve(meshData.new_vertices->size());
+                    // temp generate simple indices
+                    for (uint32_t i = 0; i < meshData.new_vertices->size(); ++i) {
+                        indices.push_back(i);
+                    }
+                }
+                else {
+                    // combine vertices into one array
+                    vertices.clear();
+                    vertices.reserve(num_vertices);
+                    for (size_t i = 0; i < num_vertices; ++i) {
+                        Vertex v{.pos = positions[i], .norm = normals[i], .tangent = tangents[i], .uv = uv0s[i]};
+                        vertices.push_back(v);
+                    }
                 }
 
                 // generate mesh on GPU
@@ -355,9 +468,12 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
         }
     }
 
-    // glTF uses the Y-up convention so objects must be rotated to Z-up
-    const Entity parent =
-        scene.CreateEntity("test_node", 0, glm::vec3{}, glm::quat{glm::one_over_root_two<float>(), glm::one_over_root_two<float>(), 0.0f, 0.0f});
+    /* now create the entities and traverse the glTF scene hierarchy */
+    const std::filesystem::path filePath(path);
+    const std::string name = filePath.stem().string();
+
+    // glTF uses the Y-up convention so the parent object must be rotated to Z-up
+    const Entity parent = scene.CreateEntity(name, 0, glm::vec3{}, glm::quat{glm::one_over_root_two<float>(), glm::one_over_root_two<float>(), 0.0f, 0.0f});
 
     std::vector<Entity> entities(model.nodes.size(), 0);
     std::function<void(Entity, const tg::Node&)> generateEntities = [&](Entity parent_entity, const tg::Node& node) -> void {

@@ -268,7 +268,7 @@ void Application::GameLoop()
                         int depth = find_depth(i, 0);
                         for (int j = 0; j < depth; ++j) tabs += std::string{"    "};
                         ImGui::Text("%s%s", tabs.c_str(), t->tag.c_str());
-                        ImGui::Text("%.1f %.1f %.1f", t->position.x, t->position.y, t->position.z);
+                        //ImGui::Text("%.1f %.1f %.1f", t->position.x, t->position.y, t->position.z);
                     }
                 }
                 else {
