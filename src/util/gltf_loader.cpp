@@ -10,6 +10,29 @@
 #include "components/mesh_renderable.h"
 #include <components/transform.h>
 
+struct Color {
+    uint8_t r, g, b, a;
+    Color(const std::vector<double>& doubles)
+    {
+        if (doubles.size() != 4) throw std::runtime_error("Invalid color doubles array");
+        r = static_cast<uint8_t>(lround(doubles[0] * 255.0));
+        g = static_cast<uint8_t>(lround(doubles[1] * 255.0));
+        b = static_cast<uint8_t>(lround(doubles[2] * 255.0));
+        a = static_cast<uint8_t>(lround(doubles[3] * 255.0));
+    }
+    bool operator==(const Color&) const = default;
+};
+
+namespace std {
+    template <>
+    struct std::hash<Color> {
+        std::size_t operator()(const Color& k) const
+        {
+            return k.r << 24 | k.g << 16 | k.b << 8 | k.a;
+        }
+    };
+} // namespace std
+
 namespace tg = tinygltf;
 
 namespace engine::util {
@@ -162,17 +185,7 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
     /* load all materials found in model */
 
     // store some 1x1 colour textures as a hack to render solid colours
-    struct Color {
-        uint8_t r, g, b, a;
-        Color(const double* doubles)
-        {
-            r = static_cast<uint8_t>(lround(doubles[0] * 255.0));
-            g = static_cast<uint8_t>(lround(doubles[1] * 255.0));
-            b = static_cast<uint8_t>(lround(doubles[2] * 255.0));
-            a = static_cast<uint8_t>(lround(doubles[3] * 255.0));
-        }
-    };
-    //std::unordered_map<Color, std::shared_ptr<Texture>> colour_textures;
+    std::unordered_map<Color, std::shared_ptr<Texture>> colour_textures;
 
     std::vector<std::shared_ptr<Material>> materials{};
     materials.reserve(model.materials.size());
@@ -196,15 +209,7 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
         }
         const auto& baseColorFactor4 = material.pbrMetallicRoughness.baseColorFactor;
         if (baseColorFactor4[0] != 1.0 || baseColorFactor4[1] != 1.0 || baseColorFactor4[2] != 1.0 || baseColorFactor4[3] != 1.0) {
-            if (material.pbrMetallicRoughness.baseColorTexture.index == -1) {
-                LOG_INFO("Making color texture!");
-                throw std::runtime_error("TODO");
-                // convert double colors to integers
-                //Color col(baseColorFactor4.data());
-                //if (colour_textures.contains(col)) {
-               // }
-            }
-            else {
+            if (material.pbrMetallicRoughness.baseColorTexture.index != -1) {
                 LOG_WARN("Material {} contains a base color multiplier which isn't supported yet.", material.name);
                 LOG_WARN("The material's base color texture will be used as-is.");
             }
@@ -232,6 +237,24 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
                 LOG_WARN("Material {} base color texture specifies a UV channel other than zero which is unsupported.");
                 LOG_WARN("Material will be created with a white base color");
             }
+        }
+        else if (baseColorFactor4[0] != 1.0 || baseColorFactor4[1] != 1.0 || baseColorFactor4[2] != 1.0 || baseColorFactor4[3] != 1.0) {
+            LOG_INFO("Creating a base-color texture...");
+            Color c(baseColorFactor4);
+            if (colour_textures.contains(c) == false) {
+                uint8_t pixel[4];
+                pixel[0] = c.r;
+                pixel[1] = c.g;
+                pixel[2] = c.b;
+                pixel[3] = c.a;
+                gfx::SamplerInfo samplerInfo{};
+                samplerInfo.minify = gfx::Filter::kNearest;
+                samplerInfo.magnify = gfx::Filter::kNearest;
+                samplerInfo.mipmap = gfx::Filter::kNearest;
+                samplerInfo.anisotropic_filtering = false;
+                colour_textures.emplace(std::make_pair(c, std::make_shared<Texture>(scene.app()->renderer(), pixel, 1, 1, samplerInfo, true)));
+            }
+            materials.back()->SetAlbedoTexture(colour_textures.at(c));
         }
 
         materials.back()->SetNormalTexture(scene.app()->GetResource<Texture>("builtin.normal"));

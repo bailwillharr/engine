@@ -211,6 +211,7 @@ void PlayGame(GameSettings settings)
         // scene2->GetComponent<engine::TransformComponent>(teapot2)->rotation = glm::angleAxis(glm::pi<float>(), glm::vec3{ 0.0f, 0.0f, 1.0f });
         // scene2->GetComponent<engine::TransformComponent>(teapot2)->rotation *= glm::angleAxis(glm::half_pi<float>(), glm::vec3{1.0f, 0.0f, 0.0f});
         // auto walls = engine::util::LoadGLTF(*scene2, app.GetResourcePath("models/walls_with_tangents.glb"));
+        auto redcube = engine::util::LoadGLTF(*scene2, app.GetResourcePath("models/redcube.glb"));
     }
 
     my_scene->GetSystem<CameraControllerSystem>()->next_scene_ = scene2;
