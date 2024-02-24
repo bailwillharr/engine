@@ -169,49 +169,46 @@ void PlayGame(GameSettings settings)
 
         {
             /* axes */
-            // engine::util::LoadMeshFromFile(scene2, app.GetResourcePath("models/MY_AXES.dae"), true);
+            auto axes = engine::util::LoadMeshFromFile(scene2, app.GetResourcePath("models/MY_AXES.dae"), true);
+            scene2->GetComponent<engine::TransformComponent>(axes)->position += glm::vec3{ 20.0f, 20.0f, 0.0f };
         }
 
         { /* floor */
-
-            engine::Entity pivot = scene2->CreateEntity("pivot", 0, glm::vec3{0.0f, 0.0f, 0.0f});
-
-            engine::Entity wall2 = scene2->CreateEntity("floor", pivot, glm::vec3{-50.0f, -50.0f, 0.0f});
-            auto wall_renderable = scene2->AddComponent<engine::MeshRenderableComponent>(wall2);
-            wall_renderable->mesh = GenCuboidMesh(app.renderer()->GetDevice(), 100.0f, 100.0f, 0.1f, 100.0f);
-            wall_renderable->material = std::make_unique<engine::Material>(app.renderer(), app.GetResource<engine::Shader>("builtin.fancy"));
-
+            engine::Entity floor = scene2->CreateEntity("floor", 0, glm::vec3{-50.0f, -50.0f, 0.0f});
+            auto floor_renderable = scene2->AddComponent<engine::MeshRenderableComponent>(floor);
+            floor_renderable->mesh = GenCuboidMesh(app.renderer()->GetDevice(), 100.0f, 100.0f, 0.1f, 100.0f);
+            floor_renderable->material = std::make_unique<engine::Material>(app.renderer(), app.GetResource<engine::Shader>("builtin.fancy"));
             std::shared_ptr<engine::Texture> albedo_texture =
                 engine::LoadTextureFromFile(app.GetResourcePath("textures/brickwall_albedo.jpg"), engine::gfx::SamplerInfo{}, app.renderer());
             std::shared_ptr<engine::Texture> normal_texture =
                 engine::LoadTextureFromFile(app.GetResourcePath("textures/brickwall_normal.jpg"), engine::gfx::SamplerInfo{}, app.renderer(), false);
-
-            wall_renderable->material->SetAlbedoTexture(albedo_texture);
-            wall_renderable->material->SetNormalTexture(normal_texture);
+            floor_renderable->material->SetAlbedoTexture(albedo_texture);
+            floor_renderable->material->SetNormalTexture(normal_texture);
         }
 
-        { /* light */
-            engine::Entity light = scene2->CreateEntity("light", 0, glm::vec3{59.0f, -20.0f, 10.0f});
-            auto wall_renderable = scene2->AddComponent<engine::MeshRenderableComponent>(light);
-            wall_renderable->mesh = GenSphereMesh(app.renderer()->GetDevice(), 0.5f, 16, false, true);
-            wall_renderable->material = std::make_unique<engine::Material>(app.renderer(), app.GetResource<engine::Shader>("builtin.standard"));
-            wall_renderable->material->SetAlbedoTexture(app.GetResource<engine::Texture>("builtin.white"));
+        { /* teapots */
+            auto teapot = engine::util::LoadGLTF(*scene2, app.GetResourcePath("models/teapot_with_tangents.glb"));
+            scene2->GetComponent<engine::TransformComponent>(teapot)->scale *= 10.0f;
+            auto teapot2 = engine::util::LoadGLTF(*scene2, app.GetResourcePath("models/teapot.glb"));
+            scene2->GetComponent<engine::TransformComponent>(teapot2)->scale *= 10.0f;
+            scene2->GetComponent<engine::TransformComponent>(teapot2)->position.y += 5.0f;
+            auto custom = scene2->AddComponent<engine::CustomComponent>(teapot2);
+            custom->onInit = [](void) { return; };
+            custom->onUpdate = [&](float dt) {
+                dt = 0.0f;
+                scene2->GetComponent<engine::TransformComponent>(teapot2)->rotation *= glm::angleAxis(dt, glm::vec3{ 0.0f, 1.0f, 0.0f });
+                scene2->GetComponent<engine::TransformComponent>(teapot)->rotation *= glm::angleAxis(dt, glm::vec3{ 0.0f, 1.0f, 0.0f });
+                };
         }
 
-        //auto teapot = engine::util::LoadGLTF(*scene2, app.GetResourcePath("models/teapot_with_tangents.glb"));
-        //scene2->GetComponent<engine::TransformComponent>(teapot)->scale *= 10.0f;
-        auto teapot2 = engine::util::LoadGLTF(*scene2, app.GetResourcePath("models/teapot.glb"));
-        scene2->GetComponent<engine::TransformComponent>(teapot2)->scale *= 10.0f;
-        scene2->GetComponent<engine::TransformComponent>(teapot2)->position.y += 5.0f;
-        auto custom = scene2->AddComponent<engine::CustomComponent>(teapot2);
-        custom->onInit = [](void) { return; };
-        custom->onUpdate = [&](float dt) {
-            scene2->GetComponent<engine::TransformComponent>(teapot2)->rotation *= glm::angleAxis(dt, glm::vec3{0.0f, 1.0f, 0.0f});
-        };
-        // scene2->GetComponent<engine::TransformComponent>(teapot2)->rotation = glm::angleAxis(glm::pi<float>(), glm::vec3{ 0.0f, 0.0f, 1.0f });
-        // scene2->GetComponent<engine::TransformComponent>(teapot2)->rotation *= glm::angleAxis(glm::half_pi<float>(), glm::vec3{1.0f, 0.0f, 0.0f});
-        // auto walls = engine::util::LoadGLTF(*scene2, app.GetResourcePath("models/walls_with_tangents.glb"));
-        auto redcube = engine::util::LoadGLTF(*scene2, app.GetResourcePath("models/redcube.glb"));
+        {
+            auto redcube = engine::util::LoadGLTF(*scene2, app.GetResourcePath("models/redcube.glb"));
+        }
+
+        auto normalmaptest = engine::util::LoadGLTF(*scene2, app.GetResourcePath("models/normalmaptest.glb"));
+        scene2->GetComponent<engine::TransformComponent>(normalmaptest)->position += glm::vec3{ -10.0f, 0.0f, 1.0f };
+        auto normalmaptest_notang = engine::util::LoadGLTF(*scene2, app.GetResourcePath("models/normalmaptest_notang.glb"));
+        scene2->GetComponent<engine::TransformComponent>(normalmaptest_notang)->position += glm::vec3{ -10.0f, 10.0f, 1.0f };
     }
 
     my_scene->GetSystem<CameraControllerSystem>()->next_scene_ = scene2;

@@ -12,13 +12,14 @@
 namespace engine {
 
 struct TransformComponent {
+  std::string tag;
+
   glm::mat4 world_matrix;
 
   glm::quat rotation;
   glm::vec3 position;
   glm::vec3 scale;
 
-  std::string tag;
   Entity parent;
 
   bool is_static;

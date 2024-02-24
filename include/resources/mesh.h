@@ -16,6 +16,7 @@ struct Vertex {
   glm::vec3 norm;
   glm::vec4 tangent; // w component flips binormal if -1. w should be 1 or -1
   glm::vec2 uv;
+  static constexpr int FloatsPerVertex() { return static_cast<int>(sizeof(Vertex) / sizeof(float)); }
 };
 
 }  // namespace engine

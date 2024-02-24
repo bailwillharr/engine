@@ -2,7 +2,8 @@
 #define ENGINE_INCLUDE_LOG_H_
 
 #ifdef NDEBUG
-#define SPDLOG_ACTIVE_LEVEL 2  // info
+//#define SPDLOG_ACTIVE_LEVEL 2  // info
+#define SPDLOG_ACTIVE_LEVEL 0  // trace
 #else
 #define SPDLOG_ACTIVE_LEVEL 0  // trace
 #endif

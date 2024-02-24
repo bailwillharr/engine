@@ -1,23 +1,40 @@
 #version 450
 
+layout(set = 0, binding = 0) uniform GlobalSetUniformBuffer {
+	mat4 proj;
+} globalSetUniformBuffer;
+
+layout(set = 1, binding = 0) uniform FrameSetUniformBuffer {
+	mat4 view;
+} frameSetUniformBuffer;
+
 layout( push_constant ) uniform Constants {
 	mat4 model;
-	mat4 view;
 } constants;
-
-layout(set = 0, binding = 0) uniform SetZeroBuffer {
-	mat4 proj;
-	vec2 myValue;
-} setZeroBuffer;
 
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inNorm;
 layout(location = 2) in vec4 inTangent;
 layout(location = 3) in vec2 inUV;
 
-layout(location = 0) out vec3 fragNorm;
+layout(location = 0) out vec2 fragUV;
+layout(location = 1) out vec3 fragPosTangentSpace;
+layout(location = 2) out vec3 fragViewPosTangentSpace;
+layout(location = 3) out vec3 fragLightPosTangentSpace;
 
 void main() {
-	gl_Position = setZeroBuffer.proj * constants.view * constants.model * vec4(inPosition, 1.0);
-	fragNorm = mat3(transpose(inverse(constants.model))) * inNorm;
+	vec4 worldPosition = constants.model * vec4(inPosition, 1.0);
+	gl_Position = globalSetUniformBuffer.proj * frameSetUniformBuffer.view * worldPosition;
+	
+	vec3 T = normalize(vec3(constants.model * vec4(inTangent.xyz, 0.0)));
+	vec3 N = normalize(vec3(constants.model * vec4(inNorm, 0.0)));
+	vec3 B = cross(T, N) * inTangent.w;
+	mat3 worldToTangentSpace = transpose(mat3(T, B, N));
+	
+	fragUV = inUV;
+	fragPosTangentSpace = worldToTangentSpace * vec3(worldPosition);
+	fragViewPosTangentSpace = worldToTangentSpace * vec3(inverse(frameSetUniformBuffer.view) * vec4(0.0, 0.0, 0.0, 1.0));
+	fragLightPosTangentSpace = worldToTangentSpace * vec3(59000.0, 0000.0, 10000.0);
+
+	gl_Position.y *= -1.0;
 }

@@ -1,18 +1,14 @@
 #ifndef ENGINE_INCLUDE_APPLICATION_H_
 #define ENGINE_INCLUDE_APPLICATION_H_
 
-#include <assert.h>
-
 #include <filesystem>
 #include <memory>
 #include <string>
 #include <unordered_map>
 
-#include <glm/mat4x4.hpp>
-
 #include "gfx.h"
-#include "renderer.h"
 #include "input_manager.h"
+#include "renderer.h"
 #include "resource_manager.h"
 #include "scene_manager.h"
 #include "window.h"

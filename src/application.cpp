@@ -103,6 +103,7 @@ Application::Application(const char* appName, const char* appVersion, gfx::Graph
     }
 
     /* default shaders */
+#if 0
     {
         Shader::VertexParams vertParams{};
         vertParams.has_normal = true;
@@ -118,6 +119,7 @@ Application::Application(const char* appName, const char* appVersion, gfx::Graph
                                                        GetResourcePath("engine/shaders/standard.frag").c_str(), shaderSettings);
         GetResourceManager<Shader>()->AddPersistent("builtin.standard", std::move(texturedShader));
     }
+#endif
     {
         Shader::VertexParams vertParams{};
         vertParams.has_normal = true;
@@ -129,10 +131,11 @@ Application::Application(const char* appName, const char* appVersion, gfx::Graph
         shaderSettings.cull_backface = true;
         shaderSettings.write_z = true;
         shaderSettings.render_order = 0;
-        auto fancyShader = std::make_unique<Shader>(renderer(), GetResourcePath("engine/shaders/fancy.vert").c_str(),
-                                                    GetResourcePath("engine/shaders/fancy.frag").c_str(), shaderSettings);
+        auto fancyShader = std::make_unique<Shader>(renderer(), GetResourcePath("engine/shaders/showNormals.vert").c_str(),
+                                                    GetResourcePath("engine/shaders/showNormals.frag").c_str(), shaderSettings);
         GetResourceManager<Shader>()->AddPersistent("builtin.fancy", std::move(fancyShader));
     }
+#if 0
     {
         Shader::VertexParams vertParams{};
         vertParams.has_normal = true;
@@ -148,6 +151,7 @@ Application::Application(const char* appName, const char* appVersion, gfx::Graph
                                                      GetResourcePath("engine/shaders/skybox.frag").c_str(), shaderSettings);
         GetResourceManager<Shader>()->AddPersistent("builtin.skybox", std::move(skyboxShader));
     }
+#endif
 #if 0
     {
         Shader::VertexParams vertParams{};

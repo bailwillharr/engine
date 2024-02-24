@@ -24,13 +24,10 @@ struct Color {
 };
 
 namespace std {
-    template <>
-    struct std::hash<Color> {
-        std::size_t operator()(const Color& k) const
-        {
-            return k.r << 24 | k.g << 16 | k.b << 8 | k.a;
-        }
-    };
+template <>
+struct std::hash<Color> {
+    std::size_t operator()(const Color& k) const { return k.r << 24 | k.g << 16 | k.b << 8 | k.a; }
+};
 } // namespace std
 
 namespace tg = tinygltf;
@@ -283,7 +280,7 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
             if (primitive.attributes.contains("POSITION")) {
                 const tg::Accessor& pos_accessor = model.accessors.at(primitive.attributes.at("POSITION"));
 
-                const size_t num_vertices = pos_accessor.count;
+                const size_t original_num_vertices = pos_accessor.count;
 
                 bool generate_tangents = false; // generating tangents creates a new index list and therefore all attribute accessors must be reassigned
 
@@ -373,6 +370,7 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
                 std::vector<Vertex> vertices;
 
                 if (generate_tangents) {
+                    LOG_DEBUG("Generating tangents... vtx count before: {} idx count before: {}", original_num_vertices, num_indices);
                     // generate tangents if they're not in the file
                     struct MeshData {
                         Attribute<glm::vec3>* positions;
@@ -396,7 +394,7 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
                     mts_interface.m_getNumFaces = [](const SMikkTSpaceContext* pContext) -> int {
                         const MeshData* meshData = static_cast<const MeshData*>(pContext->m_pUserData);
                         assert(meshData->num_indices % 3 == 0);
-                        return meshData->num_indices / 3;
+                        return static_cast<int>(meshData->num_indices / 3);
                     };
                     mts_interface.m_getNumVerticesOfFace = [](const SMikkTSpaceContext*, const int) -> int { return 3; };
                     mts_interface.m_getPosition = [](const SMikkTSpaceContext* pContext, float fvPosOut[], const int iFace, const int iVert) -> void {
@@ -452,19 +450,36 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
                     bool tan_result = genTangSpaceDefault(&mts_context);
                     if (tan_result == false) throw std::runtime_error("Failed to generate tangents!");
 
-                    // regenerate indices as simple ones
-                    indices.clear();
-                    indices.reserve(meshData.new_vertices->size());
-                    // temp generate simple indices
-                    for (uint32_t i = 0; i < meshData.new_vertices->size(); ++i) {
-                        indices.push_back(i);
+                    // vertices now contains new vertices (possibly with duplicates)
+                    // use weldmesh to generate new index list without duplicates
+
+                    std::vector<int> remap_table(num_indices);        // initialised to zeros
+                    std::vector<Vertex> vertex_data_out(num_indices); // initialised to zeros
+
+                    const int num_unq_vertices = WeldMesh(remap_table.data(), reinterpret_cast<float*>(vertex_data_out.data()),
+                                                    reinterpret_cast<float*>(vertices.data()), static_cast<int>(num_indices), Vertex::FloatsPerVertex());
+                    assert(num_unq_vertices >= 0);
+
+                    // get new vertices into the vector
+                    vertices.resize(num_unq_vertices);
+                    for (size_t i = 0; i < num_unq_vertices; ++i) {
+                        vertices[i] = vertex_data_out[i];
                     }
+
+                    // get new indices into the vector
+                    indices.resize(num_indices); // redundant, for clarity
+                    for (size_t i = 0; i < num_indices; ++i) {
+                        assert(remap_table[i] >= 0);
+                        indices[i] = static_cast<uint32_t>(remap_table[i]);
+                    }
+
+                    LOG_DEBUG("vtx count after: {} idx count after: {}", vertices.size(), indices.size());
                 }
                 else {
                     // combine vertices into one array
                     vertices.clear();
-                    vertices.reserve(num_vertices);
-                    for (size_t i = 0; i < num_vertices; ++i) {
+                    vertices.reserve(original_num_vertices);
+                    for (size_t i = 0; i < original_num_vertices; ++i) {
                         Vertex v{.pos = positions[i], .norm = normals[i], .tangent = tangents[i], .uv = uv0s[i]};
                         vertices.push_back(v);
                     }
