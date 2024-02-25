@@ -103,7 +103,6 @@ Application::Application(const char* appName, const char* appVersion, gfx::Graph
     }
 
     /* default shaders */
-#if 0
     {
         Shader::VertexParams vertParams{};
         vertParams.has_normal = true;
@@ -115,60 +114,10 @@ Application::Application(const char* appName, const char* appVersion, gfx::Graph
         shaderSettings.cull_backface = true;
         shaderSettings.write_z = true;
         shaderSettings.render_order = 0;
-        auto texturedShader = std::make_unique<Shader>(renderer(), GetResourcePath("engine/shaders/standard.vert").c_str(),
-                                                       GetResourcePath("engine/shaders/standard.frag").c_str(), shaderSettings);
-        GetResourceManager<Shader>()->AddPersistent("builtin.standard", std::move(texturedShader));
-    }
-#endif
-    {
-        Shader::VertexParams vertParams{};
-        vertParams.has_normal = true;
-        vertParams.has_tangent = true;
-        vertParams.has_uv0 = true;
-        Shader::ShaderSettings shaderSettings{};
-        shaderSettings.vertexParams = vertParams;
-        shaderSettings.alpha_blending = false;
-        shaderSettings.cull_backface = true;
-        shaderSettings.write_z = true;
-        shaderSettings.render_order = 0;
-        auto fancyShader = std::make_unique<Shader>(renderer(), GetResourcePath("engine/shaders/showNormals.vert").c_str(),
-                                                    GetResourcePath("engine/shaders/showNormals.frag").c_str(), shaderSettings);
+        auto fancyShader = std::make_unique<Shader>(renderer(), GetResourcePath("engine/shaders/fancy.vert").c_str(),
+                                                    GetResourcePath("engine/shaders/fancy.frag").c_str(), shaderSettings);
         GetResourceManager<Shader>()->AddPersistent("builtin.fancy", std::move(fancyShader));
     }
-#if 0
-    {
-        Shader::VertexParams vertParams{};
-        vertParams.has_normal = true;
-        vertParams.has_tangent = true;
-        vertParams.has_uv0 = true;
-        Shader::ShaderSettings shaderSettings{};
-        shaderSettings.vertexParams = vertParams;
-        shaderSettings.alpha_blending = false;
-        shaderSettings.cull_backface = true;
-        shaderSettings.write_z = true;
-        shaderSettings.render_order = 0;
-        auto skyboxShader = std::make_unique<Shader>(renderer(), GetResourcePath("engine/shaders/skybox.vert").c_str(),
-                                                     GetResourcePath("engine/shaders/skybox.frag").c_str(), shaderSettings);
-        GetResourceManager<Shader>()->AddPersistent("builtin.skybox", std::move(skyboxShader));
-    }
-#endif
-#if 0
-    {
-        Shader::VertexParams vertParams{};
-        vertParams.has_normal = true;
-        vertParams.has_tangent = true;
-        vertParams.has_uv0 = true;
-        Shader::ShaderSettings shaderSettings{};
-        shaderSettings.vertexParams = vertParams;
-        shaderSettings.alpha_blending = true;
-        shaderSettings.cull_backface = true;
-        shaderSettings.write_z = false;
-        shaderSettings.render_order = 1;
-        auto quadShader = std::make_unique<Shader>(renderer(), GetResourcePath("engine/shaders/quad.vert").c_str(),
-                                                              GetResourcePath("engine/shaders/quad.frag").c_str(), shaderSettings);
-        GetResourceManager<Shader>()->AddPersistent("builtin.quad", std::move(quadShader));
-    }
-#endif
 
     /* default textures */
     {

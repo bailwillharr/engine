@@ -116,11 +116,23 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
 
     const tg::Scene& s = model.scenes.at(scene_index);
 
+    /* Find which texture indices point to normal maps. */
+    /* This must be done for the Texture constructor to know to use srgb or not. */
+    std::vector<bool> tex_index_is_normal_map(model.textures.size(), false);
+    for (const tg::Material& mat : model.materials) {
+        int texture_index = mat.normalTexture.index;
+        if (texture_index != -1) {
+            assert(texture_index < tex_index_is_normal_map.size());
+            tex_index_is_normal_map[texture_index] = true;
+        }
+    }
+
     /* load all textures found in the model */
 
     std::vector<std::shared_ptr<Texture>> textures{};
     textures.reserve(model.textures.size());
 
+    size_t texture_idx = 0;
     for (const tg::Texture& texture : model.textures) {
         // find the image first
         // use missing texture image by default
@@ -174,9 +186,10 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
         const tg::Image& image = model.images.at(texture.source);
         if (image.as_is == false && image.bits == 8 && image.component == 4 && image.pixel_type == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE) {
             // create texture on GPU
-            // TODO: somehow detect if the textue should be srgb or not
-            textures.back() = std::make_shared<Texture>(scene.app()->renderer(), image.image.data(), image.width, image.height, samplerInfo, true);
+            textures.back() = std::make_shared<Texture>(scene.app()->renderer(), image.image.data(), image.width, image.height, samplerInfo, !tex_index_is_normal_map[texture_idx]);
         }
+
+        ++texture_idx;
     }
 
     /* load all materials found in model */
@@ -231,7 +244,7 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
                 materials.back()->SetAlbedoTexture(textures.at(material.pbrMetallicRoughness.baseColorTexture.index));
             }
             else {
-                LOG_WARN("Material {} base color texture specifies a UV channel other than zero which is unsupported.");
+                LOG_WARN("Material {} base color texture specifies a UV channel other than zero which is unsupported.", material.name);
                 LOG_WARN("Material will be created with a white base color");
             }
         }
@@ -260,7 +273,7 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
                 materials.back()->SetNormalTexture(textures.at(material.normalTexture.index));
             }
             else {
-                LOG_WARN("Material {} normal texture specifies a UV channel other than zero which is unsupported.");
+                LOG_WARN("Material {} normal texture specifies a UV channel other than zero which is unsupported.", material.name);
                 LOG_WARN("Material will be created with no normal map");
             }
         }
@@ -560,12 +573,19 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
         if (node.mesh != -1) {
             const auto& primitives = primitive_arrays.at(node.mesh);
             int i = 0;
-            for (const EnginePrimitive& prim : primitives) {
-                auto prim_entity = scene.CreateEntity(std::string("_mesh") + std::to_string(i), e);
-                auto meshren = scene.AddComponent<MeshRenderableComponent>(prim_entity);
-                meshren->mesh = prim.mesh;
-                meshren->material = prim.material;
-                ++i;
+            if (primitives.size() == 1) {
+                auto meshren = scene.AddComponent<MeshRenderableComponent>(e);
+                meshren->mesh = primitives.front().mesh;
+                meshren->material = primitives.front().material;
+            }
+            else {
+                for (const EnginePrimitive& prim : primitives) {
+                    auto prim_entity = scene.CreateEntity(std::string("_mesh") + std::to_string(i), e);
+                    auto meshren = scene.AddComponent<MeshRenderableComponent>(prim_entity);
+                    meshren->mesh = prim.mesh;
+                    meshren->material = prim.material;
+                    ++i;
+                }
             }
         }
 

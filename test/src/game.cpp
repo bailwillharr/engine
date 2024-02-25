@@ -170,7 +170,7 @@ void PlayGame(GameSettings settings)
         {
             /* axes */
             auto axes = engine::util::LoadMeshFromFile(scene2, app.GetResourcePath("models/MY_AXES.dae"), true);
-            scene2->GetComponent<engine::TransformComponent>(axes)->position += glm::vec3{ 20.0f, 20.0f, 0.0f };
+            scene2->GetComponent<engine::TransformComponent>(axes)->position += glm::vec3{20.0f, 20.0f, 0.0f};
         }
 
         { /* floor */
@@ -191,14 +191,15 @@ void PlayGame(GameSettings settings)
             scene2->GetComponent<engine::TransformComponent>(teapot)->scale *= 10.0f;
             auto teapot2 = engine::util::LoadGLTF(*scene2, app.GetResourcePath("models/teapot.glb"));
             scene2->GetComponent<engine::TransformComponent>(teapot2)->scale *= 10.0f;
-            scene2->GetComponent<engine::TransformComponent>(teapot2)->position.y += 5.0f;
+            scene2->GetComponent<engine::TransformComponent>(teapot2)->position.z += 10.0f;
             auto custom = scene2->AddComponent<engine::CustomComponent>(teapot2);
             custom->onInit = [](void) { return; };
             custom->onUpdate = [&](float dt) {
-                dt = 0.0f;
-                scene2->GetComponent<engine::TransformComponent>(teapot2)->rotation *= glm::angleAxis(dt, glm::vec3{ 0.0f, 1.0f, 0.0f });
-                scene2->GetComponent<engine::TransformComponent>(teapot)->rotation *= glm::angleAxis(dt, glm::vec3{ 0.0f, 1.0f, 0.0f });
-                };
+                dt *= 0.1f;
+                scene2->GetComponent<engine::TransformComponent>(teapot2)->rotation *= glm::angleAxis(dt, glm::vec3{0.0f, 1.0f, 0.0f});
+                //scene2->GetComponent<engine::TransformComponent>(teapot2)->rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+                scene2->GetComponent<engine::TransformComponent>(teapot)->rotation *= glm::angleAxis(dt, glm::vec3{0.0f, 1.0f, 0.0f});
+            };
         }
 
         {
@@ -206,9 +207,15 @@ void PlayGame(GameSettings settings)
         }
 
         auto normalmaptest = engine::util::LoadGLTF(*scene2, app.GetResourcePath("models/normalmaptest.glb"));
-        scene2->GetComponent<engine::TransformComponent>(normalmaptest)->position += glm::vec3{ -10.0f, 0.0f, 1.0f };
+        scene2->GetComponent<engine::TransformComponent>(normalmaptest)->position += glm::vec3{-10.0f, 0.0f, 1.0f};
         auto normalmaptest_notang = engine::util::LoadGLTF(*scene2, app.GetResourcePath("models/normalmaptest_notang.glb"));
-        scene2->GetComponent<engine::TransformComponent>(normalmaptest_notang)->position += glm::vec3{ -10.0f, 10.0f, 1.0f };
+        scene2->GetComponent<engine::TransformComponent>(normalmaptest_notang)->position += glm::vec3{-10.0f, 10.0f, 1.0f};
+        auto custom = scene2->AddComponent<engine::CustomComponent>(normalmaptest);
+        custom->onInit = [](void) { return; };
+        custom->onUpdate = [&](float dt) {
+            scene2->GetComponent<engine::TransformComponent>(normalmaptest)->rotation *= glm::angleAxis(dt, glm::vec3{ 0.0f, 0.0f, 1.0f });
+            scene2->GetComponent<engine::TransformComponent>(normalmaptest_notang)->rotation *= glm::angleAxis(dt, glm::vec3{ 0.0f, 0.0f, 1.0f });
+            };
     }
 
     my_scene->GetSystem<CameraControllerSystem>()->next_scene_ = scene2;
