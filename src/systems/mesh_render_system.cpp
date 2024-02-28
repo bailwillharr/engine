@@ -50,6 +50,8 @@ void MeshRenderSystem::BuildRenderList(RenderList& render_list, bool with_static
 
         auto renderable = scene_->GetComponent<engine::MeshRenderableComponent>(entity);
 
+        if (renderable->visible == false) continue;
+
         const gfx::Pipeline* pipeline = renderable->material->GetShader()->GetPipeline();
 
         render_list.emplace_back(RenderListEntry{.pipeline = pipeline,

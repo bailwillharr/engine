@@ -42,6 +42,9 @@ namespace engine {
 				sc->surfaceFormat = format; // prefer using srgb non linear colors
 			}
 		}
+		if (sc->surfaceFormat.colorSpace != VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+			LOG_ERROR("Swapchain not using an SRGB surface!!!");
+		}
 
 		// check there is at least one supported present mode
 		uint32_t surfacePresentModeCount = 0;

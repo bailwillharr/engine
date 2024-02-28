@@ -118,15 +118,62 @@ Application::Application(const char* appName, const char* appVersion, gfx::Graph
                                                     GetResourcePath("engine/shaders/fancy.frag").c_str(), shaderSettings);
         GetResourceManager<Shader>()->AddPersistent("builtin.fancy", std::move(fancyShader));
     }
+    {
+        Shader::VertexParams vertParams{};
+        vertParams.has_normal = true;
+        vertParams.has_tangent = true;
+        vertParams.has_uv0 = true;
+        Shader::ShaderSettings shaderSettings{};
+        shaderSettings.vertexParams = vertParams;
+        shaderSettings.alpha_blending = false;
+        shaderSettings.cull_backface = true;
+        shaderSettings.write_z = false;
+        shaderSettings.render_order = 1;
+        auto skyboxShader = std::make_unique<Shader>(renderer(), GetResourcePath("engine/shaders/skybox.vert").c_str(),
+            GetResourcePath("engine/shaders/skybox.frag").c_str(), shaderSettings);
+        GetResourceManager<Shader>()->AddPersistent("builtin.skybox", std::move(skyboxShader));
+    }
 
     /* default textures */
     {
-        auto whiteTexture = LoadTextureFromFile(GetResourcePath("engine/textures/white.png"), gfx::SamplerInfo{}, renderer(), true);
+        const uint8_t pixel[4] = { 255, 255, 255, 255 };
+        gfx::SamplerInfo samplerInfo{};
+        samplerInfo.minify = gfx::Filter::kNearest;
+        samplerInfo.magnify = gfx::Filter::kNearest;
+        samplerInfo.mipmap = gfx::Filter::kNearest;
+        samplerInfo.anisotropic_filtering = false;
+        auto whiteTexture = std::make_unique<Texture>(renderer(), pixel, 1, 1, samplerInfo, true);
         GetResourceManager<Texture>()->AddPersistent("builtin.white", std::move(whiteTexture));
     }
     {
-        auto normalTexture = LoadTextureFromFile(GetResourcePath("engine/textures/normal.png"), gfx::SamplerInfo{}, renderer(), false);
+        const uint8_t pixel[4] = { 0, 0, 0, 255 };
+        gfx::SamplerInfo samplerInfo{};
+        samplerInfo.minify = gfx::Filter::kNearest;
+        samplerInfo.magnify = gfx::Filter::kNearest;
+        samplerInfo.mipmap = gfx::Filter::kNearest;
+        samplerInfo.anisotropic_filtering = false;
+        auto blackTexture = std::make_unique<Texture>(renderer(), pixel, 1, 1, samplerInfo, true);
+        GetResourceManager<Texture>()->AddPersistent("builtin.black", std::move(blackTexture));
+    }
+    {
+        const uint8_t pixel[4] = { 127, 127, 255, 255 };
+        gfx::SamplerInfo samplerInfo{};
+        samplerInfo.minify = gfx::Filter::kNearest;
+        samplerInfo.magnify = gfx::Filter::kNearest;
+        samplerInfo.mipmap = gfx::Filter::kNearest;
+        samplerInfo.anisotropic_filtering = false;
+        auto normalTexture = std::make_unique<Texture>(renderer(), pixel, 1, 1, samplerInfo, false);
         GetResourceManager<Texture>()->AddPersistent("builtin.normal", std::move(normalTexture));
+    }
+    {
+        const uint8_t pixel[4] = { 255, 0, 127, 255 };
+        gfx::SamplerInfo samplerInfo{};
+        samplerInfo.minify = gfx::Filter::kNearest;
+        samplerInfo.magnify = gfx::Filter::kNearest;
+        samplerInfo.mipmap = gfx::Filter::kNearest;
+        samplerInfo.anisotropic_filtering = false;
+        auto mrTexture = std::make_unique<Texture>(renderer(), pixel, 1, 1, samplerInfo, false);
+        GetResourceManager<Texture>()->AddPersistent("builtin.mr", std::move(mrTexture));
     }
 
     /* default materials */

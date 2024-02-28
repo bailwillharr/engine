@@ -59,168 +59,78 @@ void PlayGame(GameSettings settings)
     app.window()->SetRelativeMouseMode(true);
     ConfigureInputs(*app.input_manager());
 
-    engine::Scene* my_scene = app.scene_manager()->CreateEmptyScene();
+    engine::Scene* start_scene = app.scene_manager()->CreateEmptyScene();
     {
+        /* create camera */
+        engine::Entity camera = start_scene->CreateEntity("camera");
 
-        { /* create camera */
-            engine::Entity camera = my_scene->CreateEntity("camera");
+        /* as of right now, the entity with tag 'camera' is used to build the view
+         * matrix */
 
-            /* as of right now, the entity with tag 'camera' is used to build the view
-             * matrix */
+        auto camera_transform = start_scene->GetComponent<engine::TransformComponent>(camera);
+        camera_transform->position = {0.0f, 0.0f, 10.0f};
 
-            auto camera_transform = my_scene->GetComponent<engine::TransformComponent>(camera);
-            camera_transform->position = {0.0f, 0.0f, 10.0f};
+        start_scene->RegisterComponent<CameraControllerComponent>();
+        start_scene->RegisterSystem<CameraControllerSystem>();
+        start_scene->AddComponent<CameraControllerComponent>(camera);
+    }
 
-            my_scene->RegisterComponent<CameraControllerComponent>();
-            my_scene->RegisterSystem<CameraControllerSystem>();
-            my_scene->AddComponent<CameraControllerComponent>(camera);
-        }
+    engine::Scene* main_scene = app.scene_manager()->CreateEmptyScene();
+    {
+        /* create camera */
+        engine::Entity camera = main_scene->CreateEntity("camera");
 
-        { /* floor */
-            [[maybe_unused]] engine::Entity floor = engine::util::LoadMeshFromFile(my_scene, app.GetResourcePath("models/terrain.dae"), true);
-        }
+        /* as of right now, the entity with tag 'camera' is used to build the view
+         * matrix */
 
-#if 0
+        auto camera_transform = main_scene->GetComponent<engine::TransformComponent>(camera);
+        camera_transform->position = {-5.0f, -10.0f, 4.0f};
 
-        /* shared resources */
-        auto grass_texture = engine::LoadTextureFromFile(app.GetResourcePath("textures/grass.png"), engine::Texture::Filtering::kAnisotropic, app.renderer());
+        main_scene->RegisterComponent<CameraControllerComponent>();
+        main_scene->RegisterSystem<CameraControllerSystem>();
+        main_scene->AddComponent<CameraControllerComponent>(camera);
 
-        std::shared_ptr<engine::Texture> sky_texture = engine::LoadTextureFromFile(app.GetResourcePath("textures/sky.jpg"), engine::Texture::Filtering::kAnisotropic, app.renderer());
+        /* floor */
+        engine::Entity floor = main_scene->CreateEntity("floor", 0, glm::vec3{-50.0f, -50.0f, 0.0f});
+        auto floor_renderable = main_scene->AddComponent<engine::MeshRenderableComponent>(floor);
+        floor_renderable->mesh = GenCuboidMesh(app.renderer()->GetDevice(), 100.0f, 100.0f, 0.1f, 50.0f);
+        floor_renderable->material = std::make_unique<engine::Material>(app.renderer(), app.GetResource<engine::Shader>("builtin.fancy"));
+        std::shared_ptr<engine::Texture> floor_albedo =
+            engine::LoadTextureFromFile(app.GetResourcePath("textures/bricks-mortar-albedo.png"), engine::gfx::SamplerInfo{}, app.renderer());
+        std::shared_ptr<engine::Texture> floor_normal =
+            engine::LoadTextureFromFile(app.GetResourcePath("textures/bricks-mortar-normal.png"), engine::gfx::SamplerInfo{}, app.renderer(), false);
+        std::shared_ptr<engine::Texture> floor_mr =
+            engine::LoadTextureFromFile(app.GetResourcePath("textures/bricks-mortar-roughness.png"), engine::gfx::SamplerInfo{}, app.renderer(), false);
+        floor_renderable->material->SetAlbedoTexture(floor_albedo);
+        floor_renderable->material->SetNormalTexture(floor_normal);
+        floor_renderable->material->SetMetallicRoughnessTexture(floor_mr);
+        floor_renderable->material->SetOcclusionTexture(app.GetResource<engine::Texture>("builtin.white"));
+        floor_renderable->visible = false;
+
+
+        engine::Entity normal_map_test = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/normalmaptest.glb"));
+        main_scene->GetComponent<engine::TransformComponent>(normal_map_test)->position += glm::vec3{-10.0f, 0.0f, 1.0f};
+
+        engine::Entity monke = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/monke.glb"));
+
+        engine::Entity bottle = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/bottle.glb"));
+        main_scene->GetComponent<engine::TransformComponent>(bottle)->scale *= 50.0f;
+        main_scene->GetComponent<engine::TransformComponent>(bottle)->position.z += 50.0f;;
 
         /* skybox */
-        {
-            engine::Entity skybox = my_scene->CreateEntity("skybox");
-
-            auto skybox_renderable = my_scene->AddComponent<engine::MeshRenderableComponent>(skybox);
-            skybox_renderable->material = std::make_unique<engine::Material>(app.GetResource<engine::Shader>("builtin.skybox"));
-            skybox_renderable->material->texture_ = sky_texture;
-            skybox_renderable->mesh = GenCuboidMesh(app.renderer()->GetDevice(), 10.0f, 10.0f, 10.0f, 1.0f, true);
-
-            auto skybox_transform = my_scene->GetComponent<engine::TransformComponent>(skybox);
-            skybox_transform->is_static = true;
-            skybox_transform->position = {-5.0f, -5.0f, -5.0f};
-        }
-
-        /* building */
-        {
-            auto cobbleHouse = engine::util::LoadMeshFromFile(my_scene, app.GetResourcePath("models/cobble_house/cobble_house.dae"), false);
-            my_scene->GetComponent<engine::TransformComponent>(cobbleHouse)->position += glm::vec3{33.0f, 35.0f, 0.1f};
-            auto cobbleCustom = my_scene->AddComponent<engine::CustomComponent>(cobbleHouse);
-            cobbleCustom->onInit = [](void) { LOG_INFO("Cobble house spin component initialised!"); };
-            cobbleCustom->onUpdate = [&](float ts) {
-                static auto t = my_scene->GetComponent<engine::TransformComponent>(cobbleHouse);
-                t->rotation *= glm::angleAxis(ts, glm::vec3{0.0f, 0.0f, 1.0f});
-            };
-        }
-
-        {
-            engine::Entity cube = my_scene->CreateEntity("cube", 0, glm::vec3{40.0f, 10.0f, 5.0f});
-            auto cubeRenderable = my_scene->AddComponent<engine::MeshRenderableComponent>(cube);
-            cubeRenderable->mesh = GenCuboidMesh(app.renderer()->GetDevice(), 1.0f, 1.0f, 1.0f);
-            cubeRenderable->material = std::make_unique<engine::Material>(app.GetResource<engine::Shader>("builtin.standard"));
-            cubeRenderable->material->texture_ =
-                engine::LoadTextureFromFile(app.GetResourcePath("textures/uvcheck.png"), engine::Texture::Filtering::kAnisotropic, app.renderer());
-        }
-
-        /* some text */
-        {
-            engine::Entity textbox = my_scene->CreateEntity("textbox", 0, glm::vec3{0.0f, 0.8f, 0.0f});
-            auto textboxComponent = my_scene->AddComponent<engine::CustomComponent>(textbox);
-            textboxComponent->onInit = [](void) { LOG_DEBUG("Textbox custom component initialised!"); };
-
-            textboxComponent->onUpdate = [&](float ts) {
-                static float time_elapsed;
-                time_elapsed += ts;
-                if (time_elapsed >= 1.0f) {
-                    time_elapsed = 0.0f;
-                }
-            };
-        }
-
-        engine::util::LoadMeshFromFile(my_scene, app.GetResourcePath("models/MY_AXES.dae"), true);
-        my_scene->GetComponent<engine::TransformComponent>(engine::util::LoadMeshFromFile(my_scene, app.GetResourcePath("models/uvcheck.dae"), true))
-            ->position += glm::vec3{20.0f, 20.0f, 20.0f};
-
-        /* teapot */
-        my_scene->GetComponent<engine::TransformComponent>(engine::util::LoadMeshFromFile(my_scene, app.GetResourcePath("models/teapot.dae"), true))
-            ->position += glm::vec3{10.0f, 10.0f, 10.0f};
-
-        // engine::util::LoadGLTF(*my_scene, app.GetResourcePath("engine/models/test/test.gltf"));
-
-#endif
+        engine::Entity skybox = main_scene->CreateEntity("skybox");
+        auto skybox_transform = main_scene->GetComponent<engine::TransformComponent>(skybox);
+        skybox_transform->is_static = true;
+        skybox_transform->position = { -5.0f, -5.0f, -5.0f };
+        auto skybox_renderable = main_scene->AddComponent<engine::MeshRenderableComponent>(skybox);
+        skybox_renderable->mesh = GenCuboidMesh(app.renderer()->GetDevice(), 10.0f, 10.0f, 10.0f, 1.0f, true);
+        skybox_renderable->material = std::make_unique<engine::Material>(app.renderer(), app.GetResource<engine::Shader>("builtin.skybox"));
+        skybox_renderable->material->SetAlbedoTexture(app.GetResource<engine::Texture>("builtin.black"));
     }
 
-    engine::Scene* scene2 = app.scene_manager()->CreateEmptyScene();
-    {
+    start_scene->GetSystem<CameraControllerSystem>()->next_scene_ = main_scene;
+    main_scene->GetSystem<CameraControllerSystem>()->next_scene_ = start_scene;
 
-        { /* create camera */
-            engine::Entity camera = scene2->CreateEntity("camera");
-
-            /* as of right now, the entity with tag 'camera' is used to build the view
-             * matrix */
-
-            auto camera_transform = scene2->GetComponent<engine::TransformComponent>(camera);
-            camera_transform->position = {0.0f, 0.0f, 10.0f};
-
-            scene2->RegisterComponent<CameraControllerComponent>();
-            scene2->RegisterSystem<CameraControllerSystem>();
-            scene2->AddComponent<CameraControllerComponent>(camera);
-        }
-
-        {
-            /* axes */
-            auto axes = engine::util::LoadMeshFromFile(scene2, app.GetResourcePath("models/MY_AXES.dae"), true);
-            scene2->GetComponent<engine::TransformComponent>(axes)->position += glm::vec3{20.0f, 20.0f, 0.0f};
-        }
-
-        { /* floor */
-            engine::Entity floor = scene2->CreateEntity("floor", 0, glm::vec3{-50.0f, -50.0f, 0.0f});
-            auto floor_renderable = scene2->AddComponent<engine::MeshRenderableComponent>(floor);
-            floor_renderable->mesh = GenCuboidMesh(app.renderer()->GetDevice(), 100.0f, 100.0f, 0.1f, 100.0f);
-            floor_renderable->material = std::make_unique<engine::Material>(app.renderer(), app.GetResource<engine::Shader>("builtin.fancy"));
-            std::shared_ptr<engine::Texture> albedo_texture =
-                engine::LoadTextureFromFile(app.GetResourcePath("textures/brickwall_albedo.jpg"), engine::gfx::SamplerInfo{}, app.renderer());
-            std::shared_ptr<engine::Texture> normal_texture =
-                engine::LoadTextureFromFile(app.GetResourcePath("textures/brickwall_normal.jpg"), engine::gfx::SamplerInfo{}, app.renderer(), false);
-            floor_renderable->material->SetAlbedoTexture(albedo_texture);
-            floor_renderable->material->SetNormalTexture(normal_texture);
-        }
-
-        { /* teapots */
-            auto teapot = engine::util::LoadGLTF(*scene2, app.GetResourcePath("models/teapot_with_tangents.glb"));
-            scene2->GetComponent<engine::TransformComponent>(teapot)->scale *= 10.0f;
-            auto teapot2 = engine::util::LoadGLTF(*scene2, app.GetResourcePath("models/teapot.glb"));
-            scene2->GetComponent<engine::TransformComponent>(teapot2)->scale *= 10.0f;
-            scene2->GetComponent<engine::TransformComponent>(teapot2)->position.z += 10.0f;
-            auto custom = scene2->AddComponent<engine::CustomComponent>(teapot2);
-            custom->onInit = [](void) { return; };
-            custom->onUpdate = [&](float dt) {
-                dt *= 0.1f;
-                scene2->GetComponent<engine::TransformComponent>(teapot2)->rotation *= glm::angleAxis(dt, glm::vec3{0.0f, 1.0f, 0.0f});
-                //scene2->GetComponent<engine::TransformComponent>(teapot2)->rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
-                scene2->GetComponent<engine::TransformComponent>(teapot)->rotation *= glm::angleAxis(dt, glm::vec3{0.0f, 1.0f, 0.0f});
-            };
-        }
-
-        {
-            auto redcube = engine::util::LoadGLTF(*scene2, app.GetResourcePath("models/redcube.glb"));
-        }
-
-        auto normalmaptest = engine::util::LoadGLTF(*scene2, app.GetResourcePath("models/normalmaptest.glb"));
-        scene2->GetComponent<engine::TransformComponent>(normalmaptest)->position += glm::vec3{-10.0f, 0.0f, 1.0f};
-        auto normalmaptest_notang = engine::util::LoadGLTF(*scene2, app.GetResourcePath("models/normalmaptest_notang.glb"));
-        scene2->GetComponent<engine::TransformComponent>(normalmaptest_notang)->position += glm::vec3{-10.0f, 10.0f, 1.0f};
-        auto custom = scene2->AddComponent<engine::CustomComponent>(normalmaptest);
-        custom->onInit = [](void) { return; };
-        custom->onUpdate = [&](float dt) {
-            scene2->GetComponent<engine::TransformComponent>(normalmaptest)->rotation *= glm::angleAxis(dt, glm::vec3{ 0.0f, 0.0f, 1.0f });
-            scene2->GetComponent<engine::TransformComponent>(normalmaptest_notang)->rotation *= glm::angleAxis(dt, glm::vec3{ 0.0f, 0.0f, 1.0f });
-            };
-    }
-
-    my_scene->GetSystem<CameraControllerSystem>()->next_scene_ = scene2;
-    scene2->GetSystem<CameraControllerSystem>()->next_scene_ = my_scene;
-
-    app.scene_manager()->SetActiveScene(my_scene);
+    app.scene_manager()->SetActiveScene(start_scene);
     app.GameLoop();
 }

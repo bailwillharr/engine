@@ -26,7 +26,10 @@ struct Color {
 namespace std {
 template <>
 struct std::hash<Color> {
-    std::size_t operator()(const Color& k) const { return k.r << 24 | k.g << 16 | k.b << 8 | k.a; }
+    std::size_t operator()(const Color& k) const
+    {
+        return static_cast<size_t>(k.r) << 24 | static_cast<size_t>(k.g) << 16 | static_cast<size_t>(k.b) << 8 | static_cast<size_t>(k.a);
+    }
 };
 } // namespace std
 
@@ -116,14 +119,14 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
 
     const tg::Scene& s = model.scenes.at(scene_index);
 
-    /* Find which texture indices point to normal maps. */
+    /* Find which texture indices point to base color maps. */
     /* This must be done for the Texture constructor to know to use srgb or not. */
-    std::vector<bool> tex_index_is_normal_map(model.textures.size(), false);
+    std::vector<bool> tex_index_is_base_color(model.textures.size(), false);
     for (const tg::Material& mat : model.materials) {
-        int texture_index = mat.normalTexture.index;
+        int texture_index = mat.pbrMetallicRoughness.baseColorTexture.index;
         if (texture_index != -1) {
-            assert(texture_index < tex_index_is_normal_map.size());
-            tex_index_is_normal_map[texture_index] = true;
+            assert(texture_index < tex_index_is_base_color.size());
+            tex_index_is_base_color[texture_index] = true;
         }
     }
 
@@ -186,7 +189,8 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
         const tg::Image& image = model.images.at(texture.source);
         if (image.as_is == false && image.bits == 8 && image.component == 4 && image.pixel_type == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE) {
             // create texture on GPU
-            textures.back() = std::make_shared<Texture>(scene.app()->renderer(), image.image.data(), image.width, image.height, samplerInfo, !tex_index_is_normal_map[texture_idx]);
+            textures.back() = std::make_shared<Texture>(scene.app()->renderer(), image.image.data(), image.width, image.height, samplerInfo,
+                                                        tex_index_is_base_color[texture_idx]);
         }
 
         ++texture_idx;
@@ -196,6 +200,8 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
 
     // store some 1x1 colour textures as a hack to render solid colours
     std::unordered_map<Color, std::shared_ptr<Texture>> colour_textures;
+    // same for metallic roughness:
+    std::unordered_map<Color, std::shared_ptr<Texture>> metal_rough_textures;
 
     std::vector<std::shared_ptr<Material>> materials{};
     materials.reserve(model.materials.size());
@@ -213,10 +219,6 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
             LOG_WARN("Material {} contains an emissive texture or non-zero emissive factor. Emission is currently unsupported.", material.name);
             LOG_WARN("Material will be created without emission.");
         }
-        if (material.occlusionTexture.index != -1) {
-            LOG_WARN("Material {} contains an ambient occlusion texture which isn't supported yet.", material.name);
-            LOG_WARN("Material will be created without an occlusion map.");
-        }
         const auto& baseColorFactor4 = material.pbrMetallicRoughness.baseColorFactor;
         if (baseColorFactor4[0] != 1.0 || baseColorFactor4[1] != 1.0 || baseColorFactor4[2] != 1.0 || baseColorFactor4[3] != 1.0) {
             if (material.pbrMetallicRoughness.baseColorTexture.index != -1) {
@@ -224,20 +226,16 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
                 LOG_WARN("The material's base color texture will be used as-is.");
             }
         }
-        if (material.pbrMetallicRoughness.metallicRoughnessTexture.index != -1) {
-            LOG_WARN("Material {} contains a metallic-roughness texture which isn't supported yet.", material.name);
-            LOG_WARN("This texture will be ignored.");
-        }
-        if (material.pbrMetallicRoughness.metallicFactor != 1.0) {
-            LOG_WARN("Material {} contains a metallic factor != 1.0 which isn't supported yet.", material.name);
-            LOG_WARN("Material will be created as fully metallic");
-        }
-        if (material.pbrMetallicRoughness.roughnessFactor != 1.0) {
-            LOG_WARN("Material {} contains a roughness factor != 1.0 which isn't supported yet.", material.name);
-            LOG_WARN("Material will be created as fully rough");
+        if (material.pbrMetallicRoughness.metallicFactor != 1.0 || material.pbrMetallicRoughness.roughnessFactor != 1.0) {
+            if (material.pbrMetallicRoughness.metallicRoughnessTexture.index != -1) {
+                LOG_WARN("Material {} contains a metallic and/or roughness multiplier which isn't supported yet.", material.name);
+                LOG_WARN("The material's metallic-roughness texture will be used as-is.");
+            }
         }
 
         materials.emplace_back(std::make_shared<Material>(scene.app()->renderer(), scene.app()->GetResource<Shader>("builtin.fancy")));
+
+        // base color
         materials.back()->SetAlbedoTexture(scene.app()->GetResource<Texture>("builtin.white"));
         if (material.pbrMetallicRoughness.baseColorTexture.index != -1) {
             if (material.pbrMetallicRoughness.baseColorTexture.texCoord == 0) {
@@ -252,11 +250,7 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
             LOG_INFO("Creating a base-color texture...");
             Color c(baseColorFactor4);
             if (colour_textures.contains(c) == false) {
-                uint8_t pixel[4];
-                pixel[0] = c.r;
-                pixel[1] = c.g;
-                pixel[2] = c.b;
-                pixel[3] = c.a;
+                const uint8_t pixel[4] = {c.r, c.g, c.b, c.a};
                 gfx::SamplerInfo samplerInfo{};
                 samplerInfo.minify = gfx::Filter::kNearest;
                 samplerInfo.magnify = gfx::Filter::kNearest;
@@ -267,6 +261,48 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
             materials.back()->SetAlbedoTexture(colour_textures.at(c));
         }
 
+        // metallic roughness
+        materials.back()->SetMetallicRoughnessTexture(scene.app()->GetResource<Texture>("builtin.white")); // default metal = 1.0, rough = 1.0
+        if (material.pbrMetallicRoughness.metallicRoughnessTexture.index != -1) {
+            if (material.pbrMetallicRoughness.metallicRoughnessTexture.texCoord == 0) {
+                LOG_INFO("Setting metallic roughness texture!");
+                materials.back()->SetMetallicRoughnessTexture(textures.at(material.pbrMetallicRoughness.metallicRoughnessTexture.index));
+            }
+            else {
+                LOG_WARN("Material {} metallic roughness texture specifies a UV channel other than zero which is unsupported.", material.name);
+                LOG_WARN("Material will be created with a default metallic roughness");
+            }
+        }
+        else {
+            LOG_INFO("Creating a metallic-roughness texture...");
+            const std::vector<double> mr_values{1.0f, material.pbrMetallicRoughness.metallicFactor, material.pbrMetallicRoughness.roughnessFactor, 1.0f};
+            Color mr(mr_values);
+            if (metal_rough_textures.contains(mr) == false) {
+                const uint8_t pixel[4] = {mr.r, mr.g, mr.b, mr.a};
+                gfx::SamplerInfo samplerInfo{};
+                samplerInfo.minify = gfx::Filter::kNearest;
+                samplerInfo.magnify = gfx::Filter::kNearest;
+                samplerInfo.mipmap = gfx::Filter::kNearest;
+                samplerInfo.anisotropic_filtering = false;
+                metal_rough_textures.emplace(std::make_pair(mr, std::make_shared<Texture>(scene.app()->renderer(), pixel, 1, 1, samplerInfo, false)));
+            }
+            materials.back()->SetMetallicRoughnessTexture(metal_rough_textures.at(mr));
+        }
+
+        // occlusion texture
+        materials.back()->SetOcclusionTexture(scene.app()->GetResource<Texture>("builtin.white")); // R=255 means no AO so white will work
+        if (material.occlusionTexture.index != -1) {
+            if (material.occlusionTexture.texCoord == 0) {
+                LOG_INFO("Setting occlusion texture!");
+                materials.back()->SetOcclusionTexture(textures.at(material.occlusionTexture.index));
+            }
+            else {
+                LOG_WARN("Material {} occlusion texture specifies a UV channel other than zero which is unsupported.", material.name);
+                LOG_WARN("Material will be created with no ambient occlusion");
+            }
+        }
+
+        // normal map
         materials.back()->SetNormalTexture(scene.app()->GetResource<Texture>("builtin.normal"));
         if (material.normalTexture.index != -1) {
             if (material.normalTexture.texCoord == 0) {
@@ -412,7 +448,7 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
                     mts_interface.m_getNumVerticesOfFace = [](const SMikkTSpaceContext*, const int) -> int { return 3; };
                     mts_interface.m_getPosition = [](const SMikkTSpaceContext* pContext, float fvPosOut[], const int iFace, const int iVert) -> void {
                         const MeshData* const meshData = static_cast<const MeshData*>(pContext->m_pUserData);
-                        const size_t i = iFace * 3 + iVert;
+                        const size_t i = static_cast<size_t>(iFace) * 3 + static_cast<size_t>(iVert);
                         assert(i < meshData->num_indices);
                         const size_t vertex_index = meshData->indices[i];
                         const glm::vec3 pos = meshData->positions->operator[](vertex_index);
@@ -422,7 +458,7 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
                     };
                     mts_interface.m_getNormal = [](const SMikkTSpaceContext* pContext, float fvNormOut[], const int iFace, const int iVert) -> void {
                         const MeshData* const meshData = static_cast<const MeshData*>(pContext->m_pUserData);
-                        const size_t i = iFace * 3 + iVert;
+                        const size_t i = static_cast<size_t>(iFace) * 3 + static_cast<size_t>(iVert);
                         assert(i < meshData->num_indices);
                         const size_t vertex_index = meshData->indices[i];
                         const glm::vec3 norm = meshData->normals->operator[](vertex_index);
@@ -432,7 +468,7 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
                     };
                     mts_interface.m_getTexCoord = [](const SMikkTSpaceContext* pContext, float fvTexcOut[], const int iFace, const int iVert) -> void {
                         const MeshData* const meshData = static_cast<const MeshData*>(pContext->m_pUserData);
-                        const size_t i = iFace * 3 + iVert;
+                        const size_t i = static_cast<size_t>(iFace) * 3 + static_cast<size_t>(iVert);
                         assert(i < meshData->num_indices);
                         const size_t vertex_index = meshData->indices[i];
                         const glm::vec2 uv = meshData->uvs->operator[](vertex_index);
@@ -442,7 +478,7 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
                     mts_interface.m_setTSpaceBasic = [](const SMikkTSpaceContext* pContext, const float fvTangent[], const float fSign, const int iFace,
                                                         const int iVert) -> void {
                         MeshData* const meshData = static_cast<MeshData*>(pContext->m_pUserData);
-                        const size_t i = iFace * 3 + iVert;
+                        const size_t i = static_cast<size_t>(iFace) * 3 + static_cast<size_t>(iVert);
                         assert(i < meshData->num_indices);
                         const size_t vertex_index = meshData->indices[i];
 
@@ -470,7 +506,7 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
                     std::vector<Vertex> vertex_data_out(num_indices); // initialised to zeros
 
                     const int num_unq_vertices = WeldMesh(remap_table.data(), reinterpret_cast<float*>(vertex_data_out.data()),
-                                                    reinterpret_cast<float*>(vertices.data()), static_cast<int>(num_indices), Vertex::FloatsPerVertex());
+                                                          reinterpret_cast<float*>(vertices.data()), static_cast<int>(num_indices), Vertex::FloatsPerVertex());
                     assert(num_unq_vertices >= 0);
 
                     // get new vertices into the vector
