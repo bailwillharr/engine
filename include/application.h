@@ -21,6 +21,9 @@ class Application {
         bool enable_frame_limiter;
     };
 
+    const char* const app_name;
+    const char* const app_version;
+
     Application(const char* app_name, const char* app_version, gfx::GraphicsSettings graphics_settings, Configuration configuration);
     ~Application();
     Application(const Application&) = delete;
@@ -53,7 +56,7 @@ class Application {
     /* methods */
     void GameLoop();
 
-    void SetFrameLimiter(bool on) { configuration_.enable_frame_limiter = on; } 
+    void SetFrameLimiter(bool on) { configuration_.enable_frame_limiter = on; }
 
     /* getters */
     Window* window() { return window_.get(); }

@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <string>
 #include <type_traits>
 #include <vector>
 
@@ -115,12 +116,13 @@ struct VertexFormat {
 };
 
 struct PipelineInfo {
-  const char* vert_shader_path;
-  const char* frag_shader_path;
+  std::string vert_shader_path;
+  std::string frag_shader_path;
   VertexFormat vertex_format;
   bool alpha_blending;
   bool backface_culling;
   bool write_z;
+  bool line_primitives; // false for triangles, true for lines
   std::vector<const DescriptorSetLayout*> descriptor_set_layouts;
 };
 

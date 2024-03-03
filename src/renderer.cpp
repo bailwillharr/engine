@@ -1,33 +1,18 @@
 #include "renderer.h"
 
+#include "application_component.h"
+
 #include <glm/mat4x4.hpp>
 #include <glm/trigonometric.hpp>
 #include <glm/ext/matrix_clip_space.hpp>
 
 #include "imgui/imgui.h"
 
-[[maybe_unused]] static glm::mat4 GenPerspectiveMatrix(float vertical_fov_radians, float aspect_ratio, float znear, float zfar)
-{
-    float g = 1.0f / tanf(vertical_fov_radians * 0.5f);
-    float k1 = zfar / (zfar - znear);
-    float k2 = -(zfar * znear) / (znear - zfar);
-    glm::mat4 m{1.0f};
-
-    m[0][0] = g / aspect_ratio;
-    m[1][1] = g;
-    m[2][2] = k1;
-    m[2][3] = -1.0f;
-    m[3][2] = k2;
-    m[3][3] = 0.0f;
-
-    return m;
-}
-
 namespace engine {
 
-Renderer::Renderer(const char* app_name, const char* app_version, SDL_Window* window, gfx::GraphicsSettings settings)
+Renderer::Renderer(Application& app, gfx::GraphicsSettings settings) : ApplicationComponent(app)
 {
-    device_ = std::make_unique<GFXDevice>(app_name, app_version, window, settings);
+    device_ = std::make_unique<GFXDevice>(GetAppName(), GetAppVersion(), GetWindowHandle(), settings);
 
     // sort out descriptor set layouts:
     std::vector<gfx::DescriptorSetLayoutBinding> globalSetBindings;
@@ -65,10 +50,28 @@ Renderer::Renderer(const char* app_name, const char* app_version, SDL_Window* wi
     material_set_layout = device_->CreateDescriptorSetLayout(materialSetBindings);
 
     device_->SetupImguiBackend();
+
+    gfx::VertexFormat debug_vertex_format{};
+    debug_vertex_format.stride = 0;
+    // debug_vertex_format.vertex_attrib_descriptions = empty
+
+    gfx::PipelineInfo debug_pipeline_info{};
+    debug_pipeline_info.vert_shader_path = GetResourcePath("engine/shaders/debug.vert");
+    debug_pipeline_info.frag_shader_path = GetResourcePath("engine/shaders/debug.frag");
+    debug_pipeline_info.vertex_format = debug_vertex_format;
+    debug_pipeline_info.alpha_blending = false;
+    debug_pipeline_info.backface_culling = false; // probably ignored for line rendering
+    debug_pipeline_info.write_z = false; // lines don't need the depth buffer
+    //debug_pipeline_info.descriptor_set_layouts = empty;
+    debug_pipeline_info.line_primitives = true;
+
+    debug_rendering_things_.pipeline = device_->CreatePipeline(debug_pipeline_info);
 };
 
 Renderer::~Renderer()
 {
+    device_->DestroyPipeline(debug_rendering_things_.pipeline);
+
     for (const auto& [info, sampler] : samplers) {
         device_->DestroySampler(sampler);
     }
@@ -117,6 +120,14 @@ void Renderer::Render(const RenderList* static_list, const RenderList* dynamic_l
             DrawRenderList(draw_buffer, *dynamic_list);
         }
     }
+
+    // draw debug shit here
+    device_->CmdBindPipeline(draw_buffer, debug_rendering_things_.pipeline);
+    glm::vec4 debug_positions[2] = {};
+    debug_positions[0] = global_uniform.uniform_buffer_data.data * frame_uniform.uniform_buffer_data.data * glm::vec4{ 0.0f, 0.0f, 0.0f, 1.0f };
+    debug_positions[1] = global_uniform.uniform_buffer_data.data * frame_uniform.uniform_buffer_data.data * glm::vec4{ 0.0f, 0.0f, 1.0f, 1.0f };
+    device_->CmdPushConstants(draw_buffer, debug_rendering_things_.pipeline, 0, sizeof(glm::vec4) * 2, debug_positions);
+    device_->CmdDraw(draw_buffer, 2, 1, 0, 0);
 
     device_->CmdRenderImguiDrawData(draw_buffer, ImGui::GetDrawData());
 

@@ -8,7 +8,7 @@
 
 namespace engine {
 
-Shader::Shader(Renderer* renderer, const char* vertPath, const char* fragPath,
+Shader::Shader(Renderer* renderer, const std::string& vertPath, const std::string& fragPath,
                const ShaderSettings& settings)
     : gfx_(renderer->GetDevice()), render_order_(settings.render_order) {
   assert(settings.render_order <= kHighestRenderOrder &&
@@ -50,6 +50,7 @@ Shader::Shader(Renderer* renderer, const char* vertPath, const char* fragPath,
   info.alpha_blending = settings.alpha_blending;
   info.backface_culling = settings.cull_backface;
   info.write_z = settings.write_z;
+  info.line_primitives = false;
   info.descriptor_set_layouts.push_back(renderer->GetGlobalSetLayout());
   info.descriptor_set_layouts.push_back(renderer->GetFrameSetLayout());
   info.descriptor_set_layouts.push_back(renderer->GetMaterialSetLayout());

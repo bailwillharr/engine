@@ -900,13 +900,14 @@ gfx::Pipeline* GFXDevice::CreatePipeline(const gfx::PipelineInfo& info)
 
     VkShaderModule vertShaderModule;
     VkShaderModule fragShaderModule;
+    // be careful with these .c_str() calls. It is OK here because 'info' exists for the duration of CreatePipeline()
     {
-        auto vertShaderCode = util::ReadTextFile(info.vert_shader_path);
-        vertShaderModule = compileShader(pimpl->device.device, shaderc_vertex_shader, vertShaderCode->data(), info.vert_shader_path);
+        auto vertShaderCode = util::ReadTextFile(info.vert_shader_path.c_str());
+        vertShaderModule = compileShader(pimpl->device.device, shaderc_vertex_shader, vertShaderCode->data(), info.vert_shader_path.c_str());
     }
     {
-        auto fragShaderCode = util::ReadTextFile(info.frag_shader_path);
-        fragShaderModule = compileShader(pimpl->device.device, shaderc_fragment_shader, fragShaderCode->data(), info.frag_shader_path);
+        auto fragShaderCode = util::ReadTextFile(info.frag_shader_path.c_str());
+        fragShaderModule = compileShader(pimpl->device.device, shaderc_fragment_shader, fragShaderCode->data(), info.frag_shader_path.c_str());
     }
 
     // get vertex attrib layout:
@@ -952,7 +953,7 @@ gfx::Pipeline* GFXDevice::CreatePipeline(const gfx::PipelineInfo& info)
 
     VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
     inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-    inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    inputAssembly.topology = info.line_primitives ? VK_PRIMITIVE_TOPOLOGY_LINE_LIST : VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     inputAssembly.primitiveRestartEnable = VK_FALSE;
 
     VkViewport viewport{};

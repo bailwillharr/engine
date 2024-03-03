@@ -27,7 +27,7 @@ Scene::Scene(Application* app) : app_(app) {
 
   // Order here matters:
   RegisterSystem<TransformSystem>();
-  RegisterSystem<PhysicsSystem>();
+  RegisterSystem<CollisionSystem>();
   RegisterSystem<CustomBehaviourSystem>();
   RegisterSystem<MeshRenderSystem>();
   RegisterSystem<UIRenderSystem>();

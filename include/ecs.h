@@ -25,7 +25,7 @@ class IComponentArray {
 template <typename T>
 class ComponentArray : public IComponentArray {
  public:
-  void InsertData(Entity entity, T component) {
+  void InsertData(Entity entity, const T& component) {
     if (component_array_.size() < entity + 1) {
       component_array_.resize(entity + 1);
     }

@@ -11,51 +11,58 @@
 
 namespace engine {
 
-class PhysicsSystem : public System {
- public:
-  PhysicsSystem(Scene* scene);
-
-  void OnUpdate(float ts) override;
-
-  void OnComponentInsert(Entity entity) override;
-
-  struct CollisionEvent {
-    bool is_collision_enter;   // false == collision exit
-    Entity collided_entity;  // the entity that this entity collided with
-    glm::vec3 normal;  // the normal of the surface this entity collided with;
-                       // ignored on collision exit
-    glm::vec3 point;   // where the collision was detected
-  };
-
- private:
-  // dynamic arrays to avoid realloc on every frame
-  // entity, aabb, is_trigger
-  std::vector<std::tuple<Entity, AABB, bool>> static_aabbs_{};
-  std::vector<std::tuple<Entity, AABB, bool>> dynamic_aabbs_{};
-
-  struct PossibleCollision {
-    PossibleCollision(Entity static_entity, AABB static_aabb,
-                      bool static_trigger, Entity dynamic_entity,
-                      AABB dynamic_aabb, bool dynamic_trigger)
-        : static_entity(static_entity),
-          static_aabb(static_aabb),
-          static_trigger(static_trigger),
-          dynamic_entity(dynamic_entity),
-          dynamic_aabb(dynamic_aabb),
-          dynamic_trigger(dynamic_trigger) {}
-
-    Entity static_entity;
-    AABB static_aabb;
-    bool static_trigger;
-    Entity dynamic_entity;
-    AABB dynamic_aabb;
-    bool dynamic_trigger;
-  };
-  std::vector<PossibleCollision> possible_collisions_{};
-  std::vector<std::pair<Entity, CollisionEvent>>
-      collision_infos_{};  // target entity, event info
+struct Ray {
+    glm::vec3 origin;
+    glm::vec3 direction;
 };
 
-}  // namespace engine
+struct Raycast {
+    glm::vec3 location;
+    Entity hit_entity;
+    float distance;
+    bool hit;
+};
+
+class CollisionSystem : public System {
+   public:
+    CollisionSystem(Scene* scene);
+
+    void OnComponentInsert(Entity entity) override;
+
+    void OnUpdate(float ts) override;
+
+    Raycast GetRaycast(Ray ray);
+
+   private:
+    // one node of the BVH
+    struct BiTreeNode {
+        enum class Type : uint8_t { BoundingVolume, Entity, Empty };
+        AABB box1;
+        AABB box2;
+        uint32_t index1; // index for either tree entry or entity, depending on type
+        uint32_t index2;
+        Type type1;
+        Type type2;
+    }; // 60 bytes with alignment of 4 allows for tight packing
+
+    // an array of these is used to build the BVH
+    struct PrimitiveInfo {
+        Entity entity;
+        AABB box;
+        glm::vec3 centroid;
+        PrimitiveInfo(const AABB& aabb, Entity entity_idx);
+    };
+
+    size_t colliders_size_last_update_ = 0;
+    size_t colliders_size_now_ = 0;
+
+    std::vector<BiTreeNode> bvh_{};
+
+    bool RaycastTreeNode(const Ray& ray, const BiTreeNode& node, glm::vec3& location, float& t, Entity& object_index);
+
+    static int BuildNode(std::vector<PrimitiveInfo>& prims, std::vector<BiTreeNode>& tree_nodes);
+};
+
+} // namespace engine
 
 #endif

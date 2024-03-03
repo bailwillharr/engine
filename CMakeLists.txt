@@ -14,6 +14,7 @@ project(engine LANGUAGES CXX C
 # from command: find . -regex "^\.\/.*" | sort
 set(SRC_FILES
 	"src/application.cpp"
+	"src/application_component.cpp"
 	"src/ecs.cpp"
 	"src/gfx_device_vulkan.cpp"
 	"src/imgui/imconfig.h"
@@ -67,6 +68,7 @@ set(SRC_FILES
 
 set(INCLUDE_FILES
 	"include/application.h"
+	"include/application_component.h"
 	"include/components/collider.h"
 	"include/components/custom.h"
 	"include/components/mesh_renderable.h"

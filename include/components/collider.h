@@ -5,14 +5,12 @@
 namespace engine {
 
 struct AABB {
-    glm::vec3 pos1;
-    glm::vec3 pos2;
+    glm::vec3 min;
+    glm::vec3 max;
 };
 
 struct ColliderComponent {
-    bool is_static;
-    bool is_trigger; // entity receives an event on collision enter and exit
-    AABB aabb;       // broad phase
+    AABB aabb;
 };
 
 } // namespace engine

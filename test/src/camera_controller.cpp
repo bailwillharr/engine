@@ -13,6 +13,7 @@
 #include "scene.h"
 #include "scene_manager.h"
 #include "window.h"
+#include <systems/collisions.h>
 
 CameraControllerSystem::CameraControllerSystem(engine::Scene* scene)
     : System(scene, {typeid(engine::TransformComponent).hash_code(), typeid(CameraControllerComponent).hash_code()})
@@ -89,8 +90,9 @@ void CameraControllerSystem::OnUpdate(float ts)
     /* user interface inputs */
 
     if (scene_->app()->window()->GetKeyPress(engine::inputs::Key::K_P)) {
-        std::string pos_string{"x: " + std::to_string(t->position.x) + " y: " + std::to_string(t->position.y) + " z: " + std::to_string(t->position.z)};
+        std::string pos_string{"x: " + std::to_string(t->world_matrix[3][0]) + " y: " + std::to_string(t->world_matrix[3][1]) + " z: " + std::to_string(t->world_matrix[3][2])};
         LOG_INFO("position {}", pos_string);
+        LOG_INFO("rotation w: {} x: {} y: {} z: {}", t->rotation.w, t->rotation.x, t->rotation.y, t->rotation.z);
     }
 
     if (scene_->app()->window()->GetKeyPress(engine::inputs::Key::K_R)) {
@@ -107,5 +109,15 @@ void CameraControllerSystem::OnUpdate(float ts)
 
     if (scene_->app()->window()->GetKeyPress(engine::inputs::Key::K_F)) {
         scene_->app()->scene_manager()->SetActiveScene(next_scene_);
+    }
+
+    if (scene_->app()->window()->GetButtonPress(engine::inputs::MouseButton::M_LEFT)) {
+        engine::Ray ray{};
+        ray.origin.x = t->world_matrix[3][0];
+        ray.origin.y = t->world_matrix[3][1];
+        ray.origin.z = t->world_matrix[3][2];
+        ray.direction = glm::vec3{ 0.0f, 0.0f, -1.0f };
+        engine::Raycast cast = scene_->GetSystem<engine::CollisionSystem>()->GetRaycast(ray);
+        LOG_INFO("Raycast success? {}", cast.hit ? "YES" : "NO");
     }
 }

@@ -63,11 +63,11 @@ class Scene {
   }
 
   template <typename T>
-  T* AddComponent(Entity entity) {
+  T* AddComponent(Entity entity, const T& comp = T{}) {
     size_t hash = typeid(T).hash_code();
 
     auto array = GetComponentArray<T>();
-    array->InsertData(entity, T{});  // errors if entity already exists in array
+    array->InsertData(entity, comp);  // errors if entity already exists in array
 
     // set the component bit for this entity
     size_t signature_position = component_signature_positions_.at(hash);

@@ -8,7 +8,8 @@
 #include "libs/tiny_gltf.h"
 
 #include "components/mesh_renderable.h"
-#include <components/transform.h>
+#include "components/transform.h"
+#include "components/collider.h"
 
 struct Color {
     uint8_t r, g, b, a;
@@ -320,6 +321,7 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
     struct EnginePrimitive {
         std::shared_ptr<Mesh> mesh;
         std::shared_ptr<Material> material;
+        AABB aabb;
     };
     std::vector<std::vector<EnginePrimitive>> primitive_arrays{}; // sub-array is all primitives for a given mesh
     primitive_arrays.reserve(model.meshes.size());
@@ -368,7 +370,6 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
                     tangents.stride = static_cast<size_t>(tang_accessor.ByteStride(tang_bufferview));
                 }
                 else {
-                    // TODO: use MikkTSpace to generate tangents
                     generate_tangents = true;
                 }
 
@@ -546,7 +547,16 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
                     engine_material = scene.app()->GetResource<Material>("builtin.default");
                 }
 
-                primitive_array.emplace_back(engine_mesh, engine_material);
+                // get AABB
+                AABB box{};
+                box.min.x = pos_accessor.minValues.at(0);
+                box.min.y = pos_accessor.minValues.at(1);
+                box.min.z = pos_accessor.minValues.at(2);
+                box.max.x = pos_accessor.maxValues.at(0);
+                box.max.y = pos_accessor.maxValues.at(1);
+                box.max.z = pos_accessor.maxValues.at(2);
+
+                primitive_array.emplace_back(engine_mesh, engine_material, box);
             }
             else {
                 // skip primitive's rendering
@@ -613,6 +623,8 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
                 auto meshren = scene.AddComponent<MeshRenderableComponent>(e);
                 meshren->mesh = primitives.front().mesh;
                 meshren->material = primitives.front().material;
+                auto collider = scene.AddComponent<ColliderComponent>(e);
+                collider->aabb = primitives.front().aabb;
             }
             else {
                 for (const EnginePrimitive& prim : primitives) {
@@ -620,6 +632,8 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
                     auto meshren = scene.AddComponent<MeshRenderableComponent>(prim_entity);
                     meshren->mesh = prim.mesh;
                     meshren->material = prim.material;
+                    auto collider = scene.AddComponent<ColliderComponent>(e);
+                    collider->aabb = prim.aabb;
                     ++i;
                 }
             }

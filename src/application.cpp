@@ -74,7 +74,7 @@ static std::filesystem::path getResourcesPath()
 }
 
 Application::Application(const char* appName, const char* appVersion, gfx::GraphicsSettings graphicsSettings, Configuration configuration)
-    : configuration_(configuration)
+    : app_name(appName), app_version(appVersion), configuration_(configuration)
 {
     window_ = std::make_unique<Window>(appName, true, false);
     input_manager_ = std::make_unique<InputManager>(window_.get());
@@ -94,7 +94,7 @@ Application::Application(const char* appName, const char* appVersion, gfx::Graph
     // ImGuiIO& io = ImGui::GetIO()
     ImGui_ImplSDL2_InitForVulkan(window_->GetHandle());
 
-    renderer_ = std::make_unique<Renderer>(appName, appVersion, window_->GetHandle(), graphicsSettings);
+    renderer_ = std::make_unique<Renderer>(*this, graphicsSettings);
 
     /* default fonts */
     {
@@ -114,8 +114,8 @@ Application::Application(const char* appName, const char* appVersion, gfx::Graph
         shaderSettings.cull_backface = true;
         shaderSettings.write_z = true;
         shaderSettings.render_order = 0;
-        auto fancyShader = std::make_unique<Shader>(renderer(), GetResourcePath("engine/shaders/fancy.vert").c_str(),
-                                                    GetResourcePath("engine/shaders/fancy.frag").c_str(), shaderSettings);
+        auto fancyShader = std::make_unique<Shader>(renderer(), GetResourcePath("engine/shaders/fancy.vert"),
+                                                    GetResourcePath("engine/shaders/fancy.frag"), shaderSettings);
         GetResourceManager<Shader>()->AddPersistent("builtin.fancy", std::move(fancyShader));
     }
     {
@@ -129,8 +129,8 @@ Application::Application(const char* appName, const char* appVersion, gfx::Graph
         shaderSettings.cull_backface = true;
         shaderSettings.write_z = false;
         shaderSettings.render_order = 1;
-        auto skyboxShader = std::make_unique<Shader>(renderer(), GetResourcePath("engine/shaders/skybox.vert").c_str(),
-            GetResourcePath("engine/shaders/skybox.frag").c_str(), shaderSettings);
+        auto skyboxShader = std::make_unique<Shader>(renderer(), GetResourcePath("engine/shaders/skybox.vert"),
+            GetResourcePath("engine/shaders/skybox.frag"), shaderSettings);
         GetResourceManager<Shader>()->AddPersistent("builtin.skybox", std::move(skyboxShader));
     }
 

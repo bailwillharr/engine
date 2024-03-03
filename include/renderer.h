@@ -7,6 +7,7 @@
 #include <glm/mat4x4.hpp>
 #include <glm/trigonometric.hpp>
 
+#include "application_component.h"
 #include "gfx_device.h"
 #include "systems/mesh_render_system.h"
 
@@ -23,10 +24,9 @@ struct UniformDescriptor {
   gfx::UniformBuffer* uniform_buffer;
 };
 
-class Renderer {
+class Renderer : private ApplicationComponent {
  public:
-  Renderer(const char* app_name, const char* app_version, SDL_Window* window,
-           gfx::GraphicsSettings settings);
+  Renderer(Application& app, gfx::GraphicsSettings settings);
 
   ~Renderer();
 
@@ -88,11 +88,18 @@ class Renderer {
   UniformDescriptor<glm::mat4> global_uniform;  // rarely updates; set 0
   UniformDescriptor<glm::mat4> frame_uniform;   // updates once per frame; set 1
   // in fragment shader
-  const gfx::DescriptorSetLayout* material_set_layout;  // set 2
+  const gfx::DescriptorSetLayout* material_set_layout;  // set 2; set bound per material
 
   float viewport_aspect_ratio_ = 1.0f;
 
   const gfx::Pipeline* last_bound_pipeline_ = nullptr;
+
+  struct DebugRenderingThings {
+      const gfx::Pipeline* pipeline = nullptr;
+      // have a simple vertex buffer with 2 points that draws a line
+      const gfx::Buffer* vertex_buffer = nullptr;
+      // shader will take 2 clip space xyzw coords as push constants to define the line
+  } debug_rendering_things_{};
 
   void DrawRenderList(gfx::DrawBuffer* draw_buffer, const RenderList& render_list);
 };

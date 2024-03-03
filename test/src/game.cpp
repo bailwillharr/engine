@@ -67,9 +67,6 @@ void PlayGame(GameSettings settings)
         /* as of right now, the entity with tag 'camera' is used to build the view
          * matrix */
 
-        auto camera_transform = start_scene->GetComponent<engine::TransformComponent>(camera);
-        camera_transform->position = {0.0f, 0.0f, 10.0f};
-
         start_scene->RegisterComponent<CameraControllerComponent>();
         start_scene->RegisterSystem<CameraControllerSystem>();
         start_scene->AddComponent<CameraControllerComponent>(camera);
@@ -105,7 +102,7 @@ void PlayGame(GameSettings settings)
         floor_renderable->material->SetNormalTexture(floor_normal);
         floor_renderable->material->SetMetallicRoughnessTexture(floor_mr);
         floor_renderable->material->SetOcclusionTexture(app.GetResource<engine::Texture>("builtin.white"));
-        floor_renderable->visible = false;
+        floor_renderable->visible = true ;
 
 
         engine::Entity normal_map_test = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/normalmaptest.glb"));
