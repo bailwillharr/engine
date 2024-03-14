@@ -11,6 +11,7 @@ struct CameraControllerComponent {
   static constexpr float kCameraSensitivity = 0.007f;
   float yaw = 0.0f;
   float pitch = glm::half_pi<float>();
+  glm::vec3 vel{ 0.0f, 0.0f, 0.0f };
 };
 
 class CameraControllerSystem

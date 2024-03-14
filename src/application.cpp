@@ -25,6 +25,7 @@
 #include "resources/texture.h"
 #include "systems/mesh_render_system.h"
 #include "components/transform.h"
+#include "components/collider.h"
 #include "scene.h"
 #include "scene_manager.h"
 #include "window.h"
@@ -34,6 +35,7 @@
 #include <direct.h>
 #define WIN_MAX_PATH 260
 #endif
+#include <systems/collisions.h>
 
 static struct ImGuiThings {
     ImGuiContext* context;
@@ -114,8 +116,8 @@ Application::Application(const char* appName, const char* appVersion, gfx::Graph
         shaderSettings.cull_backface = true;
         shaderSettings.write_z = true;
         shaderSettings.render_order = 0;
-        auto fancyShader = std::make_unique<Shader>(renderer(), GetResourcePath("engine/shaders/fancy.vert"),
-                                                    GetResourcePath("engine/shaders/fancy.frag"), shaderSettings);
+        auto fancyShader =
+            std::make_unique<Shader>(renderer(), GetResourcePath("engine/shaders/fancy.vert"), GetResourcePath("engine/shaders/fancy.frag"), shaderSettings);
         GetResourceManager<Shader>()->AddPersistent("builtin.fancy", std::move(fancyShader));
     }
     {
@@ -129,14 +131,14 @@ Application::Application(const char* appName, const char* appVersion, gfx::Graph
         shaderSettings.cull_backface = true;
         shaderSettings.write_z = false;
         shaderSettings.render_order = 1;
-        auto skyboxShader = std::make_unique<Shader>(renderer(), GetResourcePath("engine/shaders/skybox.vert"),
-            GetResourcePath("engine/shaders/skybox.frag"), shaderSettings);
+        auto skyboxShader =
+            std::make_unique<Shader>(renderer(), GetResourcePath("engine/shaders/skybox.vert"), GetResourcePath("engine/shaders/skybox.frag"), shaderSettings);
         GetResourceManager<Shader>()->AddPersistent("builtin.skybox", std::move(skyboxShader));
     }
 
     /* default textures */
     {
-        const uint8_t pixel[4] = { 255, 255, 255, 255 };
+        const uint8_t pixel[4] = {255, 255, 255, 255};
         gfx::SamplerInfo samplerInfo{};
         samplerInfo.minify = gfx::Filter::kNearest;
         samplerInfo.magnify = gfx::Filter::kNearest;
@@ -146,7 +148,7 @@ Application::Application(const char* appName, const char* appVersion, gfx::Graph
         GetResourceManager<Texture>()->AddPersistent("builtin.white", std::move(whiteTexture));
     }
     {
-        const uint8_t pixel[4] = { 0, 0, 0, 255 };
+        const uint8_t pixel[4] = {0, 0, 0, 255};
         gfx::SamplerInfo samplerInfo{};
         samplerInfo.minify = gfx::Filter::kNearest;
         samplerInfo.magnify = gfx::Filter::kNearest;
@@ -156,7 +158,7 @@ Application::Application(const char* appName, const char* appVersion, gfx::Graph
         GetResourceManager<Texture>()->AddPersistent("builtin.black", std::move(blackTexture));
     }
     {
-        const uint8_t pixel[4] = { 127, 127, 255, 255 };
+        const uint8_t pixel[4] = {127, 127, 255, 255};
         gfx::SamplerInfo samplerInfo{};
         samplerInfo.minify = gfx::Filter::kNearest;
         samplerInfo.magnify = gfx::Filter::kNearest;
@@ -166,7 +168,7 @@ Application::Application(const char* appName, const char* appVersion, gfx::Graph
         GetResourceManager<Texture>()->AddPersistent("builtin.normal", std::move(normalTexture));
     }
     {
-        const uint8_t pixel[4] = { 255, 0, 127, 255 };
+        const uint8_t pixel[4] = {255, 0, 127, 255};
         gfx::SamplerInfo samplerInfo{};
         samplerInfo.minify = gfx::Filter::kNearest;
         samplerInfo.magnify = gfx::Filter::kNearest;
@@ -268,7 +270,7 @@ void Application::GameLoop()
                         int depth = find_depth(i, 0);
                         for (int j = 0; j < depth; ++j) tabs += std::string{"    "};
                         ImGui::Text("%s%s", tabs.c_str(), t->tag.c_str());
-                        //ImGui::Text("%.1f %.1f %.1f", t->position.x, t->position.y, t->position.z);
+                        // ImGui::Text("%.1f %.1f %.1f", t->position.x, t->position.y, t->position.z);
                     }
                 }
                 else {
@@ -283,6 +285,7 @@ void Application::GameLoop()
         const RenderList* static_list = nullptr;
         const RenderList* dynamic_list = nullptr;
         glm::mat4 camera_transform{1.0f};
+        std::vector<Line> debug_lines{};
         if (scene) {
             camera_transform = scene->GetComponent<TransformComponent>(scene->GetEntity("camera"))->world_matrix;
             auto mesh_render_system = scene->GetSystem<MeshRenderSystem>();
@@ -290,7 +293,7 @@ void Application::GameLoop()
             dynamic_list = mesh_render_system->GetDynamicRenderList();
         }
         renderer_->PreRender(window()->GetWindowResized(), camera_transform);
-        renderer_->Render(static_list, dynamic_list);
+        renderer_->Render(static_list, dynamic_list, debug_lines);
 
         /* poll events */
         window_->GetInputAndEvents();

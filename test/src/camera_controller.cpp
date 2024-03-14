@@ -39,7 +39,7 @@ void CameraControllerSystem::OnUpdate(float ts)
     if (scene_->app()->input_manager()->GetButton("sprint")) speed *= 10.0f;
 
     float dx = scene_->app()->input_manager()->GetAxis("movex");
-    float dy = (-scene_->app()->input_manager()->GetAxis("movey"));
+    float dy = scene_->app()->input_manager()->GetAxis("movey");
 
     // calculate new pitch and yaw
 
@@ -55,15 +55,35 @@ void CameraControllerSystem::OnUpdate(float ts)
 
     // update position relative to camera direction in xz plane
     const glm::vec3 d2x_rotated = glm::rotateZ(glm::vec3{dx, 0.0f, 0.0f}, c->yaw);
-    const glm::vec3 d2y_rotated = glm::rotateZ(glm::rotateX(glm::vec3{0.0f, 0.0f, dy}, c->pitch), c->yaw);
+    const glm::vec3 d2y_rotated = glm::rotateZ(glm::vec3{0.0f, dy, 0.0f}, c->yaw);
     glm::vec3 h_vel = (d2x_rotated + d2y_rotated);
     h_vel *= speed;
     t->position += h_vel * dt;
 
+    // gravity stuff here:
+    constexpr float g = -9.81f; // constant velocity gravity???
+    constexpr float player_height = 71.0f * 25.4f / 1000.0f;
+    c->vel.z += g * dt;
+
+    // check for collision during next frame and push back and remove velocity in the normal of the collision direction if so
+    engine::Ray ray{};
+    ray.origin = t->position;
+    ray.origin.z -= player_height; // check for collision from the player's feet
+
+    ray.direction = c->
+    const engine::Raycast fall_raycast = scene_->GetSystem<engine::CollisionSystem>()->GetRaycast(fall_ray);
+    if (fall_raycast.hit && fall_raycast.distance < player_height + (-c->fall_vel * dt)) {
+        t->position.z += -(fall_raycast.distance - player_height);
+        c->fall_vel = 0.0f;
+    }
+    else {
+        t->position.z += c->fall_vel * dt;
+    }
+
     constexpr float kMaxDistanceFromOrigin = 10000.0f;
 
     if (glm::length(t->position) > kMaxDistanceFromOrigin) {
-        t->position = {0.0f, 5.0f, 0.0f};
+        t->position = {0.0f, 0.0f, 10.0f};
     }
 
     /* ROTATION STUFF */
@@ -90,13 +110,14 @@ void CameraControllerSystem::OnUpdate(float ts)
     /* user interface inputs */
 
     if (scene_->app()->window()->GetKeyPress(engine::inputs::Key::K_P)) {
-        std::string pos_string{"x: " + std::to_string(t->world_matrix[3][0]) + " y: " + std::to_string(t->world_matrix[3][1]) + " z: " + std::to_string(t->world_matrix[3][2])};
+        std::string pos_string{"x: " + std::to_string(t->world_matrix[3][0]) + " y: " + std::to_string(t->world_matrix[3][1]) +
+                               " z: " + std::to_string(t->world_matrix[3][2])};
         LOG_INFO("position {}", pos_string);
         LOG_INFO("rotation w: {} x: {} y: {} z: {}", t->rotation.w, t->rotation.x, t->rotation.y, t->rotation.z);
     }
 
     if (scene_->app()->window()->GetKeyPress(engine::inputs::Key::K_R)) {
-        t->position = {0.0f, 5.0f, 0.0f};
+        t->position = {0.0f, 0.0f, 10.0f};
     }
 
     if (scene_->app()->input_manager()->GetButtonPress("fullscreen")) {
@@ -113,11 +134,12 @@ void CameraControllerSystem::OnUpdate(float ts)
 
     if (scene_->app()->window()->GetButtonPress(engine::inputs::MouseButton::M_LEFT)) {
         engine::Ray ray{};
-        ray.origin.x = t->world_matrix[3][0];
-        ray.origin.y = t->world_matrix[3][1];
-        ray.origin.z = t->world_matrix[3][2];
-        ray.direction = glm::vec3{ 0.0f, 0.0f, -1.0f };
+        ray.origin = t->position;
+        ray.direction = glm::vec3(glm::mat4_cast(t->rotation) * glm::vec4{0.0f, 0.0f, -1.0f, 1.0f});
         engine::Raycast cast = scene_->GetSystem<engine::CollisionSystem>()->GetRaycast(ray);
-        LOG_INFO("Raycast success? {}", cast.hit ? "YES" : "NO");
+        if (cast.hit) {
+            LOG_INFO("Raycast hit {}", scene_->GetComponent<engine::TransformComponent>(cast.hit_entity)->tag);
+            LOG_INFO("Distance: {} m", cast.distance);
+        }
     }
 }

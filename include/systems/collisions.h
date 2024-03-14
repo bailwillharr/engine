@@ -33,7 +33,7 @@ class CollisionSystem : public System {
 
     Raycast GetRaycast(Ray ray);
 
-   private:
+   public:
     // one node of the BVH
     struct BiTreeNode {
         enum class Type : uint8_t { BoundingVolume, Entity, Empty };
@@ -53,10 +53,11 @@ class CollisionSystem : public System {
         PrimitiveInfo(const AABB& aabb, Entity entity_idx);
     };
 
+    std::vector<BiTreeNode> bvh_{};
+
+   private:
     size_t colliders_size_last_update_ = 0;
     size_t colliders_size_now_ = 0;
-
-    std::vector<BiTreeNode> bvh_{};
 
     bool RaycastTreeNode(const Ray& ray, const BiTreeNode& node, glm::vec3& location, float& t, Entity& object_index);
 

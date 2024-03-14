@@ -61,8 +61,8 @@ Renderer::Renderer(Application& app, gfx::GraphicsSettings settings) : Applicati
     debug_pipeline_info.vertex_format = debug_vertex_format;
     debug_pipeline_info.alpha_blending = false;
     debug_pipeline_info.backface_culling = false; // probably ignored for line rendering
-    debug_pipeline_info.write_z = false; // lines don't need the depth buffer
-    //debug_pipeline_info.descriptor_set_layouts = empty;
+    debug_pipeline_info.write_z = false;          // lines don't need the depth buffer
+    // debug_pipeline_info.descriptor_set_layouts = empty;
     debug_pipeline_info.line_primitives = true;
 
     debug_rendering_things_.pipeline = device_->CreatePipeline(debug_pipeline_info);
@@ -104,7 +104,7 @@ void Renderer::PreRender(bool window_is_resized, glm::mat4 camera_transform)
     device_->WriteUniformBuffer(frame_uniform.uniform_buffer, 0, sizeof(frame_uniform.uniform_buffer_data), &frame_uniform.uniform_buffer_data);
 }
 
-void Renderer::Render(const RenderList* static_list, const RenderList* dynamic_list)
+void Renderer::Render(const RenderList* static_list, const RenderList* dynamic_list, const std::vector<Line>& debug_lines)
 {
     last_bound_pipeline_ = nullptr;
 
@@ -124,8 +124,20 @@ void Renderer::Render(const RenderList* static_list, const RenderList* dynamic_l
     // draw debug shit here
     device_->CmdBindPipeline(draw_buffer, debug_rendering_things_.pipeline);
     glm::vec4 debug_positions[2] = {};
-    debug_positions[0] = global_uniform.uniform_buffer_data.data * frame_uniform.uniform_buffer_data.data * glm::vec4{ 0.0f, 0.0f, 0.0f, 1.0f };
-    debug_positions[1] = global_uniform.uniform_buffer_data.data * frame_uniform.uniform_buffer_data.data * glm::vec4{ 0.0f, 0.0f, 1.0f, 1.0f };
+    for (const Line& l : debug_lines) {
+        debug_positions[0] = global_uniform.uniform_buffer_data.data * frame_uniform.uniform_buffer_data.data * glm::vec4(l.pos1, 1.0f);
+        debug_positions[1] = global_uniform.uniform_buffer_data.data * frame_uniform.uniform_buffer_data.data * glm::vec4(l.pos2, 1.0f);
+        device_->CmdPushConstants(draw_buffer, debug_rendering_things_.pipeline, 0, sizeof(glm::vec4) * 2, debug_positions);
+        device_->CmdDraw(draw_buffer, 2, 1, 0, 0);
+    }
+
+    // also make a lil crosshair
+    debug_positions[0] = glm::vec4(-0.05f, 0.0f, 0.0f, 1.0f);
+    debug_positions[1] = glm::vec4(0.05f, 0.0f, 0.0f, 1.0f);
+    device_->CmdPushConstants(draw_buffer, debug_rendering_things_.pipeline, 0, sizeof(glm::vec4) * 2, debug_positions);
+    device_->CmdDraw(draw_buffer, 2, 1, 0, 0);
+    debug_positions[0] = glm::vec4(0.0f, -0.05f, 0.0f, 1.0f);
+    debug_positions[1] = glm::vec4(0.0f, 0.05f, 0.0f, 1.0f);
     device_->CmdPushConstants(draw_buffer, debug_rendering_things_.pipeline, 0, sizeof(glm::vec4) * 2, debug_positions);
     device_->CmdDraw(draw_buffer, 2, 1, 0, 0);
 

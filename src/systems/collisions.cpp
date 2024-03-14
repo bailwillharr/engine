@@ -78,12 +78,36 @@ void CollisionSystem::OnUpdate(float ts)
             transformed_box.max = t->world_matrix * glm::vec4(c->aabb.max, 1.0f);
             // if a mesh is not rotated a multiple of 90 degrees, the box will not fit the mesh
             // TODO fix it
-            prims.emplace_back(c->aabb, entity);
+
+            // correct min and max
+            AABB box{};
+            box.min.x = fminf(transformed_box.min.x, transformed_box.max.x);
+            box.min.y = fminf(transformed_box.min.y, transformed_box.max.y);
+            box.min.z = fminf(transformed_box.min.z, transformed_box.max.z);
+            box.max.x = fmaxf(transformed_box.min.x, transformed_box.max.x);
+            box.max.y = fmaxf(transformed_box.min.y, transformed_box.max.y);
+            box.max.z = fmaxf(transformed_box.min.z, transformed_box.max.z);
+
+            prims.emplace_back(box, entity);
         }
 
         bvh_.clear();
         bvh_.reserve(entities_.size() * 3 / 2); // from testing, bvh is usually 20% larger than number of objects
         BuildNode(prims, bvh_);
+
+        // check AABB mins and maxes are the correct order
+        for (const auto& node : bvh_) {
+            if (node.type1 != BiTreeNode::Type::Empty) {
+                if (node.box1.max.x < node.box1.min.x) abort();
+                if (node.box1.max.y < node.box1.min.y) abort();
+                if (node.box1.max.z < node.box1.min.z) abort();
+            }
+            if (node.type2 != BiTreeNode::Type::Empty) {
+                if (node.box2.max.x < node.box2.min.x) abort();
+                if (node.box2.max.y < node.box2.min.y) abort();
+                if (node.box2.max.z < node.box2.min.z) abort();
+            }
+        }
 
         LOG_INFO("BUILT BVH!");
 
@@ -94,10 +118,13 @@ void CollisionSystem::OnUpdate(float ts)
 Raycast CollisionSystem::GetRaycast(Ray ray)
 {
     Raycast res{};
+    res.hit = false;
 
     ray.direction = glm::normalize(ray.direction);
     
-    res.hit = RaycastTreeNode(ray, bvh_.back(), res.location, res.distance, res.hit_entity);
+    if (!bvh_.empty()) {
+        res.hit = RaycastTreeNode(ray, bvh_.back(), res.location, res.distance, res.hit_entity);
+    }
 
     return res;
 }
@@ -109,20 +136,41 @@ CollisionSystem::PrimitiveInfo::PrimitiveInfo(const AABB& aabb, Entity entity_id
 int CollisionSystem::BuildNode(std::vector<PrimitiveInfo>& prims, std::vector<BiTreeNode>& tree_nodes)
 {
 
-    if (prims.size() == 0) throw std::runtime_error("Cannot build BVH with no primitives!");
+    if (prims.size() == 0) abort();
 
     std::array<std::function<bool(const PrimitiveInfo&, const PrimitiveInfo&)>, 3> centroid_tests{
-        [](const PrimitiveInfo& p1, const PrimitiveInfo& p2) -> bool { return (p1.centroid.x < p2.centroid.x); },
-        [](const PrimitiveInfo& p1, const PrimitiveInfo& p2) -> bool { return (p1.centroid.y < p2.centroid.y); },
-        [](const PrimitiveInfo& p1, const PrimitiveInfo& p2) -> bool { return (p1.centroid.z < p2.centroid.z); }};
+        [](const PrimitiveInfo& p1, const PrimitiveInfo& p2) -> bool {
+            return (p1.centroid.x < p2.centroid.x);
+        },
+        [](const PrimitiveInfo& p1, const PrimitiveInfo& p2) -> bool {
+            return (p1.centroid.y < p2.centroid.y);
+        },
+        [](const PrimitiveInfo& p1, const PrimitiveInfo& p2) -> bool {
+            return (p1.centroid.z < p2.centroid.z);
+        }
+    };
     std::array<std::function<bool(const PrimitiveInfo&, const PrimitiveInfo&)>, 3> box_min_tests{
-        [](const PrimitiveInfo& p1, const PrimitiveInfo& p2) -> bool { return (p1.box.min.x < p2.box.min.x); },
-        [](const PrimitiveInfo& p1, const PrimitiveInfo& p2) -> bool { return (p1.box.min.y < p2.box.min.y); },
-        [](const PrimitiveInfo& p1, const PrimitiveInfo& p2) -> bool { return (p1.box.min.z < p2.box.min.z); }};
+        [](const PrimitiveInfo& p1, const PrimitiveInfo& p2) -> bool {
+            return (p1.box.min.x < p2.box.min.x);
+        },
+            [](const PrimitiveInfo& p1, const PrimitiveInfo& p2) -> bool {
+            return (p1.box.min.y < p2.box.min.y);
+        },
+            [](const PrimitiveInfo& p1, const PrimitiveInfo& p2) -> bool {
+            return (p1.box.min.z < p2.box.min.z);
+        }
+    };
     std::array<std::function<bool(const PrimitiveInfo&, const PrimitiveInfo&)>, 3> box_max_tests{
-        [](const PrimitiveInfo& p1, const PrimitiveInfo& p2) -> bool { return (p1.box.max.x < p2.box.max.x); },
-        [](const PrimitiveInfo& p1, const PrimitiveInfo& p2) -> bool { return (p1.box.max.y < p2.box.max.y); },
-        [](const PrimitiveInfo& p1, const PrimitiveInfo& p2) -> bool { return (p1.box.max.z < p2.box.max.z); }};
+        [](const PrimitiveInfo& p1, const PrimitiveInfo& p2) -> bool {
+            return (p1.box.max.x < p2.box.max.x);
+        },
+            [](const PrimitiveInfo& p1, const PrimitiveInfo& p2) -> bool {
+            return (p1.box.max.y < p2.box.max.y);
+        },
+            [](const PrimitiveInfo& p1, const PrimitiveInfo& p2) -> bool {
+            return (p1.box.max.z < p2.box.max.z);
+        }
+    };
 
     BiTreeNode node{};
 
@@ -132,7 +180,7 @@ int CollisionSystem::BuildNode(std::vector<PrimitiveInfo>& prims, std::vector<Bi
         sorted_prims.reserve(prims.size());
         int sorted_prims_split_index = 0;
 
-        float sah = std::numeric_limits<float>().infinity(); // surface area heuristic
+        float sah = std::numeric_limits<float>().infinity();  // surface area heuristic
 
         // try along each axis
         for (int axis = 0; axis < 3; axis++) {
@@ -142,91 +190,79 @@ int CollisionSystem::BuildNode(std::vector<PrimitiveInfo>& prims, std::vector<Bi
 
             std::sort(prims.begin(), prims.end(), centroid_tests[axis]);
 
-            // std::cout << "Sorting on axis " << axis << "...\n";
+            //std::cout << "Sorting on axis " << axis << "...\n";
             for (const auto& p : prims) {
-                // std::cout << p.centroid.x << "\t" << p.centroid.y << "\t" << p.centroid.z << "\n";
+                //std::cout << p.centroid.x << "\t" << p.centroid.y << "\t" << p.centroid.z << "\n";
             }
-            // std::cout << "\n\n\n";
+            //std::cout << "\n\n\n";
 
-            // break;
+            //break;
 
             // split the boxes
             for (int i = 0; i < prims.size() - 1; i++) {
 
-                float box1_main_min =
-                    reinterpret_cast<const float*>(&(std::min_element(prims.begin(), prims.begin() + i + 1, box_min_tests[axis])->box.min))[axis];
-                float box1_main_max =
-                    reinterpret_cast<const float*>(&(std::max_element(prims.begin(), prims.begin() + i + 1, box_max_tests[axis])->box.max))[axis];
-                float box2_main_min =
-                    reinterpret_cast<const float*>(&(std::min_element(prims.begin() + i + 1, prims.end(), box_min_tests[axis])->box.min))[axis];
-                float box2_main_max =
-                    reinterpret_cast<const float*>(&(std::max_element(prims.begin() + i + 1, prims.end(), box_max_tests[axis])->box.max))[axis];
+                float box1_main_min = reinterpret_cast<const float*>(&(std::min_element(prims.begin(), prims.begin() + i + 1, box_min_tests[axis])->box.min))[axis];
+                float box1_main_max = reinterpret_cast<const float*>(&(std::max_element(prims.begin(), prims.begin() + i + 1, box_max_tests[axis])->box.max))[axis];
+                float box2_main_min = reinterpret_cast<const float*>(&(std::min_element(prims.begin() + i + 1, prims.end(), box_min_tests[axis])->box.min))[axis];
+                float box2_main_max = reinterpret_cast<const float*>(&(std::max_element(prims.begin() + i + 1, prims.end(), box_max_tests[axis])->box.max))[axis];
 
-                float box1_min1 =
-                    reinterpret_cast<const float*>(&(std::min_element(prims.begin(), prims.begin() + i + 1, box_min_tests[other_axis1])->box.min))[other_axis1];
-                float box1_max1 =
-                    reinterpret_cast<const float*>(&(std::max_element(prims.begin(), prims.begin() + i + 1, box_max_tests[other_axis1])->box.max))[other_axis1];
-                float box1_min2 =
-                    reinterpret_cast<const float*>(&(std::min_element(prims.begin(), prims.begin() + i + 1, box_min_tests[other_axis2])->box.min))[other_axis2];
-                float box1_max2 =
-                    reinterpret_cast<const float*>(&(std::max_element(prims.begin(), prims.begin() + i + 1, box_max_tests[other_axis2])->box.max))[other_axis2];
+                float box1_min1 = reinterpret_cast<const float*>(&(std::min_element(prims.begin(), prims.begin() + i + 1, box_min_tests[other_axis1])->box.min))[other_axis1];
+                float box1_max1 = reinterpret_cast<const float*>(&(std::max_element(prims.begin(), prims.begin() + i + 1, box_max_tests[other_axis1])->box.max))[other_axis1];
+                float box1_min2 = reinterpret_cast<const float*>(&(std::min_element(prims.begin(), prims.begin() + i + 1, box_min_tests[other_axis2])->box.min))[other_axis2];
+                float box1_max2 = reinterpret_cast<const float*>(&(std::max_element(prims.begin(), prims.begin() + i + 1, box_max_tests[other_axis2])->box.max))[other_axis2];
 
-                float box2_min1 =
-                    reinterpret_cast<const float*>(&(std::min_element(prims.begin() + i + 1, prims.end(), box_min_tests[other_axis1])->box.min))[other_axis1];
-                float box2_max1 =
-                    reinterpret_cast<const float*>(&(std::max_element(prims.begin() + i + 1, prims.end(), box_max_tests[other_axis1])->box.max))[other_axis1];
-                float box2_min2 =
-                    reinterpret_cast<const float*>(&(std::min_element(prims.begin() + i + 1, prims.end(), box_min_tests[other_axis2])->box.min))[other_axis2];
-                float box2_max2 =
-                    reinterpret_cast<const float*>(&(std::max_element(prims.begin() + i + 1, prims.end(), box_max_tests[other_axis2])->box.max))[other_axis2];
+                float box2_min1 = reinterpret_cast<const float*>(&(std::min_element(prims.begin() + i + 1, prims.end(), box_min_tests[other_axis1])->box.min))[other_axis1];
+                float box2_max1 = reinterpret_cast<const float*>(&(std::max_element(prims.begin() + i + 1, prims.end(), box_max_tests[other_axis1])->box.max))[other_axis1];
+                float box2_min2 = reinterpret_cast<const float*>(&(std::min_element(prims.begin() + i + 1, prims.end(), box_min_tests[other_axis2])->box.min))[other_axis2];
+                float box2_max2 = reinterpret_cast<const float*>(&(std::max_element(prims.begin() + i + 1, prims.end(), box_max_tests[other_axis2])->box.max))[other_axis2];
 
                 AABB box1{}, box2{};
                 switch (axis) {
-                    case 0:
-                        // x
-                        box1.min.x = box1_main_min;
-                        box1.min.y = box1_min1;
-                        box1.min.z = box1_min2;
-                        box1.max.x = box1_main_max;
-                        box1.max.y = box1_max1;
-                        box1.max.z = box1_max2;
-                        box2.min.x = box2_main_min;
-                        box2.min.y = box2_min1;
-                        box2.min.z = box2_min2;
-                        box2.max.x = box2_main_max;
-                        box2.max.y = box2_max1;
-                        box2.max.z = box2_max2;
-                        break;
-                    case 1:
-                        // y
-                        box1.min.x = box1_min2;
-                        box1.min.y = box1_main_min;
-                        box1.min.z = box1_min1;
-                        box1.max.x = box1_max2;
-                        box1.max.y = box1_main_max;
-                        box1.max.z = box1_max1;
-                        box2.min.x = box2_min2;
-                        box2.min.y = box2_main_min;
-                        box2.min.z = box2_min1;
-                        box2.max.x = box2_max2;
-                        box2.max.y = box2_main_max;
-                        box2.max.z = box2_max1;
-                        break;
-                    case 2:
-                        // z
-                        box1.min.x = box1_min1;
-                        box1.min.y = box1_min2;
-                        box1.min.z = box1_main_min;
-                        box1.max.x = box1_max1;
-                        box1.max.y = box1_max2;
-                        box1.max.z = box1_main_max;
-                        box2.min.x = box2_min1;
-                        box2.min.y = box2_min2;
-                        box2.min.z = box2_main_min;
-                        box2.max.x = box2_max1;
-                        box2.max.y = box2_max2;
-                        box2.max.z = box2_main_max;
-                        break;
+                case 0:
+                    // x
+                    box1.min.x = box1_main_min;
+                    box1.min.y = box1_min1;
+                    box1.min.z = box1_min2;
+                    box1.max.x = box1_main_max;
+                    box1.max.y = box1_max1;
+                    box1.max.z = box1_max2;
+                    box2.min.x = box2_main_min;
+                    box2.min.y = box2_min1;
+                    box2.min.z = box2_min2;
+                    box2.max.x = box2_main_max;
+                    box2.max.y = box2_max1;
+                    box2.max.z = box2_max2;
+                    break;
+                case 1:
+                    // y
+                    box1.min.x = box1_min2;
+                    box1.min.y = box1_main_min;
+                    box1.min.z = box1_min1;
+                    box1.max.x = box1_max2;
+                    box1.max.y = box1_main_max;
+                    box1.max.z = box1_max1;
+                    box2.min.x = box2_min2;
+                    box2.min.y = box2_main_min;
+                    box2.min.z = box2_min1;
+                    box2.max.x = box2_max2;
+                    box2.max.y = box2_main_max;
+                    box2.max.z = box2_max1;
+                    break;
+                case 2:
+                    // z
+                    box1.min.x = box1_min1;
+                    box1.min.y = box1_min2;
+                    box1.min.z = box1_main_min;
+                    box1.max.x = box1_max1;
+                    box1.max.y = box1_max2;
+                    box1.max.z = box1_main_max;
+                    box2.min.x = box2_min1;
+                    box2.min.y = box2_min2;
+                    box2.min.z = box2_main_min;
+                    box2.max.x = box2_max1;
+                    box2.max.y = box2_max2;
+                    box2.max.z = box2_main_max;
+                    break;
                 }
                 const float combined_surface_area = (GetBoxArea(box1) * (i + 1)) + (GetBoxArea(box2) * (prims.size() - (i + 1)));
                 if (combined_surface_area < sah) {
@@ -235,7 +271,7 @@ int CollisionSystem::BuildNode(std::vector<PrimitiveInfo>& prims, std::vector<Bi
                     optimal_box2 = box2;
                     sorted_prims = prims; // VECTOR COPY!
                     sorted_prims_split_index = i;
-                    std::cout << "picking new boxes, axis: " << axis << " i: " << i << " sah: " << combined_surface_area << "\n";
+                    //std::cout << "picking new boxes, axis: " << axis << " i: " << i << " sah: " << combined_surface_area << "\n";
                 }
             }
         }
@@ -254,6 +290,7 @@ int CollisionSystem::BuildNode(std::vector<PrimitiveInfo>& prims, std::vector<Bi
         node.index2 = index2;
         node.type1 = BiTreeNode::Type::BoundingVolume;
         node.type2 = BiTreeNode::Type::BoundingVolume;
+
     }
     else {
         if (prims.size() == 2) {

@@ -103,16 +103,19 @@ void PlayGame(GameSettings settings)
         floor_renderable->material->SetMetallicRoughnessTexture(floor_mr);
         floor_renderable->material->SetOcclusionTexture(app.GetResource<engine::Texture>("builtin.white"));
         floor_renderable->visible = true ;
+        auto floor_col = main_scene->AddComponent<engine::ColliderComponent>(floor);
+        floor_col->aabb.min = glm::vec3{0.0f, 0.0f, 0.0f};
+        floor_col->aabb.max = glm::vec3{100.0f, 100.0f, 0.1f };
 
-
-        engine::Entity normal_map_test = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/normalmaptest.glb"));
-        main_scene->GetComponent<engine::TransformComponent>(normal_map_test)->position += glm::vec3{-10.0f, 0.0f, 1.0f};
+        engine::Entity redcube = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/redcube.glb"));
 
         engine::Entity monke = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/monke.glb"));
+        main_scene->GetComponent<engine::TransformComponent>(monke)->position.y += 10.0f;
 
-        engine::Entity bottle = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/bottle.glb"));
-        main_scene->GetComponent<engine::TransformComponent>(bottle)->scale *= 50.0f;
-        main_scene->GetComponent<engine::TransformComponent>(bottle)->position.z += 50.0f;;
+        //engine::Entity bottle = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/bottle.glb"));
+        //main_scene->GetComponent<engine::TransformComponent>(bottle)->scale *= 10.0f;
+        //main_scene->GetComponent<engine::TransformComponent>(bottle)->position.x += 25.0f;
+        //main_scene->GetComponent<engine::TransformComponent>(bottle)->position.z += 5.0f;
 
         /* skybox */
         engine::Entity skybox = main_scene->CreateEntity("skybox");
