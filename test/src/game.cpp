@@ -107,7 +107,6 @@ void PlayGame(GameSettings settings)
         floor_col->aabb.min = glm::vec3{0.0f, 0.0f, 0.0f};
         floor_col->aabb.max = glm::vec3{100.0f, 100.0f, 0.1f };
 
-        engine::Entity redcube = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/redcube.glb"));
 
         engine::Entity monke = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/monke.glb"));
         main_scene->GetComponent<engine::TransformComponent>(monke)->position.y += 10.0f;
@@ -126,6 +125,20 @@ void PlayGame(GameSettings settings)
         skybox_renderable->mesh = GenCuboidMesh(app.renderer()->GetDevice(), 10.0f, 10.0f, 10.0f, 1.0f, true);
         skybox_renderable->material = std::make_unique<engine::Material>(app.renderer(), app.GetResource<engine::Shader>("builtin.skybox"));
         skybox_renderable->material->SetAlbedoTexture(app.GetResource<engine::Texture>("builtin.black"));
+
+		engine::Entity helmet = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/DamagedHelmet.glb"));
+		main_scene->GetPosition(helmet) += glm::vec3{20.0f, 10.0f, 5.0f};
+
+		engine::Entity toycar = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/ToyCar.glb"));
+		main_scene->GetScale(toycar) *= 100.0f;
+		auto car_spin = main_scene->AddComponent<engine::CustomComponent>(toycar);
+		car_spin->onInit = []() -> void {};
+		car_spin->onUpdate = [&](float dt) -> void {
+			static float yaw = 0.0f;
+			yaw += dt;
+			main_scene->GetRotation(toycar) = glm::angleAxis(yaw, glm::vec3{0.0f, 0.0f, 1.0f});
+			main_scene->GetRotation(toycar) *= glm::angleAxis(glm::half_pi<float>(), glm::vec3{1.0f, 0.0f, 0.0f});
+		};
     }
 
     start_scene->GetSystem<CameraControllerSystem>()->next_scene_ = main_scene;

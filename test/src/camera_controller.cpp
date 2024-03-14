@@ -34,10 +34,6 @@ void CameraControllerSystem::OnUpdate(float ts)
 
     const float dt = ts;
 
-    // in metres per second
-    float speed = c->kWalkSpeed;
-    if (scene_->app()->input_manager()->GetButton("sprint")) speed *= 10.0f;
-
     float dx = scene_->app()->input_manager()->GetAxis("movex");
     float dy = scene_->app()->input_manager()->GetAxis("movey");
 
@@ -57,28 +53,36 @@ void CameraControllerSystem::OnUpdate(float ts)
     const glm::vec3 d2x_rotated = glm::rotateZ(glm::vec3{dx, 0.0f, 0.0f}, c->yaw);
     const glm::vec3 d2y_rotated = glm::rotateZ(glm::vec3{0.0f, dy, 0.0f}, c->yaw);
     glm::vec3 h_vel = (d2x_rotated + d2y_rotated);
-    h_vel *= speed;
-    t->position += h_vel * dt;
+    c->vel.x = h_vel.x;
+	c->vel.y = h_vel.y;
+	// keep vel.z as gravity can increase it every frame
 
     // gravity stuff here:
     constexpr float g = -9.81f; // constant velocity gravity???
     constexpr float player_height = 71.0f * 25.4f / 1000.0f;
     c->vel.z += g * dt;
 
+	if (scene_->app()->input_manager()->GetButtonPress("jump")) {
+		c->vel.z += 4.4f; // m/s
+	}
+
+	// update position with velocity:
+
     // check for collision during next frame and push back and remove velocity in the normal of the collision direction if so
     engine::Ray ray{};
     ray.origin = t->position;
     ray.origin.z -= player_height; // check for collision from the player's feet
 
-    ray.direction = c->
-    const engine::Raycast fall_raycast = scene_->GetSystem<engine::CollisionSystem>()->GetRaycast(fall_ray);
-    if (fall_raycast.hit && fall_raycast.distance < player_height + (-c->fall_vel * dt)) {
-        t->position.z += -(fall_raycast.distance - player_height);
-        c->fall_vel = 0.0f;
+	const glm::vec3 dX = c->vel * dt; // where player will end up with no collision
+    ray.direction = glm::normalize(dX);
+    const engine::Raycast raycast = scene_->GetSystem<engine::CollisionSystem>()->GetRaycast(ray);
+    if (raycast.hit && raycast.distance < glm::length(dX)) {
+		// will collide
+        t->position -= raycast.distance * ray.direction; // push out of collision zone
+		c->vel.z = 0.0f; // remove velocity normal to collision surface
     }
-    else {
-        t->position.z += c->fall_vel * dt;
-    }
+    
+	t->position += c->vel * dt;
 
     constexpr float kMaxDistanceFromOrigin = 10000.0f;
 

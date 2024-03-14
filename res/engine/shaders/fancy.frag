@@ -33,7 +33,7 @@ void main() {
 	const float roughness = metallic_roughness.b;
 	const float roughness_2 = roughness * roughness;
 
-	const vec3 light_colour = vec3(1.0, 1.0, 1.0) * 5.0;
+	const vec3 light_colour = vec3(1.0, 1.0, 1.0) * 2.4;
 	const vec3 emission = vec3(0.0, 0.0, 0.0);
 
 	const float ao = texture(materialSetOcclusionSampler, fragUV).r;

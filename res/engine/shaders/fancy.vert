@@ -34,7 +34,7 @@ void main() {
 	fragUV = inUV;
 	fragPosTangentSpace = worldToTangentSpace * vec3(worldPosition);
 	fragViewPosTangentSpace = worldToTangentSpace * vec3(inverse(frameSetUniformBuffer.view) * vec4(0.0, 0.0, 0.0, 1.0));
-	fragLightPosTangentSpace = worldToTangentSpace * vec3(59000.0, 0000.0, 10000.0);
+	fragLightPosTangentSpace = worldToTangentSpace * vec3(10000.0, 0000.0, 59000.0);
 
 	gl_Position.y *= -1.0;
 }
