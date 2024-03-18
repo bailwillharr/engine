@@ -209,28 +209,23 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
     for (const tg::Material& material : model.materials) {
         if (material.alphaMode != "OPAQUE") {
             LOG_WARN("Material {} contains alphaMode {} which isn't supported yet", material.name, material.alphaMode);
-            LOG_WARN("Material will be opaque");
         }
         if (material.doubleSided == true) {
             LOG_WARN("Material {} specifies double-sided mesh rendering which isn't supported yet", material.name);
-            LOG_WARN("Material will be single-sided.");
         }
         if (material.emissiveTexture.index != -1 || material.emissiveFactor[0] != 0.0 || material.emissiveFactor[1] != 0.0 ||
             material.emissiveFactor[2] != 0.0) {
             LOG_WARN("Material {} contains an emissive texture or non-zero emissive factor. Emission is currently unsupported.", material.name);
-            LOG_WARN("Material will be created without emission.");
         }
         const auto& baseColorFactor4 = material.pbrMetallicRoughness.baseColorFactor;
         if (baseColorFactor4[0] != 1.0 || baseColorFactor4[1] != 1.0 || baseColorFactor4[2] != 1.0 || baseColorFactor4[3] != 1.0) {
             if (material.pbrMetallicRoughness.baseColorTexture.index != -1) {
                 LOG_WARN("Material {} contains a base color multiplier which isn't supported yet.", material.name);
-                LOG_WARN("The material's base color texture will be used as-is.");
             }
         }
         if (material.pbrMetallicRoughness.metallicFactor != 1.0 || material.pbrMetallicRoughness.roughnessFactor != 1.0) {
             if (material.pbrMetallicRoughness.metallicRoughnessTexture.index != -1) {
-                LOG_WARN("Material {} contains a metallic and/or roughness multiplier which isn't supported yet.", material.name);
-                LOG_WARN("The material's metallic-roughness texture will be used as-is.");
+                LOG_WARN("Material {} contains a metallic and/or roughness multiplier which isn't supported yet.", material.name); 
             }
         }
 
@@ -244,7 +239,6 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
             }
             else {
                 LOG_WARN("Material {} base color texture specifies a UV channel other than zero which is unsupported.", material.name);
-                LOG_WARN("Material will be created with a white base color");
             }
         }
         else if (baseColorFactor4[0] != 1.0 || baseColorFactor4[1] != 1.0 || baseColorFactor4[2] != 1.0 || baseColorFactor4[3] != 1.0) {
@@ -271,12 +265,11 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
             }
             else {
                 LOG_WARN("Material {} metallic roughness texture specifies a UV channel other than zero which is unsupported.", material.name);
-                LOG_WARN("Material will be created with a default metallic roughness");
             }
         }
         else {
             LOG_INFO("Creating a metallic-roughness texture...");
-            const std::vector<double> mr_values{1.0f, material.pbrMetallicRoughness.metallicFactor, material.pbrMetallicRoughness.roughnessFactor, 1.0f};
+            const std::vector<double> mr_values{1.0f, material.pbrMetallicRoughness.roughnessFactor, material.pbrMetallicRoughness.metallicFactor, 1.0f};
             Color mr(mr_values);
             if (metal_rough_textures.contains(mr) == false) {
                 const uint8_t pixel[4] = {mr.r, mr.g, mr.b, mr.a};
@@ -299,7 +292,6 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
             }
             else {
                 LOG_WARN("Material {} occlusion texture specifies a UV channel other than zero which is unsupported.", material.name);
-                LOG_WARN("Material will be created with no ambient occlusion");
             }
         }
 
@@ -311,7 +303,6 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
             }
             else {
                 LOG_WARN("Material {} normal texture specifies a UV channel other than zero which is unsupported.", material.name);
-                LOG_WARN("Material will be created with no normal map");
             }
         }
     }

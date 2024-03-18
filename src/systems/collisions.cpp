@@ -29,7 +29,8 @@ static float GetBoxArea(const AABB& box)
 }
 
 // returns true on hit and tmin
-static std::pair<bool, float> RayBoxIntersection(const Ray& ray, const AABB& box, float t)
+// also modifies 'side' reference
+static std::pair<bool, float> RayBoxIntersection(const Ray& ray, const AABB& box, float t, AABBSide& side)
 {
     // Thank you https://tavianator.com/cgit/dimension.git/tree/libdimension/bvh/bvh.c
     glm::vec3 n_inv{1.0f / ray.direction.x, 1.0f / ray.direction.y, 1.0f / ray.direction.z};
@@ -51,6 +52,20 @@ static std::pair<bool, float> RayBoxIntersection(const Ray& ray, const AABB& box
 
     tmin = fmaxf(tmin, fminf(tz1, tz2));
     tmax = fminf(tmax, fmaxf(tz1, tz2));
+
+    side = AABBSide::Left;
+    if (tmin == tx2)
+        side = AABBSide::Right;
+    else if (tmin == tx1)
+        side = AABBSide::Left;
+    else if (tmin == ty2)
+        side = AABBSide::Back;
+    else if (tmin == ty1)
+        side = AABBSide::Front;
+    else if (tmin == tz2)
+        side = AABBSide::Top;
+    else if (tmin == tz1)
+        side = AABBSide::Bottom;
 
     return std::make_pair((tmax >= fmaxf(0.0, tmin) && tmin < t), tmin);
 }
@@ -117,13 +132,40 @@ void CollisionSystem::OnUpdate(float ts)
 
 Raycast CollisionSystem::GetRaycast(Ray ray)
 {
+    ray.direction = glm::normalize(ray.direction);
+
     Raycast res{};
     res.hit = false;
 
-    ray.direction = glm::normalize(ray.direction);
-    
     if (!bvh_.empty()) {
-        res.hit = RaycastTreeNode(ray, bvh_.back(), res.location, res.distance, res.hit_entity);
+        const RaycastTreeNodeResult tree_node_cast_res = RaycastTreeNode(ray, bvh_.back());
+        if (tree_node_cast_res.hit) {
+            res.hit = true;
+            res.distance = tree_node_cast_res.t;
+            res.location = tree_node_cast_res.location;
+            res.hit_entity = tree_node_cast_res.object_index;
+            // find normal
+            switch (tree_node_cast_res.side) {
+                case AABBSide::Left:
+                    res.normal = glm::vec3{-1.0, 0.0f, 0.0f};
+                    break;
+                case AABBSide::Right:
+                    res.normal = glm::vec3{1.0, 0.0f, 0.0f};
+                    break;
+                case AABBSide::Bottom:
+                    res.normal = glm::vec3{0.0, 0.0f, -1.0f};
+                    break;
+                case AABBSide::Top:
+                    res.normal = glm::vec3{0.0, 0.0f, 1.0f};
+                    break;
+                case AABBSide::Front:
+                    res.normal = glm::vec3{0.0, -1.0f, 0.0f};
+                    break;
+                case AABBSide::Back:
+                    res.normal = glm::vec3{0.0, 1.0f, 0.0f};
+                    break;
+            }
+        }
     }
 
     return res;
@@ -139,38 +181,17 @@ int CollisionSystem::BuildNode(std::vector<PrimitiveInfo>& prims, std::vector<Bi
     if (prims.size() == 0) abort();
 
     std::array<std::function<bool(const PrimitiveInfo&, const PrimitiveInfo&)>, 3> centroid_tests{
-        [](const PrimitiveInfo& p1, const PrimitiveInfo& p2) -> bool {
-            return (p1.centroid.x < p2.centroid.x);
-        },
-        [](const PrimitiveInfo& p1, const PrimitiveInfo& p2) -> bool {
-            return (p1.centroid.y < p2.centroid.y);
-        },
-        [](const PrimitiveInfo& p1, const PrimitiveInfo& p2) -> bool {
-            return (p1.centroid.z < p2.centroid.z);
-        }
-    };
+        [](const PrimitiveInfo& p1, const PrimitiveInfo& p2) -> bool { return (p1.centroid.x < p2.centroid.x); },
+        [](const PrimitiveInfo& p1, const PrimitiveInfo& p2) -> bool { return (p1.centroid.y < p2.centroid.y); },
+        [](const PrimitiveInfo& p1, const PrimitiveInfo& p2) -> bool { return (p1.centroid.z < p2.centroid.z); }};
     std::array<std::function<bool(const PrimitiveInfo&, const PrimitiveInfo&)>, 3> box_min_tests{
-        [](const PrimitiveInfo& p1, const PrimitiveInfo& p2) -> bool {
-            return (p1.box.min.x < p2.box.min.x);
-        },
-            [](const PrimitiveInfo& p1, const PrimitiveInfo& p2) -> bool {
-            return (p1.box.min.y < p2.box.min.y);
-        },
-            [](const PrimitiveInfo& p1, const PrimitiveInfo& p2) -> bool {
-            return (p1.box.min.z < p2.box.min.z);
-        }
-    };
+        [](const PrimitiveInfo& p1, const PrimitiveInfo& p2) -> bool { return (p1.box.min.x < p2.box.min.x); },
+        [](const PrimitiveInfo& p1, const PrimitiveInfo& p2) -> bool { return (p1.box.min.y < p2.box.min.y); },
+        [](const PrimitiveInfo& p1, const PrimitiveInfo& p2) -> bool { return (p1.box.min.z < p2.box.min.z); }};
     std::array<std::function<bool(const PrimitiveInfo&, const PrimitiveInfo&)>, 3> box_max_tests{
-        [](const PrimitiveInfo& p1, const PrimitiveInfo& p2) -> bool {
-            return (p1.box.max.x < p2.box.max.x);
-        },
-            [](const PrimitiveInfo& p1, const PrimitiveInfo& p2) -> bool {
-            return (p1.box.max.y < p2.box.max.y);
-        },
-            [](const PrimitiveInfo& p1, const PrimitiveInfo& p2) -> bool {
-            return (p1.box.max.z < p2.box.max.z);
-        }
-    };
+        [](const PrimitiveInfo& p1, const PrimitiveInfo& p2) -> bool { return (p1.box.max.x < p2.box.max.x); },
+        [](const PrimitiveInfo& p1, const PrimitiveInfo& p2) -> bool { return (p1.box.max.y < p2.box.max.y); },
+        [](const PrimitiveInfo& p1, const PrimitiveInfo& p2) -> bool { return (p1.box.max.z < p2.box.max.z); }};
 
     BiTreeNode node{};
 
@@ -180,7 +201,7 @@ int CollisionSystem::BuildNode(std::vector<PrimitiveInfo>& prims, std::vector<Bi
         sorted_prims.reserve(prims.size());
         int sorted_prims_split_index = 0;
 
-        float sah = std::numeric_limits<float>().infinity();  // surface area heuristic
+        float sah = std::numeric_limits<float>().infinity(); // surface area heuristic
 
         // try along each axis
         for (int axis = 0; axis < 3; axis++) {
@@ -190,79 +211,91 @@ int CollisionSystem::BuildNode(std::vector<PrimitiveInfo>& prims, std::vector<Bi
 
             std::sort(prims.begin(), prims.end(), centroid_tests[axis]);
 
-            //std::cout << "Sorting on axis " << axis << "...\n";
+            // std::cout << "Sorting on axis " << axis << "...\n";
             for (const auto& p : prims) {
-                //std::cout << p.centroid.x << "\t" << p.centroid.y << "\t" << p.centroid.z << "\n";
+                // std::cout << p.centroid.x << "\t" << p.centroid.y << "\t" << p.centroid.z << "\n";
             }
-            //std::cout << "\n\n\n";
+            // std::cout << "\n\n\n";
 
-            //break;
+            // break;
 
             // split the boxes
             for (int i = 0; i < prims.size() - 1; i++) {
 
-                float box1_main_min = reinterpret_cast<const float*>(&(std::min_element(prims.begin(), prims.begin() + i + 1, box_min_tests[axis])->box.min))[axis];
-                float box1_main_max = reinterpret_cast<const float*>(&(std::max_element(prims.begin(), prims.begin() + i + 1, box_max_tests[axis])->box.max))[axis];
-                float box2_main_min = reinterpret_cast<const float*>(&(std::min_element(prims.begin() + i + 1, prims.end(), box_min_tests[axis])->box.min))[axis];
-                float box2_main_max = reinterpret_cast<const float*>(&(std::max_element(prims.begin() + i + 1, prims.end(), box_max_tests[axis])->box.max))[axis];
+                float box1_main_min =
+                    reinterpret_cast<const float*>(&(std::min_element(prims.begin(), prims.begin() + i + 1, box_min_tests[axis])->box.min))[axis];
+                float box1_main_max =
+                    reinterpret_cast<const float*>(&(std::max_element(prims.begin(), prims.begin() + i + 1, box_max_tests[axis])->box.max))[axis];
+                float box2_main_min =
+                    reinterpret_cast<const float*>(&(std::min_element(prims.begin() + i + 1, prims.end(), box_min_tests[axis])->box.min))[axis];
+                float box2_main_max =
+                    reinterpret_cast<const float*>(&(std::max_element(prims.begin() + i + 1, prims.end(), box_max_tests[axis])->box.max))[axis];
 
-                float box1_min1 = reinterpret_cast<const float*>(&(std::min_element(prims.begin(), prims.begin() + i + 1, box_min_tests[other_axis1])->box.min))[other_axis1];
-                float box1_max1 = reinterpret_cast<const float*>(&(std::max_element(prims.begin(), prims.begin() + i + 1, box_max_tests[other_axis1])->box.max))[other_axis1];
-                float box1_min2 = reinterpret_cast<const float*>(&(std::min_element(prims.begin(), prims.begin() + i + 1, box_min_tests[other_axis2])->box.min))[other_axis2];
-                float box1_max2 = reinterpret_cast<const float*>(&(std::max_element(prims.begin(), prims.begin() + i + 1, box_max_tests[other_axis2])->box.max))[other_axis2];
+                float box1_min1 =
+                    reinterpret_cast<const float*>(&(std::min_element(prims.begin(), prims.begin() + i + 1, box_min_tests[other_axis1])->box.min))[other_axis1];
+                float box1_max1 =
+                    reinterpret_cast<const float*>(&(std::max_element(prims.begin(), prims.begin() + i + 1, box_max_tests[other_axis1])->box.max))[other_axis1];
+                float box1_min2 =
+                    reinterpret_cast<const float*>(&(std::min_element(prims.begin(), prims.begin() + i + 1, box_min_tests[other_axis2])->box.min))[other_axis2];
+                float box1_max2 =
+                    reinterpret_cast<const float*>(&(std::max_element(prims.begin(), prims.begin() + i + 1, box_max_tests[other_axis2])->box.max))[other_axis2];
 
-                float box2_min1 = reinterpret_cast<const float*>(&(std::min_element(prims.begin() + i + 1, prims.end(), box_min_tests[other_axis1])->box.min))[other_axis1];
-                float box2_max1 = reinterpret_cast<const float*>(&(std::max_element(prims.begin() + i + 1, prims.end(), box_max_tests[other_axis1])->box.max))[other_axis1];
-                float box2_min2 = reinterpret_cast<const float*>(&(std::min_element(prims.begin() + i + 1, prims.end(), box_min_tests[other_axis2])->box.min))[other_axis2];
-                float box2_max2 = reinterpret_cast<const float*>(&(std::max_element(prims.begin() + i + 1, prims.end(), box_max_tests[other_axis2])->box.max))[other_axis2];
+                float box2_min1 =
+                    reinterpret_cast<const float*>(&(std::min_element(prims.begin() + i + 1, prims.end(), box_min_tests[other_axis1])->box.min))[other_axis1];
+                float box2_max1 =
+                    reinterpret_cast<const float*>(&(std::max_element(prims.begin() + i + 1, prims.end(), box_max_tests[other_axis1])->box.max))[other_axis1];
+                float box2_min2 =
+                    reinterpret_cast<const float*>(&(std::min_element(prims.begin() + i + 1, prims.end(), box_min_tests[other_axis2])->box.min))[other_axis2];
+                float box2_max2 =
+                    reinterpret_cast<const float*>(&(std::max_element(prims.begin() + i + 1, prims.end(), box_max_tests[other_axis2])->box.max))[other_axis2];
 
                 AABB box1{}, box2{};
                 switch (axis) {
-                case 0:
-                    // x
-                    box1.min.x = box1_main_min;
-                    box1.min.y = box1_min1;
-                    box1.min.z = box1_min2;
-                    box1.max.x = box1_main_max;
-                    box1.max.y = box1_max1;
-                    box1.max.z = box1_max2;
-                    box2.min.x = box2_main_min;
-                    box2.min.y = box2_min1;
-                    box2.min.z = box2_min2;
-                    box2.max.x = box2_main_max;
-                    box2.max.y = box2_max1;
-                    box2.max.z = box2_max2;
-                    break;
-                case 1:
-                    // y
-                    box1.min.x = box1_min2;
-                    box1.min.y = box1_main_min;
-                    box1.min.z = box1_min1;
-                    box1.max.x = box1_max2;
-                    box1.max.y = box1_main_max;
-                    box1.max.z = box1_max1;
-                    box2.min.x = box2_min2;
-                    box2.min.y = box2_main_min;
-                    box2.min.z = box2_min1;
-                    box2.max.x = box2_max2;
-                    box2.max.y = box2_main_max;
-                    box2.max.z = box2_max1;
-                    break;
-                case 2:
-                    // z
-                    box1.min.x = box1_min1;
-                    box1.min.y = box1_min2;
-                    box1.min.z = box1_main_min;
-                    box1.max.x = box1_max1;
-                    box1.max.y = box1_max2;
-                    box1.max.z = box1_main_max;
-                    box2.min.x = box2_min1;
-                    box2.min.y = box2_min2;
-                    box2.min.z = box2_main_min;
-                    box2.max.x = box2_max1;
-                    box2.max.y = box2_max2;
-                    box2.max.z = box2_main_max;
-                    break;
+                    case 0:
+                        // x
+                        box1.min.x = box1_main_min;
+                        box1.min.y = box1_min1;
+                        box1.min.z = box1_min2;
+                        box1.max.x = box1_main_max;
+                        box1.max.y = box1_max1;
+                        box1.max.z = box1_max2;
+                        box2.min.x = box2_main_min;
+                        box2.min.y = box2_min1;
+                        box2.min.z = box2_min2;
+                        box2.max.x = box2_main_max;
+                        box2.max.y = box2_max1;
+                        box2.max.z = box2_max2;
+                        break;
+                    case 1:
+                        // y
+                        box1.min.x = box1_min2;
+                        box1.min.y = box1_main_min;
+                        box1.min.z = box1_min1;
+                        box1.max.x = box1_max2;
+                        box1.max.y = box1_main_max;
+                        box1.max.z = box1_max1;
+                        box2.min.x = box2_min2;
+                        box2.min.y = box2_main_min;
+                        box2.min.z = box2_min1;
+                        box2.max.x = box2_max2;
+                        box2.max.y = box2_main_max;
+                        box2.max.z = box2_max1;
+                        break;
+                    case 2:
+                        // z
+                        box1.min.x = box1_min1;
+                        box1.min.y = box1_min2;
+                        box1.min.z = box1_main_min;
+                        box1.max.x = box1_max1;
+                        box1.max.y = box1_max2;
+                        box1.max.z = box1_main_max;
+                        box2.min.x = box2_min1;
+                        box2.min.y = box2_min2;
+                        box2.min.z = box2_main_min;
+                        box2.max.x = box2_max1;
+                        box2.max.y = box2_max2;
+                        box2.max.z = box2_main_max;
+                        break;
                 }
                 const float combined_surface_area = (GetBoxArea(box1) * (i + 1)) + (GetBoxArea(box2) * (prims.size() - (i + 1)));
                 if (combined_surface_area < sah) {
@@ -271,7 +304,7 @@ int CollisionSystem::BuildNode(std::vector<PrimitiveInfo>& prims, std::vector<Bi
                     optimal_box2 = box2;
                     sorted_prims = prims; // VECTOR COPY!
                     sorted_prims_split_index = i;
-                    //std::cout << "picking new boxes, axis: " << axis << " i: " << i << " sah: " << combined_surface_area << "\n";
+                    // std::cout << "picking new boxes, axis: " << axis << " i: " << i << " sah: " << combined_surface_area << "\n";
                 }
             }
         }
@@ -290,7 +323,6 @@ int CollisionSystem::BuildNode(std::vector<PrimitiveInfo>& prims, std::vector<Bi
         node.index2 = index2;
         node.type1 = BiTreeNode::Type::BoundingVolume;
         node.type2 = BiTreeNode::Type::BoundingVolume;
-
     }
     else {
         if (prims.size() == 2) {
@@ -317,142 +349,161 @@ int CollisionSystem::BuildNode(std::vector<PrimitiveInfo>& prims, std::vector<Bi
 }
 
 // returns true on ray hit
-bool CollisionSystem::RaycastTreeNode(const Ray& ray, const BiTreeNode& node, glm::vec3& location, float& t, Entity& object_index)
+CollisionSystem::RaycastTreeNodeResult CollisionSystem::RaycastTreeNode(const Ray& ray, const BiTreeNode& node)
 {
 
     using Type = BiTreeNode::Type;
 
     constexpr float T = 1000.0f;
 
+    RaycastTreeNodeResult res{};
+
     bool is_hit1 = false;
     bool is_hit2 = false;
     float t1 = std::numeric_limits<float>::infinity();
     float t2 = std::numeric_limits<float>::infinity();
 
+    AABBSide side1;
+    AABBSide side2;
+
     if (node.type1 != Type::Empty) {
-        auto [is_hit, t] = RayBoxIntersection(ray, node.box1, T);
+        auto [is_hit, t] = RayBoxIntersection(ray, node.box1, T, side1);
         is_hit1 = is_hit;
         t1 = t;
     }
     if (node.type2 != Type::Empty) {
-        auto [is_hit, t] = RayBoxIntersection(ray, node.box2, T);
+        auto [is_hit, t] = RayBoxIntersection(ray, node.box2, T, side2);
         is_hit2 = is_hit;
         t2 = t;
     }
 
     // possible outcomes:
 
-    // neither hit
-    if (!is_hit1 && !is_hit2) return false;
-
-    // when both hit
-    if (is_hit1 && is_hit2) {
+    if (!is_hit1 && !is_hit2) {
+        res.hit = false;
+        return res;
+    }
+    else if (is_hit1 && is_hit2) {
         // if 1 is a BV and 2 a gameobject, see if gameobject is in front
         if (node.type1 == Type::BoundingVolume && node.type2 == Type::Entity) {
             if (t2 < t1) {
-                location = (ray.direction * t2) + ray.origin;
-                t = t2;
-                object_index = node.index2;
-                return true;
+                res.location = (ray.direction * t2) + ray.origin;
+                res.t = t2;
+                res.object_index = node.index2;
+                res.side = side2;
+                res.hit = true;
+                return res;
             }
             else
-                return RaycastTreeNode(ray, bvh_.at(node.index1), location, t, object_index);
+                return RaycastTreeNode(ray, bvh_.at(node.index1));
         }
 
         // if 1 is a gameobject and 2 a BV, see if gameobject is in front
         if (node.type1 == Type::Entity && node.type2 == Type::BoundingVolume) {
             if (t1 < t2) {
-                location = (ray.direction * t1) + ray.origin;
-                t = t1;
-                object_index = node.index1;
-                return true;
+                res.location = (ray.direction * t1) + ray.origin;
+                res.t = t1;
+                res.object_index = node.index1;
+                res.side = side1;
+                res.hit = true;
+                return res;
             }
             else
-                return RaycastTreeNode(ray, bvh_.at(node.index2), location, t, object_index);
+                return RaycastTreeNode(ray, bvh_.at(node.index2));
         }
 
         // if 1 is a BV and 2 is a BV
         if (node.type1 == Type::BoundingVolume && node.type2 == Type::BoundingVolume) {
-            float node1_t{};
-            glm::vec3 location1{};
-            Entity object_index1{};
-            bool node1_intersects = RaycastTreeNode(ray, bvh_.at(node.index1), location1, node1_t, object_index1);
-            float node2_t{};
-            glm::vec3 location2{};
-            Entity object_index2;
-            bool node2_intersects = RaycastTreeNode(ray, bvh_.at(node.index2), location2, node2_t, object_index2);
-            if (node1_intersects && node2_intersects) {
-                if (node1_t < node2_t) {
-                    location = location1;
-                    t = node1_t;
-                    object_index = object_index1;
-                    return true;
+            auto node1_intersection = RaycastTreeNode(ray, bvh_.at(node.index1));
+            auto node2_intersection = RaycastTreeNode(ray, bvh_.at(node.index2));
+            if (node1_intersection.hit && node2_intersection.hit) {
+                if (node1_intersection.t < node2_intersection.t) {
+                    res.location = node1_intersection.location;
+                    res.t = node1_intersection.t;
+                    res.object_index = node1_intersection.object_index;
+                    res.side = node1_intersection.side;
+                    res.hit = true;
+                    return res;
                 }
                 else {
-                    location = location2;
-                    t = node2_t;
-                    object_index = object_index1;
-                    return true;
+                    res.location = node2_intersection.location;
+                    res.t = node2_intersection.t;
+                    res.object_index = node2_intersection.object_index;
+                    res.side = node2_intersection.side;
+                    res.hit = true;
+                    return res;
                 }
             }
-            else if (node1_intersects) {
-                t = node1_t;
-                location = location1;
-                object_index = object_index1;
-                return true;
+            else if (node1_intersection.hit) {
+                res.location = node1_intersection.location;
+                res.t = node1_intersection.t;
+                res.object_index = node1_intersection.object_index;
+                res.side = node1_intersection.side;
+                res.hit = true;
+                return res;
             }
-            else if (node2_intersects) {
-                t = node2_t;
-                location = location2;
-                object_index = object_index2;
-                return true;
+            else if (node2_intersection.hit) {
+                res.location = node2_intersection.location;
+                res.t = node2_intersection.t;
+                res.object_index = node2_intersection.object_index;
+                res.side = node2_intersection.side;
+                res.hit = true;
+                return res;
             }
             else {
-                return false;
+                res.hit = false;
+                return res;
             }
         }
 
         // if 1 is a gameobject and 2 is a gameobject
         if (node.type1 == Type::Entity && node.type2 == Type::Entity) {
             if (t1 < t2) {
-                location = (ray.direction * t1) + ray.origin;
-                t = t1;
-                object_index = node.index1;
+                res.location = (ray.direction * t1) + ray.origin;
+                res.t = t1;
+                res.object_index = node.index1;
+                res.side = side1;
+                res.hit = true;
+                return res;
             }
             else {
-                location = (ray.direction * t2) + ray.origin;
-                t = t2;
-                object_index = node.index2;
+                res.location = (ray.direction * t2) + ray.origin;
+                res.t = t2;
+                res.object_index = node.index2;
+                res.side = side2;
+                res.hit = true;
+                return res;
             }
-            return true;
         }
     }
-
-    // only 1 hits
-    if (is_hit1) {
+    else if (is_hit1) {
         switch (node.type1) {
             case Type::BoundingVolume:
-                return RaycastTreeNode(ray, bvh_.at(node.index1), location, t, object_index);
+                return RaycastTreeNode(ray, bvh_.at(node.index1));
             case Type::Entity:
-                location = (ray.direction * t1) + ray.origin;
-                t = t1;
-                object_index = node.index1;
-                return true;
+                res.location = (ray.direction * t1) + ray.origin;
+                res.t = t1;
+                res.object_index = node.index1;
+                res.side = side1;
+                res.hit = true;
+                return res;
+        }
+    }
+    else if (is_hit2) {
+        switch (node.type2) {
+            case Type::BoundingVolume:
+                return RaycastTreeNode(ray, bvh_.at(node.index2));
+            case Type::Entity:
+                res.location = (ray.direction * t2) + ray.origin;
+                res.t = t2;
+                res.object_index = node.index2;
+                res.side = side2;
+                res.hit = true;
+                return res;
         }
     }
 
-    // only 2 hits
-    if (is_hit2) {
-        switch (node.type2) {
-            case Type::BoundingVolume:
-                return RaycastTreeNode(ray, bvh_.at(node.index2), location, t, object_index);
-            case Type::Entity:
-                location = (ray.direction * t2) + ray.origin;
-                t = t2;
-                object_index = node.index2;
-                return true;
-        }
-    }
+    throw std::runtime_error("RaycastTreeNode() hit end of function. This should not be possible");
 }
 
 } // namespace engine

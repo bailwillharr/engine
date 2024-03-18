@@ -29,8 +29,8 @@ float GGXDist(float alpha_2, float N_dot_H) {
 void main() {
 
 	const vec3 metallic_roughness = vec3(texture(materialSetMetallicRoughnessSampler, fragUV));
-	const float metallic = metallic_roughness.g;
-	const float roughness = metallic_roughness.b;
+	const float metallic = metallic_roughness.b;
+	const float roughness = metallic_roughness.g; // roughness of zero is completely black?
 	const float roughness_2 = roughness * roughness;
 
 	const vec3 light_colour = vec3(1.0, 1.0, 1.0) * 2.4;

@@ -18,10 +18,13 @@ struct Ray {
 
 struct Raycast {
     glm::vec3 location;
-    Entity hit_entity;
+    glm::vec3 normal;
+    Entity hit_entity; // broken
     float distance;
     bool hit;
 };
+
+enum class AABBSide { Left, Right, Bottom, Top, Front, Back };
 
 class CollisionSystem : public System {
    public:
@@ -59,7 +62,14 @@ class CollisionSystem : public System {
     size_t colliders_size_last_update_ = 0;
     size_t colliders_size_now_ = 0;
 
-    bool RaycastTreeNode(const Ray& ray, const BiTreeNode& node, glm::vec3& location, float& t, Entity& object_index);
+    struct RaycastTreeNodeResult {
+        glm::vec3 location;
+        Entity object_index;
+        AABBSide side;
+        float t;
+        bool hit; // if this is false, all other values are undefined
+    };
+    RaycastTreeNodeResult RaycastTreeNode(const Ray& ray, const BiTreeNode& node);
 
     static int BuildNode(std::vector<PrimitiveInfo>& prims, std::vector<BiTreeNode>& tree_nodes);
 };

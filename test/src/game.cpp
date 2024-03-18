@@ -127,18 +127,20 @@ void PlayGame(GameSettings settings)
         skybox_renderable->material->SetAlbedoTexture(app.GetResource<engine::Texture>("builtin.black"));
 
 		engine::Entity helmet = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/DamagedHelmet.glb"));
-		main_scene->GetPosition(helmet) += glm::vec3{20.0f, 10.0f, 5.0f};
+		main_scene->GetPosition(helmet) += glm::vec3{5.0f, 5.0f, 1.0f};
+        main_scene->GetScale(helmet) *= 3.0f;
 
 		engine::Entity toycar = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/ToyCar.glb"));
 		main_scene->GetScale(toycar) *= 100.0f;
-		auto car_spin = main_scene->AddComponent<engine::CustomComponent>(toycar);
-		car_spin->onInit = []() -> void {};
-		car_spin->onUpdate = [&](float dt) -> void {
-			static float yaw = 0.0f;
-			yaw += dt;
-			main_scene->GetRotation(toycar) = glm::angleAxis(yaw, glm::vec3{0.0f, 0.0f, 1.0f});
-			main_scene->GetRotation(toycar) *= glm::angleAxis(glm::half_pi<float>(), glm::vec3{1.0f, 0.0f, 0.0f});
-		};
+        main_scene->GetPosition(toycar).z += 1.8f;
+
+        engine::Entity stairs = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/stairs.glb"));
+        main_scene->GetPosition(stairs) += glm::vec3{-8.0f, -5.0f, 0.1f};
+        main_scene->GetRotation(stairs) = glm::angleAxis(glm::half_pi<float>(), glm::vec3{ 0.0f, 0.0f, 1.0f });
+        main_scene->GetRotation(stairs) *= glm::angleAxis(glm::half_pi<float>(), glm::vec3{ 1.0f, 0.0f, 0.0f });
+
+        engine::Entity axes = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/MY_AXES.glb"));
+        main_scene->GetPosition(axes) += glm::vec3{-40.0f, -40.0f, 1.0f};
     }
 
     start_scene->GetSystem<CameraControllerSystem>()->next_scene_ = main_scene;

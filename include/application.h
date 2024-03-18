@@ -66,6 +66,8 @@ class Application {
 
     std::string GetResourcePath(const std::string relative_path) const { return (resources_path_ / relative_path).string(); }
 
+    std::vector<Line> debug_lines{};
+
    private:
     std::unique_ptr<Window> window_;
     std::unique_ptr<InputManager> input_manager_;

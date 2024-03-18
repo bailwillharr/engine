@@ -121,24 +121,32 @@ void Renderer::Render(const RenderList* static_list, const RenderList* dynamic_l
         }
     }
 
+    struct DebugPush {
+        glm::vec4 pos1;
+        glm::vec4 pos2;
+        glm::vec3 color;
+    };
+
     // draw debug shit here
     device_->CmdBindPipeline(draw_buffer, debug_rendering_things_.pipeline);
-    glm::vec4 debug_positions[2] = {};
+    DebugPush push{};
     for (const Line& l : debug_lines) {
-        debug_positions[0] = global_uniform.uniform_buffer_data.data * frame_uniform.uniform_buffer_data.data * glm::vec4(l.pos1, 1.0f);
-        debug_positions[1] = global_uniform.uniform_buffer_data.data * frame_uniform.uniform_buffer_data.data * glm::vec4(l.pos2, 1.0f);
-        device_->CmdPushConstants(draw_buffer, debug_rendering_things_.pipeline, 0, sizeof(glm::vec4) * 2, debug_positions);
+        push.pos1 = global_uniform.uniform_buffer_data.data * frame_uniform.uniform_buffer_data.data * glm::vec4(l.pos1, 1.0f);
+        push.pos2 = global_uniform.uniform_buffer_data.data * frame_uniform.uniform_buffer_data.data * glm::vec4(l.pos2, 1.0f);
+        push.color = l.color;
+        device_->CmdPushConstants(draw_buffer, debug_rendering_things_.pipeline, 0, sizeof(DebugPush), &push);
         device_->CmdDraw(draw_buffer, 2, 1, 0, 0);
     }
 
     // also make a lil crosshair
-    debug_positions[0] = glm::vec4(-0.05f, 0.0f, 0.0f, 1.0f);
-    debug_positions[1] = glm::vec4(0.05f, 0.0f, 0.0f, 1.0f);
-    device_->CmdPushConstants(draw_buffer, debug_rendering_things_.pipeline, 0, sizeof(glm::vec4) * 2, debug_positions);
+    push.color = glm::vec3{ 1.0f, 1.0f, 1.0f };
+    push.pos1 = glm::vec4(-0.05f, 0.0f, 0.0f, 1.0f);
+    push.pos2 = glm::vec4(0.05f, 0.0f, 0.0f, 1.0f);
+    device_->CmdPushConstants(draw_buffer, debug_rendering_things_.pipeline, 0, sizeof(DebugPush), &push);
     device_->CmdDraw(draw_buffer, 2, 1, 0, 0);
-    debug_positions[0] = glm::vec4(0.0f, -0.05f, 0.0f, 1.0f);
-    debug_positions[1] = glm::vec4(0.0f, 0.05f, 0.0f, 1.0f);
-    device_->CmdPushConstants(draw_buffer, debug_rendering_things_.pipeline, 0, sizeof(glm::vec4) * 2, debug_positions);
+    push.pos1 = glm::vec4(0.0f, -0.05f, 0.0f, 1.0f);
+    push.pos2 = glm::vec4(0.0f, 0.05f, 0.0f, 1.0f);
+    device_->CmdPushConstants(draw_buffer, debug_rendering_things_.pipeline, 0, sizeof(DebugPush), &push);
     device_->CmdDraw(draw_buffer, 2, 1, 0, 0);
 
     device_->CmdRenderImguiDrawData(draw_buffer, ImGui::GetDrawData());

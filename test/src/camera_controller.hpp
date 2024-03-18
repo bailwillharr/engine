@@ -7,11 +7,21 @@
 #include "ecs.h"
 
 struct CameraControllerComponent {
-  static constexpr float kWalkSpeed = 4.0f;
+  static constexpr float kSpeedForwardBack = 4.0f;
+  static constexpr float kSpeedStrafe = 4.0f;
   static constexpr float kCameraSensitivity = 0.007f;
+  static constexpr float kMaxDistanceFromOrigin = 10000.0f;
+  static constexpr float kGravAccel = -9.81f;
+  static constexpr float kPlayerHeight = 71.0f * 25.4f / 1000.0f;
+  static constexpr float kMaxStairHeight = 0.2f;
+  static constexpr float kPlayerCollisionRadius = 0.2f;
+  static constexpr float kMaxPitch = glm::pi<float>();
+  static constexpr float kMinPitch = 0.0f;
   float yaw = 0.0f;
   float pitch = glm::half_pi<float>();
   glm::vec3 vel{ 0.0f, 0.0f, 0.0f };
+  bool grounded = false;
+  bool was_grounded = false;
 };
 
 class CameraControllerSystem
