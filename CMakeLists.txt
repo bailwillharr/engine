@@ -8,7 +8,7 @@ option(ENGINE_BUILD_TEST "Compile the test program" ON)
 SET(CMAKE_CONFIGURATION_TYPES "Debug;Release;RelWithDebInfo")
 
 project(engine LANGUAGES CXX C
-	VERSION "0.1.0"
+	VERSION "0.2.0"
 )
 
 # from command: find . -regex "^\.\/.*" | sort
