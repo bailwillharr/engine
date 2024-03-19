@@ -114,11 +114,16 @@ void PlayGame(GameSettings settings)
 
         engine::Entity axes = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/MY_AXES.glb"));
         main_scene->GetPosition(axes) += glm::vec3{-40.0f, -40.0f, 1.0f};
+
+        engine::Entity bottle = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/bottle.glb"));
+        main_scene->GetPosition(bottle).y -= 10.0f;
+        main_scene->GetPosition(bottle).z += 2.5f;
+        main_scene->GetScale(bottle) *= 25.0f;
     }
 
     start_scene->GetSystem<CameraControllerSystem>()->next_scene_ = main_scene;
     main_scene->GetSystem<CameraControllerSystem>()->next_scene_ = start_scene;
 
-    app.scene_manager()->SetActiveScene(start_scene);
+    app.scene_manager()->SetActiveScene(main_scene);
     app.GameLoop();
 }
