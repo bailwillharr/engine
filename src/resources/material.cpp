@@ -23,16 +23,10 @@ void Material::SetNormalTexture(std::shared_ptr<Texture> texture)
     texture_normal_ = texture;
 }
 
-void Material::SetOcclusionTexture(std::shared_ptr<Texture> texture)
+void Material::SetOcclusionRoughnessMetallicTexture(std::shared_ptr<Texture> texture)
 {
     renderer_->GetDevice()->UpdateDescriptorCombinedImageSampler(material_set_, 2, texture->GetImage(), texture->GetSampler());
-    texture_occlusion_ = texture;
-}
-
-void Material::SetMetallicRoughnessTexture(std::shared_ptr<Texture> texture)
-{
-    renderer_->GetDevice()->UpdateDescriptorCombinedImageSampler(material_set_, 3, texture->GetImage(), texture->GetSampler());
-    texture_metallic_roughness_ = texture;
+    texture_occlusion_roughness_metallic_ = texture;
 }
 
 } // namespace engine

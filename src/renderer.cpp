@@ -1,6 +1,9 @@
 #include "renderer.h"
 
+#include <array>
+
 #include "application_component.h"
+#include "util/files.h"
 
 #include <glm/mat4x4.hpp>
 #include <glm/trigonometric.hpp>
@@ -20,12 +23,16 @@ Renderer::Renderer(Application& app, gfx::GraphicsSettings settings) : Applicati
         auto& binding0 = globalSetBindings.emplace_back();
         binding0.descriptor_type = gfx::DescriptorType::kUniformBuffer;
         binding0.stage_flags = gfx::ShaderStageFlags::kVertex;
+        auto& binding1 = globalSetBindings.emplace_back();
+        binding1.descriptor_type = gfx::DescriptorType::kCombinedImageSampler;
+        binding1.stage_flags = gfx::ShaderStageFlags::kFragment;
     }
     global_uniform.layout = device_->CreateDescriptorSetLayout(globalSetBindings);
     global_uniform.set = device_->AllocateDescriptorSet(global_uniform.layout);
     global_uniform.uniform_buffer_data.data = glm::mat4{1.0f};
     global_uniform.uniform_buffer = device_->CreateUniformBuffer(sizeof(global_uniform.uniform_buffer_data), &global_uniform.uniform_buffer_data);
     device_->UpdateDescriptorUniformBuffer(global_uniform.set, 0, global_uniform.uniform_buffer, 0, sizeof(global_uniform.uniform_buffer_data));
+    // binding1 is updated towards the end of the constructor once the skybox texture is loaded
 
     std::vector<gfx::DescriptorSetLayoutBinding> frameSetBindings;
     {
@@ -55,21 +62,134 @@ Renderer::Renderer(Application& app, gfx::GraphicsSettings settings) : Applicati
     debug_vertex_format.stride = 0;
     // debug_vertex_format.vertex_attrib_descriptions = empty
 
-    gfx::PipelineInfo debug_pipeline_info{};
-    debug_pipeline_info.vert_shader_path = GetResourcePath("engine/shaders/debug.vert");
-    debug_pipeline_info.frag_shader_path = GetResourcePath("engine/shaders/debug.frag");
-    debug_pipeline_info.vertex_format = debug_vertex_format;
-    debug_pipeline_info.alpha_blending = false;
-    debug_pipeline_info.backface_culling = false; // probably ignored for line rendering
-    debug_pipeline_info.write_z = false;          // lines don't need the depth buffer
-    // debug_pipeline_info.descriptor_set_layouts = empty;
-    debug_pipeline_info.line_primitives = true;
+    {
+        gfx::PipelineInfo debug_pipeline_info{};
+        debug_pipeline_info.vert_shader_path = GetResourcePath("engine/shaders/debug.vert");
+        debug_pipeline_info.frag_shader_path = GetResourcePath("engine/shaders/debug.frag");
+        debug_pipeline_info.vertex_format = debug_vertex_format;
+        debug_pipeline_info.alpha_blending = false;
+        debug_pipeline_info.backface_culling = false; // probably ignored for line rendering
+        debug_pipeline_info.write_z = false;          // lines don't need the depth buffer
+        // debug_pipeline_info.descriptor_set_layouts = empty;
+        debug_pipeline_info.line_primitives = true;
 
-    debug_rendering_things_.pipeline = device_->CreatePipeline(debug_pipeline_info);
+        debug_rendering_things_.pipeline = device_->CreatePipeline(debug_pipeline_info);
+    }
+
+    // create the skybox cubemap
+    {
+        constexpr uint32_t cubemap_w = 2048;
+        constexpr uint32_t cubemap_h = 2048;
+        int w{}, h{};
+        std::array<std::unique_ptr<std::vector<uint8_t>>, 6> face_unq_ptrs{};
+        std::array<const void*, 6> face_unsafe_ptrs{};
+        
+        for (int face = 0; face < 6; ++face) {
+            std::string path = std::string("engine/textures/skybox") + std::to_string(face) + std::string(".jpg");
+            face_unq_ptrs[face] = util::ReadImageFile(GetResourcePath(path), w, h);
+            if (cubemap_w != w || cubemap_h != h) throw std::runtime_error("Skybox textures must be 512x512!");
+            face_unsafe_ptrs[face] = face_unq_ptrs[face]->data();
+        }
+        
+        
+        skybox_cubemap = device_->CreateImageCubemap(cubemap_w, cubemap_h, gfx::ImageFormat::kSRGB, face_unsafe_ptrs);
+        gfx::SamplerInfo sampler_info{};
+        sampler_info.magnify = gfx::Filter::kLinear;
+        sampler_info.minify = gfx::Filter::kLinear;
+        sampler_info.mipmap = gfx::Filter::kLinear;
+        sampler_info.wrap_u = gfx::WrapMode::kClampToEdge;
+        sampler_info.wrap_v = gfx::WrapMode::kClampToEdge;
+        sampler_info.wrap_w = gfx::WrapMode::kClampToEdge;
+        sampler_info.anisotropic_filtering = true;
+        skybox_sampler = device_->CreateSampler(sampler_info);
+    }
+
+    // create skybox shader
+    {
+        gfx::VertexFormat vertex_format{};
+        vertex_format.attribute_descriptions.emplace_back(0, gfx::VertexAttribFormat::kFloat3, 0);
+        vertex_format.stride = 3 * sizeof(float);
+
+        gfx::PipelineInfo pipeline_info{};
+        pipeline_info.vert_shader_path = GetResourcePath("engine/shaders/skybox.vert");
+        pipeline_info.frag_shader_path = GetResourcePath("engine/shaders/skybox.frag");
+        pipeline_info.vertex_format = vertex_format;
+        pipeline_info.alpha_blending = false;
+        pipeline_info.backface_culling = true;
+        pipeline_info.write_z = false;
+        pipeline_info.line_primitives = false;
+        pipeline_info.descriptor_set_layouts.push_back(GetGlobalSetLayout());
+        pipeline_info.descriptor_set_layouts.push_back(GetFrameSetLayout());
+
+        skybox_pipeline = device_->CreatePipeline(pipeline_info);
+
+        device_->UpdateDescriptorCombinedImageSampler(global_uniform.set, 1, skybox_cubemap, skybox_sampler);
+    }
+
+    // create skybox vertex buffer
+    {
+        std::vector<glm::vec3> v{};
+        v.push_back({0.0f, 0.0f, 2.0f});
+        v.push_back({0.0f, 0.0f, 0.0f});
+        v.push_back({2.0f, 0.0f, 0.0f});
+        v.push_back({2.0f, 0.0f, 0.0f});
+        v.push_back({2.0f, 0.0f, 2.0f});
+        v.push_back({0.0f, 0.0f, 2.0f});
+        // back
+        v.push_back({2.0f, 2.0f, 2.0f });
+        v.push_back({ 2.0f, 2.0f, 0.0f});
+        v.push_back({0.0f, 2.0f, 0.0f});
+        v.push_back({0.0f, 2.0f, 0.0f});
+        v.push_back({0.0f, 2.0f, 2.0f });
+        v.push_back({ 2.0f, 2.0f, 2.0f });
+        // left
+        v.push_back({0.0f, 2.0f, 2.0f });
+        v.push_back({0.0f, 2.0f, 0.0f});
+        v.push_back({0.0f, 0.0f, 0.0f});
+        v.push_back({0.0f, 0.0f, 0.0f});
+        v.push_back({0.0f, 0.0f, 2.0f });
+        v.push_back({0.0f, 2.0f, 2.0f });
+        // right
+        v.push_back({ 2.0f, 0.0f, 2.0f });
+        v.push_back({ 2.0f, 0.0f, 0.0f});
+        v.push_back({ 2.0f, 2.0f, 0.0f});
+        v.push_back({ 2.0f, 2.0f, 0.0f});
+        v.push_back({ 2.0f, 2.0f, 2.0f });
+        v.push_back({ 2.0f, 0.0f, 2.0f });
+        // top
+        v.push_back({0.0f, 2.0f, 2.0f });
+        v.push_back({0.0f, 0.0f, 2.0f });
+        v.push_back({ 2.0f, 0.0f, 2.0f });
+        v.push_back({ 2.0f, 0.0f, 2.0f });
+        v.push_back({ 2.0f, 2.0f, 2.0f });
+        v.push_back({0.0f, 2.0f, 2.0f });
+        // bottom
+        v.push_back({ 2.0f, 2.0f, 0.0f});
+        v.push_back({ 2.0f, 0.0f, 0.0f});
+        v.push_back({0.0f, 0.0f, 0.0f});
+        v.push_back({0.0f, 0.0f, 0.0f});
+        v.push_back({0.0f, 2.0f, 0.0f});
+        v.push_back({ 2.0f, 2.0f, 0.0f});
+        for (glm::vec3& pos : v) {
+            pos.x -= 1.0f;
+            pos.y -= 1.0f;
+            pos.z -= 1.0f;
+        }
+        for (size_t i = 0; i < v.size(); i += 3) {
+            std::swap(v[i], v[i + 2]);
+        }
+
+        skybox_buffer = device_->CreateBuffer(gfx::BufferType::kVertex, v.size() * sizeof(glm::vec3), v.data());
+    }
 };
 
 Renderer::~Renderer()
 {
+    device_->DestroyBuffer(skybox_buffer);
+    device_->DestroyPipeline(skybox_pipeline);
+    device_->DestroySampler(skybox_sampler);
+    device_->DestroyImage(skybox_cubemap);
+
     device_->DestroyPipeline(debug_rendering_things_.pipeline);
 
     for (const auto& [info, sampler] : samplers) {
@@ -127,6 +247,15 @@ void Renderer::Render(const RenderList* static_list, const RenderList* dynamic_l
         glm::vec3 color;
     };
 
+    // draw skybox
+    {
+        device_->CmdBindPipeline(draw_buffer, skybox_pipeline);
+        device_->CmdBindDescriptorSet(draw_buffer, skybox_pipeline, global_uniform.set, 0);
+        device_->CmdBindDescriptorSet(draw_buffer, skybox_pipeline, frame_uniform.set, 1);
+        device_->CmdBindVertexBuffer(draw_buffer, 0, skybox_buffer);
+        device_->CmdDraw(draw_buffer, 36, 1, 0, 0);
+    }
+
     // draw debug shit here
     device_->CmdBindPipeline(draw_buffer, debug_rendering_things_.pipeline);
     DebugPush push{};
@@ -139,7 +268,7 @@ void Renderer::Render(const RenderList* static_list, const RenderList* dynamic_l
     }
 
     // also make a lil crosshair
-    push.color = glm::vec3{ 1.0f, 1.0f, 1.0f };
+    push.color = glm::vec3{1.0f, 1.0f, 1.0f};
     push.pos1 = glm::vec4(-0.05f, 0.0f, 0.0f, 1.0f);
     push.pos2 = glm::vec4(0.05f, 0.0f, 0.0f, 1.0f);
     device_->CmdPushConstants(draw_buffer, debug_rendering_things_.pipeline, 0, sizeof(DebugPush), &push);

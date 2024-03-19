@@ -81,32 +81,15 @@ void PlayGame(GameSettings settings)
          * matrix */
 
         auto camera_transform = main_scene->GetComponent<engine::TransformComponent>(camera);
-        camera_transform->position = {-5.0f, -10.0f, 4.0f};
+        camera_transform->position = {0.0f, 0.0f, 100.0f};
 
         main_scene->RegisterComponent<CameraControllerComponent>();
         main_scene->RegisterSystem<CameraControllerSystem>();
         main_scene->AddComponent<CameraControllerComponent>(camera);
 
         /* floor */
-        engine::Entity floor = main_scene->CreateEntity("floor", 0, glm::vec3{-50.0f, -50.0f, 0.0f});
-        auto floor_renderable = main_scene->AddComponent<engine::MeshRenderableComponent>(floor);
-        floor_renderable->mesh = GenCuboidMesh(app.renderer()->GetDevice(), 100.0f, 100.0f, 0.1f, 50.0f);
-        floor_renderable->material = std::make_unique<engine::Material>(app.renderer(), app.GetResource<engine::Shader>("builtin.fancy"));
-        std::shared_ptr<engine::Texture> floor_albedo =
-            engine::LoadTextureFromFile(app.GetResourcePath("textures/bricks-mortar-albedo.png"), engine::gfx::SamplerInfo{}, app.renderer());
-        std::shared_ptr<engine::Texture> floor_normal =
-            engine::LoadTextureFromFile(app.GetResourcePath("textures/bricks-mortar-normal.png"), engine::gfx::SamplerInfo{}, app.renderer(), false);
-        std::shared_ptr<engine::Texture> floor_mr =
-            engine::LoadTextureFromFile(app.GetResourcePath("textures/bricks-mortar-roughness.png"), engine::gfx::SamplerInfo{}, app.renderer(), false);
-        floor_renderable->material->SetAlbedoTexture(floor_albedo);
-        floor_renderable->material->SetNormalTexture(floor_normal);
-        floor_renderable->material->SetMetallicRoughnessTexture(floor_mr);
-        floor_renderable->material->SetOcclusionTexture(app.GetResource<engine::Texture>("builtin.white"));
-        floor_renderable->visible = true ;
-        auto floor_col = main_scene->AddComponent<engine::ColliderComponent>(floor);
-        floor_col->aabb.min = glm::vec3{0.0f, 0.0f, 0.0f};
-        floor_col->aabb.max = glm::vec3{100.0f, 100.0f, 0.1f };
-
+        engine::Entity floor = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/floor.glb"));
+        main_scene->GetComponent<engine::MeshRenderableComponent>(main_scene->GetEntity("Cube", floor))->visible = false;
 
         engine::Entity monke = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/monke.glb"));
         main_scene->GetComponent<engine::TransformComponent>(monke)->position.y += 10.0f;
@@ -116,23 +99,13 @@ void PlayGame(GameSettings settings)
         //main_scene->GetComponent<engine::TransformComponent>(bottle)->position.x += 25.0f;
         //main_scene->GetComponent<engine::TransformComponent>(bottle)->position.z += 5.0f;
 
-        /* skybox */
-        engine::Entity skybox = main_scene->CreateEntity("skybox");
-        auto skybox_transform = main_scene->GetComponent<engine::TransformComponent>(skybox);
-        skybox_transform->is_static = true;
-        skybox_transform->position = { -5.0f, -5.0f, -5.0f };
-        auto skybox_renderable = main_scene->AddComponent<engine::MeshRenderableComponent>(skybox);
-        skybox_renderable->mesh = GenCuboidMesh(app.renderer()->GetDevice(), 10.0f, 10.0f, 10.0f, 1.0f, true);
-        skybox_renderable->material = std::make_unique<engine::Material>(app.renderer(), app.GetResource<engine::Shader>("builtin.skybox"));
-        skybox_renderable->material->SetAlbedoTexture(app.GetResource<engine::Texture>("builtin.black"));
-
 		engine::Entity helmet = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/DamagedHelmet.glb"));
 		main_scene->GetPosition(helmet) += glm::vec3{5.0f, 5.0f, 1.0f};
         main_scene->GetScale(helmet) *= 3.0f;
 
 		engine::Entity toycar = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/ToyCar.glb"));
-		main_scene->GetScale(toycar) *= 100.0f;
-        main_scene->GetPosition(toycar).z += 1.8f;
+		main_scene->GetScale(toycar) *= 150.0f;
+        main_scene->GetPosition(toycar).z -= 0.07f;
 
         engine::Entity stairs = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/stairs.glb"));
         main_scene->GetPosition(stairs) += glm::vec3{-8.0f, -5.0f, 0.1f};

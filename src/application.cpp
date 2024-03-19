@@ -120,21 +120,6 @@ Application::Application(const char* appName, const char* appVersion, gfx::Graph
             std::make_unique<Shader>(renderer(), GetResourcePath("engine/shaders/fancy.vert"), GetResourcePath("engine/shaders/fancy.frag"), shaderSettings);
         GetResourceManager<Shader>()->AddPersistent("builtin.fancy", std::move(fancyShader));
     }
-    {
-        Shader::VertexParams vertParams{};
-        vertParams.has_normal = true;
-        vertParams.has_tangent = true;
-        vertParams.has_uv0 = true;
-        Shader::ShaderSettings shaderSettings{};
-        shaderSettings.vertexParams = vertParams;
-        shaderSettings.alpha_blending = false;
-        shaderSettings.cull_backface = true;
-        shaderSettings.write_z = false;
-        shaderSettings.render_order = 1;
-        auto skyboxShader =
-            std::make_unique<Shader>(renderer(), GetResourcePath("engine/shaders/skybox.vert"), GetResourcePath("engine/shaders/skybox.frag"), shaderSettings);
-        GetResourceManager<Shader>()->AddPersistent("builtin.skybox", std::move(skyboxShader));
-    }
 
     /* default textures */
     {
@@ -208,7 +193,8 @@ void Application::GameLoop()
 
     struct DebugMenuState {
         bool menu_active = false;
-        bool show_aabbs = false;
+        bool show_entity_boxes = false;
+        bool show_bounding_volumes = false;
         bool show_info_window = false;
     } debug_menu_state;
 
@@ -246,7 +232,8 @@ void Application::GameLoop()
             if (ImGui::Begin("debugMenu", 0)) {
                 ImGui::Text("Test!");
                 ImGui::Text("FPS: %.3f", std::roundf(avg_fps));
-                ImGui::Checkbox("Show AABBs?", &debug_menu_state.show_aabbs);
+                ImGui::Checkbox("Show entity hitboxes?", &debug_menu_state.show_entity_boxes);
+                ImGui::Checkbox("Show bounding volumes?", &debug_menu_state.show_bounding_volumes);
             }
             ImGui::End();
         }
@@ -288,7 +275,7 @@ void Application::GameLoop()
         const RenderList* dynamic_list = nullptr;
         glm::mat4 camera_transform{1.0f};
         if (scene) {
-            if (debug_menu_state.show_aabbs) {
+            if (debug_menu_state.show_entity_boxes) {
                 if (CollisionSystem* colsys = scene->GetSystem<CollisionSystem>()) {
                     for (const auto& node : colsys->bvh_) {
                         if (node.type1 == CollisionSystem::BiTreeNode::Type::Entity) {
@@ -322,6 +309,72 @@ void Application::GameLoop()
                             debug_lines.push_back(line12);
                         }
                         if (node.type2 == CollisionSystem::BiTreeNode::Type::Entity) {
+                            const glm::vec3 col =
+                                (node.type2 == CollisionSystem::BiTreeNode::Type::BoundingVolume) ? glm::vec3{ 1.0f, 0.0f, 0.0f } : glm::vec3{ 0.0f, 1.0f, 0.0f };
+                            Line line1{ glm::vec3{node.box2.min.x, node.box2.min.y, node.box2.min.z}, glm::vec3{node.box2.max.x, node.box2.min.y, node.box2.min.z}, col };
+                            debug_lines.push_back(line1);
+                            Line line2{ glm::vec3{node.box2.min.x, node.box2.min.y, node.box2.min.z}, glm::vec3{node.box2.min.x, node.box2.max.y, node.box2.min.z}, col };
+                            debug_lines.push_back(line2);
+                            Line line3{ glm::vec3{node.box2.max.x, node.box2.max.y, node.box2.min.z}, glm::vec3{node.box2.max.x, node.box2.min.y, node.box2.min.z}, col };
+                            debug_lines.push_back(line3);
+                            Line line4{ glm::vec3{node.box2.max.x, node.box2.max.y, node.box2.min.z}, glm::vec3{node.box2.min.x, node.box2.max.y, node.box2.min.z}, col };
+                            debug_lines.push_back(line4);
+
+                            Line line5{ glm::vec3{node.box2.min.x, node.box2.min.y, node.box2.min.z}, glm::vec3{node.box2.min.x, node.box2.min.y, node.box2.max.z}, col };
+                            debug_lines.push_back(line5);
+                            Line line6{ glm::vec3{node.box2.min.x, node.box2.max.y, node.box2.min.z}, glm::vec3{node.box2.min.x, node.box2.max.y, node.box2.max.z}, col };
+                            debug_lines.push_back(line6);
+                            Line line7{ glm::vec3{node.box2.max.x, node.box2.min.y, node.box2.min.z}, glm::vec3{node.box2.max.x, node.box2.min.y, node.box2.max.z}, col };
+                            debug_lines.push_back(line7);
+                            Line line8{ glm::vec3{node.box2.max.x, node.box2.max.y, node.box2.min.z}, glm::vec3{node.box2.max.x, node.box2.max.y, node.box2.max.z}, col };
+                            debug_lines.push_back(line8);
+
+                            Line line9{ glm::vec3{node.box2.min.x, node.box2.min.y, node.box2.max.z}, glm::vec3{node.box2.max.x, node.box2.min.y, node.box2.max.z}, col };
+                            debug_lines.push_back(line9);
+                            Line line10{ glm::vec3{node.box2.min.x, node.box2.min.y, node.box2.max.z}, glm::vec3{node.box2.min.x, node.box2.max.y, node.box2.max.z}, col };
+                            debug_lines.push_back(line10);
+                            Line line11{ glm::vec3{node.box2.max.x, node.box2.max.y, node.box2.max.z}, glm::vec3{node.box2.max.x, node.box2.min.y, node.box2.max.z}, col };
+                            debug_lines.push_back(line11);
+                            Line line12{ glm::vec3{node.box2.max.x, node.box2.max.y, node.box2.max.z}, glm::vec3{node.box2.min.x, node.box2.max.y, node.box2.max.z}, col };
+                            debug_lines.push_back(line12);
+                        }
+                    }
+                }
+            }
+            if (debug_menu_state.show_bounding_volumes) {
+                if (CollisionSystem* colsys = scene->GetSystem<CollisionSystem>()) {
+                    for (const auto& node : colsys->bvh_) {
+                        if (node.type1 == CollisionSystem::BiTreeNode::Type::BoundingVolume) {
+                            const glm::vec3 col =
+                                (node.type1 == CollisionSystem::BiTreeNode::Type::BoundingVolume) ? glm::vec3{ 1.0f, 0.0f, 0.0f } : glm::vec3{ 0.0f, 1.0f, 0.0f };
+                            Line line1{ glm::vec3{node.box1.min.x, node.box1.min.y, node.box1.min.z}, glm::vec3{node.box1.max.x, node.box1.min.y, node.box1.min.z}, col };
+                            debug_lines.push_back(line1);
+                            Line line2{ glm::vec3{node.box1.min.x, node.box1.min.y, node.box1.min.z}, glm::vec3{node.box1.min.x, node.box1.max.y, node.box1.min.z}, col };
+                            debug_lines.push_back(line2);
+                            Line line3{ glm::vec3{node.box1.max.x, node.box1.max.y, node.box1.min.z}, glm::vec3{node.box1.max.x, node.box1.min.y, node.box1.min.z}, col };
+                            debug_lines.push_back(line3);
+                            Line line4{ glm::vec3{node.box1.max.x, node.box1.max.y, node.box1.min.z}, glm::vec3{node.box1.min.x, node.box1.max.y, node.box1.min.z}, col };
+                            debug_lines.push_back(line4);
+
+                            Line line5{ glm::vec3{node.box1.min.x, node.box1.min.y, node.box1.min.z}, glm::vec3{node.box1.min.x, node.box1.min.y, node.box1.max.z}, col };
+                            debug_lines.push_back(line5);
+                            Line line6{ glm::vec3{node.box1.min.x, node.box1.max.y, node.box1.min.z}, glm::vec3{node.box1.min.x, node.box1.max.y, node.box1.max.z}, col };
+                            debug_lines.push_back(line6);
+                            Line line7{ glm::vec3{node.box1.max.x, node.box1.min.y, node.box1.min.z}, glm::vec3{node.box1.max.x, node.box1.min.y, node.box1.max.z}, col };
+                            debug_lines.push_back(line7);
+                            Line line8{ glm::vec3{node.box1.max.x, node.box1.max.y, node.box1.min.z}, glm::vec3{node.box1.max.x, node.box1.max.y, node.box1.max.z}, col };
+                            debug_lines.push_back(line8);
+
+                            Line line9{ glm::vec3{node.box1.min.x, node.box1.min.y, node.box1.max.z}, glm::vec3{node.box1.max.x, node.box1.min.y, node.box1.max.z}, col };
+                            debug_lines.push_back(line9);
+                            Line line10{ glm::vec3{node.box1.min.x, node.box1.min.y, node.box1.max.z}, glm::vec3{node.box1.min.x, node.box1.max.y, node.box1.max.z}, col };
+                            debug_lines.push_back(line10);
+                            Line line11{ glm::vec3{node.box1.max.x, node.box1.max.y, node.box1.max.z}, glm::vec3{node.box1.max.x, node.box1.min.y, node.box1.max.z}, col };
+                            debug_lines.push_back(line11);
+                            Line line12{ glm::vec3{node.box1.max.x, node.box1.max.y, node.box1.max.z}, glm::vec3{node.box1.min.x, node.box1.max.y, node.box1.max.z}, col };
+                            debug_lines.push_back(line12);
+                        }
+                        if (node.type2 == CollisionSystem::BiTreeNode::Type::BoundingVolume) {
                             const glm::vec3 col =
                                 (node.type2 == CollisionSystem::BiTreeNode::Type::BoundingVolume) ? glm::vec3{ 1.0f, 0.0f, 0.0f } : glm::vec3{ 0.0f, 1.0f, 0.0f };
                             Line line1{ glm::vec3{node.box2.min.x, node.box2.min.y, node.box2.min.z}, glm::vec3{node.box2.max.x, node.box2.min.y, node.box2.min.z}, col };

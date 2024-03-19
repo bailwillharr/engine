@@ -3,15 +3,13 @@
 vulkan/device.cpp: report what is missing when a device fails to be found.
 Only select physical device 0 to simplify code.
 
-Supported different event 'kinds' (postPhysics, preRender, postRender etc)
+Add support for multiple lights.
 
-TODO now: the collision system doesn't use the "isTrigger" bool properly.
+Add support for simple shadow mapping.
++ cascaded shadow mapping
 
-Add support for shadows and other complex lighting. Also add post-processing.
-
-Add AABB colliders, sphere colliders, and mesh colliders.
-
-Support animations and skinned meshes.
+Support animations.
++ skinned meshes / morph targets
 
 At some point, add game controller support. Make sure it works well with the
 InputManager class.
@@ -38,3 +36,11 @@ Place all instances of a particular component in contiguous memory: I.e., a
 scene holds many std::vectors, one for each type of component. These vectors are
 looped through every frame. This should optimise things by improving the memory
 layout of the program, significantly reducing cache misses.
+
+Implemented glTF file loader
+
+Added a PBR shader with albedo, normal, metallic, roughness, and AO textures
+
+Added the BVH AABB tree made in Summer to start a much better Collision system.
+
+The CameraControllerSystem now uses raycasting to enable FPS-style player movement.

@@ -19,8 +19,7 @@ class Material {
 
     void SetAlbedoTexture(std::shared_ptr<Texture> texture);
     void SetNormalTexture(std::shared_ptr<Texture> texture);
-    void SetOcclusionTexture(std::shared_ptr<Texture> texture);
-    void SetMetallicRoughnessTexture(std::shared_ptr<Texture> texture);
+    void SetOcclusionRoughnessMetallicTexture(std::shared_ptr<Texture> texture);
 
     const gfx::DescriptorSet* GetDescriptorSet() { return material_set_; }
     Shader* GetShader() { return shader_.get(); }
@@ -29,8 +28,7 @@ class Material {
     const std::shared_ptr<Shader> shader_;
     std::shared_ptr<Texture> texture_albedo_;
     std::shared_ptr<Texture> texture_normal_;
-    std::shared_ptr<Texture> texture_occlusion_;
-    std::shared_ptr<Texture> texture_metallic_roughness_;
+    std::shared_ptr<Texture> texture_occlusion_roughness_metallic_;
 
     const gfx::DescriptorSet* material_set_ = nullptr;
 

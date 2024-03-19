@@ -58,7 +58,7 @@ class Renderer : private ApplicationComponent {
 
     struct CameraSettings {
         float vertical_fov_radians = glm::radians(70.0f);
-        float clip_near = 0.5f;
+        float clip_near = 0.1f;
         float clip_far = 1000.0f;
     } camera_settings_;
 
@@ -100,6 +100,11 @@ class Renderer : private ApplicationComponent {
         const gfx::Buffer* vertex_buffer = nullptr;
         // shader will take 2 clip space xyzw coords as push constants to define the line
     } debug_rendering_things_{};
+
+    gfx::Image* skybox_cubemap = nullptr;
+    const gfx::Sampler* skybox_sampler = nullptr;
+    const gfx::Pipeline* skybox_pipeline = nullptr;
+    const gfx::Buffer* skybox_buffer = nullptr;
 
     void DrawRenderList(gfx::DrawBuffer* draw_buffer, const RenderList& render_list);
 };

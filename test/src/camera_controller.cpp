@@ -37,6 +37,10 @@ void CameraControllerSystem::OnUpdate(float ts)
     float dx = scene_->app()->input_manager()->GetAxis("movex") * CameraControllerComponent::kSpeedStrafe;
     float dy = scene_->app()->input_manager()->GetAxis("movey") * CameraControllerComponent::kSpeedForwardBack;
 
+    if (scene_->app()->input_manager()->GetButton("sprint")) {
+        dy *= CameraControllerComponent::kSprintMultiplier;
+    }
+
     // calculate new pitch and yaw
 
     float d_pitch = scene_->app()->input_manager()->GetAxis("looky") * -1.0f * CameraControllerComponent::kCameraSensitivity;
@@ -66,25 +70,41 @@ void CameraControllerSystem::OnUpdate(float ts)
 
     // check horizontal collisions first as otherwise the player may be teleported above a wall instead of colliding against it
     if (c->vel.x != 0.0f || c->vel.y != 0.0f) { // just in case, to avoid a ray with direction = (0,0,0)
-        engine::Ray horiz_ray{};
-        horiz_ray.origin = t->position;         // set origin to 'MaxStairHeight' units above player's feet
-        horiz_ray.origin.z += CameraControllerComponent::kMaxStairHeight - CameraControllerComponent::kPlayerHeight;
-        horiz_ray.direction.x = c->vel.x;
-        horiz_ray.direction.y = c->vel.y; // this is normalized by GetRayCast()
-        horiz_ray.direction.z = 0.0f;
-        const engine::Raycast horiz_raycast = scene_->GetSystem<engine::CollisionSystem>()->GetRaycast(horiz_ray);
-        if (horiz_raycast.hit) {
-            const glm::vec2 norm_xy = glm::normalize(glm::vec2{horiz_raycast.normal.x, horiz_raycast.normal.y}) * -1.0f; // make it point towards object
+
+        std::array<engine::Raycast, CameraControllerComponent::kNumHorizontalRays> raycasts;
+        engine::Raycast* chosen_cast = nullptr; // nullptr means no hit at all
+
+        float smallest_distance = std::numeric_limits<float>::infinity();
+        for (size_t i = 0; i < raycasts.size(); ++i) {
+
+            const float lerp_value = static_cast<float>(i) / (static_cast<float>(CameraControllerComponent::kNumHorizontalRays) - 1);
+
+            engine::Ray ray{};
+            ray.origin = t->position;
+            ray.origin.z -= (CameraControllerComponent::kPlayerHeight - CameraControllerComponent::kMaxStairHeight) * lerp_value;
+            ray.direction.x = c->vel.x;
+            ray.direction.y = c->vel.y; // this is normalized by GetRayCast()
+            ray.direction.z = 0.0f;
+            raycasts[i] = scene_->GetSystem<engine::CollisionSystem>()->GetRaycast(ray);
+
+            if (raycasts[i].hit && raycasts[i].distance < smallest_distance) {
+                smallest_distance = raycasts[i].distance;
+                chosen_cast = &raycasts[i];
+            }
+        }
+
+        if (chosen_cast != nullptr) {
+            const glm::vec2 norm_xy = glm::normalize(glm::vec2{chosen_cast->normal.x, chosen_cast->normal.y}) * -1.0f; // make it point towards object
             const glm::vec2 vel_xy = glm::vec2{ c->vel.x, c->vel.y };
             // find the extent of the player's velocity in the direction of the wall's normal vector
             const glm::vec2 partial_vel = norm_xy * glm::dot(norm_xy, vel_xy);
             const glm::vec2 partial_dX = partial_vel * dt;
-            if (glm::length(partial_dX) > horiz_raycast.distance - CameraControllerComponent::kPlayerCollisionRadius) {
+            if (glm::length(partial_dX) > chosen_cast->distance - CameraControllerComponent::kPlayerCollisionRadius) {
                 // player will collide with wall
                 // push player out of collision zone
-                const glm::vec2 push_vector = glm::normalize(vel_xy) * fmaxf(CameraControllerComponent::kPlayerCollisionRadius, horiz_raycast.distance);
-                t->position.x = horiz_raycast.location.x - push_vector.x;
-                t->position.y = horiz_raycast.location.y - push_vector.y;
+                const glm::vec2 push_vector = glm::normalize(vel_xy) * fmaxf(CameraControllerComponent::kPlayerCollisionRadius, chosen_cast->distance);
+                t->position.x = chosen_cast->location.x - push_vector.x;
+                t->position.y = chosen_cast->location.y - push_vector.y;
                 c->vel.x -= partial_vel.x;
                 c->vel.y -= partial_vel.y;
             }
@@ -103,7 +123,6 @@ void CameraControllerSystem::OnUpdate(float ts)
             const float mag_dz = fabsf(c->vel.z * dt);
             // check if the player will be less than 'height' units above the collided ground
             if (mag_dz > fall_raycast.distance - CameraControllerComponent::kMaxStairHeight) {
-                LOG_INFO("HIT");
                 // push player up to ground level and set as grounded
                 t->position.z = fall_raycast.location.z + CameraControllerComponent::kPlayerHeight;
                 c->vel.z = 0.0f;
@@ -119,18 +138,24 @@ void CameraControllerSystem::OnUpdate(float ts)
     }
     else if (c->vel.z > 0.0f) {
         c->grounded = false; // they are jumping
-    }
-
-    if (c->was_grounded != c->grounded) {
-        LOG_INFO("GROUNDED? {}", c->grounded);
-        c->was_grounded = c->grounded;
+        // check if intersection with ceiling
+        engine::Ray jump_ray{};
+        jump_ray.origin = t->position;
+        jump_ray.direction = { 0.0f, 0.0f, 1.0f };
+        const engine::Raycast jump_raycast = scene_->GetSystem<engine::CollisionSystem>()->GetRaycast(jump_ray);
+        if (jump_raycast.hit) {
+            // find how far the player will move (upwards) if velocity is applied without collision
+            const float mag_dz = fabsf(c->vel.z * dt);
+            // check if the player will be higher than the collided ground
+            if (mag_dz > jump_raycast.distance - CameraControllerComponent::kPlayerCollisionRadius) {
+                // push player below ceiling
+                t->position.z = jump_raycast.location.z - CameraControllerComponent::kPlayerCollisionRadius;
+                c->vel.z = 0.0f;
+            }
+        }
     }
 
     t->position += c->vel * dt;
-
-    if (glm::length(t->position) > CameraControllerComponent::kMaxDistanceFromOrigin) {
-        t->position = {0.0f, 0.0f, 100.0f};
-    }
 
     /* ROTATION STUFF */
 
@@ -155,15 +180,8 @@ void CameraControllerSystem::OnUpdate(float ts)
 
     /* user interface inputs */
 
-    if (scene_->app()->window()->GetKeyPress(engine::inputs::Key::K_P)) {
-        std::string pos_string{"x: " + std::to_string(t->world_matrix[3][0]) + " y: " + std::to_string(t->world_matrix[3][1]) +
-                               " z: " + std::to_string(t->world_matrix[3][2])};
-        LOG_INFO("position {}", pos_string);
-        LOG_INFO("rotation w: {} x: {} y: {} z: {}", t->rotation.w, t->rotation.x, t->rotation.y, t->rotation.z);
-    }
-
-    if (scene_->app()->window()->GetKeyPress(engine::inputs::Key::K_R)) {
-        t->position = {0.0f, 0.0f, 10.0f};
+    if (scene_->app()->window()->GetKeyPress(engine::inputs::Key::K_R) || glm::length(t->position) > CameraControllerComponent::kMaxDistanceFromOrigin) {
+        t->position = {0.0f, 0.0f, 100.0f};
         c->vel = {0.0f, 0.0f, 0.0f};
         c->pitch = glm::half_pi<float>();
         c->yaw = 0.0f;
@@ -181,9 +199,7 @@ void CameraControllerSystem::OnUpdate(float ts)
         scene_->app()->scene_manager()->SetActiveScene(next_scene_);
     }
 
-    static std::vector<engine::Line> perm_lines{};
-
-    if (scene_->app()->window()->GetButton(engine::inputs::MouseButton::M_LEFT)) {
+    if (scene_->app()->window()->GetButtonPress(engine::inputs::MouseButton::M_LEFT)) {
         engine::Ray ray{};
         ray.origin = t->position;
         ray.direction = glm::vec3(glm::mat4_cast(t->rotation) * glm::vec4{0.0f, 0.0f, -1.0f, 1.0f});
@@ -195,24 +211,9 @@ void CameraControllerSystem::OnUpdate(float ts)
             LOG_INFO("Normal: {} {} {}", cast.normal.x, cast.normal.y, cast.normal.z);
             LOG_INFO("Ray direction: {} {} {}", ray.direction.x, ray.direction.y, ray.direction.z);
             LOG_INFO("Hit Entity: {}", scene_->GetComponent<engine::TransformComponent>(cast.hit_entity)->tag);
-            perm_lines.emplace_back(ray.origin, cast.location, glm::vec3{0.0f, 0.0f, 1.0f});
-        }
-    }
-    if (scene_->app()->window()->GetButtonPress(engine::inputs::MouseButton::M_RIGHT)) {
-        engine::Ray horiz_ray{};
-        horiz_ray.origin = t->position;         // set origin to 'MaxStairHeight' units above player's feet
-        horiz_ray.origin.z += CameraControllerComponent::kMaxStairHeight - CameraControllerComponent::kPlayerHeight;
-        horiz_ray.direction.x = c->vel.x;
-        horiz_ray.direction.y = c->vel.y; // this is normalized by GetRayCast()
-        horiz_ray.direction.z = 0.0f;
-        const engine::Raycast cast = scene_->GetSystem<engine::CollisionSystem>()->GetRaycast(horiz_ray);
-        if (cast.hit) {
-            LOG_INFO("Distance: {} m", cast.distance);
-            LOG_INFO("Location: {} {} {}", cast.location.x, cast.location.y, cast.location.z);
-            LOG_INFO("Normal: {} {} {}", cast.normal.x, cast.normal.y, cast.normal.z);
-            perm_lines.emplace_back(horiz_ray.origin, cast.location, glm::vec3{ 0.0f, 0.0f, 1.0f });
+            c->perm_lines.emplace_back(ray.origin, cast.location, glm::vec3{0.0f, 0.0f, 1.0f});
         }
     }
 
-    scene_->app()->debug_lines.insert(scene_->app()->debug_lines.end(), perm_lines.begin(), perm_lines.end());
+    scene_->app()->debug_lines.insert(scene_->app()->debug_lines.end(), c->perm_lines.begin(), c->perm_lines.end());
 }

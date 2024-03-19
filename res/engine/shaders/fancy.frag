@@ -3,15 +3,19 @@
 #define PI 3.1415926535897932384626433832795
 #define PI_INV 0.31830988618379067153776752674503
 
+layout(set = 0, binding = 1) uniform samplerCube globalSetSkybox;
+
 layout(set = 2, binding = 0) uniform sampler2D materialSetAlbedoSampler;
 layout(set = 2, binding = 1) uniform sampler2D materialSetNormalSampler;
-layout(set = 2, binding = 2) uniform sampler2D materialSetOcclusionSampler;
-layout(set = 2, binding = 3) uniform sampler2D materialSetMetallicRoughnessSampler;
+layout(set = 2, binding = 2) uniform sampler2D materialSetOcclusionRoughnessMetallic;
 
 layout(location = 0) in vec2 fragUV;
 layout(location = 1) in vec3 fragPosTangentSpace;
 layout(location = 2) in vec3 fragViewPosTangentSpace;
 layout(location = 3) in vec3 fragLightPosTangentSpace;
+layout(location = 4) in vec3 fragNormWorldSpace;
+layout(location = 5) in vec3 fragViewPosWorldSpace;
+layout(location = 6) in vec3 fragPosWorldSpace;
 
 layout(location = 0) out vec4 outColor;
 
@@ -28,21 +32,24 @@ float GGXDist(float alpha_2, float N_dot_H) {
 
 void main() {
 
-	const vec3 metallic_roughness = vec3(texture(materialSetMetallicRoughnessSampler, fragUV));
-	const float metallic = metallic_roughness.b;
-	const float roughness = metallic_roughness.g; // roughness of zero is completely black?
+	const vec3 occlusion_roughness_metallic = vec3(texture(materialSetOcclusionRoughnessMetallic, fragUV));
+	const float ao = occlusion_roughness_metallic.r;
+	const float roughness = occlusion_roughness_metallic.g;
+	const float metallic = occlusion_roughness_metallic.b;
+
+	const vec3 I = normalize(fragPosWorldSpace - fragViewPosWorldSpace);
+    const vec3 R = reflect(I, fragNormWorldSpace);
+
 	const float roughness_2 = roughness * roughness;
 
 	const vec3 light_colour = vec3(1.0, 1.0, 1.0) * 2.4;
 	const vec3 emission = vec3(0.0, 0.0, 0.0);
 
-	const float ao = texture(materialSetOcclusionSampler, fragUV).r;
-
 	const vec3 albedo = vec3(texture(materialSetAlbedoSampler, fragUV));
 	const vec3 N = GetNormal();
 
 	const vec3 V = normalize(fragViewPosTangentSpace - fragPosTangentSpace);
-	const vec3 L = normalize(fragLightPosTangentSpace - fragPosTangentSpace);
+	const vec3 L = normalize(fragLightPosTangentSpace);
 	//const vec3 L = normalize(vec3(5.0, 0.0, 3.0));
 	const vec3 H = normalize(V + L);
 
@@ -66,10 +73,13 @@ void main() {
 	const vec3 dielectric_brdf = mix(diffuse_brdf, specular_brdf, 0.04 + (1 - 0.04) * pow(1 - abs(V_dot_H), 5));
 
 	const vec3 metal_brdf = specular_brdf * (albedo + (1 - albedo) * pow(1 - V_dot_H, 5.0) );
-
+	
 	const vec3 brdf = mix(dielectric_brdf, metal_brdf, metallic);
 	
-	const vec3 lighting = brdf * light_colour * L_dot_N;
+	vec3 lighting = brdf * light_colour * L_dot_N;
+
+	vec3 ambient_light = vec3(0.09082, 0.13281, 0.18164);
+	lighting += mix(ambient_light, texture(globalSetSkybox, R).rgb, metallic) * ao * diffuse_brdf; // this is NOT physically-based, it just looks cool
 
 	outColor = vec4(min(emission + lighting, 1.0), 1.0);
 }

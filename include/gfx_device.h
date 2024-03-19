@@ -104,6 +104,8 @@ class GFXDevice {
 
   gfx::Image* CreateImage(uint32_t w, uint32_t h, gfx::ImageFormat input_format, const void* image_data);
 
+  gfx::Image* CreateImageCubemap(uint32_t w, uint32_t h, gfx::ImageFormat input_format, const std::array<const void*, 6>& image_data);
+
   void DestroyImage(const gfx::Image* image);
 
   const gfx::Sampler* CreateSampler(const gfx::SamplerInfo& info);

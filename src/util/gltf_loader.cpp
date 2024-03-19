@@ -109,6 +109,14 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
         throw std::runtime_error("Failed to load glTF file!");
     }
 
+    // check for required extensions
+    if (model.extensionsRequired.empty() == false) { // this loader doesn't support any extensions
+        for (const auto& ext : model.extensionsRequired) {
+            LOG_ERROR("Unsupported required extension: {}", ext);
+        }
+        throw std::runtime_error("One or more required extensions are unsupported. File: " + path);
+    }
+
     // test model loading
 
     if (model.scenes.size() < 1) {
@@ -142,7 +150,10 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
         // use missing texture image by default
         textures.emplace_back(scene.app()->GetResource<Texture>("builtin.white"));
 
-        if (texture.source == -1) continue;
+        if (texture.source == -1) {
+            LOG_ERROR("A gltf file specifies a texture with no source.");
+            continue;
+        }
 
         gfx::SamplerInfo samplerInfo{};
         // default to trilinear filtering even if mipmaps are not specified
@@ -192,6 +203,9 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
             // create texture on GPU
             textures.back() = std::make_shared<Texture>(scene.app()->renderer(), image.image.data(), image.width, image.height, samplerInfo,
                                                         tex_index_is_base_color[texture_idx]);
+        }
+        else {
+            throw std::runtime_error("Texture found in gltf file is unsupported! Make sure texture is 8 bpp. File: " + path);
         }
 
         ++texture_idx;
@@ -256,20 +270,20 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
             materials.back()->SetAlbedoTexture(colour_textures.at(c));
         }
 
-        // metallic roughness
-        materials.back()->SetMetallicRoughnessTexture(scene.app()->GetResource<Texture>("builtin.white")); // default metal = 1.0, rough = 1.0
+        // occlusion roughness metallic
+        materials.back()->SetOcclusionRoughnessMetallicTexture(scene.app()->GetResource<Texture>("builtin.white")); // default ao = 1.0, rough = 1.0, metal = 1.0
         if (material.pbrMetallicRoughness.metallicRoughnessTexture.index != -1) {
             if (material.pbrMetallicRoughness.metallicRoughnessTexture.texCoord == 0) {
-                LOG_INFO("Setting metallic roughness texture!");
-                materials.back()->SetMetallicRoughnessTexture(textures.at(material.pbrMetallicRoughness.metallicRoughnessTexture.index));
+                LOG_INFO("Setting occlusion roughness metallic texture!");
+                materials.back()->SetOcclusionRoughnessMetallicTexture(textures.at(material.pbrMetallicRoughness.metallicRoughnessTexture.index));
             }
             else {
                 LOG_WARN("Material {} metallic roughness texture specifies a UV channel other than zero which is unsupported.", material.name);
             }
         }
         else {
-            LOG_INFO("Creating a metallic-roughness texture...");
-            const std::vector<double> mr_values{1.0f, material.pbrMetallicRoughness.roughnessFactor, material.pbrMetallicRoughness.metallicFactor, 1.0f};
+            LOG_INFO("Creating occlusion roughness metallic texture...");
+            const std::vector<double> mr_values{1.0f /* no AO */, material.pbrMetallicRoughness.roughnessFactor, material.pbrMetallicRoughness.metallicFactor, 1.0f};
             Color mr(mr_values);
             if (metal_rough_textures.contains(mr) == false) {
                 const uint8_t pixel[4] = {mr.r, mr.g, mr.b, mr.a};
@@ -280,15 +294,16 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
                 samplerInfo.anisotropic_filtering = false;
                 metal_rough_textures.emplace(std::make_pair(mr, std::make_shared<Texture>(scene.app()->renderer(), pixel, 1, 1, samplerInfo, false)));
             }
-            materials.back()->SetMetallicRoughnessTexture(metal_rough_textures.at(mr));
+            materials.back()->SetOcclusionRoughnessMetallicTexture(metal_rough_textures.at(mr));
         }
 
         // occlusion texture
-        materials.back()->SetOcclusionTexture(scene.app()->GetResource<Texture>("builtin.white")); // R=255 means no AO so white will work
+        // if occlusion texture was same as metallic-roughness texture, this will already have been applied
         if (material.occlusionTexture.index != -1) {
             if (material.occlusionTexture.texCoord == 0) {
-                LOG_INFO("Setting occlusion texture!");
-                materials.back()->SetOcclusionTexture(textures.at(material.occlusionTexture.index));
+                if (material.occlusionTexture.index != material.pbrMetallicRoughness.metallicRoughnessTexture.index) {
+                    throw std::runtime_error(std::string("Material ") + material.name + std::string(" has an ambient occlusion texture different to the metal-rough texture."));
+                }
             }
             else {
                 LOG_WARN("Material {} occlusion texture specifies a UV channel other than zero which is unsupported.", material.name);
