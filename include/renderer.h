@@ -85,8 +85,12 @@ class Renderer : private ApplicationComponent {
     */
 
     // in vertex shader
-    UniformDescriptor<glm::mat4> global_uniform; // rarely updates; set 0
-    UniformDescriptor<glm::mat4> frame_uniform;  // updates once per frame; set 1
+    struct GlobalUniformData {
+        glm::mat4 proj;
+        glm::mat4 lightSpaceMatrix;
+    };
+    UniformDescriptor<GlobalUniformData> global_uniform; // rarely updates; set 0 binding 0
+    UniformDescriptor<glm::mat4> frame_uniform;  // updates once per frame; set 1 binding 0
     // in fragment shader
     const gfx::DescriptorSetLayout* material_set_layout; // set 2; set bound per material
 
@@ -105,6 +109,9 @@ class Renderer : private ApplicationComponent {
     const gfx::Sampler* skybox_sampler = nullptr;
     const gfx::Pipeline* skybox_pipeline = nullptr;
     const gfx::Buffer* skybox_buffer = nullptr;
+
+    gfx::Image* shadow_map = nullptr;
+    const gfx::Sampler* shadow_map_sampler = nullptr;
 
     void DrawRenderList(gfx::DrawBuffer* draw_buffer, const RenderList& render_list);
 };

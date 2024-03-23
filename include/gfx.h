@@ -119,8 +119,8 @@ struct PipelineInfo {
     std::string vert_shader_path;
     std::string frag_shader_path;
     VertexFormat vertex_format;
+    CullMode face_cull_mode;
     bool alpha_blending;
-    bool backface_culling;
     bool write_z;
     bool line_primitives; // false for triangles, true for lines
     std::vector<const DescriptorSetLayout*> descriptor_set_layouts;

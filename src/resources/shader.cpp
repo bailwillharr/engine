@@ -48,7 +48,7 @@ Shader::Shader(Renderer* renderer, const std::string& vertPath, const std::strin
   info.frag_shader_path = fragPath;
   info.vertex_format = vertFormat;
   info.alpha_blending = settings.alpha_blending;
-  info.backface_culling = settings.cull_backface;
+  info.face_cull_mode = settings.cull_backface ? gfx::CullMode::kCullBack : gfx::CullMode::kCullNone;
   info.write_z = settings.write_z;
   info.line_primitives = false;
   info.descriptor_set_layouts.push_back(renderer->GetGlobalSetLayout());

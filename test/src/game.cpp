@@ -89,7 +89,7 @@ void PlayGame(GameSettings settings)
 
         /* floor */
         engine::Entity floor = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/floor.glb"));
-        main_scene->GetComponent<engine::MeshRenderableComponent>(main_scene->GetEntity("Cube", floor))->visible = false;
+        //main_scene->GetComponent<engine::MeshRenderableComponent>(main_scene->GetEntity("Cube", floor))->visible = false;
 
         engine::Entity monke = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/monke.glb"));
         main_scene->GetComponent<engine::TransformComponent>(monke)->position.y += 10.0f;

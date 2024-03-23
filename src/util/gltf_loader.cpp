@@ -555,12 +555,12 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
 
                 // get AABB
                 AABB box{};
-                box.min.x = pos_accessor.minValues.at(0);
-                box.min.y = pos_accessor.minValues.at(1);
-                box.min.z = pos_accessor.minValues.at(2);
-                box.max.x = pos_accessor.maxValues.at(0);
-                box.max.y = pos_accessor.maxValues.at(1);
-                box.max.z = pos_accessor.maxValues.at(2);
+                box.min.x = static_cast<float>(pos_accessor.minValues.at(0));
+                box.min.y = static_cast<float>(pos_accessor.minValues.at(1));
+                box.min.z = static_cast<float>(pos_accessor.minValues.at(2));
+                box.max.x = static_cast<float>(pos_accessor.maxValues.at(0));
+                box.max.y = static_cast<float>(pos_accessor.maxValues.at(1));
+                box.max.z = static_cast<float>(pos_accessor.maxValues.at(2));
 
                 primitive_array.emplace_back(engine_mesh, engine_material, box);
             }

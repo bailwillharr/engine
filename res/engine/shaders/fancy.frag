@@ -4,6 +4,7 @@
 #define PI_INV 0.31830988618379067153776752674503
 
 layout(set = 0, binding = 1) uniform samplerCube globalSetSkybox;
+layout(set = 0, binding = 2) uniform sampler2D globalSetShadowmap;
 
 layout(set = 2, binding = 0) uniform sampler2D materialSetAlbedoSampler;
 layout(set = 2, binding = 1) uniform sampler2D materialSetNormalSampler;
@@ -16,6 +17,7 @@ layout(location = 3) in vec3 fragLightPosTangentSpace;
 layout(location = 4) in vec3 fragNormWorldSpace;
 layout(location = 5) in vec3 fragViewPosWorldSpace;
 layout(location = 6) in vec3 fragPosWorldSpace;
+layout(location = 7) in vec4 fragPosLightSpace;
 
 layout(location = 0) out vec4 outColor;
 
@@ -81,5 +83,13 @@ void main() {
 	vec3 ambient_light = vec3(0.09082, 0.13281, 0.18164);
 	lighting += mix(ambient_light, texture(globalSetSkybox, R).rgb, metallic) * ao * diffuse_brdf; // this is NOT physically-based, it just looks cool
 
+	// perform perspective divide
+    vec3 projCoords = fragPosLightSpace.xyz;
+	projCoords.x = projCoords.x * 0.5 + 0.5; 
+	projCoords.y = projCoords.y * 0.5 + 0.5; 
+	float closestDepth = texture(globalSetShadowmap, projCoords.xy).r;
+	float currentDepth = projCoords.z;
+	float shadow = currentDepth > closestDepth ? 1.0 : 0.0;
 	outColor = vec4(min(emission + lighting, 1.0), 1.0);
+	//outColor = vec4(shadow, 0.0, 0.0, 1.0);
 }

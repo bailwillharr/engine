@@ -176,12 +176,12 @@ static VkBufferUsageFlagBits getBufferUsageFlag(gfx::BufferType type)
 [[maybe_unused]] static VkSamplerAddressMode getSamplerAddressMode(gfx::WrapMode mode)
 {
     switch (mode) {
-    case gfx::WrapMode::kRepeat:
-        return VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    case gfx::WrapMode::kMirroredRepeat:
-        return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
-    case gfx::WrapMode::kClampToEdge:
-        return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        case gfx::WrapMode::kRepeat:
+            return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        case gfx::WrapMode::kMirroredRepeat:
+            return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+        case gfx::WrapMode::kClampToEdge:
+            return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     }
     throw std::runtime_error("Unknown wrap mode");
 }
@@ -189,10 +189,10 @@ static VkBufferUsageFlagBits getBufferUsageFlag(gfx::BufferType type)
 [[maybe_unused]] static VkSamplerMipmapMode getSamplerMipmapMode(gfx::Filter filter)
 {
     switch (filter) {
-    case gfx::Filter::kLinear:
-        return VK_SAMPLER_MIPMAP_MODE_LINEAR;
-    case gfx::Filter::kNearest:
-        return VK_SAMPLER_MIPMAP_MODE_NEAREST;
+        case gfx::Filter::kLinear:
+            return VK_SAMPLER_MIPMAP_MODE_LINEAR;
+        case gfx::Filter::kNearest:
+            return VK_SAMPLER_MIPMAP_MODE_NEAREST;
     }
     throw std::runtime_error("Unknown filter");
 }
@@ -235,7 +235,7 @@ static VkShaderStageFlags getShaderStageFlags(gfx::ShaderStageFlags::Flags flags
     return out;
 }
 
-[[maybe_unused]] static VkCullModeFlags getCullModeFlags(gfx::CullMode mode)
+static VkCullModeFlags getCullModeFlags(gfx::CullMode mode)
 {
     switch (mode) {
         case gfx::CullMode::kCullNone:
@@ -254,12 +254,12 @@ static VkShaderStageFlags getShaderStageFlags(gfx::ShaderStageFlags::Flags flags
 static VkFormat getImageFormat(gfx::ImageFormat format)
 {
     switch (format) {
-    case gfx::ImageFormat::kLinear:
-        return VK_FORMAT_R8G8B8A8_UNORM;
-    case gfx::ImageFormat::kSRGB:
-        return VK_FORMAT_R8G8B8A8_SRGB;
-    default:
-        throw std::runtime_error("Unknown image format");
+        case gfx::ImageFormat::kLinear:
+            return VK_FORMAT_R8G8B8A8_UNORM;
+        case gfx::ImageFormat::kSRGB:
+            return VK_FORMAT_R8G8B8A8_SRGB;
+        default:
+            throw std::runtime_error("Unknown image format");
     }
 }
 
@@ -646,7 +646,7 @@ gfx::DrawBuffer* GFXDevice::BeginRender()
     VKCHECK(res);
 
     /* perform any pending uniform buffer writes */
-    VKCHECK(vkResetCommandPool(pimpl->device.device, frameData.transferPool, 0));
+    VKCHECK(vkResetCommandPool(pimpl->device.device, frameData.transferPool, 0)); // TODO: possibly delete this
 
     VkCommandBufferBeginInfo transferBeginInfo{
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -658,36 +658,64 @@ gfx::DrawBuffer* GFXDevice::BeginRender()
 
     // transfer cmds...
 
-    std::vector<VkBufferMemoryBarrier2> barriers{};
-    for (gfx::UniformBuffer* uniformBuffer : pimpl->write_queues[currentFrameIndex].uniform_buffer_writes) {
-        VkBufferCopy copyRegion{};
-        copyRegion.srcOffset = 0;
-        copyRegion.dstOffset = 0;
-        copyRegion.size = uniformBuffer->stagingBuffer.size;
-        vkCmdCopyBuffer(frameData.transferBuf, uniformBuffer->stagingBuffer.buffer, uniformBuffer->gpuBuffers[currentFrameIndex].buffer, 1, &copyRegion);
-
-        VkBufferMemoryBarrier2& barrier = barriers.emplace_back();
-        barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2;
-        barrier.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
-        barrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
-        barrier.dstStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
-        barrier.dstAccessMask = 0;
-        barrier.srcQueueFamilyIndex = pimpl->device.queues.transferQueueFamily;
-        barrier.dstQueueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily;
-        barrier.buffer = uniformBuffer->gpuBuffers[currentFrameIndex].buffer;
-        barrier.offset = 0;
-        barrier.size = uniformBuffer->gpuBuffers[currentFrameIndex].size;
+    if (pimpl->FRAMECOUNT >= FRAMES_IN_FLIGHT) { // cannot (and don't need to) do ownership transfer on first frame[s]
+        // acquire ownership of buffers
+        std::vector<VkBufferMemoryBarrier2> acquireBarriers{};
+        for (gfx::UniformBuffer* uniformBuffer : pimpl->write_queues[currentFrameIndex].uniform_buffer_writes) {
+            VkBufferMemoryBarrier2& barrier = acquireBarriers.emplace_back();
+            barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2;
+            barrier.srcStageMask = VK_PIPELINE_STAGE_2_COPY_BIT;
+            barrier.srcAccessMask = 0;
+            barrier.dstStageMask = VK_PIPELINE_STAGE_2_COPY_BIT;
+            barrier.dstAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
+            barrier.srcQueueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily;
+            barrier.dstQueueFamilyIndex = pimpl->device.queues.transferQueueFamily;
+            barrier.buffer = uniformBuffer->gpuBuffers[currentFrameIndex].buffer;
+            barrier.offset = 0;
+            barrier.size = uniformBuffer->gpuBuffers[currentFrameIndex].size;
+        }
+        VkDependencyInfo dependencyInfo{};
+        dependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+        dependencyInfo.bufferMemoryBarrierCount = (uint32_t)acquireBarriers.size();
+        dependencyInfo.pBufferMemoryBarriers = acquireBarriers.data();
+        vkCmdPipelineBarrier2(frameData.transferBuf, &dependencyInfo);
     }
-    pimpl->write_queues[currentFrameIndex].uniform_buffer_writes.clear();
 
-    VkDependencyInfo dependencyInfo{};
-    dependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
-    dependencyInfo.bufferMemoryBarrierCount = (uint32_t)barriers.size();
-    dependencyInfo.pBufferMemoryBarriers = barriers.data();
-    vkCmdPipelineBarrier2(frameData.transferBuf, &dependencyInfo);
+    {
+        // copy stagings buffers to GPU buffer
+        for (gfx::UniformBuffer* uniformBuffer : pimpl->write_queues[currentFrameIndex].uniform_buffer_writes) {
+            VkBufferCopy copyRegion{};
+            copyRegion.srcOffset = 0;
+            copyRegion.dstOffset = 0;
+            copyRegion.size = uniformBuffer->stagingBuffer.size;
+            vkCmdCopyBuffer(frameData.transferBuf, uniformBuffer->stagingBuffer.buffer, uniformBuffer->gpuBuffers[currentFrameIndex].buffer, 1, &copyRegion);
+        }
+    }
+
+    {
+        // release buffers to graphics queue
+        std::vector<VkBufferMemoryBarrier2> releaseBarriers{};
+        for (gfx::UniformBuffer* uniformBuffer : pimpl->write_queues[currentFrameIndex].uniform_buffer_writes) {
+            VkBufferMemoryBarrier2& barrier = releaseBarriers.emplace_back();
+            barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2;
+            barrier.srcStageMask = VK_PIPELINE_STAGE_2_COPY_BIT;
+            barrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
+            barrier.dstStageMask = VK_PIPELINE_STAGE_2_COPY_BIT;
+            barrier.dstAccessMask = 0;
+            barrier.srcQueueFamilyIndex = pimpl->device.queues.transferQueueFamily;
+            barrier.dstQueueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily;
+            barrier.buffer = uniformBuffer->gpuBuffers[currentFrameIndex].buffer;
+            barrier.offset = 0;
+            barrier.size = uniformBuffer->gpuBuffers[currentFrameIndex].size;
+        }
+        VkDependencyInfo dependencyInfo{};
+        dependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+        dependencyInfo.bufferMemoryBarrierCount = (uint32_t)releaseBarriers.size();
+        dependencyInfo.pBufferMemoryBarriers = releaseBarriers.data();
+        vkCmdPipelineBarrier2(frameData.transferBuf, &dependencyInfo);
+    }
 
     VKCHECK(vkEndCommandBuffer(frameData.transferBuf));
-
     VkSubmitInfo transferSubmitInfo{
         .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
         .pNext = nullptr,
@@ -733,13 +761,25 @@ gfx::DrawBuffer* GFXDevice::BeginRender()
 
     { // RECORDING
 
-        /* change barriers to perform a queue ownership acquire operation */
-        for (VkBufferMemoryBarrier2& barrier : barriers) {
+        // acquire ownership of buffers
+        std::vector<VkBufferMemoryBarrier2> acquireBarriers{};
+        for (gfx::UniformBuffer* uniformBuffer : pimpl->write_queues[currentFrameIndex].uniform_buffer_writes) {
+            VkBufferMemoryBarrier2& barrier = acquireBarriers.emplace_back();
+            barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2;
             barrier.srcStageMask = VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT;
             barrier.srcAccessMask = 0;
             barrier.dstStageMask = VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT;
             barrier.dstAccessMask = VK_ACCESS_2_UNIFORM_READ_BIT;
+            barrier.srcQueueFamilyIndex = pimpl->device.queues.transferQueueFamily;
+            barrier.dstQueueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily;
+            barrier.buffer = uniformBuffer->gpuBuffers[currentFrameIndex].buffer;
+            barrier.offset = 0;
+            barrier.size = uniformBuffer->gpuBuffers[currentFrameIndex].size;
         }
+        VkDependencyInfo dependencyInfo{};
+        dependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+        dependencyInfo.bufferMemoryBarrierCount = (uint32_t)acquireBarriers.size();
+        dependencyInfo.pBufferMemoryBarriers = acquireBarriers.data();
         vkCmdPipelineBarrier2(frameData.drawBuf, &dependencyInfo);
 
         std::array<VkClearValue, 2> clearValues{}; // Using same value for all components enables
@@ -801,6 +841,27 @@ void GFXDevice::FinishRender(gfx::DrawBuffer* drawBuffer)
 
     vkCmdEndRenderPass(drawBuffer->frameData.drawBuf);
 
+    // transfer ownership of uniform buffers back to transfer queue
+    std::vector<VkBufferMemoryBarrier2> releaseBarriers{};
+    for (gfx::UniformBuffer* uniformBuffer : pimpl->write_queues[drawBuffer->currentFrameIndex].uniform_buffer_writes) {
+        VkBufferMemoryBarrier2& barrier = releaseBarriers.emplace_back();
+        barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2;
+        barrier.srcStageMask = VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT;
+        barrier.srcAccessMask = VK_ACCESS_2_UNIFORM_READ_BIT;
+        barrier.dstStageMask = VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT;
+        barrier.dstAccessMask = 0;
+        barrier.srcQueueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily;
+        barrier.dstQueueFamilyIndex = pimpl->device.queues.transferQueueFamily;
+        barrier.buffer = uniformBuffer->gpuBuffers[drawBuffer->currentFrameIndex].buffer;
+        barrier.offset = 0;
+        barrier.size = uniformBuffer->gpuBuffers[drawBuffer->currentFrameIndex].size;
+    }
+    VkDependencyInfo dependencyInfo{};
+    dependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+    dependencyInfo.bufferMemoryBarrierCount = (uint32_t)releaseBarriers.size();
+    dependencyInfo.pBufferMemoryBarriers = releaseBarriers.data();
+    vkCmdPipelineBarrier2(drawBuffer->frameData.drawBuf, &dependencyInfo);
+
     res = vkEndCommandBuffer(drawBuffer->frameData.drawBuf);
     VKCHECK(res);
 
@@ -845,6 +906,9 @@ void GFXDevice::FinishRender(gfx::DrawBuffer* drawBuffer)
     }
     else if (res != VK_SUCCESS)
         throw std::runtime_error("Failed to queue present! Code: " + std::to_string(res));
+
+    // clear write queue
+    pimpl->write_queues[drawBuffer->currentFrameIndex].uniform_buffer_writes.clear();
 
     pimpl->FRAMECOUNT++;
 
@@ -1011,12 +1075,7 @@ gfx::Pipeline* GFXDevice::CreatePipeline(const gfx::PipelineInfo& info)
     rasterizer.rasterizerDiscardEnable = VK_FALSE; // enabling this will not run the fragment shaders at all
     rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
     rasterizer.lineWidth = 1.0f;
-    if (info.backface_culling == true) {
-        rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-    }
-    else {
-        rasterizer.cullMode = VK_CULL_MODE_NONE;
-    }
+    rasterizer.cullMode = converters::getCullModeFlags(info.face_cull_mode);
     rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
     rasterizer.depthBiasEnable = VK_FALSE;
     rasterizer.depthBiasConstantFactor = 0.0f; // ignored
@@ -1488,8 +1547,8 @@ gfx::Image* GFXDevice::CreateImage(uint32_t w, uint32_t h, gfx::ImageFormat inpu
         beforeCopyBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
         beforeCopyBarrier.srcStageMask = VK_PIPELINE_STAGE_2_NONE;
         beforeCopyBarrier.srcAccessMask = VK_ACCESS_2_NONE;
-        beforeCopyBarrier.dstStageMask = VK_PIPELINE_STAGE_2_COPY_BIT;
-        beforeCopyBarrier.dstAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
+        beforeCopyBarrier.dstStageMask = VK_PIPELINE_STAGE_2_COPY_BIT | VK_PIPELINE_STAGE_2_BLIT_BIT; // all subresources will be COPYed or BLITed to next
+        beforeCopyBarrier.dstAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT; // Image must be TRANSFER_DST_OPTIMAL before either stage performs a TRANSFER_WRITE
         beforeCopyBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         beforeCopyBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
         beforeCopyBarrier.srcQueueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily;
@@ -1528,10 +1587,11 @@ gfx::Image* GFXDevice::CreateImage(uint32_t w, uint32_t h, gfx::ImageFormat inpu
             // Must happen after TRANSFER_WRITE in the COPY stage and BLIT stage.
             VkImageMemoryBarrier2 beforeBlitBarrier{};
             beforeBlitBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
-            beforeBlitBarrier.srcStageMask = VK_PIPELINE_STAGE_2_COPY_BIT | VK_PIPELINE_STAGE_2_BLIT_BIT;
-            beforeBlitBarrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
-            beforeBlitBarrier.dstStageMask = VK_PIPELINE_STAGE_2_BLIT_BIT;
-            beforeBlitBarrier.dstAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT;
+            beforeBlitBarrier.srcStageMask =
+                VK_PIPELINE_STAGE_2_COPY_BIT | VK_PIPELINE_STAGE_2_BLIT_BIT;  // previous mip level was either just COPYed to or just BLITed to
+            beforeBlitBarrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT; // these actions were TRANSFER_WRITEs
+            beforeBlitBarrier.dstStageMask = VK_PIPELINE_STAGE_2_BLIT_BIT;    // the image will be BLITed from next
+            beforeBlitBarrier.dstAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT;  // this is a TRANSFER_READ
             beforeBlitBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
             beforeBlitBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
             beforeBlitBarrier.srcQueueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily;
@@ -1570,9 +1630,9 @@ gfx::Image* GFXDevice::CreateImage(uint32_t w, uint32_t h, gfx::ImageFormat inpu
             VkImageMemoryBarrier2 afterBlitBarrier{};
             afterBlitBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
             afterBlitBarrier.srcStageMask = VK_PIPELINE_STAGE_2_BLIT_BIT;
-            afterBlitBarrier.srcAccessMask = 0;
+            afterBlitBarrier.srcAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT;       // previous mip level was just READ from in a BLIT
             afterBlitBarrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
-            afterBlitBarrier.dstAccessMask = VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT | VK_ACCESS_2_SHADER_READ_BIT;
+            afterBlitBarrier.dstAccessMask = VK_ACCESS_2_SHADER_SAMPLED_READ_BIT; // it will next be sampled in a frag shader
             afterBlitBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
             afterBlitBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             afterBlitBarrier.srcQueueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily;
@@ -1597,10 +1657,17 @@ gfx::Image* GFXDevice::CreateImage(uint32_t w, uint32_t h, gfx::ImageFormat inpu
         // barrier: (mipLevels - 1) TRANSFER_DST_OPTIMAL -> SHADER_READ_ONLY_OPTIMAL
         VkImageMemoryBarrier2 finalBlitBarrier{};
         finalBlitBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
-        finalBlitBarrier.srcStageMask = VK_PIPELINE_STAGE_2_BLIT_BIT | VK_PIPELINE_STAGE_2_COPY_BIT;
+        if (mipLevels == 1) {
+            // if no mipmaps were generated, the image was just COPYed to with a WRITE
+            finalBlitBarrier.srcStageMask = VK_PIPELINE_STAGE_2_COPY_BIT; // the final mip level was BLITed to with a WRITE
+        }
+        else {
+            // mips were generated, therefore last mip level was just BLITed to
+            finalBlitBarrier.srcStageMask = VK_PIPELINE_STAGE_2_BLIT_BIT;
+        }
         finalBlitBarrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
         finalBlitBarrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
-        finalBlitBarrier.dstAccessMask = VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT | VK_ACCESS_2_SHADER_READ_BIT;
+        finalBlitBarrier.dstAccessMask = VK_ACCESS_2_SHADER_SAMPLED_READ_BIT;
         finalBlitBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
         finalBlitBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         finalBlitBarrier.srcQueueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily;
@@ -1649,7 +1716,7 @@ gfx::Image* GFXDevice::CreateImageCubemap(uint32_t w, uint32_t h, gfx::ImageForm
     if (pimpl->FRAMECOUNT != 0) abort(); //  TODO. This is annoying
 
     gfx::Image* out = new gfx::Image{};
-    
+
     uint32_t mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(w, h)))) + 1;
     VkFormat imageFormat = converters::getImageFormat(input_format);
 
@@ -1733,7 +1800,7 @@ gfx::Image* GFXDevice::CreateImageCubemap(uint32_t w, uint32_t h, gfx::ImageForm
         beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
         VKCHECK(vkBeginCommandBuffer(commandBuffer, &beginInfo));
 
-        // barrier: (all mip levels): UNDEFINED -> TRANSFER_DST_OPTIMAL
+        // barrier: (all mip levels, all faces): UNDEFINED -> TRANSFER_DST_OPTIMAL
         // Used for copying staging buffer AND blitting mipmaps
         // Must happen before vkCmdCopyBufferToImage performs a TRANSFER_WRITE in
         // the COPY stage.
@@ -1741,7 +1808,8 @@ gfx::Image* GFXDevice::CreateImageCubemap(uint32_t w, uint32_t h, gfx::ImageForm
         beforeCopyBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
         beforeCopyBarrier.srcStageMask = VK_PIPELINE_STAGE_2_NONE;
         beforeCopyBarrier.srcAccessMask = VK_ACCESS_2_NONE;
-        beforeCopyBarrier.dstStageMask = VK_PIPELINE_STAGE_2_COPY_BIT;
+        beforeCopyBarrier.dstStageMask =
+            VK_PIPELINE_STAGE_2_COPY_BIT | VK_PIPELINE_STAGE_2_BLIT_BIT; // all parts of the image will be either TRANSFERed to or BLITed to next
         beforeCopyBarrier.dstAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
         beforeCopyBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         beforeCopyBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
@@ -1782,10 +1850,12 @@ gfx::Image* GFXDevice::CreateImageCubemap(uint32_t w, uint32_t h, gfx::ImageForm
                 // Must happen after TRANSFER_WRITE in the COPY stage and BLIT stage.
                 VkImageMemoryBarrier2 beforeBlitBarrier{};
                 beforeBlitBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
-                beforeBlitBarrier.srcStageMask = VK_PIPELINE_STAGE_2_COPY_BIT | VK_PIPELINE_STAGE_2_BLIT_BIT;
-                beforeBlitBarrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
-                beforeBlitBarrier.dstStageMask = VK_PIPELINE_STAGE_2_BLIT_BIT;
-                beforeBlitBarrier.dstAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT;
+                beforeBlitBarrier.srcStageMask =
+                    VK_PIPELINE_STAGE_2_COPY_BIT | VK_PIPELINE_STAGE_2_BLIT_BIT; // subresource was either just copied to or just blitted to
+                beforeBlitBarrier.srcAccessMask =
+                    VK_ACCESS_2_TRANSFER_WRITE_BIT; // wait until CopyBufferToImage and BlitImage have performed TRANSFER_WRITE on subresource
+                beforeBlitBarrier.dstStageMask = VK_PIPELINE_STAGE_2_BLIT_BIT;   // subresource is going to be blitted from
+                beforeBlitBarrier.dstAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT; // subresource will be READ from during the blit
                 beforeBlitBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
                 beforeBlitBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
                 beforeBlitBarrier.srcQueueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily;
@@ -1807,16 +1877,16 @@ gfx::Image* GFXDevice::CreateImageCubemap(uint32_t w, uint32_t h, gfx::ImageForm
                 blit.srcSubresource.mipLevel = i - 1;
                 blit.srcSubresource.baseArrayLayer = face;
                 blit.srcSubresource.layerCount = 1;
-                blit.srcOffsets[0] = { 0, 0, 0 };
-                blit.srcOffsets[1] = { mipWidth, mipHeight, 1 };
+                blit.srcOffsets[0] = {0, 0, 0};
+                blit.srcOffsets[1] = {mipWidth, mipHeight, 1};
                 blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
                 blit.dstSubresource.mipLevel = i;
                 blit.dstSubresource.baseArrayLayer = face;
                 blit.dstSubresource.layerCount = 1;
-                blit.dstOffsets[0] = { 0, 0, 0 };
-                blit.dstOffsets[1] = { mipWidth > 1 ? mipWidth / 2 : 1, mipHeight > 1 ? mipHeight / 2 : 1, 1 };
+                blit.dstOffsets[0] = {0, 0, 0};
+                blit.dstOffsets[1] = {mipWidth > 1 ? mipWidth / 2 : 1, mipHeight > 1 ? mipHeight / 2 : 1, 1};
                 vkCmdBlitImage(commandBuffer, out->image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, out->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit,
-                    VK_FILTER_LINEAR);
+                               VK_FILTER_LINEAR); // WRITE-AFTER-WRITE error here
 
                 // barrier: (i - 1) TRANSFER_SRC_OPTIMAL -> SHADER_READ_ONLY_OPTIMALs
                 // Must happen after usage in the BLIT stage.
@@ -1824,9 +1894,9 @@ gfx::Image* GFXDevice::CreateImageCubemap(uint32_t w, uint32_t h, gfx::ImageForm
                 VkImageMemoryBarrier2 afterBlitBarrier{};
                 afterBlitBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
                 afterBlitBarrier.srcStageMask = VK_PIPELINE_STAGE_2_BLIT_BIT;
-                afterBlitBarrier.srcAccessMask = 0;
+                afterBlitBarrier.srcAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT;
                 afterBlitBarrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
-                afterBlitBarrier.dstAccessMask = VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT | VK_ACCESS_2_SHADER_READ_BIT;
+                afterBlitBarrier.dstAccessMask = VK_ACCESS_2_SHADER_SAMPLED_READ_BIT;
                 afterBlitBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
                 afterBlitBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                 afterBlitBarrier.srcQueueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily;
@@ -1851,10 +1921,10 @@ gfx::Image* GFXDevice::CreateImageCubemap(uint32_t w, uint32_t h, gfx::ImageForm
             // barrier: (mipLevels - 1) TRANSFER_DST_OPTIMAL -> SHADER_READ_ONLY_OPTIMAL
             VkImageMemoryBarrier2 finalBlitBarrier{};
             finalBlitBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
-            finalBlitBarrier.srcStageMask = VK_PIPELINE_STAGE_2_BLIT_BIT | VK_PIPELINE_STAGE_2_COPY_BIT;
+            finalBlitBarrier.srcStageMask = VK_PIPELINE_STAGE_2_BLIT_BIT;
             finalBlitBarrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
             finalBlitBarrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
-            finalBlitBarrier.dstAccessMask = VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT | VK_ACCESS_2_SHADER_READ_BIT;
+            finalBlitBarrier.dstAccessMask = VK_ACCESS_2_SHADER_SAMPLED_READ_BIT;
             finalBlitBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
             finalBlitBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             finalBlitBarrier.srcQueueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily;
@@ -1870,7 +1940,6 @@ gfx::Image* GFXDevice::CreateImageCubemap(uint32_t w, uint32_t h, gfx::ImageForm
             afterBlitDependency.imageMemoryBarrierCount = 1;
             afterBlitDependency.pImageMemoryBarriers = &finalBlitBarrier;
             vkCmdPipelineBarrier2(commandBuffer, &afterBlitDependency);
-
         }
 
         VKCHECK(vkEndCommandBuffer(commandBuffer));
@@ -1893,7 +1962,6 @@ gfx::Image* GFXDevice::CreateImageCubemap(uint32_t w, uint32_t h, gfx::ImageForm
     return out;
 }
 
-
 void GFXDevice::DestroyImage(const gfx::Image* image)
 {
     assert(image != nullptr);
@@ -1905,7 +1973,7 @@ void GFXDevice::DestroyImage(const gfx::Image* image)
 const gfx::Sampler* GFXDevice::CreateSampler(const gfx::SamplerInfo& info)
 {
     gfx::Sampler* out = new gfx::Sampler{};
-    
+
     VkSamplerCreateInfo samplerInfo{};
     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
     samplerInfo.magFilter = converters::getFilter(info.magnify);

@@ -2,6 +2,7 @@
 
 layout(set = 0, binding = 0) uniform GlobalSetUniformBuffer {
 	mat4 proj;
+	mat4 lightSpaceMatrix;
 } globalSetUniformBuffer;
 
 layout(set = 1, binding = 0) uniform FrameSetUniformBuffer {
@@ -24,6 +25,7 @@ layout(location = 3) out vec3 fragLightPosTangentSpace;
 layout(location = 4) out vec3 fragNormWorldSpace;
 layout(location = 5) out vec3 fragViewPosWorldSpace;
 layout(location = 6) out vec3 fragPosWorldSpace;
+layout(location = 7) out vec4 fragPosLightSpace;
 
 void main() {
 	vec4 worldPosition = constants.model * vec4(inPosition, 1.0);
@@ -42,6 +44,8 @@ void main() {
 	fragNormWorldSpace = N;
 	fragViewPosWorldSpace = vec3(inverse(frameSetUniformBuffer.view) * vec4(0.0, 0.0, 0.0, 1.0));
 	fragPosWorldSpace = worldPosition.xyz;
+
+	fragPosLightSpace = globalSetUniformBuffer.lightSpaceMatrix * vec4(worldPosition.xyz, 1.0);
 
 	gl_Position.y *= -1.0;
 }

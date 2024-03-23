@@ -2,6 +2,7 @@
 
 layout(set = 0, binding = 0) uniform GlobalSetUniformBuffer {
 	mat4 proj;
+	mat4 lightSpaceMatrix;
 } globalSetUniformBuffer;
 
 layout(set = 1, binding = 0) uniform FrameSetUniformBuffer {
