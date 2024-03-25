@@ -25,11 +25,11 @@ namespace engine {
 		VkSurfaceCapabilitiesKHR surfaceCapabilities{};
 		VkPresentModeKHR presentMode{};
 		VkExtent2D extent{};
-		VkRenderPass renderpass = VK_NULL_HANDLE;
+		//VkRenderPass renderpass = VK_NULL_HANDLE;
 		VkFormat depthStencilFormat;
 		std::vector<std::pair<VkImage, VkImageView>> swapchainImages{};
 		std::vector<DepthStencil> depthImages{};
-		std::vector<VkFramebuffer> framebuffers{};
+		//std::vector<VkFramebuffer> framebuffers{};
 	};
 
 	struct SwapchainInfo {

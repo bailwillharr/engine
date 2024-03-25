@@ -250,10 +250,10 @@ void Renderer::PreRender(bool window_is_resized, glm::mat4 camera_transform)
     device_->WriteUniformBuffer(frame_uniform.uniform_buffer, 0, sizeof(frame_uniform.uniform_buffer_data), &frame_uniform.uniform_buffer_data);
 
     // override with light matrix
-    frame_uniform.uniform_buffer_data.data = glm::mat4{1.0f};
-    device_->WriteUniformBuffer(frame_uniform.uniform_buffer, 0, sizeof(frame_uniform.uniform_buffer_data), &frame_uniform.uniform_buffer_data);
-    global_uniform.uniform_buffer_data.data.proj = global_uniform.uniform_buffer_data.data.lightSpaceMatrix;
-    device_->WriteUniformBuffer(global_uniform.uniform_buffer, 0, sizeof(global_uniform.uniform_buffer_data), &global_uniform.uniform_buffer_data);
+    //frame_uniform.uniform_buffer_data.data = glm::mat4{1.0f};
+    //device_->WriteUniformBuffer(frame_uniform.uniform_buffer, 0, sizeof(frame_uniform.uniform_buffer_data), &frame_uniform.uniform_buffer_data);
+    //global_uniform.uniform_buffer_data.data.proj = global_uniform.uniform_buffer_data.data.lightSpaceMatrix;
+    //device_->WriteUniformBuffer(global_uniform.uniform_buffer, 0, sizeof(global_uniform.uniform_buffer_data), &global_uniform.uniform_buffer_data);
 }
 
 void Renderer::Render(const RenderList* static_list, const RenderList* dynamic_list, const std::vector<Line>& debug_lines)

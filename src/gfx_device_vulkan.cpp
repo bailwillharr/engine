@@ -424,39 +424,42 @@ GFXDevice::GFXDevice(const char* appName, const char* appVersion, SDL_Window* wi
     deviceRequirements.optionalExtensions.push_back(VK_EXT_MEMORY_BUDGET_EXTENSION_NAME);
     deviceRequirements.requiredFeatures.samplerAnisotropy = VK_TRUE;
     // deviceRequirements.requiredFeatures.fillModeNonSolid = VK_TRUE;
+    // extension feature memoryPriority is enabled if extension is specified above
+    // synchronization2 is always required as it's part of Vulkan 1.3
+    // dynamic_rendering is always required as it's part of Vulkan 1.3
     deviceRequirements.formats.push_back(
-        FormatRequirements{.format = VK_FORMAT_R8G8B8A8_SRGB,
+        FormatRequirements{.format = VK_FORMAT_R8G8B8A8_SRGB, // 2D textures and cubemaps
                            .properties = VkFormatProperties{
                                .linearTilingFeatures = {},
                                .optimalTilingFeatures = VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT | VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT |
                                                         VK_FORMAT_FEATURE_TRANSFER_SRC_BIT | VK_FORMAT_FEATURE_TRANSFER_DST_BIT,
                                .bufferFeatures = {},
                            }});
-    deviceRequirements.formats.push_back(FormatRequirements{.format = VK_FORMAT_R32G32_SFLOAT,
+    deviceRequirements.formats.push_back(FormatRequirements{.format = VK_FORMAT_R32G32_SFLOAT, // vec2 vertex attribute
                                                             .properties = VkFormatProperties{
                                                                 .linearTilingFeatures = {},
                                                                 .optimalTilingFeatures = {},
                                                                 .bufferFeatures = VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT,
                                                             }});
-    deviceRequirements.formats.push_back(FormatRequirements{.format = VK_FORMAT_R32G32B32_SFLOAT,
+    deviceRequirements.formats.push_back(FormatRequirements{.format = VK_FORMAT_R32G32B32_SFLOAT, // vec3 vertex attribute
                                                             .properties = VkFormatProperties{
                                                                 .linearTilingFeatures = {},
                                                                 .optimalTilingFeatures = {},
                                                                 .bufferFeatures = VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT,
                                                             }});
-    deviceRequirements.formats.push_back(FormatRequirements{.format = VK_FORMAT_R32G32B32A32_SFLOAT,
+    deviceRequirements.formats.push_back(FormatRequirements{.format = VK_FORMAT_R32G32B32A32_SFLOAT, // vec4 vertex attribute
                                                             .properties = VkFormatProperties{
                                                                 .linearTilingFeatures = {},
                                                                 .optimalTilingFeatures = {},
                                                                 .bufferFeatures = VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT,
                                                             }});
-    deviceRequirements.formats.push_back( // Depth buffer format
-        FormatRequirements{.format = VK_FORMAT_D16_UNORM,
-                           .properties = VkFormatProperties{
-                               .linearTilingFeatures = {},
-                               .optimalTilingFeatures = VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT,
-                               .bufferFeatures = {},
-                           }});
+    deviceRequirements.formats.push_back(FormatRequirements{.format = VK_FORMAT_D16_UNORM, // depth buffer format
+                                                            .properties = VkFormatProperties{
+                                                                .linearTilingFeatures = {},
+                                                                .optimalTilingFeatures = VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT,
+                                                                .bufferFeatures = {},
+                                                            }});
+    // the surface format is found later in createSwapchain();
 
     pimpl->device = createDevice(pimpl->instance.instance, deviceRequirements, pimpl->surface);
 
@@ -572,6 +575,8 @@ void GFXDevice::GetViewportSize(uint32_t* w, uint32_t* h)
 
 void GFXDevice::SetupImguiBackend()
 {
+    // disable imgui for now
+#if 0
     ImGui_ImplVulkan_InitInfo initInfo{};
     initInfo.Instance = pimpl->instance.instance;
     initInfo.PhysicalDevice = pimpl->device.physicalDevice;
@@ -621,13 +626,23 @@ void GFXDevice::SetupImguiBackend()
     vkFreeCommandBuffers(pimpl->device.device, pimpl->graphicsCommandPool, 1, &commandBuffer);
 
     ImGui_ImplVulkan_DestroyFontUploadObjects();
+#endif
 }
 
-void GFXDevice::ShutdownImguiBackend() { ImGui_ImplVulkan_Shutdown(); }
+void GFXDevice::ShutdownImguiBackend()
+{
+    // disable imgui for now
+#if 0
+    ImGui_ImplVulkan_Shutdown();
+#endif
+}
 
 void GFXDevice::CmdRenderImguiDrawData(gfx::DrawBuffer* draw_buffer, ImDrawData* draw_data)
 {
+    // disable imgui rendering for now
+#if 0
     ImGui_ImplVulkan_RenderDrawData(draw_data, draw_buffer->frameData.drawBuf);
+#endif
 }
 
 gfx::DrawBuffer* GFXDevice::BeginRender()
@@ -640,14 +655,15 @@ gfx::DrawBuffer* GFXDevice::BeginRender()
     vmaSetCurrentFrameIndex(pimpl->allocator, (uint32_t)pimpl->FRAMECOUNT);
 
     /* wait until the previous frame RENDERING has finished */
+    // this allows for images acquired by vkAcquireNextImageKHR to be used immediately
     res = vkWaitForFences(pimpl->device.device, 1, &frameData.renderFence, VK_TRUE, 1000000000LL);
     VKCHECK(res);
     res = vkResetFences(pimpl->device.device, 1, &frameData.renderFence);
     VKCHECK(res);
 
     /* perform any pending uniform buffer writes */
-    VKCHECK(vkResetCommandPool(pimpl->device.device, frameData.transferPool, 0)); // TODO: possibly delete this
 
+    VKCHECK(vkResetCommandPool(pimpl->device.device, frameData.transferPool, 0));
     VkCommandBufferBeginInfo transferBeginInfo{
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
         .pNext = nullptr,
@@ -658,28 +674,7 @@ gfx::DrawBuffer* GFXDevice::BeginRender()
 
     // transfer cmds...
 
-    if (pimpl->FRAMECOUNT >= FRAMES_IN_FLIGHT) { // cannot (and don't need to) do ownership transfer on first frame[s]
-        // acquire ownership of buffers
-        std::vector<VkBufferMemoryBarrier2> acquireBarriers{};
-        for (gfx::UniformBuffer* uniformBuffer : pimpl->write_queues[currentFrameIndex].uniform_buffer_writes) {
-            VkBufferMemoryBarrier2& barrier = acquireBarriers.emplace_back();
-            barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2;
-            barrier.srcStageMask = VK_PIPELINE_STAGE_2_COPY_BIT;
-            barrier.srcAccessMask = 0;
-            barrier.dstStageMask = VK_PIPELINE_STAGE_2_COPY_BIT;
-            barrier.dstAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
-            barrier.srcQueueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily;
-            barrier.dstQueueFamilyIndex = pimpl->device.queues.transferQueueFamily;
-            barrier.buffer = uniformBuffer->gpuBuffers[currentFrameIndex].buffer;
-            barrier.offset = 0;
-            barrier.size = uniformBuffer->gpuBuffers[currentFrameIndex].size;
-        }
-        VkDependencyInfo dependencyInfo{};
-        dependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
-        dependencyInfo.bufferMemoryBarrierCount = (uint32_t)acquireBarriers.size();
-        dependencyInfo.pBufferMemoryBarriers = acquireBarriers.data();
-        vkCmdPipelineBarrier2(frameData.transferBuf, &dependencyInfo);
-    }
+    // ownership transfer isn't needed since the data isn't accessed it's just overwritten
 
     {
         // copy stagings buffers to GPU buffer
@@ -759,9 +754,9 @@ gfx::DrawBuffer* GFXDevice::BeginRender()
     res = vkBeginCommandBuffer(frameData.drawBuf, &beginInfo);
     VKCHECK(res);
 
-    { // RECORDING
+    { // RECORDING, this is executed after the uniform write semaphore is signalled
 
-        // acquire ownership of buffers
+        // acquire ownership of uniform buffers
         std::vector<VkBufferMemoryBarrier2> acquireBarriers{};
         for (gfx::UniformBuffer* uniformBuffer : pimpl->write_queues[currentFrameIndex].uniform_buffer_writes) {
             VkBufferMemoryBarrier2& barrier = acquireBarriers.emplace_back();
@@ -782,6 +777,51 @@ gfx::DrawBuffer* GFXDevice::BeginRender()
         dependencyInfo.pBufferMemoryBarriers = acquireBarriers.data();
         vkCmdPipelineBarrier2(frameData.drawBuf, &dependencyInfo);
 
+        VkImageMemoryBarrier2 colorImageBarrier{};
+        colorImageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+        colorImageBarrier.pNext = nullptr;
+        colorImageBarrier.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+        colorImageBarrier.dstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+        colorImageBarrier.srcAccessMask = 0;
+        colorImageBarrier.dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+        colorImageBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        colorImageBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        colorImageBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        colorImageBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        colorImageBarrier.image = pimpl->swapchain.swapchainImages[swapchainImageIndex].first;
+        VkImageSubresourceRange colorImageRange{};
+        colorImageRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        colorImageRange.baseMipLevel = 0;
+        colorImageRange.levelCount = 1;
+        colorImageRange.baseArrayLayer = 0;
+        colorImageRange.layerCount = 1;
+        colorImageBarrier.subresourceRange = colorImageRange;
+
+        VkImageMemoryBarrier2 depthImageBarrier{};
+        depthImageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+        depthImageBarrier.pNext = nullptr;
+        depthImageBarrier.srcStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
+        depthImageBarrier.dstStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
+        depthImageBarrier.srcAccessMask = 0;
+        depthImageBarrier.dstAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+        depthImageBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        depthImageBarrier.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        depthImageBarrier.image = pimpl->swapchain.depthImages[swapchainImageIndex].image;
+        VkImageSubresourceRange depthImageRange{};
+        depthImageRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+        depthImageRange.baseMipLevel = 0;
+        depthImageRange.levelCount = 1;
+        depthImageRange.baseArrayLayer = 0;
+        depthImageRange.layerCount = 1;
+        depthImageBarrier.subresourceRange = depthImageRange;
+
+        std::array<VkImageMemoryBarrier2, 2> imageBarriers{colorImageBarrier, depthImageBarrier};
+        VkDependencyInfo imageDependencyInfo{};
+        imageDependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+        imageDependencyInfo.imageMemoryBarrierCount = imageBarriers.size();
+        imageDependencyInfo.pImageMemoryBarriers = imageBarriers.data();
+        vkCmdPipelineBarrier2(frameData.drawBuf, &imageDependencyInfo);
+
         std::array<VkClearValue, 2> clearValues{}; // Using same value for all components enables
                                                    // compression according to NVIDIA Best Practices
         clearValues[0].color.float32[0] = 1.0f;
@@ -790,16 +830,37 @@ gfx::DrawBuffer* GFXDevice::BeginRender()
         clearValues[0].color.float32[3] = 1.0f;
         clearValues[1].depthStencil.depth = 1.0f;
 
-        VkRenderPassBeginInfo passBegin{};
-        passBegin.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        passBegin.pNext = nullptr;
-        passBegin.renderPass = pimpl->swapchain.renderpass;
-        passBegin.framebuffer = pimpl->swapchain.framebuffers[swapchainImageIndex];
-        passBegin.renderArea.extent = pimpl->swapchain.extent;
-        passBegin.renderArea.offset = {0, 0};
-        passBegin.clearValueCount = (uint32_t)clearValues.size();
-        passBegin.pClearValues = clearValues.data();
-        vkCmdBeginRenderPass(frameData.drawBuf, &passBegin, VK_SUBPASS_CONTENTS_INLINE);
+        VkRenderingAttachmentInfo colorAttachment{};
+        colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+        colorAttachment.pNext = nullptr;
+        colorAttachment.imageView = pimpl->swapchain.swapchainImages[swapchainImageIndex].second;
+        colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        colorAttachment.resolveMode = VK_RESOLVE_MODE_NONE;
+        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        colorAttachment.clearValue = clearValues[0];
+        VkRenderingAttachmentInfo depthAttachment{};
+        depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+        depthAttachment.pNext = nullptr;
+        depthAttachment.imageView = pimpl->swapchain.depthImages[swapchainImageIndex].view;
+        depthAttachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        depthAttachment.resolveMode = VK_RESOLVE_MODE_NONE;
+        depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        depthAttachment.clearValue = clearValues[1];
+
+        VkRenderingInfo renderingInfo{};
+        renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+        renderingInfo.pNext = nullptr;
+        renderingInfo.flags = 0;
+        renderingInfo.renderArea = VkRect2D{VkOffset2D{0, 0}, VkExtent2D{pimpl->swapchain.extent.width, pimpl->swapchain.extent.height}};
+        renderingInfo.layerCount = 1;
+        renderingInfo.viewMask = 0;
+        renderingInfo.colorAttachmentCount = 1;
+        renderingInfo.pColorAttachments = &colorAttachment;
+        renderingInfo.pDepthAttachment = &depthAttachment;
+        renderingInfo.pStencilAttachment = nullptr;
+        vkCmdBeginRendering(frameData.drawBuf, &renderingInfo);
 
         VkViewport viewport{};
         if (flip_viewport) {
@@ -824,6 +885,9 @@ gfx::DrawBuffer* GFXDevice::BeginRender()
         vkCmdSetScissor(frameData.drawBuf, 0, 1, &scissor);
     }
 
+    // clear write queue
+    pimpl->write_queues[currentFrameIndex].uniform_buffer_writes.clear();
+
     // hand command buffer over to caller
     gfx::DrawBuffer* drawBuffer = new gfx::DrawBuffer;
     drawBuffer->frameData = frameData;
@@ -839,8 +903,9 @@ void GFXDevice::FinishRender(gfx::DrawBuffer* drawBuffer)
     uint32_t swapchainImageIndex = drawBuffer->imageIndex;
     VkResult res;
 
-    vkCmdEndRenderPass(drawBuffer->frameData.drawBuf);
+    vkCmdEndRendering(drawBuffer->frameData.drawBuf);
 
+#if 0
     // transfer ownership of uniform buffers back to transfer queue
     std::vector<VkBufferMemoryBarrier2> releaseBarriers{};
     for (gfx::UniformBuffer* uniformBuffer : pimpl->write_queues[drawBuffer->currentFrameIndex].uniform_buffer_writes) {
@@ -861,6 +926,35 @@ void GFXDevice::FinishRender(gfx::DrawBuffer* drawBuffer)
     dependencyInfo.bufferMemoryBarrierCount = (uint32_t)releaseBarriers.size();
     dependencyInfo.pBufferMemoryBarriers = releaseBarriers.data();
     vkCmdPipelineBarrier2(drawBuffer->frameData.drawBuf, &dependencyInfo);
+#endif
+
+    // Make color attachment presentable.
+    // The present and draw queues are part of the same family so no ownership transfer needed
+    VkImageMemoryBarrier2 colorImageBarrier{};
+    colorImageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+    colorImageBarrier.pNext = nullptr;
+    colorImageBarrier.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+    colorImageBarrier.dstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT; // semaphore takes care of this
+    colorImageBarrier.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+    colorImageBarrier.dstAccessMask = 0;
+    colorImageBarrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    colorImageBarrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    colorImageBarrier.srcQueueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily;
+    colorImageBarrier.dstQueueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily;
+    colorImageBarrier.image = pimpl->swapchain.swapchainImages[swapchainImageIndex].first;
+    VkImageSubresourceRange colorImageRange{};
+    colorImageRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    colorImageRange.baseMipLevel = 0;
+    colorImageRange.levelCount = 1;
+    colorImageRange.baseArrayLayer = 0;
+    colorImageRange.layerCount = 1;
+    colorImageBarrier.subresourceRange = colorImageRange;
+
+    VkDependencyInfo imageDependencyInfo{};
+    imageDependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+    imageDependencyInfo.imageMemoryBarrierCount = 1;
+    imageDependencyInfo.pImageMemoryBarriers = &colorImageBarrier;
+    vkCmdPipelineBarrier2(drawBuffer->frameData.drawBuf, &imageDependencyInfo);
 
     res = vkEndCommandBuffer(drawBuffer->frameData.drawBuf);
     VKCHECK(res);
@@ -870,9 +964,9 @@ void GFXDevice::FinishRender(gfx::DrawBuffer* drawBuffer)
     std::vector<VkSemaphore> waitSemaphores{};
     std::vector<VkPipelineStageFlags> waitDstStageMasks{};
 
-    waitSemaphores.push_back(drawBuffer->frameData.presentSemaphore);
+    waitSemaphores.push_back(drawBuffer->frameData.presentSemaphore); // wait for image from 2nd last frame to be presented so it can be rendered to again
     waitDstStageMasks.push_back(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
-    waitSemaphores.push_back(drawBuffer->frameData.transferSemaphore);
+    waitSemaphores.push_back(drawBuffer->frameData.transferSemaphore); // wait for uniform buffer copies to complete
     waitDstStageMasks.push_back(VK_PIPELINE_STAGE_VERTEX_SHADER_BIT);
 
     VkSubmitInfo submitInfo{
@@ -906,9 +1000,6 @@ void GFXDevice::FinishRender(gfx::DrawBuffer* drawBuffer)
     }
     else if (res != VK_SUCCESS)
         throw std::runtime_error("Failed to queue present! Code: " + std::to_string(res));
-
-    // clear write queue
-    pimpl->write_queues[drawBuffer->currentFrameIndex].uniform_buffer_writes.clear();
 
     pimpl->FRAMECOUNT++;
 
@@ -1162,10 +1253,18 @@ gfx::Pipeline* GFXDevice::CreatePipeline(const gfx::PipelineInfo& info)
     createInfo.pColorBlendState = &colorBlending;
     createInfo.pDynamicState = &dynamicState;
     createInfo.layout = pipeline->layout;
-    createInfo.renderPass = pimpl->swapchain.renderpass;
+    createInfo.renderPass = VK_NULL_HANDLE;
     createInfo.subpass = 0;
     createInfo.basePipelineHandle = VK_NULL_HANDLE;
     createInfo.basePipelineIndex = -1;
+
+    VkPipelineRenderingCreateInfo renderingInfo{};
+    renderingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
+    renderingInfo.colorAttachmentCount = 1;
+    renderingInfo.pColorAttachmentFormats = &pimpl->swapchain.surfaceFormat.format;
+    renderingInfo.depthAttachmentFormat = pimpl->swapchain.depthStencilFormat;
+
+    createInfo.pNext = &renderingInfo;
 
     res = vkCreateGraphicsPipelines(pimpl->device.device, VK_NULL_HANDLE, 1, &createInfo, nullptr, &pipeline->handle);
     assert(res == VK_SUCCESS);

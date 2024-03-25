@@ -75,8 +75,11 @@ Device createDevice(VkInstance instance, const DeviceRequirements& requirements,
         }
 
         /* check features */
+        VkPhysicalDeviceDynamicRenderingFeatures dynamicRenderingFeatures{};
+        dynamicRenderingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES;
         VkPhysicalDeviceMemoryPriorityFeaturesEXT memoryPriorityFeatures{};
         memoryPriorityFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PRIORITY_FEATURES_EXT;
+        memoryPriorityFeatures.pNext = &dynamicRenderingFeatures;
         VkPhysicalDeviceSynchronization2Features synchronization2Features{};
         synchronization2Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES;
         synchronization2Features.pNext = &memoryPriorityFeatures;
@@ -198,6 +201,9 @@ Device createDevice(VkInstance instance, const DeviceRequirements& requirements,
 
             /* ensure synchronization 2 is found */
             if (synchronization2Features.synchronization2 == VK_FALSE) continue;
+
+            /* ensure dynamic_rendering is found */
+            if (dynamicRenderingFeatures.dynamicRendering == VK_FALSE) continue;
 
             /* check the memory priority extension was even requested */
             bool memoryPriorityRequired = false;
@@ -341,8 +347,12 @@ Device createDevice(VkInstance instance, const DeviceRequirements& requirements,
     }
 
     /* set enabled features */
+    VkPhysicalDeviceDynamicRenderingFeatures dynamicRenderingFeatures{};
+    dynamicRenderingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES;
+    dynamicRenderingFeatures.dynamicRendering = VK_TRUE;
     VkPhysicalDeviceMemoryPriorityFeaturesEXT memoryPriorityFeatures{};
     memoryPriorityFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PRIORITY_FEATURES_EXT;
+    memoryPriorityFeatures.pNext = &dynamicRenderingFeatures;
     memoryPriorityFeatures.memoryPriority = d.memoryPriorityFeature ? VK_TRUE : VK_FALSE;
     VkPhysicalDeviceSynchronization2Features synchronization2Features{};
     synchronization2Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES;
@@ -391,6 +401,7 @@ Device createDevice(VkInstance instance, const DeviceRequirements& requirements,
         d.enabledExtensions.emplace_back(ext);
     }
 
+    // wtf is going on here??
     if (transferFamily != graphicsFamily) {
         vkGetDeviceQueue(d.device, graphicsFamily, 0, &d.queues.presentQueue);
         if (queueFamilies[graphicsFamily].queueCount >= 2) {

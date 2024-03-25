@@ -224,9 +224,9 @@ void Application::GameLoop()
             debug_menu_state.show_info_window = !debug_menu_state.show_info_window;
         }
 
-        ImGui_ImplVulkan_NewFrame();
-        ImGui_ImplSDL2_NewFrame();
-        ImGui::NewFrame();
+        //ImGui_ImplVulkan_NewFrame();
+        //ImGui_ImplSDL2_NewFrame();
+        //ImGui::NewFrame();
 
         if (debug_menu_state.menu_active) {
             if (ImGui::Begin("debugMenu", 0)) {
@@ -269,7 +269,7 @@ void Application::GameLoop()
             ImGui::End();
         }
 
-        ImGui::Render();
+        //ImGui::Render();
 
         const RenderList* static_list = nullptr;
         const RenderList* dynamic_list = nullptr;
