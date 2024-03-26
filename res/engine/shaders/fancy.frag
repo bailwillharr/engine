@@ -44,7 +44,12 @@ void main() {
 
 	const float roughness_2 = roughness * roughness;
 
-	const vec3 light_colour = vec3(1.0, 1.0, 1.0) * 2.4;
+	vec3 light_colour = vec3(1.0, 1.0, 1.0) * 2.4;
+	float light_distance    = length(fragLightPosTangentSpace - fragPosTangentSpace);
+	float attenuation = 1.0 / (1.0 + 0.09 * light_distance + 
+    		    0.032 * (light_distance * light_distance));  
+	light_colour *= 5.0 * attenuation;
+
 	const vec3 emission = vec3(0.0, 0.0, 0.0);
 
 	const vec3 albedo = vec3(texture(materialSetAlbedoSampler, fragUV));
@@ -90,7 +95,7 @@ void main() {
 	lighting *= shadow;
 
 	vec3 ambient_light = vec3(0.09082, 0.13281, 0.18164);
-	lighting += mix(ambient_light, texture(globalSetSkybox, R).rgb, metallic) * ao * diffuse_brdf; // this is NOT physically-based, it just looks cool
+	//lighting += mix(ambient_light, texture(globalSetSkybox, R).rgb, metallic) * ao * diffuse_brdf; // this is NOT physically-based, it just looks cool
 
 	outColor = vec4(min(emission + lighting, 1.0), 1.0);
 	//outColor = vec4(vec3(shadow), 1.0);

@@ -577,74 +577,46 @@ void GFXDevice::GetViewportSize(uint32_t* w, uint32_t* h)
 
 void GFXDevice::SetupImguiBackend()
 {
-    // disable imgui for now
-#if 0
+    auto loaderFunc = [](const char* function_name, void* user_data) -> PFN_vkVoidFunction {
+        return vkGetInstanceProcAddr(*reinterpret_cast<VkInstance*>(user_data), function_name);
+    };
+    if (ImGui_ImplVulkan_LoadFunctions(loaderFunc, &pimpl->instance.instance) == false) throw std::runtime_error("Failed to load vulkan functions for imgui");
+
+    VkPipelineRenderingCreateInfo renderingInfo{};
+    renderingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
+    renderingInfo.colorAttachmentCount = 1;
+    renderingInfo.pColorAttachmentFormats = &pimpl->swapchain.surfaceFormat.format;
+    renderingInfo.depthAttachmentFormat = pimpl->swapchain.depthStencilFormat;
+
     ImGui_ImplVulkan_InitInfo initInfo{};
     initInfo.Instance = pimpl->instance.instance;
     initInfo.PhysicalDevice = pimpl->device.physicalDevice;
     initInfo.Device = pimpl->device.device;
     initInfo.QueueFamily = pimpl->device.queues.presentAndDrawQueueFamily;
     initInfo.Queue = pimpl->device.queues.drawQueues.back(); // hopefully this isn't used by anything else?
-    initInfo.PipelineCache = VK_NULL_HANDLE;
     initInfo.DescriptorPool = pimpl->descriptorPool;
-    initInfo.Subpass = 0;
+    initInfo.RenderPass = VK_NULL_HANDLE;
     initInfo.MinImageCount = 3;
     initInfo.ImageCount = 3;
     initInfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
-    initInfo.Allocator = nullptr;
     initInfo.CheckVkResultFn = check_vk_result;
-    bool success = ImGui_ImplVulkan_Init(&initInfo, pimpl->swapchain.renderpass);
+    initInfo.UseDynamicRendering = true;
+    initInfo.PipelineRenderingCreateInfo = renderingInfo;
+    bool success = ImGui_ImplVulkan_Init(&initInfo);
     if (!success) throw std::runtime_error("ImGui_ImplVulkan_Init failed!");
 
-    /* begin command buffer */
-    VkCommandBufferAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandPool = pimpl->graphicsCommandPool;
-    allocInfo.commandBufferCount = 1;
-
-    VkCommandBuffer commandBuffer;
-    VKCHECK(vkAllocateCommandBuffers(pimpl->device.device, &allocInfo, &commandBuffer));
-
-    VkCommandBufferBeginInfo beginInfo{};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-    VKCHECK(vkBeginCommandBuffer(commandBuffer, &beginInfo));
-
-    ImGui_ImplVulkan_CreateFontsTexture(commandBuffer);
-
-    VKCHECK(vkEndCommandBuffer(commandBuffer));
-
-    // submit
-    VkSubmitInfo submitInfo{};
-    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &commandBuffer;
-
-    VKCHECK(vkQueueSubmit(pimpl->device.queues.drawQueues[0], 1, &submitInfo, VK_NULL_HANDLE));
-
-    VKCHECK(vkQueueWaitIdle(pimpl->device.queues.drawQueues[0]));
-
-    vkFreeCommandBuffers(pimpl->device.device, pimpl->graphicsCommandPool, 1, &commandBuffer);
-
-    ImGui_ImplVulkan_DestroyFontUploadObjects();
-#endif
+    ImGui_ImplVulkan_CreateFontsTexture();
 }
 
 void GFXDevice::ShutdownImguiBackend()
 {
-    // disable imgui for now
-#if 0
+    ImGui_ImplVulkan_DestroyFontsTexture();
     ImGui_ImplVulkan_Shutdown();
-#endif
 }
 
 void GFXDevice::CmdRenderImguiDrawData(gfx::DrawBuffer* draw_buffer, ImDrawData* draw_data)
 {
-    // disable imgui rendering for now
-#if 0
     ImGui_ImplVulkan_RenderDrawData(draw_data, draw_buffer->frameData.drawBuf);
-#endif
 }
 
 gfx::DrawBuffer* GFXDevice::BeginRender()
@@ -826,9 +798,9 @@ gfx::DrawBuffer* GFXDevice::BeginRender()
 
         std::array<VkClearValue, 2> clearValues{}; // Using same value for all components enables
                                                    // compression according to NVIDIA Best Practices
-        clearValues[0].color.float32[0] = 1.0f;
-        clearValues[0].color.float32[1] = 1.0f;
-        clearValues[0].color.float32[2] = 1.0f;
+        clearValues[0].color.float32[0] = 0.0f;
+        clearValues[0].color.float32[1] = 0.0f;
+        clearValues[0].color.float32[2] = 0.0f;
         clearValues[0].color.float32[3] = 1.0f;
         clearValues[1].depthStencil.depth = 1.0f;
 
@@ -1139,7 +1111,7 @@ gfx::DrawBuffer* GFXDevice::BeginShadowmapRender(gfx::Image* image)
 
         VkRect2D scissor{};
         scissor.offset = {0, 0};
-        scissor.extent = { kShadowmapSize, kShadowmapSize };
+        scissor.extent = {kShadowmapSize, kShadowmapSize};
         vkCmdSetScissor(pimpl->frameData[0].drawBuf, 0, 1, &scissor);
 
         // Depth bias (and slope) are used to avoid shadowing artifacts
@@ -1149,12 +1121,7 @@ gfx::DrawBuffer* GFXDevice::BeginShadowmapRender(gfx::Image* image)
         constexpr float depthBiasSlope = 1.75f;
         // Set depth bias (aka "Polygon offset")
         // Required to avoid shadow mapping artifacts
-        vkCmdSetDepthBias(
-            pimpl->frameData[0].drawBuf,
-            depthBiasConstant,
-            0.0f,
-            depthBiasSlope);
-
+        vkCmdSetDepthBias(pimpl->frameData[0].drawBuf, depthBiasConstant, 0.0f, depthBiasSlope);
     }
 
     // hand command buffer over to caller

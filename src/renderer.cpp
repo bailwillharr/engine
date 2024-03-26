@@ -37,7 +37,7 @@ Renderer::Renderer(Application& app, gfx::GraphicsSettings settings) : Applicati
     //const glm::mat4 light_proj = glm::orthoRH_ZO(-10.0f, 10.0f, -10.0f, 10.0f, 1.0f, 50.0f);
     const glm::mat4 light_proj = glm::perspectiveFovRH_ZO(glm::radians(90.0f), 1.0f, 1.0f, 5.0f, 50.0f);
     const glm::mat4 light_view = glm::lookAtRH(light_location, glm::vec3{0.0f, 0.0f, 0.0f}, glm::vec3{0.0f, 0.0f, 1.0f});
-    global_uniform.uniform_buffer_data.data.proj = light_proj;
+    global_uniform.uniform_buffer_data.data.proj = glm::mat4{ 1.0f };
     global_uniform.uniform_buffer_data.data.lightSpaceMatrix = light_proj * light_view;
     global_uniform.uniform_buffer = device_->CreateUniformBuffer(sizeof(global_uniform.uniform_buffer_data), &global_uniform.uniform_buffer_data);
     device_->UpdateDescriptorUniformBuffer(global_uniform.set, 0, global_uniform.uniform_buffer, 0, sizeof(global_uniform.uniform_buffer_data));
@@ -210,9 +210,10 @@ Renderer::~Renderer()
 {
     device_->DestroyPipeline(shadow_pipeline);
 
-    device_->DestroySampler(shadow_map_sampler);
-    device_->DestroyImage(shadow_map);
-
+    if (rendering_started) {
+        device_->DestroySampler(shadow_map_sampler);
+        device_->DestroyImage(shadow_map);
+    }
     device_->DestroyBuffer(skybox_buffer);
     device_->DestroyPipeline(skybox_pipeline);
     device_->DestroySampler(skybox_sampler);
@@ -320,7 +321,7 @@ void Renderer::Render(const RenderList* static_list, const RenderList* dynamic_l
     };
 
     // draw skybox
-    {
+    if (0) {
         device_->CmdBindPipeline(draw_buffer, skybox_pipeline);
         device_->CmdBindDescriptorSet(draw_buffer, skybox_pipeline, global_uniform.set, 0);
         device_->CmdBindDescriptorSet(draw_buffer, skybox_pipeline, frame_uniform.set, 1);

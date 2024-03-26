@@ -63,7 +63,7 @@ void CameraControllerSystem::OnUpdate(float ts)
 
     // jumping
     if (scene_->app()->input_manager()->GetButtonPress("jump") && c->grounded) {
-        c->vel.z += 4.4f; // m/s
+        c->vel.z += CameraControllerComponent::kJumpHeight; // m/s
     }
 
     // update position with velocity:

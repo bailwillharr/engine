@@ -17,6 +17,7 @@ struct CameraControllerComponent {
     static constexpr float kSpeedForwardBack = 4.0f;
     static constexpr float kSpeedStrafe = 4.0f;
     static constexpr float kSprintMultiplier = 2.0f;
+    static constexpr float kJumpHeight = /*4.4f*/ 8.8f;
 
     // collision
     static constexpr float kPlayerHeight = 2.0f; // 71.0f * 25.4f / 1000.0f;
