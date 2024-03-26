@@ -31,6 +31,10 @@ class GFXDevice {
      - draw_buffer is invalid after this function has been called. */
   void FinishRender(gfx::DrawBuffer* draw_buffer);
 
+  gfx::Image* CreateShadowmapImage();
+  gfx::DrawBuffer* BeginShadowmapRender(gfx::Image* image);
+  void FinishShadowmapRender(gfx::DrawBuffer* draw_buffer, gfx::Image* image);
+
   /* - draw_buffer MUST be a valid pointer returned by BeginRender()
      - pipeline MUST be a valid pointer returned by CreatePipeline() */
   void CmdBindPipeline(gfx::DrawBuffer* draw_buffer,

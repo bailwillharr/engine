@@ -32,10 +32,12 @@ Renderer::Renderer(Application& app, gfx::GraphicsSettings settings) : Applicati
     }
     global_uniform.layout = device_->CreateDescriptorSetLayout(globalSetBindings);
     global_uniform.set = device_->AllocateDescriptorSet(global_uniform.layout);
-    global_uniform.uniform_buffer_data.data.proj = glm::mat4{1.0f};
-    const glm::vec3 light_location{ -0.4278, 0.7923, 0.43502 };
-    const glm::mat4 light_proj = glm::orthoRH_ZO(-32.0f, 32.0f, -32.0f, 32.0f, -100.0f, 100.0f);
-    const glm::mat4 light_view = glm::lookAtRH(light_location, glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3{ 0.0f, 0.0f, 1.0f });
+    //const glm::vec3 light_location = glm::vec3{-0.4278, 0.7923, 0.43502} * 10.0f;
+    const glm::vec3 light_location = glm::vec3{ 10.0f, 0.0f, 10.0f };
+    //const glm::mat4 light_proj = glm::orthoRH_ZO(-10.0f, 10.0f, -10.0f, 10.0f, 1.0f, 50.0f);
+    const glm::mat4 light_proj = glm::perspectiveFovRH_ZO(glm::radians(90.0f), 1.0f, 1.0f, 5.0f, 50.0f);
+    const glm::mat4 light_view = glm::lookAtRH(light_location, glm::vec3{0.0f, 0.0f, 0.0f}, glm::vec3{0.0f, 0.0f, 1.0f});
+    global_uniform.uniform_buffer_data.data.proj = light_proj;
     global_uniform.uniform_buffer_data.data.lightSpaceMatrix = light_proj * light_view;
     global_uniform.uniform_buffer = device_->CreateUniformBuffer(sizeof(global_uniform.uniform_buffer_data), &global_uniform.uniform_buffer_data);
     device_->UpdateDescriptorUniformBuffer(global_uniform.set, 0, global_uniform.uniform_buffer, 0, sizeof(global_uniform.uniform_buffer_data));
@@ -50,7 +52,7 @@ Renderer::Renderer(Application& app, gfx::GraphicsSettings settings) : Applicati
     }
     frame_uniform.layout = device_->CreateDescriptorSetLayout(frameSetBindings);
     frame_uniform.set = device_->AllocateDescriptorSet(frame_uniform.layout);
-    frame_uniform.uniform_buffer_data.data = glm::mat4{1.0f};
+    frame_uniform.uniform_buffer_data.data = light_view;
     frame_uniform.uniform_buffer = device_->CreateUniformBuffer(sizeof(frame_uniform.uniform_buffer_data), &frame_uniform.uniform_buffer_data);
     device_->UpdateDescriptorUniformBuffer(frame_uniform.set, 0, frame_uniform.uniform_buffer, 0, sizeof(frame_uniform.uniform_buffer_data));
 
@@ -188,28 +190,26 @@ Renderer::Renderer(Application& app, gfx::GraphicsSettings settings) : Applicati
 
         skybox_buffer = device_->CreateBuffer(gfx::BufferType::kVertex, v.size() * sizeof(glm::vec3), v.data());
     }
-
-    // shadow mapping...
-    {
-        int w{}, h{};
-        auto shadowmap_image = util::ReadImageFile(GetResourcePath("textures/shadow_map.png"), w, h);
-        shadow_map = device_->CreateImage(w, h, gfx::ImageFormat::kLinear, shadowmap_image->data());
-        gfx::SamplerInfo sampler_info{};
-        sampler_info.magnify = gfx::Filter::kLinear;
-        sampler_info.minify = gfx::Filter::kLinear;
-        sampler_info.mipmap = gfx::Filter::kLinear; // trilinear is apparently good for shadow maps
-        sampler_info.wrap_u = gfx::WrapMode::kClampToEdge;
-        sampler_info.wrap_v = gfx::WrapMode::kClampToEdge;
-        sampler_info.wrap_w = gfx::WrapMode::kClampToEdge;
-        sampler_info.anisotropic_filtering = false; // Copilot says not to use aniso for shadow maps
-        shadow_map_sampler = device_->CreateSampler(sampler_info);
-
-        device_->UpdateDescriptorCombinedImageSampler(global_uniform.set, 2, shadow_map, shadow_map_sampler);
-    }
+    gfx::VertexFormat shadowVertexFormat{};
+    shadowVertexFormat.stride = sizeof(float) * 12; // using the full meshes so a lot of data is skipped
+    shadowVertexFormat.attribute_descriptions.emplace_back(0, gfx::VertexAttribFormat::kFloat3, 0); // position
+    gfx::PipelineInfo shadowPipelineInfo{};
+    shadowPipelineInfo.vert_shader_path = GetResourcePath("engine/shaders/shadow.vert");
+    shadowPipelineInfo.frag_shader_path = GetResourcePath("engine/shaders/shadow.frag");
+    shadowPipelineInfo.vertex_format = shadowVertexFormat;
+    shadowPipelineInfo.face_cull_mode = gfx::CullMode::kCullBack;
+    shadowPipelineInfo.alpha_blending = false;
+    shadowPipelineInfo.write_z = true;
+    shadowPipelineInfo.line_primitives = false;
+    shadowPipelineInfo.depth_attachment_only = true;
+    shadowPipelineInfo.descriptor_set_layouts.emplace_back(GetGlobalSetLayout());
+    shadow_pipeline = device_->CreatePipeline(shadowPipelineInfo);
 };
 
 Renderer::~Renderer()
 {
+    device_->DestroyPipeline(shadow_pipeline);
+
     device_->DestroySampler(shadow_map_sampler);
     device_->DestroyImage(shadow_map);
 
@@ -248,16 +248,56 @@ void Renderer::PreRender(bool window_is_resized, glm::mat4 camera_transform)
     const glm::mat4 view_matrix = glm::inverse(camera_transform);
     frame_uniform.uniform_buffer_data.data = view_matrix;
     device_->WriteUniformBuffer(frame_uniform.uniform_buffer, 0, sizeof(frame_uniform.uniform_buffer_data), &frame_uniform.uniform_buffer_data);
-
-    // override with light matrix
-    //frame_uniform.uniform_buffer_data.data = glm::mat4{1.0f};
-    //device_->WriteUniformBuffer(frame_uniform.uniform_buffer, 0, sizeof(frame_uniform.uniform_buffer_data), &frame_uniform.uniform_buffer_data);
-    //global_uniform.uniform_buffer_data.data.proj = global_uniform.uniform_buffer_data.data.lightSpaceMatrix;
-    //device_->WriteUniformBuffer(global_uniform.uniform_buffer, 0, sizeof(global_uniform.uniform_buffer_data), &global_uniform.uniform_buffer_data);
 }
 
 void Renderer::Render(const RenderList* static_list, const RenderList* dynamic_list, const std::vector<Line>& debug_lines)
 {
+
+    if (rendering_started == false) {
+        // shadow mapping...
+
+        shadow_map = device_->CreateShadowmapImage();
+
+        // render to shadow map
+        gfx::DrawBuffer* shadow_draw = device_->BeginShadowmapRender(shadow_map);
+        device_->CmdBindPipeline(shadow_draw, shadow_pipeline);
+        device_->CmdBindDescriptorSet(shadow_draw, shadow_pipeline, global_uniform.set, 0); // only need light space matrix
+        if (static_list) {
+            if (!static_list->empty()) {
+                for (const auto& entry : *static_list) {
+                    device_->CmdPushConstants(shadow_draw, shadow_pipeline, 0, sizeof(entry.model_matrix), &entry.model_matrix);
+                    device_->CmdBindVertexBuffer(shadow_draw, 0, entry.vertex_buffer);
+                    device_->CmdBindIndexBuffer(shadow_draw, entry.index_buffer);
+                    device_->CmdDrawIndexed(shadow_draw, entry.index_count, 1, 0, 0, 0);
+                }
+            }
+        }
+        if (dynamic_list) {
+            if (!dynamic_list->empty()) {
+                for (const auto& entry : *dynamic_list) {
+                    device_->CmdPushConstants(shadow_draw, shadow_pipeline, 0, sizeof(entry.model_matrix), &entry.model_matrix);
+                    device_->CmdBindVertexBuffer(shadow_draw, 0, entry.vertex_buffer);
+                    device_->CmdBindIndexBuffer(shadow_draw, entry.index_buffer);
+                    device_->CmdDrawIndexed(shadow_draw, entry.index_count, 1, 0, 0, 0);
+                }
+            }
+        }
+        device_->FinishShadowmapRender(shadow_draw, shadow_map);
+
+        gfx::SamplerInfo sampler_info{};
+        sampler_info.magnify = gfx::Filter::kLinear;
+        sampler_info.minify = gfx::Filter::kLinear;
+        sampler_info.mipmap = gfx::Filter::kLinear; // trilinear is apparently good for shadow maps
+        sampler_info.wrap_u = gfx::WrapMode::kClampToEdge;
+        sampler_info.wrap_v = gfx::WrapMode::kClampToEdge;
+        sampler_info.wrap_w = gfx::WrapMode::kClampToEdge;
+        sampler_info.anisotropic_filtering = false; // Copilot says not to use aniso for shadow maps
+        shadow_map_sampler = device_->CreateSampler(sampler_info);
+
+        device_->UpdateDescriptorCombinedImageSampler(global_uniform.set, 2, shadow_map, shadow_map_sampler);
+    }
+    rendering_started = true;
+
     last_bound_pipeline_ = nullptr;
 
     gfx::DrawBuffer* draw_buffer = device_->BeginRender();

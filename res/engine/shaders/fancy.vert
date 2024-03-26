@@ -39,7 +39,8 @@ void main() {
 	fragUV = inUV;
 	fragPosTangentSpace = worldToTangentSpace * vec3(worldPosition);
 	fragViewPosTangentSpace = worldToTangentSpace * vec3(inverse(frameSetUniformBuffer.view) * vec4(0.0, 0.0, 0.0, 1.0));
-	fragLightPosTangentSpace = worldToTangentSpace * vec3(-0.4278,0.7923,0.43502);
+	//fragLightPosTangentSpace = worldToTangentSpace * vec3(-0.4278,0.7923,0.43502);
+	fragLightPosTangentSpace = worldToTangentSpace * vec3(10.0, 0.0, 10.0);
 
 	fragNormWorldSpace = N;
 	fragViewPosWorldSpace = vec3(inverse(frameSetUniformBuffer.view) * vec4(0.0, 0.0, 0.0, 1.0));

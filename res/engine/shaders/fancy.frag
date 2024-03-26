@@ -51,7 +51,7 @@ void main() {
 	const vec3 N = GetNormal();
 
 	const vec3 V = normalize(fragViewPosTangentSpace - fragPosTangentSpace);
-	const vec3 L = normalize(fragLightPosTangentSpace);
+	const vec3 L = normalize(fragLightPosTangentSpace - fragPosTangentSpace);
 	//const vec3 L = normalize(vec3(5.0, 0.0, 3.0));
 	const vec3 H = normalize(V + L);
 
@@ -80,16 +80,18 @@ void main() {
 	
 	vec3 lighting = brdf * light_colour * L_dot_N;
 
-	vec3 ambient_light = vec3(0.09082, 0.13281, 0.18164);
-	lighting += mix(ambient_light, texture(globalSetSkybox, R).rgb, metallic) * ao * diffuse_brdf; // this is NOT physically-based, it just looks cool
-
-	// perform perspective divide
-    vec3 projCoords = fragPosLightSpace.xyz;
+	// find if fragment is in shadow
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
 	projCoords.x = projCoords.x * 0.5 + 0.5; 
 	projCoords.y = projCoords.y * 0.5 + 0.5; 
 	float closestDepth = texture(globalSetShadowmap, projCoords.xy).r;
 	float currentDepth = projCoords.z;
-	float shadow = currentDepth > closestDepth ? 1.0 : 0.0;
+	float shadow = currentDepth > closestDepth ? 0.0 : 1.0;
+	lighting *= shadow;
+
+	vec3 ambient_light = vec3(0.09082, 0.13281, 0.18164);
+	lighting += mix(ambient_light, texture(globalSetSkybox, R).rgb, metallic) * ao * diffuse_brdf; // this is NOT physically-based, it just looks cool
+
 	outColor = vec4(min(emission + lighting, 1.0), 1.0);
-	//outColor = vec4(shadow, 0.0, 0.0, 1.0);
+	//outColor = vec4(vec3(shadow), 1.0);
 }

@@ -72,6 +72,8 @@ static constexpr uint32_t FRAMES_IN_FLIGHT = 2;       // This improved FPS by 5x
 static constexpr size_t PUSH_CONSTANT_MAX_SIZE = 128; // bytes
 static constexpr VkIndexType INDEX_TYPE = VK_INDEX_TYPE_UINT32;
 
+static constexpr int kShadowmapSize = 2048;
+
 // structures and enums
 
 struct FrameData {
@@ -677,7 +679,7 @@ gfx::DrawBuffer* GFXDevice::BeginRender()
     // ownership transfer isn't needed since the data isn't accessed it's just overwritten
 
     {
-        // copy stagings buffers to GPU buffer
+        // copy staging buffers to GPU buffers
         for (gfx::UniformBuffer* uniformBuffer : pimpl->write_queues[currentFrameIndex].uniform_buffer_writes) {
             VkBufferCopy copyRegion{};
             copyRegion.srcOffset = 0;
@@ -889,7 +891,7 @@ gfx::DrawBuffer* GFXDevice::BeginRender()
     pimpl->write_queues[currentFrameIndex].uniform_buffer_writes.clear();
 
     // hand command buffer over to caller
-    gfx::DrawBuffer* drawBuffer = new gfx::DrawBuffer;
+    gfx::DrawBuffer* drawBuffer = new gfx::DrawBuffer; // heap allocation every frame but it's only 72 bytes
     drawBuffer->frameData = frameData;
     drawBuffer->currentFrameIndex = currentFrameIndex;
     drawBuffer->imageIndex = swapchainImageIndex;
@@ -964,7 +966,7 @@ void GFXDevice::FinishRender(gfx::DrawBuffer* drawBuffer)
     std::vector<VkSemaphore> waitSemaphores{};
     std::vector<VkPipelineStageFlags> waitDstStageMasks{};
 
-    waitSemaphores.push_back(drawBuffer->frameData.presentSemaphore); // wait for image from 2nd last frame to be presented so it can be rendered to again
+    waitSemaphores.push_back(drawBuffer->frameData.presentSemaphore);  // wait for image from 2nd last frame to be presented so it can be rendered to again
     waitDstStageMasks.push_back(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
     waitSemaphores.push_back(drawBuffer->frameData.transferSemaphore); // wait for uniform buffer copies to complete
     waitDstStageMasks.push_back(VK_PIPELINE_STAGE_VERTEX_SHADER_BIT);
@@ -1004,6 +1006,222 @@ void GFXDevice::FinishRender(gfx::DrawBuffer* drawBuffer)
     pimpl->FRAMECOUNT++;
 
     delete drawBuffer;
+}
+
+gfx::Image* GFXDevice::CreateShadowmapImage()
+{
+    if (pimpl->FRAMECOUNT != 0) abort();
+
+    gfx::Image* out = new gfx::Image{};
+
+    VkImageCreateInfo imageInfo{};
+    imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    imageInfo.flags = 0;
+    imageInfo.imageType = VK_IMAGE_TYPE_2D;
+    imageInfo.format = pimpl->swapchain.depthStencilFormat;
+    imageInfo.extent.width = kShadowmapSize;
+    imageInfo.extent.height = kShadowmapSize;
+    imageInfo.extent.depth = 1;
+    imageInfo.mipLevels = 1;
+    imageInfo.arrayLayers = 1;
+    imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+    imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+    imageInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+    VmaAllocationCreateInfo allocCreateInfo{};
+    allocCreateInfo.flags = 0;
+    allocCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+    allocCreateInfo.priority = 0.5f;
+
+    VKCHECK(vmaCreateImage(pimpl->allocator, &imageInfo, &allocCreateInfo, &out->image, &out->allocation, nullptr));
+
+    VkImageViewCreateInfo viewInfo{};
+    viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    viewInfo.image = out->image;
+    viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    viewInfo.format = pimpl->swapchain.depthStencilFormat;
+    viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+    viewInfo.subresourceRange.baseMipLevel = 0;
+    viewInfo.subresourceRange.levelCount = 1;
+    viewInfo.subresourceRange.baseArrayLayer = 0;
+    viewInfo.subresourceRange.layerCount = 1;
+
+    VKCHECK(vkCreateImageView(pimpl->device.device, &viewInfo, nullptr, &out->view));
+
+    return out;
+}
+
+gfx::DrawBuffer* GFXDevice::BeginShadowmapRender(gfx::Image* image)
+{
+    assert(image != nullptr);
+    if (pimpl->FRAMECOUNT != 0) throw std::runtime_error("Can only create shadowmap before proper rendering begins.");
+
+    VkResult res;
+
+    /* record command buffer */
+    res = vkResetCommandPool(pimpl->device.device, pimpl->graphicsCommandPool, 0);
+    VKCHECK(res);
+
+    VkCommandBufferBeginInfo beginInfo{
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+        .pNext = nullptr,
+        .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+        .pInheritanceInfo = nullptr // ignored
+    };
+    res = vkBeginCommandBuffer(pimpl->frameData[0].drawBuf, &beginInfo);
+    VKCHECK(res);
+
+    {
+        // make the depth image an attachment layout
+        VkImageMemoryBarrier2 barrier{};
+        barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+        barrier.pNext = nullptr;
+        barrier.srcStageMask = VK_PIPELINE_STAGE_2_NONE;
+        barrier.dstStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
+        barrier.srcAccessMask = VK_ACCESS_2_NONE;
+        barrier.dstAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+        barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        barrier.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        barrier.srcQueueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily;
+        barrier.dstQueueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily;
+        barrier.image = image->image;
+        VkImageSubresourceRange range{};
+        range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+        range.baseMipLevel = 0;
+        range.levelCount = 1;
+        range.baseArrayLayer = 0;
+        range.layerCount = 1;
+        barrier.subresourceRange = range;
+
+        VkDependencyInfo imageDependencyInfo{};
+        imageDependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+        imageDependencyInfo.imageMemoryBarrierCount = 1;
+        imageDependencyInfo.pImageMemoryBarriers = &barrier;
+        vkCmdPipelineBarrier2(pimpl->frameData[0].drawBuf, &imageDependencyInfo);
+
+        VkClearValue clearValue{};
+        clearValue.depthStencil.depth = 1.0f;
+
+        VkRenderingAttachmentInfo depthAttachment{};
+        depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+        depthAttachment.pNext = nullptr;
+        depthAttachment.imageView = image->view;
+        depthAttachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        depthAttachment.resolveMode = VK_RESOLVE_MODE_NONE;
+        depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        depthAttachment.clearValue = clearValue;
+
+        VkRenderingInfo renderingInfo{};
+        renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+        renderingInfo.pNext = nullptr;
+        renderingInfo.flags = 0;
+        renderingInfo.renderArea = VkRect2D{VkOffset2D{0, 0}, VkExtent2D{kShadowmapSize, kShadowmapSize}};
+        renderingInfo.layerCount = 1;
+        renderingInfo.viewMask = 0;
+        renderingInfo.colorAttachmentCount = 0;
+        renderingInfo.pColorAttachments = nullptr; // no color attachment for this render pass
+        renderingInfo.pDepthAttachment = &depthAttachment;
+        renderingInfo.pStencilAttachment = nullptr;
+        vkCmdBeginRendering(pimpl->frameData[0].drawBuf, &renderingInfo);
+
+        VkViewport viewport{};
+        viewport.x = 0.0f;
+        viewport.y = 0.0f;
+        viewport.width = (float)kShadowmapSize;
+        viewport.height = (float)kShadowmapSize;
+
+        viewport.minDepth = 0.0f;
+        viewport.maxDepth = 1.0f;
+        vkCmdSetViewport(pimpl->frameData[0].drawBuf, 0, 1, &viewport);
+
+        VkRect2D scissor{};
+        scissor.offset = {0, 0};
+        scissor.extent = { kShadowmapSize, kShadowmapSize };
+        vkCmdSetScissor(pimpl->frameData[0].drawBuf, 0, 1, &scissor);
+
+        // Depth bias (and slope) are used to avoid shadowing artifacts
+        // Constant depth bias factor (always applied)
+        constexpr float depthBiasConstant = 1.25f;
+        // Slope depth bias factor, applied depending on polygon's slope
+        constexpr float depthBiasSlope = 1.75f;
+        // Set depth bias (aka "Polygon offset")
+        // Required to avoid shadow mapping artifacts
+        vkCmdSetDepthBias(
+            pimpl->frameData[0].drawBuf,
+            depthBiasConstant,
+            0.0f,
+            depthBiasSlope);
+
+    }
+
+    // hand command buffer over to caller
+    gfx::DrawBuffer* drawBuffer = new gfx::DrawBuffer; // heap allocation every frame but it's only 72 bytes
+    drawBuffer->frameData = pimpl->frameData[0];
+    drawBuffer->currentFrameIndex = 0;
+    drawBuffer->imageIndex = std::numeric_limits<uint32_t>::max(); // meaningless here
+    return drawBuffer;
+}
+
+void GFXDevice::FinishShadowmapRender(gfx::DrawBuffer* draw_buffer, gfx::Image* image)
+{
+    assert(draw_buffer != nullptr);
+
+    VkResult res;
+
+    vkCmdEndRendering(draw_buffer->frameData.drawBuf);
+
+    // make the depth image readable by a sampler
+    VkImageMemoryBarrier2 barrier{};
+    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+    barrier.pNext = nullptr;
+    barrier.srcStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
+    barrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
+    barrier.srcAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+    barrier.dstAccessMask = VK_ACCESS_2_SHADER_SAMPLED_READ_BIT;
+    barrier.oldLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    barrier.srcQueueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily;
+    barrier.dstQueueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily;
+    barrier.image = image->image;
+    VkImageSubresourceRange range{};
+    range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+    range.baseMipLevel = 0;
+    range.levelCount = 1;
+    range.baseArrayLayer = 0;
+    range.layerCount = 1;
+    barrier.subresourceRange = range;
+
+    VkDependencyInfo imageDependencyInfo{};
+    imageDependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+    imageDependencyInfo.imageMemoryBarrierCount = 1;
+    imageDependencyInfo.pImageMemoryBarriers = &barrier;
+    vkCmdPipelineBarrier2(draw_buffer->frameData.drawBuf, &imageDependencyInfo);
+
+    res = vkEndCommandBuffer(draw_buffer->frameData.drawBuf);
+    VKCHECK(res);
+
+    // SUBMIT
+
+    VkSubmitInfo submitInfo{
+        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+        .pNext = nullptr,
+        .waitSemaphoreCount = 0,
+        .pWaitSemaphores = nullptr,
+        .pWaitDstStageMask = nullptr,
+        .commandBufferCount = 1,
+        .pCommandBuffers = &draw_buffer->frameData.drawBuf,
+        .signalSemaphoreCount = 0,
+        .pSignalSemaphores = nullptr,
+    };
+    res = vkQueueSubmit(pimpl->device.queues.drawQueues[0], 1, &submitInfo, VK_NULL_HANDLE);
+    VKCHECK(res);
+
+    vkQueueWaitIdle(pimpl->device.queues.drawQueues[0]);
+
+    delete draw_buffer;
 }
 
 void GFXDevice::CmdBindPipeline(gfx::DrawBuffer* drawBuffer, const gfx::Pipeline* pipeline)
@@ -1124,6 +1342,7 @@ gfx::Pipeline* GFXDevice::CreatePipeline(const gfx::PipelineInfo& info)
     inputAssembly.topology = info.line_primitives ? VK_PRIMITIVE_TOPOLOGY_LINE_LIST : VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     inputAssembly.primitiveRestartEnable = VK_FALSE;
 
+#if 0
     VkViewport viewport{};
     if (flip_viewport) {
         viewport.x = 0.0f;
@@ -1143,6 +1362,7 @@ gfx::Pipeline* GFXDevice::CreatePipeline(const gfx::PipelineInfo& info)
     VkRect2D scissor{};
     scissor.offset = {0, 0};
     scissor.extent = pimpl->swapchain.extent;
+#endif
 
     // Dynamic states removes the need to re-create pipelines whenever the window
     // size changes
@@ -1156,9 +1376,9 @@ gfx::Pipeline* GFXDevice::CreatePipeline(const gfx::PipelineInfo& info)
     VkPipelineViewportStateCreateInfo viewportState{};
     viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
     viewportState.viewportCount = 1;
-    viewportState.pViewports = &viewport;
+    viewportState.pViewports = nullptr;
     viewportState.scissorCount = 1;
-    viewportState.pScissors = &scissor;
+    viewportState.pScissors = nullptr;
 
     VkPipelineRasterizationStateCreateInfo rasterizer{};
     rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
@@ -1246,7 +1466,7 @@ gfx::Pipeline* GFXDevice::CreatePipeline(const gfx::PipelineInfo& info)
     createInfo.pStages = shaderStages;
     createInfo.pVertexInputState = &vertexInputInfo;
     createInfo.pInputAssemblyState = &inputAssembly;
-    createInfo.pViewportState = &viewportState; // TODO: maybe this isn't needed?
+    createInfo.pViewportState = &viewportState;
     createInfo.pRasterizationState = &rasterizer;
     createInfo.pMultisampleState = &multisampling;
     createInfo.pDepthStencilState = &depthStencil;
@@ -1260,8 +1480,14 @@ gfx::Pipeline* GFXDevice::CreatePipeline(const gfx::PipelineInfo& info)
 
     VkPipelineRenderingCreateInfo renderingInfo{};
     renderingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
-    renderingInfo.colorAttachmentCount = 1;
-    renderingInfo.pColorAttachmentFormats = &pimpl->swapchain.surfaceFormat.format;
+    if (info.depth_attachment_only) {
+        renderingInfo.colorAttachmentCount = 0;
+        renderingInfo.pColorAttachmentFormats = nullptr;
+    }
+    else {
+        renderingInfo.colorAttachmentCount = 1;
+        renderingInfo.pColorAttachmentFormats = &pimpl->swapchain.surfaceFormat.format;
+    }
     renderingInfo.depthAttachmentFormat = pimpl->swapchain.depthStencilFormat;
 
     createInfo.pNext = &renderingInfo;

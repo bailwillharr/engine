@@ -123,6 +123,7 @@ struct PipelineInfo {
     bool alpha_blending;
     bool write_z;
     bool line_primitives; // false for triangles, true for lines
+    bool depth_attachment_only; // false 99% of the time
     std::vector<const DescriptorSetLayout*> descriptor_set_layouts;
 };
 

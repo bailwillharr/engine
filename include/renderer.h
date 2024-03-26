@@ -112,6 +112,9 @@ class Renderer : private ApplicationComponent {
 
     gfx::Image* shadow_map = nullptr;
     const gfx::Sampler* shadow_map_sampler = nullptr;
+    const gfx::Pipeline* shadow_pipeline = nullptr;
+
+    bool rendering_started = false;
 
     void DrawRenderList(gfx::DrawBuffer* draw_buffer, const RenderList& render_list);
 };
