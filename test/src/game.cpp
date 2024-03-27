@@ -77,6 +77,11 @@ void PlayGame(GameSettings settings)
         /* create camera */
         engine::Entity camera = main_scene->CreateEntity("camera");
 
+        auto camren = main_scene->AddComponent<engine::MeshRenderableComponent>(camera);
+        camren->visible = true;
+        camren->mesh = GenSphereMesh(app.renderer()->GetDevice(), 0.2f, 10);
+        camren->material = app.GetResource<engine::Material>("builtin.default");
+
         /* as of right now, the entity with tag 'camera' is used to build the view
          * matrix */
 

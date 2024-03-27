@@ -32,12 +32,12 @@ Renderer::Renderer(Application& app, gfx::GraphicsSettings settings) : Applicati
     }
     global_uniform.layout = device_->CreateDescriptorSetLayout(globalSetBindings);
     global_uniform.set = device_->AllocateDescriptorSet(global_uniform.layout);
-    // const glm::vec3 light_location = glm::vec3{-0.4278, 0.7923, 0.43502} * 10.0f;
-    const glm::vec3 light_location = glm::vec3{10.0f, 0.0f, 10.0f};
-    // const glm::mat4 light_proj = glm::orthoRH_ZO(-10.0f, 10.0f, -10.0f, 10.0f, 1.0f, 50.0f);
-    const glm::mat4 light_proj = glm::perspectiveFovRH_ZO(glm::radians(90.0f), 1.0f, 1.0f, 5.0f, 50.0f);
+    const glm::vec3 light_location = glm::vec3{-0.4278, 0.7923, 0.43502} * 40.0f;
+    //const glm::vec3 light_location = glm::vec3{10.0f, 0.0f, 10.0f};
+    const glm::mat4 light_proj = glm::orthoRH_ZO(-24.0f, 24.0f, -15.0f, 15.0f, 10.0f, 65.0f);
+    //const glm::mat4 light_proj = glm::perspectiveFovRH_ZO(glm::radians(90.0f), 1.0f, 1.0f, 5.0f, 50.0f);
     const glm::mat4 light_view = glm::lookAtRH(light_location, glm::vec3{0.0f, 0.0f, 0.0f}, glm::vec3{0.0f, 0.0f, 1.0f});
-    global_uniform.uniform_buffer_data.data.proj = glm::mat4{1.0f};
+    global_uniform.uniform_buffer_data.data.proj = light_proj;
     global_uniform.uniform_buffer_data.data.lightSpaceMatrix = light_proj * light_view;
     global_uniform.uniform_buffer = device_->CreateUniformBuffer(sizeof(global_uniform.uniform_buffer_data), &global_uniform.uniform_buffer_data);
     device_->UpdateDescriptorUniformBuffer(global_uniform.set, 0, global_uniform.uniform_buffer, 0, sizeof(global_uniform.uniform_buffer_data));

@@ -48,7 +48,7 @@ void main() {
 	float light_distance    = length(fragLightPosTangentSpace - fragPosTangentSpace);
 	float attenuation = 1.0 / (1.0 + 0.09 * light_distance + 
     		    0.032 * (light_distance * light_distance));  
-	light_colour *= 5.0 * attenuation;
+	//light_colour *= 5.0 * attenuation;
 
 	const vec3 emission = vec3(0.0, 0.0, 0.0);
 
@@ -56,7 +56,7 @@ void main() {
 	const vec3 N = GetNormal();
 
 	const vec3 V = normalize(fragViewPosTangentSpace - fragPosTangentSpace);
-	const vec3 L = normalize(fragLightPosTangentSpace - fragPosTangentSpace);
+	const vec3 L = normalize(fragLightPosTangentSpace /* - fragPosTangentSpace */ );
 	//const vec3 L = normalize(vec3(5.0, 0.0, 3.0));
 	const vec3 H = normalize(V + L);
 
