@@ -88,37 +88,54 @@ void PlayGame(GameSettings settings)
         main_scene->AddComponent<CameraControllerComponent>(camera);
 
         /* floor */
-        engine::Entity floor = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/floor.glb"));
-        //main_scene->GetComponent<engine::MeshRenderableComponent>(main_scene->GetEntity("Cube", floor))->visible = false;
+        engine::Entity floor = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/floor.glb"), true);
+        // main_scene->GetComponent<engine::MeshRenderableComponent>(main_scene->GetEntity("Cube", floor))->visible = false;
 
-        engine::Entity monke = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/monke.glb"));
+        engine::Entity monke = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/monke.glb"), true);
         main_scene->GetComponent<engine::TransformComponent>(monke)->position.y += 10.0f;
 
-        //engine::Entity bottle = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/bottle.glb"));
-        //main_scene->GetComponent<engine::TransformComponent>(bottle)->scale *= 10.0f;
-        //main_scene->GetComponent<engine::TransformComponent>(bottle)->position.x += 25.0f;
-        //main_scene->GetComponent<engine::TransformComponent>(bottle)->position.z += 5.0f;
+        // engine::Entity bottle = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/bottle.glb"));
+        // main_scene->GetComponent<engine::TransformComponent>(bottle)->scale *= 10.0f;
+        // main_scene->GetComponent<engine::TransformComponent>(bottle)->position.x += 25.0f;
+        // main_scene->GetComponent<engine::TransformComponent>(bottle)->position.z += 5.0f;
 
-		engine::Entity helmet = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/DamagedHelmet.glb"));
-		main_scene->GetPosition(helmet) += glm::vec3{5.0f, 5.0f, 1.0f};
+        engine::Entity helmet = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/DamagedHelmet.glb"), true);
+        main_scene->GetPosition(helmet) += glm::vec3{5.0f, 5.0f, 1.0f};
         main_scene->GetScale(helmet) *= 3.0f;
 
-		engine::Entity toycar = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/ToyCar.glb"));
-		main_scene->GetScale(toycar) *= 150.0f;
+        engine::Entity toycar = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/ToyCar.glb"), true);
+        main_scene->GetScale(toycar) *= 150.0f;
         main_scene->GetPosition(toycar).z -= 0.07f;
 
-        engine::Entity stairs = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/stairs.glb"));
+        engine::Entity stairs = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/stairs.glb"), true);
         main_scene->GetPosition(stairs) += glm::vec3{-8.0f, -5.0f, 0.1f};
-        main_scene->GetRotation(stairs) = glm::angleAxis(glm::half_pi<float>(), glm::vec3{ 0.0f, 0.0f, 1.0f });
-        main_scene->GetRotation(stairs) *= glm::angleAxis(glm::half_pi<float>(), glm::vec3{ 1.0f, 0.0f, 0.0f });
+        main_scene->GetRotation(stairs) = glm::angleAxis(glm::half_pi<float>(), glm::vec3{0.0f, 0.0f, 1.0f});
+        main_scene->GetRotation(stairs) *= glm::angleAxis(glm::half_pi<float>(), glm::vec3{1.0f, 0.0f, 0.0f});
 
-        engine::Entity axes = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/MY_AXES.glb"));
+        engine::Entity axes = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/MY_AXES.glb"), true);
         main_scene->GetPosition(axes) += glm::vec3{-40.0f, -40.0f, 1.0f};
 
-        engine::Entity bottle = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/bottle.glb"));
+        engine::Entity bottle = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/bottle.glb"), true);
         main_scene->GetPosition(bottle).y -= 10.0f;
         main_scene->GetPosition(bottle).z += 2.5f;
         main_scene->GetScale(bottle) *= 25.0f;
+
+        engine::Entity cube = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/cube.glb"), false);
+        main_scene->GetPosition(cube) += glm::vec3{-5.0f, -17.0f, 0.0f};
+        auto cubeCustom = main_scene->AddComponent<engine::CustomComponent>(cube);
+        cubeCustom->onInit = [] {};
+        cubeCustom->onUpdate = [&main_scene, cube](float dt) {
+            static float yaw = 0.0f;
+            yaw += dt;
+            main_scene->GetRotation(cube) = glm::angleAxis(yaw, glm::vec3{0.0f, 0.0f, 1.0f});
+            main_scene->GetRotation(cube) *= glm::angleAxis(glm::half_pi<float>(), glm::vec3{ 1.0f, 0.0f, 0.0f });
+        };
+
+
+        engine::Entity teapot = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/teapot.glb"), true);
+        main_scene->GetPosition(teapot).y += 5.0f;
+        main_scene->GetPosition(teapot).x -= 5.0f;
+        main_scene->GetScale(teapot) *= 5.0f;
     }
 
     start_scene->GetSystem<CameraControllerSystem>()->next_scene_ = main_scene;

@@ -75,7 +75,7 @@ class Application {
     std::unordered_map<size_t, std::unique_ptr<IResourceManager>> resource_managers_{};
     std::filesystem::path resources_path_;
 
-    // Most resources and class instances in the game exist in this object
+    // Most resources in the game are owned by component-lists found in scenes in this scene manager:
     std::unique_ptr<SceneManager> scene_manager_;
 
     Configuration configuration_;

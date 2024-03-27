@@ -88,6 +88,7 @@ enum class WrapMode : int {
     kRepeat,
     kMirroredRepeat,
     kClampToEdge,
+    kClampToBorder,
 };
 
 enum class DescriptorType {

@@ -168,6 +168,7 @@ Application::Application(const char* appName, const char* appVersion, gfx::Graph
         auto defaultMaterial = std::make_unique<Material>(renderer(), GetResource<Shader>("builtin.fancy"));
         defaultMaterial->SetAlbedoTexture(GetResource<Texture>("builtin.white"));
         defaultMaterial->SetNormalTexture(GetResource<Texture>("builtin.normal"));
+        defaultMaterial->SetOcclusionRoughnessMetallicTexture(GetResource<Texture>("builtin.mr"));
         GetResourceManager<Material>()->AddPersistent("builtin.default", std::move(defaultMaterial));
     }
 }

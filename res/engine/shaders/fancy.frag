@@ -89,13 +89,26 @@ void main() {
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
 	projCoords.x = projCoords.x * 0.5 + 0.5; 
 	projCoords.y = projCoords.y * 0.5 + 0.5; 
-	float closestDepth = texture(globalSetShadowmap, projCoords.xy).r;
-	float currentDepth = projCoords.z;
-	float shadow = currentDepth > closestDepth ? 0.0 : 1.0;
-	lighting *= shadow;
+	//float closestDepth = texture(globalSetShadowmap, projCoords.xy).r;
+	const float currentDepth = max(projCoords.z, 0.0);
+	const float bias = max(0.02 * (1.0 - L_dot_N), 0.005);  
+	//float shadow = currentDepth - bias > closestDepth ? 0.0 : 1.0;
+	float shadow = 0.0;
+	vec2 texelSize = 1.0 / textureSize(globalSetShadowmap, 0);
+	for(int x = -1; x <= 1; ++x)
+	{
+		for(int y = -1; y <= 1; ++y)
+		{
+			float pcfDepth = texture(globalSetShadowmap, projCoords.xy + vec2(x, y) * texelSize).r;
+			shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;        
+		}    
+	}
+	shadow /= 9.0;
 
-	vec3 ambient_light = vec3(0.09082, 0.13281, 0.18164);
-	//lighting += mix(ambient_light, texture(globalSetSkybox, R).rgb, metallic) * ao * diffuse_brdf; // this is NOT physically-based, it just looks cool
+	lighting *= (1.0 - shadow);
+
+	vec3 ambient_light = vec3(0.09082, 0.13281, 0.18164) * 2.4 * 4.0;
+	lighting += mix(ambient_light, texture(globalSetSkybox, R).rgb, metallic) * ao * diffuse_brdf; // this is NOT physically-based, it just looks cool
 
 	outColor = vec4(min(emission + lighting, 1.0), 1.0);
 	//outColor = vec4(vec3(shadow), 1.0);

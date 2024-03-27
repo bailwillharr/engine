@@ -2,10 +2,10 @@
 #define ENGINE_INCLUDE_LOG_H_
 
 #ifdef NDEBUG
-//#define SPDLOG_ACTIVE_LEVEL 2  // info
-#define SPDLOG_ACTIVE_LEVEL 0  // trace
+#define SPDLOG_ACTIVE_LEVEL 2  // info, warn, error, critical
+//#define SPDLOG_ACTIVE_LEVEL 0  // trace, debug, info, warn, error, critical
 #else
-#define SPDLOG_ACTIVE_LEVEL 0  // trace
+#define SPDLOG_ACTIVE_LEVEL 0  // trace, debug, info, warn, error, critical
 #endif
 
 #include <spdlog/spdlog.h>

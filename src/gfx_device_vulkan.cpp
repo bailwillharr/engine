@@ -72,7 +72,7 @@ static constexpr uint32_t FRAMES_IN_FLIGHT = 2;       // This improved FPS by 5x
 static constexpr size_t PUSH_CONSTANT_MAX_SIZE = 128; // bytes
 static constexpr VkIndexType INDEX_TYPE = VK_INDEX_TYPE_UINT32;
 
-static constexpr int kShadowmapSize = 2048;
+static constexpr int kShadowmapSize = 1024;
 
 // structures and enums
 
@@ -184,6 +184,8 @@ static VkBufferUsageFlagBits getBufferUsageFlag(gfx::BufferType type)
             return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
         case gfx::WrapMode::kClampToEdge:
             return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        case gfx::WrapMode::kClampToBorder:
+            return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
     }
     throw std::runtime_error("Unknown wrap mode");
 }
@@ -798,9 +800,9 @@ gfx::DrawBuffer* GFXDevice::BeginRender()
 
         std::array<VkClearValue, 2> clearValues{}; // Using same value for all components enables
                                                    // compression according to NVIDIA Best Practices
-        clearValues[0].color.float32[0] = 0.0f;
-        clearValues[0].color.float32[1] = 0.0f;
-        clearValues[0].color.float32[2] = 0.0f;
+        clearValues[0].color.float32[0] = 1.0f;
+        clearValues[0].color.float32[1] = 1.0f;
+        clearValues[0].color.float32[2] = 1.0f;
         clearValues[0].color.float32[3] = 1.0f;
         clearValues[1].depthStencil.depth = 1.0f;
 
@@ -1147,7 +1149,7 @@ void GFXDevice::FinishShadowmapRender(gfx::DrawBuffer* draw_buffer, gfx::Image* 
     barrier.srcStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
     barrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
     barrier.srcAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-    barrier.dstAccessMask = VK_ACCESS_2_SHADER_SAMPLED_READ_BIT;
+    barrier.dstAccessMask = VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT | VK_ACCESS_2_SHADER_READ_BIT;
     barrier.oldLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
     barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     barrier.srcQueueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily;
@@ -1609,6 +1611,7 @@ gfx::UniformBuffer* GFXDevice::CreateUniformBuffer(uint64_t size, const void* in
         stagingAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
         stagingAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
         stagingAllocInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+        stagingAllocInfo.priority = 0.5f;
 
         VKCHECK(vmaCreateBuffer(pimpl->allocator, &stagingBufferInfo, &stagingAllocInfo, &out->stagingBuffer.buffer, &out->stagingBuffer.allocation, nullptr));
 
@@ -1633,6 +1636,7 @@ gfx::UniformBuffer* GFXDevice::CreateUniformBuffer(uint64_t size, const void* in
         VmaAllocationCreateInfo gpuAllocationInfo{};
         gpuAllocationInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
         gpuAllocationInfo.flags = 0;
+        gpuAllocationInfo.priority = 0.5f;
 
         VKCHECK(vmaCreateBuffer(pimpl->allocator, &gpuBufferInfo, &gpuAllocationInfo, &out->gpuBuffers[i].buffer, &out->gpuBuffers[i].allocation, nullptr));
 
@@ -1701,6 +1705,7 @@ gfx::Buffer* GFXDevice::CreateBuffer(gfx::BufferType type, uint64_t size, const 
         stagingAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
         stagingAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
         stagingAllocInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+        stagingAllocInfo.priority = 0.5f;
 
         VKCHECK(vmaCreateBuffer(pimpl->allocator, &stagingBufferInfo, &stagingAllocInfo, &stagingBuffer, &stagingAllocation, nullptr));
 
@@ -1722,6 +1727,7 @@ gfx::Buffer* GFXDevice::CreateBuffer(gfx::BufferType type, uint64_t size, const 
         VmaAllocationCreateInfo gpuAllocationInfo{};
         gpuAllocationInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
         gpuAllocationInfo.flags = 0;
+        gpuAllocationInfo.priority = 0.5f;
 
         VKCHECK(vmaCreateBuffer(pimpl->allocator, &gpuBufferInfo, &gpuAllocationInfo, &out->buffer, &out->allocation, nullptr));
     }
@@ -1770,6 +1776,7 @@ gfx::Image* GFXDevice::CreateImage(uint32_t w, uint32_t h, gfx::ImageFormat inpu
         stagingAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
         stagingAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
         stagingAllocInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+        stagingAllocInfo.priority = 0.5f;
 
         VKCHECK(vmaCreateBuffer(pimpl->allocator, &stagingBufferInfo, &stagingAllocInfo, &stagingBuffer, &stagingAllocation, nullptr));
 
@@ -1924,7 +1931,7 @@ gfx::Image* GFXDevice::CreateImage(uint32_t w, uint32_t h, gfx::ImageFormat inpu
             afterBlitBarrier.srcStageMask = VK_PIPELINE_STAGE_2_BLIT_BIT;
             afterBlitBarrier.srcAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT;       // previous mip level was just READ from in a BLIT
             afterBlitBarrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
-            afterBlitBarrier.dstAccessMask = VK_ACCESS_2_SHADER_SAMPLED_READ_BIT; // it will next be sampled in a frag shader
+            afterBlitBarrier.dstAccessMask = VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT | VK_ACCESS_2_SHADER_READ_BIT; // it will next be sampled in a frag shader
             afterBlitBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
             afterBlitBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             afterBlitBarrier.srcQueueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily;
@@ -1959,7 +1966,7 @@ gfx::Image* GFXDevice::CreateImage(uint32_t w, uint32_t h, gfx::ImageFormat inpu
         }
         finalBlitBarrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
         finalBlitBarrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
-        finalBlitBarrier.dstAccessMask = VK_ACCESS_2_SHADER_SAMPLED_READ_BIT;
+        finalBlitBarrier.dstAccessMask = VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT | VK_ACCESS_2_SHADER_READ_BIT;
         finalBlitBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
         finalBlitBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         finalBlitBarrier.srcQueueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily;
@@ -2029,6 +2036,7 @@ gfx::Image* GFXDevice::CreateImageCubemap(uint32_t w, uint32_t h, gfx::ImageForm
         stagingAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
         stagingAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
         stagingAllocInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+        stagingAllocInfo.priority = 0.5f;
 
         VKCHECK(vmaCreateBuffer(pimpl->allocator, &stagingBufferInfo, &stagingAllocInfo, &stagingBuffer, &stagingAllocation, nullptr));
 
@@ -2188,7 +2196,7 @@ gfx::Image* GFXDevice::CreateImageCubemap(uint32_t w, uint32_t h, gfx::ImageForm
                 afterBlitBarrier.srcStageMask = VK_PIPELINE_STAGE_2_BLIT_BIT;
                 afterBlitBarrier.srcAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT;
                 afterBlitBarrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
-                afterBlitBarrier.dstAccessMask = VK_ACCESS_2_SHADER_SAMPLED_READ_BIT;
+                afterBlitBarrier.dstAccessMask = VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT | VK_ACCESS_2_SHADER_READ_BIT;
                 afterBlitBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
                 afterBlitBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                 afterBlitBarrier.srcQueueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily;
@@ -2216,7 +2224,7 @@ gfx::Image* GFXDevice::CreateImageCubemap(uint32_t w, uint32_t h, gfx::ImageForm
             finalBlitBarrier.srcStageMask = VK_PIPELINE_STAGE_2_BLIT_BIT;
             finalBlitBarrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
             finalBlitBarrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
-            finalBlitBarrier.dstAccessMask = VK_ACCESS_2_SHADER_SAMPLED_READ_BIT;
+            finalBlitBarrier.dstAccessMask = VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT | VK_ACCESS_2_SHADER_READ_BIT;
             finalBlitBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
             finalBlitBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             finalBlitBarrier.srcQueueFamilyIndex = pimpl->device.queues.presentAndDrawQueueFamily;
@@ -2274,6 +2282,7 @@ const gfx::Sampler* GFXDevice::CreateSampler(const gfx::SamplerInfo& info)
     samplerInfo.addressModeU = converters::getSamplerAddressMode(info.wrap_u);
     samplerInfo.addressModeV = converters::getSamplerAddressMode(info.wrap_v);
     samplerInfo.addressModeW = converters::getSamplerAddressMode(info.wrap_w);
+    samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
     samplerInfo.mipLodBias = 0.0f;
     samplerInfo.anisotropyEnable = (info.anisotropic_filtering && pimpl->graphicsSettings.enable_anisotropy) ? VK_TRUE : VK_FALSE;
     samplerInfo.maxAnisotropy = pimpl->device.properties.limits.maxSamplerAnisotropy;

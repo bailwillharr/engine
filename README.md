@@ -6,13 +6,9 @@ a random game engine thing. Now finally with ECS!
 
 # TO DO LIST
 
-vulkan/device.cpp: report what is missing when a device fails to be found.
-Only select physical device 0 to simplify code.
-
 Add support for multiple lights.
 
-Add support for simple shadow mapping.
- - cascaded shadow mapping
+Support dynamic shadow mapping (probably with cascades)
 
 Support animations.
  - skinned meshes / morph targets
@@ -24,7 +20,7 @@ InputManager class.
 For font rendering, put all ASCII characters in one large texture and use
 'instancing' (and uniform buffer objects?) to reduce draw calls.
 
-
+Sort out LOG_X calls and ensure DEBUG, TRACE, INFO, etc are being used appropriately
 
 # DONE
 
@@ -50,3 +46,5 @@ Added a PBR shader with albedo, normal, metallic, roughness, and AO textures
 Added the BVH AABB tree made in Summer to start a much better Collision system.
 
 The CameraControllerSystem now uses raycasting to enable FPS-style player movement.
+
+Added support for simple shadow mapping.

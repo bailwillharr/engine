@@ -112,7 +112,7 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
     // check for required extensions
     if (model.extensionsRequired.empty() == false) { // this loader doesn't support any extensions
         for (const auto& ext : model.extensionsRequired) {
-            LOG_ERROR("Unsupported required extension: {}", ext);
+            LOG_CRITICAL("Unsupported required extension: {}", ext);
         }
         throw std::runtime_error("One or more required extensions are unsupported. File: " + path);
     }
@@ -256,7 +256,7 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
             }
         }
         else if (baseColorFactor4[0] != 1.0 || baseColorFactor4[1] != 1.0 || baseColorFactor4[2] != 1.0 || baseColorFactor4[3] != 1.0) {
-            LOG_INFO("Creating a base-color texture...");
+            LOG_DEBUG("Creating a base-color texture...");
             Color c(baseColorFactor4);
             if (colour_textures.contains(c) == false) {
                 const uint8_t pixel[4] = {c.r, c.g, c.b, c.a};
@@ -274,7 +274,7 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
         materials.back()->SetOcclusionRoughnessMetallicTexture(scene.app()->GetResource<Texture>("builtin.white")); // default ao = 1.0, rough = 1.0, metal = 1.0
         if (material.pbrMetallicRoughness.metallicRoughnessTexture.index != -1) {
             if (material.pbrMetallicRoughness.metallicRoughnessTexture.texCoord == 0) {
-                LOG_INFO("Setting occlusion roughness metallic texture!");
+                LOG_DEBUG("Setting occlusion roughness metallic texture!");
                 materials.back()->SetOcclusionRoughnessMetallicTexture(textures.at(material.pbrMetallicRoughness.metallicRoughnessTexture.index));
             }
             else {
@@ -282,7 +282,7 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
             }
         }
         else {
-            LOG_INFO("Creating occlusion roughness metallic texture...");
+            LOG_DEBUG("Creating occlusion roughness metallic texture...");
             const std::vector<double> mr_values{1.0f /* no AO */, material.pbrMetallicRoughness.roughnessFactor, material.pbrMetallicRoughness.metallicFactor, 1.0f};
             Color mr(mr_values);
             if (metal_rough_textures.contains(mr) == false) {
@@ -426,7 +426,8 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
                 std::vector<Vertex> vertices;
 
                 if (generate_tangents) {
-                    LOG_DEBUG("Generating tangents... vtx count before: {} idx count before: {}", original_num_vertices, num_indices);
+                    LOG_DEBUG("Generating tangents...");
+                    LOG_TRACE("Tangent gen: vtx count before = {} idx count before = {}", original_num_vertices, num_indices);
                     // generate tangents if they're not in the file
                     struct MeshData {
                         Attribute<glm::vec3>* positions;
@@ -529,7 +530,7 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
                         indices[i] = static_cast<uint32_t>(remap_table[i]);
                     }
 
-                    LOG_DEBUG("vtx count after: {} idx count after: {}", vertices.size(), indices.size());
+                    LOG_TRACE("Tangent gen: vtx count after = {} idx count after = {}", vertices.size(), indices.size());
                 }
                 else {
                     // combine vertices into one array
@@ -594,6 +595,7 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
         t->scale.x = 1.0f;
         t->scale.y = 1.0f;
         t->scale.z = 1.0f;
+        t->is_static = isStatic; // if file was imported as static, no imported entities can move!
 
         if (node.matrix.size() == 16) {
             const glm::mat4 matrix = MatFromDoubleArray(node.matrix);
@@ -654,7 +656,7 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
         generateEntities(parent, model.nodes.at(i));
     }
 
-    LOG_INFO("Loaded glTF model: {}", path);
+    LOG_DEBUG("Loaded glTF model: {}", path);
 
     return parent;
 }
