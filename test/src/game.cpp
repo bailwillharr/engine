@@ -48,7 +48,7 @@ void PlayGame(GameSettings settings)
     engine::gfx::GraphicsSettings graphics_settings{};
     graphics_settings.enable_validation = settings.enable_validation;
     graphics_settings.vsync = true;
-    graphics_settings.wait_for_present = false;
+    graphics_settings.wait_for_present = true;
     graphics_settings.msaa_level = engine::gfx::MSAALevel::kOff;
     graphics_settings.enable_anisotropy = true;
 
@@ -94,7 +94,7 @@ void PlayGame(GameSettings settings)
 
         /* floor */
         engine::Entity floor = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/floor.glb"), true);
-        // main_scene->GetComponent<engine::MeshRenderableComponent>(main_scene->GetEntity("Cube", floor))->visible = false;
+        //main_scene->GetComponent<engine::MeshRenderableComponent>(main_scene->GetEntity("Cube", floor))->visible = false;
 
         engine::Entity monke = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/monke.glb"), true);
         main_scene->GetComponent<engine::TransformComponent>(monke)->position.y += 10.0f;
@@ -141,6 +141,9 @@ void PlayGame(GameSettings settings)
         main_scene->GetPosition(teapot).y += 5.0f;
         main_scene->GetPosition(teapot).x -= 5.0f;
         main_scene->GetScale(teapot) *= 5.0f;
+
+        engine::Entity tree = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/tree.glb"), true);
+        main_scene->GetPosition(tree) = glm::vec3{-5.0f, -5.0f, 0.0f};
     }
 
     start_scene->GetSystem<CameraControllerSystem>()->next_scene_ = main_scene;

@@ -14,6 +14,7 @@
 #include "scene_manager.h"
 #include "window.h"
 #include <systems/collisions.h>
+#include <components/mesh_renderable.h>
 
 CameraControllerSystem::CameraControllerSystem(engine::Scene* scene)
     : System(scene, {typeid(engine::TransformComponent).hash_code(), typeid(CameraControllerComponent).hash_code()})
@@ -212,6 +213,8 @@ void CameraControllerSystem::OnUpdate(float ts)
             LOG_INFO("Ray direction: {} {} {}", ray.direction.x, ray.direction.y, ray.direction.z);
             LOG_INFO("Hit Entity: {}", scene_->GetComponent<engine::TransformComponent>(cast.hit_entity)->tag);
             c->perm_lines.emplace_back(ray.origin, cast.location, glm::vec3{0.0f, 0.0f, 1.0f});
+            scene_->GetComponent<engine::MeshRenderableComponent>(cast.hit_entity)->visible ^= true;
+            scene_->GetSystem<engine::MeshRenderSystem>()->RebuildStaticRenderList();
         }
     }
 

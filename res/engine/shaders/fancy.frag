@@ -34,6 +34,10 @@ float GGXDist(float alpha_2, float N_dot_H) {
 
 void main() {
 
+	const vec4 albedo_alpha = texture(materialSetAlbedoSampler, fragUV);
+	if (albedo_alpha.a < 0.9) discard; // discard fragments without alpha = 1.0
+	const vec3 albedo = albedo_alpha.xyz;
+
 	const vec3 occlusion_roughness_metallic = vec3(texture(materialSetOcclusionRoughnessMetallic, fragUV));
 	const float ao = occlusion_roughness_metallic.r;
 	const float roughness = occlusion_roughness_metallic.g;
@@ -52,7 +56,6 @@ void main() {
 
 	const vec3 emission = vec3(0.0, 0.0, 0.0);
 
-	const vec3 albedo = vec3(texture(materialSetAlbedoSampler, fragUV));
 	const vec3 N = GetNormal();
 
 	const vec3 V = normalize(fragViewPosTangentSpace - fragPosTangentSpace);
@@ -91,19 +94,19 @@ void main() {
 	projCoords.y = projCoords.y * 0.5 + 0.5; 
 	//float closestDepth = texture(globalSetShadowmap, projCoords.xy).r;
 	const float currentDepth = max(projCoords.z, 0.0);
-	const float bias = max(0.02 * (1.0 - L_dot_N), 0.005);  
+	const float bias = max(0.01 * (1.0 - L_dot_N), 0.005);  
 	//float shadow = currentDepth - bias > closestDepth ? 0.0 : 1.0;
 	float shadow = 0.0;
 	vec2 texelSize = 1.0 / textureSize(globalSetShadowmap, 0);
-	for(int x = -1; x <= 1; ++x)
+	for(int x = -2; x <= 2; ++x)
 	{
-		for(int y = -1; y <= 1; ++y)
+		for(int y = -2; y <= 2; ++y)
 		{
 			float pcfDepth = texture(globalSetShadowmap, projCoords.xy + vec2(x, y) * texelSize).r;
 			shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;        
 		}    
 	}
-	shadow /= 9.0;
+	shadow /= 25.0;
 
 	lighting *= (1.0 - shadow);
 

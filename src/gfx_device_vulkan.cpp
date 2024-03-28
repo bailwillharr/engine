@@ -72,7 +72,7 @@ static constexpr uint32_t FRAMES_IN_FLIGHT = 2;       // This improved FPS by 5x
 static constexpr size_t PUSH_CONSTANT_MAX_SIZE = 128; // bytes
 static constexpr VkIndexType INDEX_TYPE = VK_INDEX_TYPE_UINT32;
 
-static constexpr int kShadowmapSize = 2048;
+static constexpr int kShadowmapSize = 4096;
 
 // structures and enums
 

@@ -33,9 +33,9 @@ Renderer::Renderer(Application& app, gfx::GraphicsSettings settings) : Applicati
     global_uniform.layout = device_->CreateDescriptorSetLayout(globalSetBindings);
     global_uniform.set = device_->AllocateDescriptorSet(global_uniform.layout);
     const glm::vec3 light_location = glm::vec3{-0.4278, 0.7923, 0.43502} * 40.0f;
-    //const glm::vec3 light_location = glm::vec3{10.0f, 0.0f, 10.0f};
+    // const glm::vec3 light_location = glm::vec3{10.0f, 0.0f, 10.0f};
     const glm::mat4 light_proj = glm::orthoRH_ZO(-24.0f, 24.0f, -15.0f, 15.0f, 10.0f, 65.0f);
-    //const glm::mat4 light_proj = glm::perspectiveFovRH_ZO(glm::radians(90.0f), 1.0f, 1.0f, 5.0f, 50.0f);
+    // const glm::mat4 light_proj = glm::perspectiveFovRH_ZO(glm::radians(90.0f), 1.0f, 1.0f, 5.0f, 50.0f);
     const glm::mat4 light_view = glm::lookAtRH(light_location, glm::vec3{0.0f, 0.0f, 0.0f}, glm::vec3{0.0f, 0.0f, 1.0f});
     global_uniform.uniform_buffer_data.data.proj = light_proj;
     global_uniform.uniform_buffer_data.data.lightSpaceMatrix = light_proj * light_view;
@@ -195,6 +195,7 @@ Renderer::Renderer(Application& app, gfx::GraphicsSettings settings) : Applicati
     gfx::VertexFormat shadowVertexFormat{};
     shadowVertexFormat.stride = sizeof(float) * 12;                                                 // using the full meshes so a lot of data is skipped
     shadowVertexFormat.attribute_descriptions.emplace_back(0, gfx::VertexAttribFormat::kFloat3, 0); // position
+    shadowVertexFormat.attribute_descriptions.emplace_back(1, gfx::VertexAttribFormat::kFloat2, sizeof(float) * 10); // uv
     gfx::PipelineInfo shadowPipelineInfo{};
     shadowPipelineInfo.vert_shader_path = GetResourcePath("engine/shaders/shadow.vert");
     shadowPipelineInfo.frag_shader_path = GetResourcePath("engine/shaders/shadow.frag");
@@ -205,6 +206,8 @@ Renderer::Renderer(Application& app, gfx::GraphicsSettings settings) : Applicati
     shadowPipelineInfo.line_primitives = false;
     shadowPipelineInfo.depth_attachment_only = true;
     shadowPipelineInfo.descriptor_set_layouts.emplace_back(GetGlobalSetLayout());
+    shadowPipelineInfo.descriptor_set_layouts.emplace_back(GetFrameSetLayout());
+    shadowPipelineInfo.descriptor_set_layouts.emplace_back(GetMaterialSetLayout());
     shadow_pipeline = device_->CreatePipeline(shadowPipelineInfo);
 
     // shadow map image and sampler
@@ -212,7 +215,7 @@ Renderer::Renderer(Application& app, gfx::GraphicsSettings settings) : Applicati
     gfx::SamplerInfo sampler_info{};
     sampler_info.magnify = gfx::Filter::kLinear;
     sampler_info.minify = gfx::Filter::kLinear;
-    sampler_info.mipmap = gfx::Filter::kLinear;          // trilinear is apparently good for shadow maps
+    sampler_info.mipmap = gfx::Filter::kNearest;         // bilinear is apparently good for shadow maps, mips aren't used anyway
     sampler_info.wrap_u = gfx::WrapMode::kClampToBorder; // sampler reads 1.0 out of bounds which ensures no shadowing there
     sampler_info.wrap_v = gfx::WrapMode::kClampToBorder;
     sampler_info.wrap_w = gfx::WrapMode::kClampToBorder;
@@ -272,10 +275,11 @@ void Renderer::Render(const RenderList* static_list, const RenderList* dynamic_l
         gfx::DrawBuffer* shadow_draw = device_->BeginShadowmapRender(shadow_map);
         device_->CmdBindPipeline(shadow_draw, shadow_pipeline);
         device_->CmdBindDescriptorSet(shadow_draw, shadow_pipeline, global_uniform.set, 0); // only need light space matrix
-        if (static_list) { // only create shadow map with static meshes
+        if (static_list) {                                                                  // only create shadow map with static meshes
             if (!static_list->empty()) {
                 for (const auto& entry : *static_list) {
                     device_->CmdPushConstants(shadow_draw, shadow_pipeline, 0, sizeof(entry.model_matrix), &entry.model_matrix);
+                    device_->CmdBindDescriptorSet(shadow_draw, shadow_pipeline, entry.material_set, 2);
                     device_->CmdBindVertexBuffer(shadow_draw, 0, entry.vertex_buffer);
                     device_->CmdBindIndexBuffer(shadow_draw, entry.index_buffer);
                     device_->CmdDrawIndexed(shadow_draw, entry.index_count, 1, 0, 0, 0);
