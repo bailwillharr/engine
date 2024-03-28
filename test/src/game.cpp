@@ -107,6 +107,8 @@ void PlayGame(GameSettings settings)
         engine::Entity helmet = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/DamagedHelmet.glb"), true);
         main_scene->GetPosition(helmet) += glm::vec3{5.0f, 5.0f, 1.0f};
         main_scene->GetScale(helmet) *= 3.0f;
+        main_scene->GetRotation(helmet) = glm::angleAxis(glm::pi<float>(), glm::vec3{ 0.0f, 0.0f, 1.0f });
+        main_scene->GetRotation(helmet) *= glm::angleAxis(glm::half_pi<float>(), glm::vec3{ 1.0f, 0.0f, 0.0f });
 
         engine::Entity toycar = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/ToyCar.glb"), true);
         main_scene->GetScale(toycar) *= 150.0f;

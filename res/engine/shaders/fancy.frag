@@ -48,7 +48,7 @@ void main() {
 
 	const float roughness_2 = roughness * roughness;
 
-	vec3 light_colour = vec3(1.0, 1.0, 1.0) * 2.4;
+	vec3 light_colour = vec3(1.0, 1.0, 1.0) * 2.4 * 4.0;
 	float light_distance    = length(fragLightPosTangentSpace - fragPosTangentSpace);
 	float attenuation = 1.0 / (1.0 + 0.09 * light_distance + 
     		    0.032 * (light_distance * light_distance));  
@@ -94,8 +94,7 @@ void main() {
 	projCoords.y = projCoords.y * 0.5 + 0.5; 
 	//float closestDepth = texture(globalSetShadowmap, projCoords.xy).r;
 	const float currentDepth = max(projCoords.z, 0.0);
-	const float bias = max(0.01 * (1.0 - L_dot_N), 0.005);  
-	//float shadow = currentDepth - bias > closestDepth ? 0.0 : 1.0;
+	//const float bias = max(0.01 * (1.0 - L_dot_N), 0.005);  
 	float shadow = 0.0;
 	vec2 texelSize = 1.0 / textureSize(globalSetShadowmap, 0);
 	for(int x = -2; x <= 2; ++x)
@@ -103,14 +102,15 @@ void main() {
 		for(int y = -2; y <= 2; ++y)
 		{
 			float pcfDepth = texture(globalSetShadowmap, projCoords.xy + vec2(x, y) * texelSize).r;
-			shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;        
+			shadow += currentDepth > pcfDepth ? 1.0 : 0.0;        
 		}    
 	}
 	shadow /= 25.0;
+	shadow = shadow < 0.25 ? 0.0 : shadow;
 
 	lighting *= (1.0 - shadow);
 
-	vec3 ambient_light = vec3(0.09082, 0.13281, 0.18164) * 2.4 * 4.0;
+	const vec3 ambient_light = vec3(0.09082, 0.13281, 0.18164) * 2.4;
 	lighting += mix(ambient_light, texture(globalSetSkybox, R).rgb, metallic) * ao * diffuse_brdf; // this is NOT physically-based, it just looks cool
 
 	outColor = vec4(min(emission + lighting, 1.0), 1.0);

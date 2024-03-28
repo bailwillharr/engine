@@ -72,7 +72,7 @@ void CameraControllerSystem::OnUpdate(float ts)
     // check horizontal collisions first as otherwise the player may be teleported above a wall instead of colliding against it
     if (c->vel.x != 0.0f || c->vel.y != 0.0f) { // just in case, to avoid a ray with direction = (0,0,0)
 
-        std::array<engine::Raycast, CameraControllerComponent::kNumHorizontalRays> raycasts;
+        std::array<engine::Raycast, CameraControllerComponent::kNumHorizontalRays> raycasts{};
         engine::Raycast* chosen_cast = nullptr; // nullptr means no hit at all
 
         float smallest_distance = std::numeric_limits<float>::infinity();
@@ -212,6 +212,7 @@ void CameraControllerSystem::OnUpdate(float ts)
             LOG_INFO("Normal: {} {} {}", cast.normal.x, cast.normal.y, cast.normal.z);
             LOG_INFO("Ray direction: {} {} {}", ray.direction.x, ray.direction.y, ray.direction.z);
             LOG_INFO("Hit Entity: {}", scene_->GetComponent<engine::TransformComponent>(cast.hit_entity)->tag);
+            c->perm_lines.clear();
             c->perm_lines.emplace_back(ray.origin, cast.location, glm::vec3{0.0f, 0.0f, 1.0f});
             scene_->GetComponent<engine::MeshRenderableComponent>(cast.hit_entity)->visible ^= true;
             scene_->GetSystem<engine::MeshRenderSystem>()->RebuildStaticRenderList();

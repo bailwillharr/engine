@@ -201,7 +201,7 @@ static VkBufferUsageFlagBits getBufferUsageFlag(gfx::BufferType type)
     throw std::runtime_error("Unknown filter");
 }
 
-[[maybe_unused]] static VkSampleCountFlags getSampleCountFlags(gfx::MSAALevel level)
+[[maybe_unused]] static VkSampleCountFlagBits getSampleCountFlags(gfx::MSAALevel level)
 {
     switch (level) {
         case gfx::MSAALevel::kOff:
@@ -794,7 +794,7 @@ gfx::DrawBuffer* GFXDevice::BeginRender()
         std::array<VkImageMemoryBarrier2, 2> imageBarriers{colorImageBarrier, depthImageBarrier};
         VkDependencyInfo imageDependencyInfo{};
         imageDependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
-        imageDependencyInfo.imageMemoryBarrierCount = imageBarriers.size();
+        imageDependencyInfo.imageMemoryBarrierCount = static_cast<uint32_t>(imageBarriers.size());
         imageDependencyInfo.pImageMemoryBarriers = imageBarriers.data();
         vkCmdPipelineBarrier2(frameData.drawBuf, &imageDependencyInfo);
 
@@ -1115,15 +1115,6 @@ gfx::DrawBuffer* GFXDevice::BeginShadowmapRender(gfx::Image* image)
         scissor.offset = {0, 0};
         scissor.extent = {kShadowmapSize, kShadowmapSize};
         vkCmdSetScissor(pimpl->frameData[0].drawBuf, 0, 1, &scissor);
-
-        // Depth bias (and slope) are used to avoid shadowing artifacts
-        // Constant depth bias factor (always applied)
-        constexpr float depthBiasConstant = 1.25f;
-        // Slope depth bias factor, applied depending on polygon's slope
-        constexpr float depthBiasSlope = 1.75f;
-        // Set depth bias (aka "Polygon offset")
-        // Required to avoid shadow mapping artifacts
-        vkCmdSetDepthBias(pimpl->frameData[0].drawBuf, depthBiasConstant, 0.0f, depthBiasSlope);
     }
 
     // hand command buffer over to caller
@@ -1357,10 +1348,19 @@ gfx::Pipeline* GFXDevice::CreatePipeline(const gfx::PipelineInfo& info)
     rasterizer.lineWidth = 1.0f;
     rasterizer.cullMode = converters::getCullModeFlags(info.face_cull_mode);
     rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-    rasterizer.depthBiasEnable = VK_FALSE;
-    rasterizer.depthBiasConstantFactor = 0.0f; // ignored
-    rasterizer.depthBiasClamp = 0.0f;          // ignored
-    rasterizer.depthBiasSlopeFactor = 0.0f;    // ignored
+    if (info.depth_attachment_only) {
+        // use depth bias if only rendering to a depth attachment
+        rasterizer.depthBiasEnable = VK_TRUE;
+        rasterizer.depthBiasConstantFactor = 1.25f;
+        rasterizer.depthBiasClamp = 0.0f;
+        rasterizer.depthBiasSlopeFactor = 1.75f;
+    }
+    else {
+        rasterizer.depthBiasEnable = VK_FALSE;
+        rasterizer.depthBiasConstantFactor = 0.0f; // ignored
+        rasterizer.depthBiasClamp = 0.0f;          // ignored
+        rasterizer.depthBiasSlopeFactor = 0.0f;    // ignored
+    }
 
     VkPipelineMultisampleStateCreateInfo multisampling{};
     multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;

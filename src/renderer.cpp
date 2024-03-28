@@ -219,7 +219,7 @@ Renderer::Renderer(Application& app, gfx::GraphicsSettings settings) : Applicati
     sampler_info.wrap_u = gfx::WrapMode::kClampToBorder; // sampler reads 1.0 out of bounds which ensures no shadowing there
     sampler_info.wrap_v = gfx::WrapMode::kClampToBorder;
     sampler_info.wrap_w = gfx::WrapMode::kClampToBorder;
-    sampler_info.anisotropic_filtering = false; // Copilot says not to use aniso for shadow maps
+    sampler_info.anisotropic_filtering = false; // no mip-maps so aniso won't do anything
     shadow_map_sampler = device_->CreateSampler(sampler_info);
     device_->UpdateDescriptorCombinedImageSampler(global_uniform.set, 2, shadow_map, shadow_map_sampler);
 };
