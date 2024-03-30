@@ -1351,9 +1351,9 @@ gfx::Pipeline* GFXDevice::CreatePipeline(const gfx::PipelineInfo& info)
     if (info.depth_attachment_only) {
         // use depth bias if only rendering to a depth attachment
         rasterizer.depthBiasEnable = VK_TRUE;
-        rasterizer.depthBiasConstantFactor = 1.25f;
+        rasterizer.depthBiasConstantFactor = 2.0f;//1.25f;
         rasterizer.depthBiasClamp = 0.0f;
-        rasterizer.depthBiasSlopeFactor = 1.75f;
+        rasterizer.depthBiasSlopeFactor = 3.5f;//1.75f;
     }
     else {
         rasterizer.depthBiasEnable = VK_FALSE;

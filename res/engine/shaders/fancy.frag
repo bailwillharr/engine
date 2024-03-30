@@ -10,14 +10,15 @@ layout(set = 2, binding = 0) uniform sampler2D materialSetAlbedoSampler;
 layout(set = 2, binding = 1) uniform sampler2D materialSetNormalSampler;
 layout(set = 2, binding = 2) uniform sampler2D materialSetOcclusionRoughnessMetallic;
 
-layout(location = 0) in vec2 fragUV;
-layout(location = 1) in vec3 fragPosTangentSpace;
-layout(location = 2) in vec3 fragViewPosTangentSpace;
-layout(location = 3) in vec3 fragLightPosTangentSpace;
-layout(location = 4) in vec3 fragNormWorldSpace;
-layout(location = 5) in vec3 fragViewPosWorldSpace;
-layout(location = 6) in vec3 fragPosWorldSpace;
-layout(location = 7) in vec4 fragPosLightSpace;
+layout(location = 0) in vec2 fragUV; // for looking up textures
+layout(location = 1) in vec3 fragPosTangentSpace; // finding view vector
+layout(location = 2) in vec3 fragViewPosTangentSpace; // finding view vector
+layout(location = 3) in vec3 fragLightDirTangentSpace; // directional light
+layout(location = 4) in vec3 fragNormWorldSpace; // for skybox reflection lookup
+layout(location = 5) in vec3 fragViewPosWorldSpace; // for skybox reflection lookup
+layout(location = 6) in vec3 fragPosWorldSpace; // for skybox reflection lookup
+layout(location = 7) in vec4 fragPosLightSpace; // for shadow map lookup
+layout(location = 8) in vec4 fragPosScreenSpace; // for shadow map randomness
 
 layout(location = 0) out vec4 outColor;
 
@@ -30,6 +31,19 @@ float GGXDist(float alpha_2, float N_dot_H) {
 	const float num = alpha_2 * max(N_dot_H, 0.0);
 	const float den = PI * pow(N_dot_H * N_dot_H * (alpha_2 - 1) + 1, 2.0);
 	return num / den;
+}
+
+vec2 VogelDiskSample(int sampleIndex, int samplesCount, float phi) {
+	const float GoldenAngle = 2.4;
+	float r = sqrt(sampleIndex + 0.5) / sqrt(samplesCount);
+	float theta = sampleIndex * GoldenAngle + phi;
+	return vec2(r * cos(theta), r * sin(theta));
+}
+
+float InterleavedGradientNoise(vec2 position_screen)
+{
+  const vec3 magic = vec3(0.06711056f, 0.00583715f, 52.9829189f);
+  return magic.z * dot(position_screen, magic.xy);
 }
 
 void main() {
@@ -48,18 +62,14 @@ void main() {
 
 	const float roughness_2 = roughness * roughness;
 
-	vec3 light_colour = vec3(1.0, 1.0, 1.0) * 2.4 * 4.0;
-	float light_distance    = length(fragLightPosTangentSpace - fragPosTangentSpace);
-	float attenuation = 1.0 / (1.0 + 0.09 * light_distance + 
-    		    0.032 * (light_distance * light_distance));  
-	//light_colour *= 5.0 * attenuation;
+	vec3 light_colour = vec3(1.0, 1.0, 1.0) * 2.4 * 2.0;
 
 	const vec3 emission = vec3(0.0, 0.0, 0.0);
 
 	const vec3 N = GetNormal();
 
 	const vec3 V = normalize(fragViewPosTangentSpace - fragPosTangentSpace);
-	const vec3 L = normalize(fragLightPosTangentSpace /* - fragPosTangentSpace */ );
+	const vec3 L = normalize(fragLightDirTangentSpace);
 	//const vec3 L = normalize(vec3(5.0, 0.0, 3.0));
 	const vec3 H = normalize(V + L);
 
@@ -92,27 +102,27 @@ void main() {
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
 	projCoords.x = projCoords.x * 0.5 + 0.5; 
 	projCoords.y = projCoords.y * 0.5 + 0.5; 
-	//float closestDepth = texture(globalSetShadowmap, projCoords.xy).r;
 	const float currentDepth = max(projCoords.z, 0.0);
-	//const float bias = max(0.01 * (1.0 - L_dot_N), 0.005);  
 	float shadow = 0.0;
-	vec2 texelSize = 1.0 / textureSize(globalSetShadowmap, 0);
-	for(int x = -2; x <= 2; ++x)
+	vec2 texelSize = 2.0 / textureSize(globalSetShadowmap, 0);
+	const int samples = 16;
+	const float phi = InterleavedGradientNoise(fragPosScreenSpace.xy / fragPosScreenSpace.w) * 2.0 * PI;
+	//const float phi = 0.0;
+	for(int i = 0; i < samples; ++i)
 	{
-		for(int y = -2; y <= 2; ++y)
-		{
-			float pcfDepth = texture(globalSetShadowmap, projCoords.xy + vec2(x, y) * texelSize).r;
-			shadow += currentDepth > pcfDepth ? 1.0 : 0.0;        
-		}    
+		float depth = texture(globalSetShadowmap, projCoords.xy + VogelDiskSample(i, samples, phi) * texelSize).r;
+		shadow += currentDepth > depth ? 1.0 : 0.0;          
 	}
-	shadow /= 25.0;
-	shadow = shadow < 0.25 ? 0.0 : shadow;
+	shadow /= float(samples);
+	//shadow = shadow < 0.25 ? 0.0 : shadow;
 
 	lighting *= (1.0 - shadow);
 
 	const vec3 ambient_light = vec3(0.09082, 0.13281, 0.18164) * 2.4;
 	lighting += mix(ambient_light, texture(globalSetSkybox, R).rgb, metallic) * ao * diffuse_brdf; // this is NOT physically-based, it just looks cool
 
-	outColor = vec4(min(emission + lighting, 1.0), 1.0);
-	//outColor = vec4(vec3(shadow), 1.0);
+	// tone mapping
+	const vec3 hdr_color = min(emission + lighting, 1.0);
+	outColor = vec4(hdr_color / (hdr_color + 1.0), 1.0);
+	//outColor = vec4(vec3(1.0 - shadow), 1.0);
 }

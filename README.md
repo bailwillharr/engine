@@ -6,21 +6,31 @@ a random game engine thing. Now finally with ECS!
 
 # TO DO LIST
 
-Add support for multiple lights.
+## High priority (tomorrow)
 
-Support dynamic shadow mapping (probably with cascades)
+- Support dynamic shadow mapping (at least for shadows cast from the scene's sun)
 
-Support animations.
- - skinned meshes / morph targets
+- Sort out LOG_X calls and ensure DEBUG, TRACE, INFO, etc are being used appropriately
 
-At some point, add game controller support. Make sure it works well with the
-InputManager class.
+## Medium priority (next week)
 
-(Was implemented in the past)
-For font rendering, put all ASCII characters in one large texture and use
-'instancing' (and uniform buffer objects?) to reduce draw calls.
+- UI generator exposed at the Application level (Scene UI Systems could use this to draw menus every frame)
 
-Sort out LOG_X calls and ensure DEBUG, TRACE, INFO, etc are being used appropriately
+- Proper IBL with an irradiance map
+
+- Multiple lights (dynamic and static; do not need to be shadow casting)
+
+- More accurate raycast collision detection (Perhaps only sphere, capsule, OBB colliders. Mesh collision is probably unneccesary.)
+
+## Low priority (next month)
+
+- Explicit post processing pass exposed by the GFXDevice that can be used for bloom, AA, etc
+
+- Audio!!
+
+- Support animations (skinned meshes / morph targets)
+
+- Game controller support (controller detection, input, feedback etc in window.cpp; integration with input_manager.cpp)
 
 # DONE
 
@@ -47,4 +57,4 @@ Added the BVH AABB tree made in Summer to start a much better Collision system.
 
 The CameraControllerSystem now uses raycasting to enable FPS-style player movement.
 
-Added support for simple shadow mapping.
+Added static soft shadows.

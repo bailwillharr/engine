@@ -63,14 +63,14 @@ void CameraControllerSystem::OnUpdate(float ts)
     c->vel.z += CameraControllerComponent::kGravAccel * dt;
 
     // jumping
-    if (scene_->app()->input_manager()->GetButtonPress("jump") && c->grounded) {
+    if (scene_->app()->input_manager()->GetButtonPress("jump") && (c->grounded || c->noclip)) {
         c->vel.z += CameraControllerComponent::kJumpHeight; // m/s
     }
 
     // update position with velocity:
 
     // check horizontal collisions first as otherwise the player may be teleported above a wall instead of colliding against it
-    if (c->vel.x != 0.0f || c->vel.y != 0.0f) { // just in case, to avoid a ray with direction = (0,0,0)
+    if ((c->vel.x != 0.0f || c->vel.y != 0.0f) && !c->noclip) { // just in case, to avoid a ray with direction = (0,0,0)
 
         std::array<engine::Raycast, CameraControllerComponent::kNumHorizontalRays> raycasts{};
         engine::Raycast* chosen_cast = nullptr; // nullptr means no hit at all
@@ -113,45 +113,47 @@ void CameraControllerSystem::OnUpdate(float ts)
     }
 
     // check falling collisions
-    if (c->vel.z < 0.0f) { // if falling
-        engine::Ray fall_ray{};
-        fall_ray.origin = t->position;
-        fall_ray.origin.z += CameraControllerComponent::kMaxStairHeight - CameraControllerComponent::kPlayerHeight;
-        fall_ray.direction = {0.0f, 0.0f, -1.0f}; // down
-        const engine::Raycast fall_raycast = scene_->GetSystem<engine::CollisionSystem>()->GetRaycast(fall_ray);
-        if (fall_raycast.hit) {                   // there is ground below player
-            // find how far the player will move (downwards) if velocity is applied without collision
-            const float mag_dz = fabsf(c->vel.z * dt);
-            // check if the player will be less than 'height' units above the collided ground
-            if (mag_dz > fall_raycast.distance - CameraControllerComponent::kMaxStairHeight) {
-                // push player up to ground level and set as grounded
-                t->position.z = fall_raycast.location.z + CameraControllerComponent::kPlayerHeight;
-                c->vel.z = 0.0f;
-                c->grounded = true;
+    if (!c->noclip) {
+        if (c->vel.z < 0.0f) { // if falling
+            engine::Ray fall_ray{};
+            fall_ray.origin = t->position;
+            fall_ray.origin.z += CameraControllerComponent::kMaxStairHeight - CameraControllerComponent::kPlayerHeight;
+            fall_ray.direction = { 0.0f, 0.0f, -1.0f }; // down
+            const engine::Raycast fall_raycast = scene_->GetSystem<engine::CollisionSystem>()->GetRaycast(fall_ray);
+            if (fall_raycast.hit) {                   // there is ground below player
+                // find how far the player will move (downwards) if velocity is applied without collision
+                const float mag_dz = fabsf(c->vel.z * dt);
+                // check if the player will be less than 'height' units above the collided ground
+                if (mag_dz > fall_raycast.distance - CameraControllerComponent::kMaxStairHeight) {
+                    // push player up to ground level and set as grounded
+                    t->position.z = fall_raycast.location.z + CameraControllerComponent::kPlayerHeight;
+                    c->vel.z = 0.0f;
+                    c->grounded = true;
+                }
+                else { // there is ground below player, however they are not grounded
+                    c->grounded = false;
+                }
             }
-            else { // there is ground below player, however they are not grounded
+            else { // there is no ground below player (THEY ARE FALLING INTO THE VOID)
                 c->grounded = false;
             }
         }
-        else { // there is no ground below player (THEY ARE FALLING INTO THE VOID)
-            c->grounded = false;
-        }
-    }
-    else if (c->vel.z > 0.0f) {
-        c->grounded = false; // they are jumping
-        // check if intersection with ceiling
-        engine::Ray jump_ray{};
-        jump_ray.origin = t->position;
-        jump_ray.direction = { 0.0f, 0.0f, 1.0f };
-        const engine::Raycast jump_raycast = scene_->GetSystem<engine::CollisionSystem>()->GetRaycast(jump_ray);
-        if (jump_raycast.hit) {
-            // find how far the player will move (upwards) if velocity is applied without collision
-            const float mag_dz = fabsf(c->vel.z * dt);
-            // check if the player will be higher than the collided ground
-            if (mag_dz > jump_raycast.distance - CameraControllerComponent::kPlayerCollisionRadius) {
-                // push player below ceiling
-                t->position.z = jump_raycast.location.z - CameraControllerComponent::kPlayerCollisionRadius;
-                c->vel.z = 0.0f;
+        else if (c->vel.z > 0.0f) {
+            c->grounded = false; // they are jumping
+            // check if intersection with ceiling
+            engine::Ray jump_ray{};
+            jump_ray.origin = t->position;
+            jump_ray.direction = { 0.0f, 0.0f, 1.0f };
+            const engine::Raycast jump_raycast = scene_->GetSystem<engine::CollisionSystem>()->GetRaycast(jump_ray);
+            if (jump_raycast.hit) {
+                // find how far the player will move (upwards) if velocity is applied without collision
+                const float mag_dz = fabsf(c->vel.z * dt);
+                // check if the player will be higher than the collided ground
+                if (mag_dz > jump_raycast.distance - CameraControllerComponent::kPlayerCollisionRadius) {
+                    // push player below ceiling
+                    t->position.z = jump_raycast.location.z - CameraControllerComponent::kPlayerCollisionRadius;
+                    c->vel.z = 0.0f;
+                }
             }
         }
     }

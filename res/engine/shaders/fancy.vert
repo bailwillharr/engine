@@ -21,11 +21,12 @@ layout(location = 3) in vec2 inUV;
 layout(location = 0) out vec2 fragUV;
 layout(location = 1) out vec3 fragPosTangentSpace;
 layout(location = 2) out vec3 fragViewPosTangentSpace;
-layout(location = 3) out vec3 fragLightPosTangentSpace;
+layout(location = 3) out vec3 fragLightDirTangentSpace;
 layout(location = 4) out vec3 fragNormWorldSpace;
 layout(location = 5) out vec3 fragViewPosWorldSpace;
 layout(location = 6) out vec3 fragPosWorldSpace;
 layout(location = 7) out vec4 fragPosLightSpace;
+layout(location = 8) out vec4 fragPosScreenSpace;
 
 void main() {
 	vec4 worldPosition = constants.model * vec4(inPosition, 1.0);
@@ -39,14 +40,14 @@ void main() {
 	fragUV = inUV;
 	fragPosTangentSpace = worldToTangentSpace * vec3(worldPosition);
 	fragViewPosTangentSpace = worldToTangentSpace * vec3(inverse(frameSetUniformBuffer.view) * vec4(0.0, 0.0, 0.0, 1.0));
-	fragLightPosTangentSpace = worldToTangentSpace * vec3(-0.4278,0.7923,0.43502); // directional light
-	//fragLightPosTangentSpace = worldToTangentSpace * vec3(10.0, 0.0, 10.0);
+	fragLightDirTangentSpace = worldToTangentSpace * vec3(-0.4278,0.7923,0.43502); // directional light
 
 	fragNormWorldSpace = N;
 	fragViewPosWorldSpace = vec3(inverse(frameSetUniformBuffer.view) * vec4(0.0, 0.0, 0.0, 1.0));
 	fragPosWorldSpace = worldPosition.xyz;
 
 	fragPosLightSpace = globalSetUniformBuffer.lightSpaceMatrix * vec4(worldPosition.xyz, 1.0);
+	fragPosScreenSpace = gl_Position;
 
 	gl_Position.y *= -1.0;
 }

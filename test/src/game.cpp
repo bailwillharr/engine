@@ -67,9 +67,12 @@ void PlayGame(GameSettings settings)
         /* as of right now, the entity with tag 'camera' is used to build the view
          * matrix */
 
+        engine::Entity sponza = engine::util::LoadGLTF(*start_scene, app.GetResourcePath("models/tree.glb"), true);
+        start_scene->GetPosition(sponza).z += 90.0f;
+
         start_scene->RegisterComponent<CameraControllerComponent>();
         start_scene->RegisterSystem<CameraControllerSystem>();
-        start_scene->AddComponent<CameraControllerComponent>(camera);
+        start_scene->AddComponent<CameraControllerComponent>(camera)->noclip = true;
     }
 
     engine::Scene* main_scene = app.scene_manager()->CreateEmptyScene();

@@ -28,6 +28,8 @@ struct CameraControllerComponent {
     static constexpr float kGravAccel = -9.81f;
     static constexpr float kMaxDistanceFromOrigin = 1000.0f;
 
+    bool noclip = false;
+
     float yaw = 0.0f;
     float pitch = glm::half_pi<float>();
     glm::vec3 vel{0.0f, 0.0f, 0.0f};
