@@ -1,4 +1,5 @@
 #ifndef ENGINE_INCLUDE_RESOURCES_MESH_H_
+#ifndef ENGINE_INCLUDE_RESOURCES_MESH_H_
 #define ENGINE_INCLUDE_RESOURCES_MESH_H_
 
 #include <glm/vec2.hpp>
@@ -12,44 +13,39 @@
 namespace engine {
 
 struct Vertex {
-  glm::vec3 pos;
-  glm::vec3 norm;
-  glm::vec4 tangent; // w component flips binormal if -1. w should be 1 or -1
-  glm::vec2 uv;
-  static constexpr int FloatsPerVertex() { return static_cast<int>(sizeof(Vertex) / sizeof(float)); }
+    glm::vec3 pos;
+    glm::vec3 norm;
+    glm::vec4 tangent; // w component flips binormal if -1. w should be 1 or -1
+    glm::vec2 uv;
+    static constexpr int FloatsPerVertex() { return static_cast<int>(sizeof(Vertex) / sizeof(float)); }
 };
 
-}  // namespace engine
+} // namespace engine
 
 namespace engine {
 
 class Mesh {
- public:
-  Mesh(GFXDevice* gfx, const std::vector<Vertex>& vertices);
-  Mesh(GFXDevice* gfx, const std::vector<Vertex>& vertices,
-       const std::vector<uint32_t>& indices)
-      : gfx_(gfx) {
-    InitMesh(vertices, indices);
-  }
-  ~Mesh();
-  Mesh(const Mesh&) = delete;
-  Mesh& operator=(const Mesh&) = delete;
+   public:
+    Mesh(GFXDevice* gfx, const std::vector<Vertex>& vertices);
+    Mesh(GFXDevice* gfx, const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices);
+    ~Mesh();
+    Mesh(const Mesh&) = delete;
+    Mesh& operator=(const Mesh&) = delete;
 
-  const gfx::Buffer* GetVB();
-  const gfx::Buffer* GetIB();
-  uint32_t GetCount();
+    const gfx::Buffer* GetVB();
+    const gfx::Buffer* GetIB();
+    uint32_t GetCount();
 
- private:
-  GFXDevice* const gfx_;
+   private:
+    GFXDevice* const gfx_;
 
-  const gfx::Buffer* vb_;
-  const gfx::Buffer* ib_;
-  uint32_t count_;
+    const gfx::Buffer* vb_;
+    const gfx::Buffer* ib_;
+    uint32_t count_;
 
-  void InitMesh(const std::vector<Vertex>& vertices,
-                const std::vector<uint32_t>& indices);
+    void InitMesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices);
 };
 
-}  // namespace engine
+} // namespace engine
 
 #endif

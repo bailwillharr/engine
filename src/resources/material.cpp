@@ -7,9 +7,10 @@ namespace engine {
 Material::Material(Renderer* renderer, std::shared_ptr<Shader> shader) : shader_(shader), renderer_(renderer)
 {
     material_set_ = renderer->GetDevice()->AllocateDescriptorSet(renderer->GetMaterialSetLayout());
+    LOG_DEBUG("Created material");
 }
 
-Material::~Material() { renderer_->GetDevice()->FreeDescriptorSet(material_set_); }
+Material::~Material() { renderer_->GetDevice()->FreeDescriptorSet(material_set_); LOG_DEBUG("Destroyed material"); }
 
 void Material::SetAlbedoTexture(std::shared_ptr<Texture> texture)
 {

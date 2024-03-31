@@ -24,8 +24,8 @@ Texture::Texture(Renderer* renderer, const uint8_t* bitmap, int width, int heigh
 
 Texture::~Texture()
 {
-    LOG_DEBUG("Destroying texture...");
     gfx_->DestroyImage(image_);
+    LOG_DEBUG("Destroyed texture");
 }
 
 std::unique_ptr<Texture> LoadTextureFromFile(const std::string& path, gfx::SamplerInfo samplerInfo, Renderer* renderer, bool srgb)

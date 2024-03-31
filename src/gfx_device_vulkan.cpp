@@ -2310,18 +2310,18 @@ void GFXDevice::LogPerformanceInfo()
     memProps.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2;
     vkGetPhysicalDeviceMemoryProperties2(pimpl->device.physicalDevice, &memProps);
 
-    LOG_INFO("GPU Memory Statistics:");
+    LOG_DEBUG("GPU Memory Statistics:");
 
     for (uint32_t i = 0; i < memProps.memoryProperties.memoryHeapCount; i++) {
         const VmaStatistics& statistics = pStats.memoryHeap[i].statistics;
         VkMemoryHeap heap = memProps.memoryProperties.memoryHeaps[i];
-        LOG_INFO("Memory heap {}", i);
+        LOG_DEBUG("Memory heap {}", i);
         if (heap.flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) {
-            LOG_INFO("    DEVICE_LOCAL");
+            LOG_DEBUG("    DEVICE_LOCAL");
         }
-        LOG_INFO("    Memory blocks allocated: {} ({} MiB)", statistics.blockCount, statistics.allocationBytes / (1024 * 1024));
-        LOG_INFO("    Number of allocations: {} ({} MiB)", statistics.allocationCount, statistics.allocationBytes / (1024 * 1024));
-        LOG_INFO("    Max size: {} MiB", heap.size / (1024 * 1024));
+        LOG_DEBUG("    Memory blocks allocated: {} ({} MiB)", statistics.blockCount, statistics.allocationBytes / (1024 * 1024));
+        LOG_DEBUG("    Number of allocations: {} ({} MiB)", statistics.allocationCount, statistics.allocationBytes / (1024 * 1024));
+        LOG_DEBUG("    Max size: {} MiB", heap.size / (1024 * 1024));
     }
 }
 

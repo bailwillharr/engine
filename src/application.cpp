@@ -210,8 +210,8 @@ void Application::GameLoop()
         uint64_t now = window_->GetNanos();
         if (now - lastTick >= 1000000000LL * 5LL) [[unlikely]] {
             lastTick = now;
-            LOG_INFO("fps: {}", std::lroundf(avg_fps));
-            // renderer()->GetDevice()->LogPerformanceInfo();
+            LOG_DEBUG("fps: {}", std::lroundf(avg_fps));
+            renderer()->GetDevice()->LogPerformanceInfo();
             window_->ResetAvgFPS();
         }
 

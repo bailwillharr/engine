@@ -62,8 +62,8 @@ Shader::Shader(Renderer* renderer, const std::string& vertPath, const std::strin
 }
 
 Shader::~Shader() {
-  LOG_DEBUG("Destroying shader... pipeline: {}", static_cast<const void*>(pipeline_));
   gfx_->DestroyPipeline(pipeline_);
+  LOG_DEBUG("Destroyed shader, pipeline: {}", static_cast<const void*>(pipeline_));
 }
 
 const gfx::Pipeline* Shader::GetPipeline() { return pipeline_; }

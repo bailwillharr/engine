@@ -124,7 +124,7 @@ void CollisionSystem::OnUpdate(float ts)
             }
         }
 
-        LOG_INFO("BUILT BVH!");
+        LOG_DEBUG("BUILT BVH!");
 
         colliders_size_last_update_ = colliders_size_now_;
     }

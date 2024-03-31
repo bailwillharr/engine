@@ -21,7 +21,7 @@ Font::Font(const std::string& path) {
   LOG_DEBUG("Created font: {}", path);
 }
 
-Font::~Font() { LOG_DEBUG("Destroying font..."); }
+Font::~Font() { LOG_DEBUG("Destroyed font"); }
 
 std::unique_ptr<std::vector<uint8_t>> Font::GetTextBitmap(
     const std::string& text, float height_px, int& width_out, int& height_out) {

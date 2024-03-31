@@ -54,7 +54,6 @@ set(SRC_FILES
 	"src/systems/transform.cpp"
 	"src/util/files.cpp"
 	"src/util/gltf_loader.cpp"
-	"src/util/model_loader.cpp"
 	"src/vulkan/device.cpp"
 	"src/vulkan/device.h"
 	"src/vulkan/gpu_allocator.cpp"
@@ -101,7 +100,6 @@ set(INCLUDE_FILES
 	"include/util.h"
 	"include/util/files.h"
 	"include/util/gltf_loader.h"
-	"include/util/model_loader.h"
 	"include/window.h"
 )
 
@@ -181,18 +179,6 @@ endif()
 
 # stb
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC dependencies/stb)
-
-# assimp
-set(BUILD_SHARED_LIBS OFF CACHE INTERNAL "" FORCE)
-set(ASSIMP_BUILD_TESTS OFF CACHE INTERNAL "" FORCE)
-set(ASSIMP_BUILD_ZLIB ON CACHE INTERNAL "" FORCE)
-set(ASSIMP_NO_EXPORT ON CACHE INTERNAL "" FORCE)
-set(ASSIMP_INSTALL OFF CACHE INTERNAL "" FORCE)
-set(ASSIMP_BUILD_COLLADA_IMPORTER ON CACHE INTERNAL "" FORCE)
-set(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT OFF CACHE INTERNAL "" FORCE)
-add_subdirectory(dependencies/assimp)
-target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE dependencies/assimp/include)
-target_link_libraries(${PROJECT_NAME} PRIVATE assimp)
 
 # public libraries:
 

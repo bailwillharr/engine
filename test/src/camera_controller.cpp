@@ -209,11 +209,11 @@ void CameraControllerSystem::OnUpdate(float ts)
         engine::Raycast cast = scene_->GetSystem<engine::CollisionSystem>()->GetRaycast(ray);
 
         if (cast.hit) {
-            LOG_INFO("Distance: {} m", cast.distance);
-            LOG_INFO("Location: {} {} {}", cast.location.x, cast.location.y, cast.location.z);
-            LOG_INFO("Normal: {} {} {}", cast.normal.x, cast.normal.y, cast.normal.z);
-            LOG_INFO("Ray direction: {} {} {}", ray.direction.x, ray.direction.y, ray.direction.z);
-            LOG_INFO("Hit Entity: {}", scene_->GetComponent<engine::TransformComponent>(cast.hit_entity)->tag);
+            LOG_TRACE("Distance: {} m", cast.distance);
+            LOG_TRACE("Location: {} {} {}", cast.location.x, cast.location.y, cast.location.z);
+            LOG_TRACE("Normal: {} {} {}", cast.normal.x, cast.normal.y, cast.normal.z);
+            LOG_TRACE("Ray direction: {} {} {}", ray.direction.x, ray.direction.y, ray.direction.z);
+            LOG_TRACE("Hit Entity: {}", scene_->GetComponent<engine::TransformComponent>(cast.hit_entity)->tag);
             c->perm_lines.clear();
             c->perm_lines.emplace_back(ray.origin, cast.location, glm::vec3{0.0f, 0.0f, 1.0f});
             scene_->GetComponent<engine::MeshRenderableComponent>(cast.hit_entity)->visible ^= true;
