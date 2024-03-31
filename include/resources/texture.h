@@ -1,5 +1,4 @@
-#ifndef ENGINE_INCLUDE_RESOURCES_TEXTURE_H_
-#define ENGINE_INCLUDE_RESOURCES_TEXTURE_H_
+#pragma once
 
 #include <string>
 
@@ -10,7 +9,6 @@ namespace engine {
 
 class Texture {
    public:
-    
     Texture(Renderer* renderer, const uint8_t* bitmap, int width, int height, gfx::SamplerInfo samplerInfo, bool srgb);
 
     ~Texture();
@@ -29,5 +27,3 @@ class Texture {
 std::unique_ptr<Texture> LoadTextureFromFile(const std::string& path, gfx::SamplerInfo samplerInfo, Renderer* renderer, bool srgb = true);
 
 } // namespace engine
-
-#endif

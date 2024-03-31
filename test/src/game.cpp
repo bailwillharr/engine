@@ -16,7 +16,6 @@
 #include "systems/mesh_render_system.h"
 #include "systems/transform.h"
 #include "util/gltf_loader.h"
-#include "util/model_loader.h"
 #include "log.h"
 #include "window.h"
 
@@ -47,8 +46,8 @@ void PlayGame(GameSettings settings)
 
     engine::gfx::GraphicsSettings graphics_settings{};
     graphics_settings.enable_validation = settings.enable_validation;
-    graphics_settings.vsync = true;
-    graphics_settings.wait_for_present = true;
+    graphics_settings.vsync = false;
+    graphics_settings.wait_for_present = false;
     graphics_settings.msaa_level = engine::gfx::MSAALevel::kOff;
     graphics_settings.enable_anisotropy = true;
 

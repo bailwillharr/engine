@@ -1,5 +1,4 @@
-#ifndef ENGINE_INCLUDE_APPLICATION_H_
-#define ENGINE_INCLUDE_APPLICATION_H_
+#pragma once
 
 #include <filesystem>
 #include <memory>
@@ -96,5 +95,3 @@ class Application {
 };
 
 } // namespace engine
-
-#endif

@@ -49,7 +49,7 @@ float InterleavedGradientNoise(vec2 position_screen)
 void main() {
 
 	const vec4 albedo_alpha = texture(materialSetAlbedoSampler, fragUV);
-	if (albedo_alpha.a < 0.9) discard; // discard fragments without alpha = 1.0
+	if (albedo_alpha.a < 0.9) discard;
 	const vec3 albedo = albedo_alpha.xyz;
 
 	const vec3 occlusion_roughness_metallic = vec3(texture(materialSetOcclusionRoughnessMetallic, fragUV));

@@ -1,6 +1,4 @@
-#ifndef ENGINE_INCLUDE_RESOURCES_MESH_H_
-#ifndef ENGINE_INCLUDE_RESOURCES_MESH_H_
-#define ENGINE_INCLUDE_RESOURCES_MESH_H_
+#pragma once
 
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
@@ -47,5 +45,3 @@ class Mesh {
 };
 
 } // namespace engine
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef ENGINE_INCLUDE_CUSTOM_BEHAVIOUR_H_
-#define ENGINE_INCLUDE_CUSTOM_BEHAVIOUR_H_
+#pragma once
 
 #include <unordered_map>
 
@@ -11,17 +10,15 @@
 namespace engine {
 
 class CustomBehaviourSystem : public System {
- public:
-  CustomBehaviourSystem(Scene* scene);
-  ~CustomBehaviourSystem();
+   public:
+    CustomBehaviourSystem(Scene* scene);
+    ~CustomBehaviourSystem();
 
-  void OnUpdate(float ts) override;
-  void OnComponentInsert(Entity entity) override;
+    void OnUpdate(float ts) override;
+    void OnComponentInsert(Entity entity) override;
 
- private:
-  std::unordered_map<Entity, bool> entity_is_initialised_{};
+   private:
+    std::unordered_map<Entity, bool> entity_is_initialised_{};
 };
 
-}  // namespace engine
-
-#endif
+} // namespace engine

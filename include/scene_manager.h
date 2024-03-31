@@ -1,5 +1,4 @@
-#ifndef ENGINE_INCLUDE_SCENE_MANAGER_H_
-#define ENGINE_INCLUDE_SCENE_MANAGER_H_
+#pragma once
 
 #include <memory>
 #include <vector>
@@ -57,5 +56,3 @@ class SceneManager {
 };
 
 } // namespace engine
-
-#endif

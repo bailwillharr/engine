@@ -1,5 +1,4 @@
-#ifndef ENGINE_INCLUDE_COMPONENTS_TRANSFORM_H_
-#define ENGINE_INCLUDE_COMPONENTS_TRANSFORM_H_
+#pragma once
 
 #include <string>
 
@@ -12,19 +11,17 @@
 namespace engine {
 
 struct TransformComponent {
-  std::string tag;
+    std::string tag;
 
-  glm::mat4 world_matrix;
+    glm::mat4 world_matrix;
 
-  glm::quat rotation;
-  glm::vec3 position;
-  glm::vec3 scale;
+    glm::quat rotation;
+    glm::vec3 position;
+    glm::vec3 scale;
 
-  Entity parent;
+    Entity parent;
 
-  bool is_static;
+    bool is_static;
 };
 
-}  // namespace engine
-
-#endif
+} // namespace engine

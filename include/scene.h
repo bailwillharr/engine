@@ -1,5 +1,4 @@
-#ifndef ENGINE_INCLUDE_SCENE_H_
-#define ENGINE_INCLUDE_SCENE_H_
+#pragma once
 
 #include <cassert>
 #include <cstdint>
@@ -70,21 +69,13 @@ class Scene {
     }
 
     // because GetComponent<Transformzzzzzz takes too long
-    TransformComponent* GetTransform(Entity entity) {
-        return GetComponent<TransformComponent>(entity);
-    }
+    TransformComponent* GetTransform(Entity entity) { return GetComponent<TransformComponent>(entity); }
 
-    glm::vec3& GetPosition(Entity entity) {
-        return GetTransform(entity)->position;
-    }
+    glm::vec3& GetPosition(Entity entity) { return GetTransform(entity)->position; }
 
-    glm::quat& GetRotation(Entity entity) {
-        return GetTransform(entity)->rotation;
-    }
+    glm::quat& GetRotation(Entity entity) { return GetTransform(entity)->rotation; }
 
-    glm::vec3& GetScale(Entity entity) {
-        return GetTransform(entity)->scale;
-    }
+    glm::vec3& GetScale(Entity entity) { return GetTransform(entity)->scale; }
 
     template <typename T>
     T* AddComponent(Entity entity, const T& comp = T{})
@@ -174,5 +165,3 @@ class Scene {
 };
 
 } // namespace engine
-
-#endif

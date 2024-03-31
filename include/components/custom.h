@@ -1,15 +1,12 @@
-#ifndef ENGINE_INCLUDE_COMPONENTS_CUSTOM_H_
-#define ENGINE_INCLUDE_COMPONENTS_CUSTOM_H_
+#pragma once
 
 #include <functional>
 
 namespace engine {
 
 struct CustomComponent {
-  std::function<void(void)> onInit;  // void onInit(void);
-  std::function<void(float)> onUpdate;  // void onUpdate(float ts);
+    std::function<void(void)> onInit;    // void onInit(void);
+    std::function<void(float)> onUpdate; // void onUpdate(float ts);
 };
 
-}  // namespace engine
-
-#endif
+} // namespace engine

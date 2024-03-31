@@ -10,8 +10,6 @@ a random game engine thing. Now finally with ECS!
 
 - Support dynamic shadow mapping (at least for shadows cast from the scene's sun)
 
-- Sort out LOG_X calls and ensure DEBUG, TRACE, INFO, etc are being used appropriately
-
 ## Medium priority (next week)
 
 - UI generator exposed at the Application level (Scene UI Systems could use this to draw menus every frame)
@@ -58,3 +56,5 @@ Added the BVH AABB tree made in Summer to start a much better Collision system.
 The CameraControllerSystem now uses raycasting to enable FPS-style player movement.
 
 Added static soft shadows.
+
+Sort out LOG_X calls and ensure DEBUG, TRACE, INFO, etc are being used appropriately

@@ -1,5 +1,4 @@
-#ifndef ENGINE_INCLUDE_RESOURCES_MATERIAL_H_
-#define ENGINE_INCLUDE_RESOURCES_MATERIAL_H_
+#pragma once
 
 #include <memory>
 
@@ -36,5 +35,3 @@ class Material {
 };
 
 } // namespace engine
-
-#endif

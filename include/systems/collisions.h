@@ -1,5 +1,4 @@
-#ifndef ENGINE_INCLUDE_SYSTEMS_COLLISIONS_H_
-#define ENGINE_INCLUDE_SYSTEMS_COLLISIONS_H_
+#pragma once
 
 #include <cstdint>
 #include <vector>
@@ -75,5 +74,3 @@ class CollisionSystem : public System {
 };
 
 } // namespace engine
-
-#endif

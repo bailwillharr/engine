@@ -1,6 +1,4 @@
-#ifndef ENGINE_INCLUDE_ENGINE_API_H_
-#define ENGINE_INCLUDE_ENGINE_API_H_
-
+#pragma once
 /*
 #ifndef ENGINE_API
 # ifdef _MSC_VER
@@ -16,5 +14,3 @@
 */
 
 #define ENGINE_API
-
-#endif

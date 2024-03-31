@@ -184,7 +184,7 @@ void CameraControllerSystem::OnUpdate(float ts)
     /* user interface inputs */
 
     if (scene_->app()->window()->GetKeyPress(engine::inputs::Key::K_R) || glm::length(t->position) > CameraControllerComponent::kMaxDistanceFromOrigin) {
-        t->position = {0.0f, 0.0f, 100.0f};
+        t->position = {0.0f, 0.0f, 10.0f};
         c->vel = {0.0f, 0.0f, 0.0f};
         c->pitch = glm::half_pi<float>();
         c->yaw = 0.0f;

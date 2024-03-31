@@ -1,5 +1,4 @@
-#ifndef ENGINE_TEST_SRC_CAMERA_CONTROLLER_H_
-#define ENGINE_TEST_SRC_CAMERA_CONTROLLER_H_
+#pragma once
 
 #include <glm/vec3.hpp>
 
@@ -20,13 +19,13 @@ struct CameraControllerComponent {
     static constexpr float kJumpHeight = /*4.4f*/ 8.8f;
 
     // collision
-    static constexpr float kPlayerHeight = 2.0f; // 71.0f * 25.4f / 1000.0f;
+    static constexpr float kPlayerHeight = 2.0f;          // 71.0f * 25.4f / 1000.0f;
     static constexpr float kPlayerCollisionRadius = 0.2f; // this should be greater than z_near
     static constexpr float kMaxStairHeight = 0.2f;
     static constexpr size_t kNumHorizontalRays = 20;
-    
+
     static constexpr float kGravAccel = -9.81f;
-    static constexpr float kMaxDistanceFromOrigin = 1000.0f;
+    static constexpr float kMaxDistanceFromOrigin = 200.0f;
 
     bool noclip = false;
 
@@ -50,5 +49,3 @@ class CameraControllerSystem : public engine::System {
 
     engine::Scene* next_scene_ = nullptr;
 };
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef ENGINE_INCLUDE_GFX_H_
-#define ENGINE_INCLUDE_GFX_H_
+#pragma once
 
 #include <cstdint>
 #include <functional>
@@ -123,7 +122,7 @@ struct PipelineInfo {
     CullMode face_cull_mode;
     bool alpha_blending;
     bool write_z;
-    bool line_primitives; // false for triangles, true for lines
+    bool line_primitives;       // false for triangles, true for lines
     bool depth_attachment_only; // false 99% of the time
     std::vector<const DescriptorSetLayout*> descriptor_set_layouts;
 };
@@ -169,5 +168,3 @@ struct hash<engine::gfx::SamplerInfo> {
 };
 
 } // namespace std
-
-#endif

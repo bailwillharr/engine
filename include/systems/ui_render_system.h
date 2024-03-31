@@ -8,16 +8,15 @@
 
 namespace engine {
 
-	class UIRenderSystem : public System {
-	public:
-		UIRenderSystem(Scene* scene);
-		~UIRenderSystem();
+class UIRenderSystem : public System {
+   public:
+    UIRenderSystem(Scene* scene);
+    ~UIRenderSystem();
 
-		void OnComponentInsert(Entity entity) override;
-		void OnUpdate(float ts) override;
+    void OnComponentInsert(Entity entity) override;
+    void OnUpdate(float ts) override;
 
-	private:
-		
-	};
+   private:
+};
 
-}  // namespace engine
+} // namespace engine

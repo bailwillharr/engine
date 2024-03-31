@@ -19,7 +19,7 @@ namespace engine {
 		sc->device = info.device;
 		sc->allocator = info.allocator;
 
-		LOG_INFO("Recreating swapchain!\n");
+		LOG_DEBUG("Recreating swapchain!\n");
 
 		// get surface caps and features
 		VkResult res;

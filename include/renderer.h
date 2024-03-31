@@ -1,5 +1,4 @@
-#ifndef ENGINE_INCLUDE_RENDERER_H_
-#define ENGINE_INCLUDE_RENDERER_H_
+#pragma once
 
 #include <memory>
 #include <unordered_map>
@@ -90,7 +89,7 @@ class Renderer : private ApplicationComponent {
         glm::mat4 lightSpaceMatrix;
     };
     UniformDescriptor<GlobalUniformData> global_uniform; // rarely updates; set 0 binding 0
-    UniformDescriptor<glm::mat4> frame_uniform;  // updates once per frame; set 1 binding 0
+    UniformDescriptor<glm::mat4> frame_uniform;          // updates once per frame; set 1 binding 0
     // in fragment shader
     const gfx::DescriptorSetLayout* material_set_layout; // set 2; set bound per material
 
@@ -120,5 +119,3 @@ class Renderer : private ApplicationComponent {
 };
 
 } // namespace engine
-
-#endif

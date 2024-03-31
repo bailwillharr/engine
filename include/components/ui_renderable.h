@@ -2,8 +2,8 @@
 
 namespace engine {
 
-	struct UIRenderableComponent {
-		int x;
-	};
+struct UIRenderableComponent {
+    int x;
+};
 
-}  // namespace engine
+} // namespace engine
