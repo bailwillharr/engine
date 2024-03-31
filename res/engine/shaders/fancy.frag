@@ -122,7 +122,7 @@ void main() {
 	lighting += mix(ambient_light, texture(globalSetSkybox, R).rgb, metallic) * ao * diffuse_brdf; // this is NOT physically-based, it just looks cool
 
 	// tone mapping
-	const vec3 hdr_color = min(emission + lighting, 1.0);
+	const vec3 hdr_color = emission + lighting;
 	outColor = vec4(hdr_color / (hdr_color + 1.0), 1.0);
 	//outColor = vec4(vec3(1.0 - shadow), 1.0);
 }
