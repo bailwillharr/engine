@@ -16,7 +16,7 @@ struct CameraControllerComponent {
     static constexpr float kSpeedForwardBack = 4.0f;
     static constexpr float kSpeedStrafe = 4.0f;
     static constexpr float kSprintMultiplier = 2.0f;
-    static constexpr float kJumpHeight = /*4.4f*/ 8.8f;
+    static constexpr float kJumpVelocity = 4.4f;
 
     // collision
     static constexpr float kPlayerHeight = 2.0f;          // 71.0f * 25.4f / 1000.0f;
@@ -25,6 +25,7 @@ struct CameraControllerComponent {
     static constexpr size_t kNumHorizontalRays = 20;
 
     static constexpr float kGravAccel = -9.81f;
+    //    static constexpr float kGravAccel = -1.625f; // moon gravity
     static constexpr float kMaxDistanceFromOrigin = 200.0f;
 
     bool noclip = false;

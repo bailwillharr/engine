@@ -239,7 +239,7 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
         }
         if (material.pbrMetallicRoughness.metallicFactor != 1.0 || material.pbrMetallicRoughness.roughnessFactor != 1.0) {
             if (material.pbrMetallicRoughness.metallicRoughnessTexture.index != -1) {
-                LOG_WARN("Material {} contains a metallic and/or roughness multiplier which isn't supported yet.", material.name); 
+                LOG_WARN("Material {} contains a metallic and/or roughness multiplier which isn't supported yet.", material.name);
             }
         }
 
@@ -271,7 +271,8 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
         }
 
         // occlusion roughness metallic
-        materials.back()->SetOcclusionRoughnessMetallicTexture(scene.app()->GetResource<Texture>("builtin.white")); // default ao = 1.0, rough = 1.0, metal = 1.0
+        materials.back()->SetOcclusionRoughnessMetallicTexture(
+            scene.app()->GetResource<Texture>("builtin.white")); // default ao = 1.0, rough = 1.0, metal = 1.0
         if (material.pbrMetallicRoughness.metallicRoughnessTexture.index != -1) {
             if (material.pbrMetallicRoughness.metallicRoughnessTexture.texCoord == 0) {
                 LOG_DEBUG("Setting occlusion roughness metallic texture!");
@@ -283,7 +284,8 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
         }
         else {
             LOG_DEBUG("Creating occlusion roughness metallic texture...");
-            const std::vector<double> mr_values{1.0f /* no AO */, material.pbrMetallicRoughness.roughnessFactor, material.pbrMetallicRoughness.metallicFactor, 1.0f};
+            const std::vector<double> mr_values{1.0f /* no AO */, material.pbrMetallicRoughness.roughnessFactor, material.pbrMetallicRoughness.metallicFactor,
+                                                1.0f};
             Color mr(mr_values);
             if (metal_rough_textures.contains(mr) == false) {
                 const uint8_t pixel[4] = {mr.r, mr.g, mr.b, mr.a};
@@ -302,7 +304,8 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
         if (material.occlusionTexture.index != -1) {
             if (material.occlusionTexture.texCoord == 0) {
                 if (material.occlusionTexture.index != material.pbrMetallicRoughness.metallicRoughnessTexture.index) {
-                    throw std::runtime_error(std::string("Material ") + material.name + std::string(" has an ambient occlusion texture different to the metal-rough texture."));
+                    throw std::runtime_error(std::string("Material ") + material.name +
+                                             std::string(" has an ambient occlusion texture different to the metal-rough texture."));
                 }
             }
             else {
@@ -518,8 +521,8 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
                     assert(num_unq_vertices >= 0);
 
                     // get new vertices into the vector
-                    vertices.resize(num_unq_vertices);
-                    for (size_t i = 0; i < num_unq_vertices; ++i) {
+                    vertices.resize(static_cast<size_t>(num_unq_vertices));
+                    for (size_t i = 0; i < static_cast<size_t>(num_unq_vertices); ++i) {
                         vertices[i] = vertex_data_out[i];
                     }
 
@@ -578,6 +581,7 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
 
     // glTF uses the Y-up convention so the parent object must be rotated to Z-up
     const Entity parent = scene.CreateEntity(name, 0, glm::vec3{}, glm::quat{glm::one_over_root_two<float>(), glm::one_over_root_two<float>(), 0.0f, 0.0f});
+    scene.GetTransform(parent)->is_static = isStatic;
 
     std::vector<Entity> entities(model.nodes.size(), 0);
     std::function<void(Entity, const tg::Node&)> generateEntities = [&](Entity parent_entity, const tg::Node& node) -> void {

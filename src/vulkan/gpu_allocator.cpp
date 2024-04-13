@@ -1,5 +1,7 @@
 #include <assert.h>
 
+#include <cstdio> // snprintf for vma
+
 #include <volk.h>
 
 #define VMA_STATIC_VULKAN_FUNCTIONS 0

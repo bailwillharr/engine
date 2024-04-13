@@ -67,7 +67,7 @@ static void check_vk_result(VkResult code) { checkVulkanError(code, -1); }
 
 namespace engine {
 
-static constexpr uint32_t FRAMES_IN_FLIGHT = 2;       // This improved FPS by 5x! (on Intel IGPU)
+static constexpr uint32_t FRAMES_IN_FLIGHT = 2; // This improved FPS by 5x! (on Intel IGPU)
 
 static constexpr size_t PUSH_CONSTANT_MAX_SIZE = 128; // bytes
 static constexpr VkIndexType INDEX_TYPE = VK_INDEX_TYPE_UINT32;
@@ -621,7 +621,7 @@ void GFXDevice::CmdRenderImguiDrawData(gfx::DrawBuffer* draw_buffer, ImDrawData*
     ImGui_ImplVulkan_RenderDrawData(draw_data, draw_buffer->frameData.drawBuf);
 }
 
-gfx::DrawBuffer* GFXDevice::BeginRender()
+gfx::DrawBuffer* GFXDevice::BeginRender(bool window_resized)
 {
     VkResult res;
 
@@ -703,6 +703,12 @@ gfx::DrawBuffer* GFXDevice::BeginRender()
 
     uint32_t swapchainImageIndex;
 
+    if (window_resized && pimpl->FRAMECOUNT != 0) { // resize flag is true on first frame
+        pimpl->swapchainIsOutOfDate = true;
+        LOG_TRACE("Window resized, framecount == {}", pimpl->FRAMECOUNT);
+    }
+
+    // THIS FUNCTION BLOCKS UNTIL AN IMAGE IS AVAILABLE (it waits for vsync)
     do {
         if (pimpl->swapchainIsOutOfDate) {
             // re-create swapchain
@@ -714,7 +720,8 @@ gfx::DrawBuffer* GFXDevice::BeginRender()
         res = vkAcquireNextImageKHR(pimpl->device.device, pimpl->swapchain.swapchain, 1000000000LL, frameData.presentSemaphore, VK_NULL_HANDLE,
                                     &swapchainImageIndex);
         if (res != VK_SUBOPTIMAL_KHR && res != VK_ERROR_OUT_OF_DATE_KHR) VKCHECK(res);
-        if (res == VK_SUCCESS) pimpl->swapchainIsOutOfDate = false;
+        if (res == VK_ERROR_OUT_OF_DATE_KHR) pimpl->swapchainIsOutOfDate = true;
+        if (res == VK_SUCCESS || res == VK_SUBOPTIMAL_KHR) pimpl->swapchainIsOutOfDate = false;
     } while (pimpl->swapchainIsOutOfDate);
 
     /* record command buffer */
@@ -940,7 +947,7 @@ void GFXDevice::FinishRender(gfx::DrawBuffer* drawBuffer)
     std::vector<VkSemaphore> waitSemaphores{};
     std::vector<VkPipelineStageFlags> waitDstStageMasks{};
 
-    waitSemaphores.push_back(drawBuffer->frameData.presentSemaphore);  // wait for image from 2nd last frame to be presented so it can be rendered to again
+    waitSemaphores.push_back(drawBuffer->frameData.presentSemaphore); // wait for image from 2nd last frame to be presented so it can be rendered to again
     waitDstStageMasks.push_back(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
     waitSemaphores.push_back(drawBuffer->frameData.transferSemaphore); // wait for uniform buffer copies to complete
     waitDstStageMasks.push_back(VK_PIPELINE_STAGE_VERTEX_SHADER_BIT);
@@ -970,8 +977,8 @@ void GFXDevice::FinishRender(gfx::DrawBuffer* drawBuffer)
                                  .pImageIndices = &swapchainImageIndex,
                                  .pResults = nullptr};
     res = vkQueuePresentKHR(pimpl->device.queues.presentQueue, &presentInfo);
-    if (res == VK_SUBOPTIMAL_KHR || res == VK_ERROR_OUT_OF_DATE_KHR) {
-        // flag to re-create the swapchain before next render
+    if (res == VK_ERROR_OUT_OF_DATE_KHR) {
+        // flag to re-create the swapchain next frame
         pimpl->swapchainIsOutOfDate = true;
     }
     else if (res != VK_SUCCESS)
@@ -1351,9 +1358,9 @@ gfx::Pipeline* GFXDevice::CreatePipeline(const gfx::PipelineInfo& info)
     if (info.depth_attachment_only) {
         // use depth bias if only rendering to a depth attachment
         rasterizer.depthBiasEnable = VK_TRUE;
-        rasterizer.depthBiasConstantFactor = 2.0f;//1.25f;
+        rasterizer.depthBiasConstantFactor = 2.0f; // 1.25f;
         rasterizer.depthBiasClamp = 0.0f;
-        rasterizer.depthBiasSlopeFactor = 3.5f;//1.75f;
+        rasterizer.depthBiasSlopeFactor = 3.5f; // 1.75f;
     }
     else {
         rasterizer.depthBiasEnable = VK_FALSE;
@@ -1486,7 +1493,7 @@ gfx::DescriptorSetLayout* GFXDevice::CreateDescriptorSetLayout(const std::vector
     uint32_t i = 0;
     for (const auto& binding : bindings) {
         auto& vulkanBinding = vulkanBindings.emplace_back();
-        vulkanBinding.binding = i;         // This should be as low as possible to avoid wasting memory
+        vulkanBinding.binding = i; // This should be as low as possible to avoid wasting memory
         vulkanBinding.descriptorType = converters::getDescriptorType(binding.descriptor_type);
         vulkanBinding.descriptorCount = 1; // if > 1, accessible as an array in the shader
         vulkanBinding.stageFlags = converters::getShaderStageFlags(binding.stage_flags);
@@ -1929,7 +1936,7 @@ gfx::Image* GFXDevice::CreateImage(uint32_t w, uint32_t h, gfx::ImageFormat inpu
             VkImageMemoryBarrier2 afterBlitBarrier{};
             afterBlitBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
             afterBlitBarrier.srcStageMask = VK_PIPELINE_STAGE_2_BLIT_BIT;
-            afterBlitBarrier.srcAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT;       // previous mip level was just READ from in a BLIT
+            afterBlitBarrier.srcAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT; // previous mip level was just READ from in a BLIT
             afterBlitBarrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
             afterBlitBarrier.dstAccessMask = VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT | VK_ACCESS_2_SHADER_READ_BIT; // it will next be sampled in a frag shader
             afterBlitBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;

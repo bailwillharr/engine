@@ -413,8 +413,7 @@ void Application::GameLoop()
             static_list = mesh_render_system->GetStaticRenderList();
             dynamic_list = mesh_render_system->GetDynamicRenderList();
         }
-        renderer_->PreRender(window()->GetWindowResized(), camera_transform);
-        renderer_->Render(static_list, dynamic_list, debug_lines);
+        renderer_->Render(window()->GetWindowResized(), camera_transform, static_list, dynamic_list, debug_lines);
         debug_lines.clear(); // gets remade every frame :0
 
         /* poll events */

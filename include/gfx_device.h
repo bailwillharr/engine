@@ -23,7 +23,7 @@ class GFXDevice {
     void ShutdownImguiBackend();
     void CmdRenderImguiDrawData(gfx::DrawBuffer* draw_buffer, ImDrawData* draw_data);
 
-    gfx::DrawBuffer* BeginRender();
+    gfx::DrawBuffer* BeginRender(bool window_resized);
 
     /* - draw_buffer MUST be a valid pointer returned by BeginRender().
        - draw_buffer is invalid after this function has been called. */

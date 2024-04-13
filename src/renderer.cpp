@@ -249,8 +249,9 @@ Renderer::~Renderer()
     device_->DestroyDescriptorSetLayout(global_uniform.layout);
 }
 
-void Renderer::PreRender(bool window_is_resized, glm::mat4 camera_transform)
+void Renderer::Render(bool window_is_resized, glm::mat4 camera_transform, const RenderList* static_list, const RenderList* dynamic_list, const std::vector<Line>& debug_lines)
 {
+
     if (window_is_resized) {
         uint32_t w, h;
         device_->GetViewportSize(&w, &h);
@@ -265,10 +266,6 @@ void Renderer::PreRender(bool window_is_resized, glm::mat4 camera_transform)
     const glm::mat4 view_matrix = glm::inverse(camera_transform);
     frame_uniform.uniform_buffer_data.data = view_matrix;
     device_->WriteUniformBuffer(frame_uniform.uniform_buffer, 0, sizeof(frame_uniform.uniform_buffer_data), &frame_uniform.uniform_buffer_data);
-}
-
-void Renderer::Render(const RenderList* static_list, const RenderList* dynamic_list, const std::vector<Line>& debug_lines)
-{
 
     if (rendering_started == false) {
         // render to shadow map
@@ -292,7 +289,7 @@ void Renderer::Render(const RenderList* static_list, const RenderList* dynamic_l
 
     last_bound_pipeline_ = nullptr;
 
-    gfx::DrawBuffer* draw_buffer = device_->BeginRender();
+    gfx::DrawBuffer* draw_buffer = device_->BeginRender(window_is_resized);
 
     if (static_list) {
         if (!static_list->empty()) {

@@ -19,8 +19,6 @@ namespace engine {
 		sc->device = info.device;
 		sc->allocator = info.allocator;
 
-		LOG_DEBUG("Recreating swapchain!\n");
-
 		// get surface caps and features
 		VkResult res;
 		res = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(info.physicalDevice, info.surface, &sc->surfaceCapabilities);
@@ -248,6 +246,8 @@ namespace engine {
 			assert(res == VK_SUCCESS);
 
 		}
+
+		LOG_INFO("Recreating swapchain! w: {} h: {}\n", sc->extent.width, sc->extent.height);
 
 	}
 

@@ -35,10 +35,8 @@ class Renderer : private ApplicationComponent {
 
     ~Renderer();
 
-    void PreRender(bool window_is_resized, glm::mat4 camera_transform);
-
     // staticList can be nullptr to render nothing
-    void Render(const RenderList* static_list, const RenderList* dynamic_list, const std::vector<Line>& debug_lines);
+    void Render(bool window_is_resized, glm::mat4 camera_transform, const RenderList* static_list, const RenderList* dynamic_list, const std::vector<Line>& debug_lines);
 
     // getters
 
