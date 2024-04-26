@@ -202,6 +202,10 @@ void CameraControllerSystem::OnUpdate(float ts)
         scene_->app()->scene_manager()->SetActiveScene(next_scene_);
     }
 
+    if (scene_->app()->window()->GetKeyPress(engine::inputs::Key::K_Q)) {
+        c->noclip ^= true;
+    }
+
     if (scene_->app()->window()->GetButtonPress(engine::inputs::MouseButton::M_LEFT)) {
         engine::Ray ray{};
         ray.origin = t->position;

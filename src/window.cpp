@@ -169,8 +169,9 @@ void Window::OnMouseMotionEvent(SDL_MouseMotionEvent& e)
     else {
         mouse_.x = e.x;
         mouse_.y = e.y;
-        mouse_.dx = e.xrel;
-        mouse_.dy = e.yrel;
+        // mouse motion events can occur multiple times per frame when FPS drops, these need to be accumulated
+        mouse_.dx += e.xrel;
+        mouse_.dy += e.yrel;
     }
 }
 
@@ -289,6 +290,7 @@ bool Window::SetRelativeMouseMode(bool enabled)
     int code = SDL_SetRelativeMouseMode(static_cast<SDL_bool>(enabled));
     if (code != 0) {
         throw std::runtime_error("Unable to set relative mouse mode");
+        // return false;
     }
     else {
         return true;

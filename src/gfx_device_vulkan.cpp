@@ -67,7 +67,7 @@ static void check_vk_result(VkResult code) { checkVulkanError(code, -1); }
 
 namespace engine {
 
-static constexpr uint32_t FRAMES_IN_FLIGHT = 2; // This improved FPS by 5x! (on Intel IGPU)
+static constexpr uint32_t FRAMES_IN_FLIGHT = 2;       // This improved FPS by 5x! (on Intel IGPU)
 
 static constexpr size_t PUSH_CONSTANT_MAX_SIZE = 128; // bytes
 static constexpr VkIndexType INDEX_TYPE = VK_INDEX_TYPE_UINT32;
@@ -474,8 +474,7 @@ GFXDevice::GFXDevice(const char* appName, const char* appVersion, SDL_Window* wi
     pimpl->swapchainInfo.physicalDevice = pimpl->device.physicalDevice;
     pimpl->swapchainInfo.surface = pimpl->surface;
     pimpl->swapchainInfo.window = pimpl->window;
-    pimpl->swapchainInfo.vsync = pimpl->graphicsSettings.vsync;
-    pimpl->swapchainInfo.waitForPresent = pimpl->graphicsSettings.wait_for_present;
+    pimpl->swapchainInfo.requested_present_mode = pimpl->graphicsSettings.present_mode;
     createSwapchain(&pimpl->swapchain, pimpl->swapchainInfo);
 
     /* make synchronisation primitives for rendering and allocate command buffers
@@ -574,6 +573,26 @@ void GFXDevice::GetViewportSize(uint32_t* w, uint32_t* h)
     else {
         *w = (uint32_t)width;
         *h = (uint32_t)height;
+    }
+}
+
+void GFXDevice::ChangePresentMode(gfx::PresentMode mode)
+{
+    pimpl->swapchainInfo.requested_present_mode = mode;
+    // need to recreate swapchain to apply changes
+    pimpl->swapchainIsOutOfDate = true;
+}
+
+gfx::PresentMode GFXDevice::GetPresentMode() {
+    switch (pimpl->swapchain.presentMode) {
+    case VK_PRESENT_MODE_FIFO_KHR:
+        return gfx::PresentMode::kDoubleBufferedVsync;
+    case VK_PRESENT_MODE_IMMEDIATE_KHR:
+        return gfx::PresentMode::kDoubleBufferedNoVsync;
+    case VK_PRESENT_MODE_MAILBOX_KHR:
+        return gfx::PresentMode::kTripleBuffered;
+    default:
+        throw std::runtime_error("Unknown present mode");
     }
 }
 
@@ -947,7 +966,7 @@ void GFXDevice::FinishRender(gfx::DrawBuffer* drawBuffer)
     std::vector<VkSemaphore> waitSemaphores{};
     std::vector<VkPipelineStageFlags> waitDstStageMasks{};
 
-    waitSemaphores.push_back(drawBuffer->frameData.presentSemaphore); // wait for image from 2nd last frame to be presented so it can be rendered to again
+    waitSemaphores.push_back(drawBuffer->frameData.presentSemaphore);  // wait for image from 2nd last frame to be presented so it can be rendered to again
     waitDstStageMasks.push_back(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
     waitSemaphores.push_back(drawBuffer->frameData.transferSemaphore); // wait for uniform buffer copies to complete
     waitDstStageMasks.push_back(VK_PIPELINE_STAGE_VERTEX_SHADER_BIT);
@@ -1360,7 +1379,7 @@ gfx::Pipeline* GFXDevice::CreatePipeline(const gfx::PipelineInfo& info)
         rasterizer.depthBiasEnable = VK_TRUE;
         rasterizer.depthBiasConstantFactor = 2.0f; // 1.25f;
         rasterizer.depthBiasClamp = 0.0f;
-        rasterizer.depthBiasSlopeFactor = 3.5f; // 1.75f;
+        rasterizer.depthBiasSlopeFactor = 3.5f;    // 1.75f;
     }
     else {
         rasterizer.depthBiasEnable = VK_FALSE;
@@ -1493,7 +1512,7 @@ gfx::DescriptorSetLayout* GFXDevice::CreateDescriptorSetLayout(const std::vector
     uint32_t i = 0;
     for (const auto& binding : bindings) {
         auto& vulkanBinding = vulkanBindings.emplace_back();
-        vulkanBinding.binding = i; // This should be as low as possible to avoid wasting memory
+        vulkanBinding.binding = i;         // This should be as low as possible to avoid wasting memory
         vulkanBinding.descriptorType = converters::getDescriptorType(binding.descriptor_type);
         vulkanBinding.descriptorCount = 1; // if > 1, accessible as an array in the shader
         vulkanBinding.stageFlags = converters::getShaderStageFlags(binding.stage_flags);

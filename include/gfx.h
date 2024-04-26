@@ -29,23 +29,24 @@ enum class MSAALevel {
     k16X,
 };
 
+enum class PresentMode {
+    kDoubleBufferedNoVsync,
+    kDoubleBufferedVsync,
+    kTripleBuffered,
+};
+
 struct GraphicsSettings {
     GraphicsSettings()
     {
         // sane defaults
-        enable_validation = true;
-        vsync = true;
-        // not all GPUs/drivers support immediate present with V-sync enabled
-        wait_for_present = true;
+        enable_validation = false;
+        present_mode = PresentMode::kDoubleBufferedVsync;
         msaa_level = MSAALevel::kOff;
         enable_anisotropy = false; // anisotropic filtering can severely affect performance on intel iGPUs
     }
 
     bool enable_validation;
-    bool vsync;
-    // idle CPU after render until the frame has been presented
-    // (no affect with V-sync disabled)
-    bool wait_for_present;
+    PresentMode present_mode;
     MSAALevel msaa_level;
     bool enable_anisotropy;
 };

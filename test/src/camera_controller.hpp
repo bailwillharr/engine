@@ -8,7 +8,7 @@
 
 struct CameraControllerComponent {
     // looking
-    static constexpr float kCameraSensitivity = 0.007f;
+    static constexpr float kCameraSensitivity = 0.001f;
     static constexpr float kMaxPitch = glm::pi<float>();
     static constexpr float kMinPitch = 0.0f;
 
@@ -16,7 +16,7 @@ struct CameraControllerComponent {
     static constexpr float kSpeedForwardBack = 4.0f;
     static constexpr float kSpeedStrafe = 4.0f;
     static constexpr float kSprintMultiplier = 2.0f;
-    static constexpr float kJumpVelocity = 4.4f;
+    static constexpr float kJumpVelocity = 4.4f * 2.0f;
 
     // collision
     static constexpr float kPlayerHeight = 2.0f;          // 71.0f * 25.4f / 1000.0f;
@@ -31,7 +31,8 @@ struct CameraControllerComponent {
     bool noclip = false;
 
     float yaw = 0.0f;
-    float pitch = glm::half_pi<float>();
+    //float pitch = glm::half_pi<float>();
+    float pitch = 0.0f;
     glm::vec3 vel{0.0f, 0.0f, 0.0f};
     bool grounded = false;
 

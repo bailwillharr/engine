@@ -89,6 +89,8 @@ static glm::mat4 MatFromDoubleArray(const std::vector<double>& arr)
 engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
 {
 
+    LOG_INFO("Loading gltf file: {}", path);
+
     tg::TinyGLTF loader;
     tg::Model model;
     std::string err, warn;
@@ -407,6 +409,7 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
                 std::vector<uint32_t> indices;
                 indices.reserve(num_indices);
 
+                // TODO: natively support indices of these sizes instead of having to convert to uint32
                 if (indices_accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE) {
                     for (size_t i = 0; i < num_indices; ++i) {
                         indices.push_back(*reinterpret_cast<const uint8_t*>(&indices_data_start[i * 1]));
@@ -630,7 +633,6 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
 
         if (node.mesh != -1) {
             const auto& primitives = primitive_arrays.at(node.mesh);
-            int i = 0;
             if (primitives.size() == 1) {
                 auto meshren = scene.AddComponent<MeshRenderableComponent>(e);
                 meshren->mesh = primitives.front().mesh;
@@ -639,12 +641,14 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
                 collider->aabb = primitives.front().aabb;
             }
             else {
+                int i = 0;
                 for (const EnginePrimitive& prim : primitives) {
                     auto prim_entity = scene.CreateEntity(std::string("_mesh") + std::to_string(i), e);
+                    scene.GetTransform(prim_entity)->is_static = isStatic;
                     auto meshren = scene.AddComponent<MeshRenderableComponent>(prim_entity);
                     meshren->mesh = prim.mesh;
                     meshren->material = prim.material;
-                    auto collider = scene.AddComponent<ColliderComponent>(e);
+                    auto collider = scene.AddComponent<ColliderComponent>(prim_entity);
                     collider->aabb = prim.aabb;
                     ++i;
                 }
@@ -660,7 +664,7 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
         generateEntities(parent, model.nodes.at(i));
     }
 
-    LOG_DEBUG("Loaded glTF model: {}", path);
+    LOG_DEBUG("Loaded glTF file: {}", path);
 
     return parent;
 }

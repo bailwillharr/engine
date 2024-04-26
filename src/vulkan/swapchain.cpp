@@ -53,21 +53,23 @@ namespace engine {
 		res = vkGetPhysicalDeviceSurfacePresentModesKHR(info.physicalDevice, info.surface, &surfacePresentModeCount, presentModes.data());
 		assert(res == VK_SUCCESS);
 
-		sc->presentMode = VK_PRESENT_MODE_FIFO_KHR; // This mode is always available
-		if (info.vsync == true) {
-			if (info.waitForPresent == false) {
-				for (const auto& presMode : presentModes) {
-					if (presMode == VK_PRESENT_MODE_MAILBOX_KHR) {
-						sc->presentMode = presMode; // this mode allows V-sync without fixing FPS to refresh rate
-					}
-				}
-			}
+		VkPresentModeKHR present_mode_requested;
+		switch (info.requested_present_mode) {
+		case gfx::PresentMode::kDoubleBufferedNoVsync:
+			present_mode_requested = VK_PRESENT_MODE_IMMEDIATE_KHR;
+			break;
+		case gfx::PresentMode::kDoubleBufferedVsync:
+			present_mode_requested = VK_PRESENT_MODE_FIFO_KHR;
+			break;
+		case gfx::PresentMode::kTripleBuffered:
+			present_mode_requested = VK_PRESENT_MODE_MAILBOX_KHR;
 		}
-		else {
-			for (const auto& presMode : presentModes) {
-				if (presMode == VK_PRESENT_MODE_IMMEDIATE_KHR) {
-					sc->presentMode = presMode; // V-sync off
-				}
+		sc->presentMode = VK_PRESENT_MODE_FIFO_KHR; // This mode is always available
+		// check requested mode is available
+		for (VkPresentModeKHR mode : presentModes) {
+			if (mode == present_mode_requested) {
+				sc->presentMode = mode;
+				break;
 			}
 		}
 

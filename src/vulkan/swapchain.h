@@ -9,6 +9,8 @@
 
 #include <vk_mem_alloc.h>
 
+#include "gfx.h"
+
 namespace engine {
 
 	struct DepthStencil {
@@ -38,8 +40,7 @@ namespace engine {
 		VkSurfaceKHR surface;
 		SDL_Window* window;
 		VmaAllocator allocator;
-		bool vsync;
-		bool waitForPresent;
+		gfx::PresentMode requested_present_mode;
 	};
 
 	void createSwapchain(Swapchain* sc, const SwapchainInfo& info);

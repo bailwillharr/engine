@@ -118,8 +118,9 @@ void main() {
 
 	lighting *= (1.0 - shadow);
 
-	const vec3 ambient_light = vec3(0.09082, 0.13281, 0.18164) * 2.4;
-	lighting += mix(ambient_light, texture(globalSetSkybox, R).rgb, metallic) * ao * diffuse_brdf; // this is NOT physically-based, it just looks cool
+	const vec3 ambient_light = vec3(0.09082, 0.13281, 0.18164) * 2.4 * 0.1;
+	//lighting += mix(ambient_light, texture(globalSetSkybox, R).rgb, metallic) * ao * diffuse_brdf; // this is NOT physically-based, it just looks cool
+	lighting += (ambient_light * ao * diffuse_brdf);
 
 	// tone mapping
 	const vec3 hdr_color = emission + lighting;

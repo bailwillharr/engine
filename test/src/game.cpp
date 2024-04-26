@@ -46,8 +46,7 @@ void PlayGame(GameSettings settings)
 
     engine::gfx::GraphicsSettings graphics_settings{};
     graphics_settings.enable_validation = settings.enable_validation;
-    graphics_settings.vsync = false;
-    graphics_settings.wait_for_present = false;
+    graphics_settings.present_mode = engine::gfx::PresentMode::kTripleBuffered;
     graphics_settings.msaa_level = engine::gfx::MSAALevel::kOff;
     graphics_settings.enable_anisotropy = true;
 
@@ -66,12 +65,12 @@ void PlayGame(GameSettings settings)
         /* as of right now, the entity with tag 'camera' is used to build the view
          * matrix */
 
-        engine::Entity sponza = engine::util::LoadGLTF(*start_scene, app.GetResourcePath("models/tree.glb"), true);
-        start_scene->GetPosition(sponza).z += 90.0f;
+        //engine::Entity temple = engine::util::LoadGLTF(*start_scene, "C:/games/temple.glb", true);
 
         start_scene->RegisterComponent<CameraControllerComponent>();
         start_scene->RegisterSystem<CameraControllerSystem>();
         start_scene->AddComponent<CameraControllerComponent>(camera)->noclip = true;
+        start_scene->GetPosition(camera).z += 10.0f;
     }
 
     engine::Scene* main_scene = app.scene_manager()->CreateEmptyScene();
@@ -107,7 +106,7 @@ void PlayGame(GameSettings settings)
         // main_scene->GetComponent<engine::TransformComponent>(bottle)->position.z += 5.0f;
 
         engine::Entity helmet = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/DamagedHelmet.glb"), true);
-        main_scene->GetPosition(helmet) += glm::vec3{5.0f, 5.0f, 1.0f};
+        main_scene->GetPosition(helmet) += glm::vec3{5.0f, 5.0f, 5.0f};
         main_scene->GetScale(helmet) *= 3.0f;
         main_scene->GetRotation(helmet) = glm::angleAxis(glm::pi<float>(), glm::vec3{ 0.0f, 0.0f, 1.0f });
         main_scene->GetRotation(helmet) *= glm::angleAxis(glm::half_pi<float>(), glm::vec3{ 1.0f, 0.0f, 0.0f });

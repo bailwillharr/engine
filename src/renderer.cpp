@@ -4,6 +4,7 @@
 
 #include "application_component.h"
 #include "util/files.h"
+#include "log.h"
 
 #include <glm/mat4x4.hpp>
 #include <glm/trigonometric.hpp>
