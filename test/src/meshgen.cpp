@@ -66,7 +66,7 @@ std::unique_ptr<engine::Mesh> GenSphereMesh(engine::GFXDevice* gfx, float r, int
 
             if (j == (detail / 2) - 1) norm = -norm;
 
-            for (auto it = vertices.end() - 6; it != vertices.end(); it++) {
+            for (auto it = vertices.end() - 6; it != vertices.end(); ++it) {
                 it->norm = norm;
             }
         }

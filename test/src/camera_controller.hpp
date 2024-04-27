@@ -8,7 +8,7 @@
 
 struct CameraControllerComponent {
     // looking
-    static constexpr float kCameraSensitivity = 0.001f;
+    static constexpr float kCameraSensitivity = 0.003f;
     static constexpr float kMaxPitch = glm::pi<float>();
     static constexpr float kMinPitch = 0.0f;
 

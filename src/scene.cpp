@@ -50,6 +50,7 @@ Entity Scene::CreateEntity(const std::string& tag, Entity parent,
 
   t->tag = tag;
   t->parent = parent;
+  t->is_static = false;
 
   return id;
 }

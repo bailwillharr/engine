@@ -78,9 +78,11 @@ void PlayGame(GameSettings settings)
         /* create camera */
         engine::Entity camera = main_scene->CreateEntity("camera");
 
-        auto camren = main_scene->AddComponent<engine::MeshRenderableComponent>(camera);
+        engine::Entity camera_child = main_scene->CreateEntity("camera_child", camera, glm::vec3{0.0f, 0.0f, -3.0f});
+        main_scene->GetTransform(camera_child)->is_static = false;
+        auto camren = main_scene->AddComponent<engine::MeshRenderableComponent>(camera_child);
         camren->visible = true;
-        camren->mesh = GenSphereMesh(app.renderer()->GetDevice(), 0.2f, 10);
+        camren->mesh = GenSphereMesh(app.renderer()->GetDevice(), 1.0f, 16);
         camren->material = app.GetResource<engine::Material>("builtin.default");
 
         /* as of right now, the entity with tag 'camera' is used to build the view
@@ -88,6 +90,7 @@ void PlayGame(GameSettings settings)
 
         auto camera_transform = main_scene->GetComponent<engine::TransformComponent>(camera);
         camera_transform->position = {0.0f, 0.0f, 100.0f};
+        camera_transform->is_static = false;
 
         main_scene->RegisterComponent<CameraControllerComponent>();
         main_scene->RegisterSystem<CameraControllerSystem>();
@@ -128,8 +131,13 @@ void PlayGame(GameSettings settings)
         main_scene->GetPosition(bottle).z += 2.5f;
         main_scene->GetScale(bottle) *= 25.0f;
 
-        engine::Entity cube = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/cube.glb"), false);
-        main_scene->GetPosition(cube) += glm::vec3{-5.0f, -17.0f, 0.0f};
+        //engine::Entity cube = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/cube.glb"), false);
+        engine::Entity cube = main_scene->CreateEntity("cube", 0, glm::vec3{ 4.0f, -17.0f, 0.0f });
+        main_scene->GetTransform(cube)->is_static = false;
+        auto cube_ren = main_scene->AddComponent<engine::MeshRenderableComponent>(cube);
+        cube_ren->material = app.GetResource<engine::Material>("builtin.default");
+        cube_ren->mesh = GenCuboidMesh(app.renderer()->GetDevice(), 1.0f, 1.0f, 1.0f);
+        cube_ren->visible = true;
         auto cubeCustom = main_scene->AddComponent<engine::CustomComponent>(cube);
         cubeCustom->onInit = [] {};
         cubeCustom->onUpdate = [&main_scene, cube](float dt) {

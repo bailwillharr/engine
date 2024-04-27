@@ -7,6 +7,9 @@ option(ENGINE_BUILD_TEST "Compile the test program" ON)
 
 SET(CMAKE_CONFIGURATION_TYPES "Debug;Release;RelWithDebInfo")
 
+# enable link time code generation for all targets in the solution
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE)
+
 project(engine LANGUAGES CXX C
 	VERSION "0.2.0"
 )
@@ -53,6 +56,7 @@ set(SRC_FILES
 	"src/systems/ui_render_system.cpp"
 	"src/systems/transform.cpp"
 	"src/util/files.cpp"
+	"src/util/gen_tangents.cpp"
 	"src/util/gltf_loader.cpp"
 	"src/vulkan/device.cpp"
 	"src/vulkan/device.h"
@@ -99,6 +103,7 @@ set(INCLUDE_FILES
 	"include/systems/transform.h"
 	"include/util.h"
 	"include/util/files.h"
+	"include/util/gen_tangents.h"
 	"include/util/gltf_loader.h"
 	"include/window.h"
 )

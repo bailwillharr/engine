@@ -435,6 +435,7 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
                     LOG_DEBUG("Generating tangents...");
                     LOG_TRACE("Tangent gen: vtx count before = {} idx count before = {}", original_num_vertices, num_indices);
                     // generate tangents if they're not in the file
+                    // manually generating tangents directly with MikkTSpace instead of util::GenTangents() in order to directly access glTF vertex attributes
                     struct MeshData {
                         Attribute<glm::vec3>* positions;
                         Attribute<glm::vec3>* normals;
