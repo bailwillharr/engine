@@ -26,11 +26,11 @@ Scene::Scene(Application* app) : app_(app) {
   RegisterComponent<UIRenderableComponent>();
 
   // Order here matters:
+  RegisterSystem<CustomBehaviourSystem>(); // potentially modifies transforms
   RegisterSystem<TransformSystem>();
-  RegisterSystem<CollisionSystem>();
-  RegisterSystem<CustomBehaviourSystem>();
-  RegisterSystem<MeshRenderSystem>();
-  RegisterSystem<UIRenderSystem>();
+  RegisterSystem<CollisionSystem>(); // depends on transformed world matrix
+  RegisterSystem<MeshRenderSystem>(); // depends on transformed world matrix
+  RegisterSystem<UIRenderSystem>(); // does nothing as of now
 }
 
 Scene::~Scene() {}

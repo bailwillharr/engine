@@ -68,7 +68,7 @@ void PlayGame(GameSettings settings)
         //engine::Entity temple = engine::util::LoadGLTF(*start_scene, "C:/games/temple.glb", true);
 
         start_scene->RegisterComponent<CameraControllerComponent>();
-        start_scene->RegisterSystem<CameraControllerSystem>();
+        start_scene->RegisterSystemAtIndex<CameraControllerSystem>(0);
         start_scene->AddComponent<CameraControllerComponent>(camera)->noclip = true;
         start_scene->GetPosition(camera).z += 10.0f;
     }
@@ -93,7 +93,7 @@ void PlayGame(GameSettings settings)
         camera_transform->is_static = false;
 
         main_scene->RegisterComponent<CameraControllerComponent>();
-        main_scene->RegisterSystem<CameraControllerSystem>();
+        main_scene->RegisterSystemAtIndex<CameraControllerSystem>(0);
         main_scene->AddComponent<CameraControllerComponent>(camera);
 
         /* floor */

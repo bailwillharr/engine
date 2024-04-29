@@ -108,6 +108,14 @@ class Scene {
         ecs_systems_.emplace_back(hash, std::make_unique<T>(this));
     }
 
+    /* Pushes old systems starting at 'index' along by 1 */
+    template <typename T>
+    void RegisterSystemAtIndex(size_t index)
+    {
+        size_t hash = typeid(T).hash_code();
+        ecs_systems_.emplace(ecs_systems_.begin() + index, hash, std::make_unique<T>(this));
+    }
+
     template <typename T>
     T* GetSystem()
     {
