@@ -81,8 +81,8 @@ void PlayGame(GameSettings settings)
         engine::Entity camera_child = main_scene->CreateEntity("camera_child", camera, glm::vec3{0.0f, 0.0f, -3.0f});
         main_scene->GetTransform(camera_child)->is_static = false;
         auto camren = main_scene->AddComponent<engine::MeshRenderableComponent>(camera_child);
-        camren->visible = true;
-        camren->mesh = GenSphereMesh(app.renderer()->GetDevice(), 1.0f, 16);
+        camren->visible = false;
+        camren->mesh = GenSphereMesh(app.renderer()->GetDevice(), 1.0f, /*16*/32);
         camren->material = app.GetResource<engine::Material>("builtin.default");
 
         /* as of right now, the entity with tag 'camera' is used to build the view
@@ -155,6 +155,12 @@ void PlayGame(GameSettings settings)
 
         engine::Entity tree = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/tree.glb"), true);
         main_scene->GetPosition(tree) = glm::vec3{-5.0f, -5.0f, 0.0f};
+
+        engine::Entity box = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/box.glb"), true);
+        main_scene->GetPosition(box) = glm::vec3{ -5.0f, -17.0f, 0.1f };
+        main_scene->GetScale(box) *= 10.0f;
+        main_scene->GetRotation(box) = glm::angleAxis(glm::pi<float>(), glm::vec3{ 0.0f, 0.0f, 1.0f });
+        main_scene->GetRotation(box) *= glm::angleAxis(glm::half_pi<float>(), glm::vec3{ 1.0f, 0.0f, 0.0f });
     }
 
     start_scene->GetSystem<CameraControllerSystem>()->next_scene_ = main_scene;

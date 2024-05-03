@@ -333,7 +333,7 @@ void Application::GameLoop()
                 if (ImGui::Button("Load glTF")) {
 #ifdef _WIN32
                     std::string path = std::filesystem::path(openGLTFDialog()).string();
-
+					LOG_ERROR("Not yet implemented!");
 #endif
                 }
 #ifndef _WIN32
