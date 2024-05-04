@@ -159,7 +159,7 @@ void PlayGame(GameSettings settings)
         engine::Entity box = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/box.glb"), true);
         main_scene->GetPosition(box) = glm::vec3{ -5.0f, -17.0f, 0.1f };
         main_scene->GetScale(box) *= 10.0f;
-        main_scene->GetRotation(box) = glm::angleAxis(glm::pi<float>(), glm::vec3{ 0.0f, 0.0f, 1.0f });
+        main_scene->GetRotation(box) = glm::angleAxis(glm::pi<float>() * 0.0f, glm::vec3{ 0.0f, 0.0f, 1.0f });
         main_scene->GetRotation(box) *= glm::angleAxis(glm::half_pi<float>(), glm::vec3{ 1.0f, 0.0f, 0.0f });
     }
 
