@@ -2,8 +2,6 @@
 
 a random game engine thing. Now finally with ECS!
   
-![A screenshot](screenshots/2024_03_19.JPG)
-
 # TO DO LIST
 
 ## High priority (tomorrow)
@@ -58,3 +56,7 @@ The CameraControllerSystem now uses raycasting to enable FPS-style player moveme
 Added static soft shadows.
 
 Sort out LOG_X calls and ensure DEBUG, TRACE, INFO, etc are being used appropriately
+
+# Screenshots
+
+![A screenshot](screenshots/2024_03_19.JPG)
