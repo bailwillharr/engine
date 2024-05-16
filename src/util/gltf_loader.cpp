@@ -15,7 +15,7 @@ struct Color {
     uint8_t r, g, b, a;
     Color(const std::vector<double>& doubles)
     {
-        if (doubles.size() != 4) throw std::runtime_error("Invalid color doubles array");
+        assert(doubles.size() == 4 && "Invalid color doubles array");
         r = static_cast<uint8_t>(lround(doubles[0] * 255.0));
         g = static_cast<uint8_t>(lround(doubles[1] * 255.0));
         b = static_cast<uint8_t>(lround(doubles[2] * 255.0));

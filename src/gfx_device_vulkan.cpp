@@ -583,16 +583,17 @@ void GFXDevice::ChangePresentMode(gfx::PresentMode mode)
     pimpl->swapchainIsOutOfDate = true;
 }
 
-gfx::PresentMode GFXDevice::GetPresentMode() {
+gfx::PresentMode GFXDevice::GetPresentMode()
+{
     switch (pimpl->swapchain.presentMode) {
-    case VK_PRESENT_MODE_FIFO_KHR:
-        return gfx::PresentMode::kDoubleBufferedVsync;
-    case VK_PRESENT_MODE_IMMEDIATE_KHR:
-        return gfx::PresentMode::kDoubleBufferedNoVsync;
-    case VK_PRESENT_MODE_MAILBOX_KHR:
-        return gfx::PresentMode::kTripleBuffered;
-    default:
-        throw std::runtime_error("Unknown present mode");
+        case VK_PRESENT_MODE_FIFO_KHR:
+            return gfx::PresentMode::kDoubleBufferedVsync;
+        case VK_PRESENT_MODE_IMMEDIATE_KHR:
+            return gfx::PresentMode::kDoubleBufferedNoVsync;
+        case VK_PRESENT_MODE_MAILBOX_KHR:
+            return gfx::PresentMode::kTripleBuffered;
+        default:
+            throw std::runtime_error("Unknown present mode");
     }
 }
 
@@ -736,7 +737,7 @@ gfx::DrawBuffer* GFXDevice::BeginRender(bool window_resized)
             createSwapchain(&pimpl->swapchain, pimpl->swapchainInfo);
         }
         // THIS FUNCTION BLOCKS UNTIL AN IMAGE IS AVAILABLE (it waits for vsync)
-        res = vkAcquireNextImageKHR(pimpl->device.device, pimpl->swapchain.swapchain, 1000000000LL, frameData.presentSemaphore, VK_NULL_HANDLE,
+        res = vkAcquireNextImageKHR(pimpl->device.device, pimpl->swapchain.swapchain, 1'000'000'000LL, frameData.presentSemaphore, VK_NULL_HANDLE,
                                     &swapchainImageIndex);
         if (res != VK_SUBOPTIMAL_KHR && res != VK_ERROR_OUT_OF_DATE_KHR) VKCHECK(res);
         if (res == VK_ERROR_OUT_OF_DATE_KHR) pimpl->swapchainIsOutOfDate = true;
@@ -1594,7 +1595,7 @@ void GFXDevice::UpdateDescriptorCombinedImageSampler(const gfx::DescriptorSet* s
     assert(image != nullptr);
     assert(sampler != nullptr);
 
-    if (pimpl->FRAMECOUNT != 0) abort(); // TODO. This is annoying
+    // if (pimpl->FRAMECOUNT != 0) abort(); // TODO. This is annoying
 
     VkDescriptorImageInfo imageInfo{};
     imageInfo.sampler = sampler->sampler;
@@ -1619,6 +1620,8 @@ void GFXDevice::UpdateDescriptorCombinedImageSampler(const gfx::DescriptorSet* s
 gfx::UniformBuffer* GFXDevice::CreateUniformBuffer(uint64_t size, const void* initialData)
 {
     assert(initialData != nullptr);
+
+    if (pimpl->FRAMECOUNT != 0) abort();
 
     gfx::UniformBuffer* out = new gfx::UniformBuffer{};
 
@@ -1778,7 +1781,7 @@ gfx::Image* GFXDevice::CreateImage(uint32_t w, uint32_t h, gfx::ImageFormat inpu
 {
     assert(imageData != nullptr);
 
-    if (pimpl->FRAMECOUNT != 0) abort(); //  TODO. This is annoying
+    // if (pimpl->FRAMECOUNT != 0) abort(); //  TODO. This is annoying
 
     gfx::Image* out = new gfx::Image{};
 

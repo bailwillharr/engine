@@ -244,6 +244,8 @@ Device createDevice(VkInstance instance, const DeviceRequirements& requirements,
             }
         }
 
+        // TODO: Remove optional extensions. They'll never be handled anyway. Just stick to well-supported extensions.
+
         bool formatsSupported = true;
         for (const FormatRequirements& formatRequirements : requirements.formats) {
             VkFormatFeatureFlags requiredLinearFlags = formatRequirements.properties.linearTilingFeatures;

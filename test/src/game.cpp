@@ -97,7 +97,7 @@ void PlayGame(GameSettings settings)
         main_scene->AddComponent<CameraControllerComponent>(camera);
 
         /* floor */
-        engine::Entity floor = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/floor.glb"), true);
+        engine::Entity floor = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/floor2.glb"), true);
         //main_scene->GetComponent<engine::MeshRenderableComponent>(main_scene->GetEntity("Cube", floor))->visible = false;
 
         engine::Entity monke = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/monke.glb"), true);
@@ -159,13 +159,13 @@ void PlayGame(GameSettings settings)
         engine::Entity box = engine::util::LoadGLTF(*main_scene, app.GetResourcePath("models/box.glb"), true);
         main_scene->GetPosition(box) = glm::vec3{ -5.0f, -17.0f, 0.1f };
         main_scene->GetScale(box) *= 10.0f;
-        main_scene->GetRotation(box) = glm::angleAxis(glm::pi<float>(), glm::vec3{ 0.0f, 0.0f, 1.0f });
+        main_scene->GetRotation(box) = glm::angleAxis(glm::pi<float>() * 0.0f, glm::vec3{ 0.0f, 0.0f, 1.0f });
         main_scene->GetRotation(box) *= glm::angleAxis(glm::half_pi<float>(), glm::vec3{ 1.0f, 0.0f, 0.0f });
     }
 
     start_scene->GetSystem<CameraControllerSystem>()->next_scene_ = main_scene;
     main_scene->GetSystem<CameraControllerSystem>()->next_scene_ = start_scene;
 
-    app.scene_manager()->SetActiveScene(main_scene);
+    app.scene_manager()->SetActiveScene(start_scene);
     app.GameLoop();
 }

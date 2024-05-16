@@ -29,6 +29,7 @@
 #include "scene.h"
 #include "scene_manager.h"
 #include "window.h"
+#include "util/gltf_loader.h"
 
 #ifdef _MSC_VER
 #include <windows.h>
@@ -326,19 +327,15 @@ void Application::GameLoop()
                 ImGui::Checkbox("Show entity hitboxes", &debug_menu_state.show_entity_boxes);
                 ImGui::Checkbox("Show bounding volumes", &debug_menu_state.show_bounding_volumes);
                 ImGui::Separator();
-#ifndef _WIN32
-                ImGui::BeginDisabled();
-#endif
+                if (!scene) ImGui::BeginDisabled();
                 // load gltf file dialog
                 if (ImGui::Button("Load glTF")) {
 #ifdef _WIN32
                     std::string path = std::filesystem::path(openGLTFDialog()).string();
-					LOG_ERROR("Not yet implemented!");
+                    util::LoadGLTF(*scene, std::filesystem::path(path).string(), false);
 #endif
                 }
-#ifndef _WIN32
-                ImGui::EndDisabled();
-#endif
+                if (!scene) ImGui::EndDisabled();
             }
             ImGui::End();
         }
