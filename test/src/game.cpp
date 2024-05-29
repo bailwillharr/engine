@@ -166,6 +166,6 @@ void PlayGame(GameSettings settings)
     start_scene->GetSystem<CameraControllerSystem>()->next_scene_ = main_scene;
     main_scene->GetSystem<CameraControllerSystem>()->next_scene_ = start_scene;
 
-    app.scene_manager()->SetActiveScene(start_scene);
+    app.scene_manager()->SetActiveScene(main_scene);
     app.GameLoop();
 }
