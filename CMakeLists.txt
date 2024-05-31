@@ -67,7 +67,7 @@ set(SRC_FILES
 	"src/vulkan/swapchain.cpp"
 	"src/vulkan/swapchain.h"
 	"src/window.cpp"
-)
+ "src/util/file_dialog.cpp")
 
 set(INCLUDE_FILES
 	"include/application.h"
@@ -106,7 +106,7 @@ set(INCLUDE_FILES
 	"include/util/gen_tangents.h"
 	"include/util/gltf_loader.h"
 	"include/window.h"
-)
+ "include/util/file_dialog.h")
 
 file(GLOB_RECURSE RES_FILES RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/res/engine/*")
 

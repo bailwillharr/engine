@@ -30,12 +30,7 @@
 #include "scene_manager.h"
 #include "window.h"
 #include "util/gltf_loader.h"
-
-#ifdef _MSC_VER
-#include <windows.h>
-#include <direct.h>
-#define WIN_MAX_PATH 260
-#endif
+#include "util/file_dialog.h"
 #include <systems/collisions.h>
 
 static struct ImGuiThings {
@@ -46,66 +41,16 @@ namespace engine {
 
 static std::filesystem::path getResourcesPath()
 {
-    std::filesystem::path resourcesPath{};
+    std::filesystem::path resourcesPath(SDL_GetBasePath());
 
-#ifdef _MSC_VER
-    // get the path of the currently running process
-    CHAR exeDirBuf[MAX_PATH + 1];
-    GetModuleFileNameA(NULL, exeDirBuf, WIN_MAX_PATH + 1);
-    std::filesystem::path cwd = std::filesystem::path(exeDirBuf).parent_path();
-    (void)_chdir((const char*)std::filesystem::absolute(cwd).c_str());
-#else
-    std::filesystem::path cwd = std::filesystem::current_path();
-#endif
-
-    if (std::filesystem::is_directory(cwd / "res")) {
-        resourcesPath = cwd / "res";
-    }
-    else {
-        resourcesPath = cwd.parent_path() / "share" / "sdltest";
-    }
+    resourcesPath /= "res";
 
     if (std::filesystem::is_directory(resourcesPath) == false) {
-        resourcesPath = cwd.root_path() / "usr" / "local" / "share" / "sdltest";
-    }
-
-    if (std::filesystem::is_directory(resourcesPath) == false) {
-        throw std::runtime_error("Unable to determine resources location. CWD: " + cwd.string());
+        throw std::runtime_error("Unable to find game resources directory");
     }
 
     return resourcesPath;
 }
-
-#ifdef _WIN32
-static std::string openGLTFDialog() {
-    OPENFILENAMEA ofn;       // common dialog box structure
-    CHAR szFile[260] = { 0 };       // if using TCHAR macros, use TCHAR array
-
-    // Initialize OPENFILENAME
-    ZeroMemory(&ofn, sizeof(ofn));
-    ofn.lStructSize = sizeof(ofn);
-    ofn.hwndOwner = NULL;
-    ofn.lpstrFile = szFile;
-    ofn.lpstrFile[0] = '\0';
-    ofn.nMaxFile = sizeof(szFile);
-    ofn.lpstrFilter = "GLTF Files (*.gltf;*.glb)\0*.gltf;*.glb\0All Files (*.*)\0*.*\0";
-    ofn.nFilterIndex = 1;
-    ofn.lpstrFileTitle = NULL;
-    ofn.nMaxFileTitle = 0;
-    ofn.lpstrInitialDir = NULL;
-    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
-
-    // Display the Open dialog box
-    if (GetOpenFileNameA(&ofn) == TRUE)
-    {
-        return ofn.lpstrFile;
-    }
-    else
-    {
-        return ""; // User cancelled the dialog
-    }
-}
-#endif
 
 static auto frametimeFromFPS(int fps) { return std::chrono::nanoseconds(1'000'000'000 / fps); }
 
@@ -330,10 +275,10 @@ void Application::GameLoop()
                 if (!scene) ImGui::BeginDisabled();
                 // load gltf file dialog
                 if (ImGui::Button("Load glTF")) {
-#ifdef _WIN32
-                    std::string path = std::filesystem::path(openGLTFDialog()).string();
-                    util::LoadGLTF(*scene, std::filesystem::path(path).string(), false);
-#endif
+                    std::filesystem::path path = util::OpenFileDialog({ "glb" });
+                    if (path.empty() == false) {
+                        util::LoadGLTF(*scene, path.string(), false);
+                    }
                 }
                 if (!scene) ImGui::EndDisabled();
             }
