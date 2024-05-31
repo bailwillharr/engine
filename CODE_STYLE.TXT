@@ -1,0 +1,129 @@
+This document is here to standardise the code style throughout the repo.
+
+
+
+################################################################################
+
+
+
+######################
+# NAMING CONVENTIONS #
+######################
+
+# Variables
+
+All variable names in all contexts are snake_case.
+Examples: i, my_var, num, player_camera_controller
+
+Static local variables begin with `s_`.
+Example:
+`
+void MyFunc() {
+	static int s_count = 0;
+}
+`
+
+Private and protected non-static member variables begin with `m_`.
+Private and protected static member variables begin with `s_`.
+Public member variables have no prefix and they are accessed with `this->`.
+Example:
+`
+class MyClass {
+	static int s_instance_count;
+	bool m_active;
+
+public:
+	const char* debug_name;
+}
+`
+
+Global variables, whether extern or static, are prefixed with `g_`.
+Example: (in a header file)
+`
+extern const char* const g_resources_directory;
+`
+
+# Functions and methods
+
+Function and method names use lowerCamelCase.
+Examples:
+`
+void doThing();
+
+int addInts(int a, int b);
+
+void MyClass::reset() {}
+`
+
+# Classes, Structs, and Enums
+
+Classes, struct, enums, and other types use UpperCamelCase.
+Examples:
+`
+class MyClass;
+
+struct SomeStructure;
+
+enum class Options {
+	ENABLE,
+	DISABLE
+};
+
+using IntVector = std::vector<int>;
+`
+
+# Namespaces
+
+Namespaces only contain lowercase letters. No other characters, including underscores, are used in namespace names.
+Example: `namespace engine::util {`
+
+
+
+################################################################################
+
+
+
+################
+# CLASS LAYOUT #
+################
+
+Classes are laid out as follows:
+`
+class X {
+	/* using declarations */
+	/* static data members */
+	/* non-static data members */
+
+public:
+	/* default constructor */
+	/* other constructors */
+	/* copy constructor */
+	/* move constructor */
+	
+	/* destructor */
+	
+	/* copy assignment operator */
+	/* move assignment operator */
+	/* other operator overloads */
+	
+	/* all public static methods */
+	/* all public non-static methods */
+
+protected:
+	/* all protected static methods */
+	/* all protected non-static methods */
+
+private:
+	/* all private static methods */
+	/* all private non-static methods */
+};
+`
+
+Inlined methods are to be avoided as much as possible. Even for trivial getters/setters.
+Inline methods are only used when doing so provides a tangible performance gain.
+
+Classes that should not be copied and/or moved should have their copy and/or move constructors
+and copy/move assignment operators explicitly deleted.
+
+Ensure that constructors with a single argument are marked `explicit` unless implicit construction
+is intended.
