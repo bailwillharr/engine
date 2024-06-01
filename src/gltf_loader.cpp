@@ -248,10 +248,10 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
         materials.emplace_back(std::make_shared<Material>(scene.app()->renderer(), scene.app()->GetResource<Shader>("builtin.fancy")));
 
         // base color
-        materials.back()->SetAlbedoTexture(scene.app()->GetResource<Texture>("builtin.white"));
+        materials.back()->setAlbedoTexture(scene.app()->GetResource<Texture>("builtin.white"));
         if (material.pbrMetallicRoughness.baseColorTexture.index != -1) {
             if (material.pbrMetallicRoughness.baseColorTexture.texCoord == 0) {
-                materials.back()->SetAlbedoTexture(textures.at(material.pbrMetallicRoughness.baseColorTexture.index));
+                materials.back()->setAlbedoTexture(textures.at(material.pbrMetallicRoughness.baseColorTexture.index));
             }
             else {
                 LOG_WARN("Material {} base color texture specifies a UV channel other than zero which is unsupported.", material.name);
@@ -269,16 +269,16 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
                 samplerInfo.anisotropic_filtering = false;
                 colour_textures.emplace(std::make_pair(c, std::make_shared<Texture>(scene.app()->renderer(), pixel, 1, 1, samplerInfo, true)));
             }
-            materials.back()->SetAlbedoTexture(colour_textures.at(c));
+            materials.back()->setAlbedoTexture(colour_textures.at(c));
         }
 
         // occlusion roughness metallic
-        materials.back()->SetOcclusionRoughnessMetallicTexture(
+        materials.back()->setOcclusionRoughnessMetallicTexture(
             scene.app()->GetResource<Texture>("builtin.white")); // default ao = 1.0, rough = 1.0, metal = 1.0
         if (material.pbrMetallicRoughness.metallicRoughnessTexture.index != -1) {
             if (material.pbrMetallicRoughness.metallicRoughnessTexture.texCoord == 0) {
                 LOG_DEBUG("Setting occlusion roughness metallic texture!");
-                materials.back()->SetOcclusionRoughnessMetallicTexture(textures.at(material.pbrMetallicRoughness.metallicRoughnessTexture.index));
+                materials.back()->setOcclusionRoughnessMetallicTexture(textures.at(material.pbrMetallicRoughness.metallicRoughnessTexture.index));
             }
             else {
                 LOG_WARN("Material {} metallic roughness texture specifies a UV channel other than zero which is unsupported.", material.name);
@@ -298,7 +298,7 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
                 samplerInfo.anisotropic_filtering = false;
                 metal_rough_textures.emplace(std::make_pair(mr, std::make_shared<Texture>(scene.app()->renderer(), pixel, 1, 1, samplerInfo, false)));
             }
-            materials.back()->SetOcclusionRoughnessMetallicTexture(metal_rough_textures.at(mr));
+            materials.back()->setOcclusionRoughnessMetallicTexture(metal_rough_textures.at(mr));
         }
 
         // occlusion texture
@@ -316,10 +316,10 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
         }
 
         // normal map
-        materials.back()->SetNormalTexture(scene.app()->GetResource<Texture>("builtin.normal"));
+        materials.back()->setNormalTexture(scene.app()->GetResource<Texture>("builtin.normal"));
         if (material.normalTexture.index != -1) {
             if (material.normalTexture.texCoord == 0) {
-                materials.back()->SetNormalTexture(textures.at(material.normalTexture.index));
+                materials.back()->setNormalTexture(textures.at(material.normalTexture.index));
             }
             else {
                 LOG_WARN("Material {} normal texture specifies a UV channel other than zero which is unsupported.", material.name);
@@ -521,7 +521,7 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
                     std::vector<Vertex> vertex_data_out(num_indices); // initialised to zeros
 
                     const int num_unq_vertices = WeldMesh(remap_table.data(), reinterpret_cast<float*>(vertex_data_out.data()),
-                                                          reinterpret_cast<float*>(vertices.data()), static_cast<int>(num_indices), Vertex::FloatsPerVertex());
+                                                          reinterpret_cast<float*>(vertices.data()), static_cast<int>(num_indices), Vertex::floatsPerVertex());
                     assert(num_unq_vertices >= 0);
 
                     // get new vertices into the vector

@@ -119,6 +119,19 @@ private:
 };
 `
 
+Structs are laid out as follows:
+`
+struct Y {
+	/* static data members */
+	/* non-static data members */
+
+	/* static methods */
+	/* non-static methods */
+};
+`
+Avoid having access specifiers in structs.
+Structs should almost always be POD. If not, consider using a class instead.
+
 Inlined methods are to be avoided as much as possible. Even for trivial getters/setters.
 Inline methods are only used when doing so provides a tangible performance gain.
 
@@ -127,3 +140,22 @@ and copy/move assignment operators explicitly deleted.
 
 Ensure that constructors with a single argument are marked `explicit` unless implicit construction
 is intended.
+
+
+
+################################################################################
+
+
+
+######################
+# INCLUDE DIRECTIVES #
+######################
+
+Header files should be included in the following order:
+- Header corresponding to source file
+- C standard library includes (as, e.g., cstdint)
+- C++ STL includes
+- External libraries from, e.g., 'dependencies/' directory or Vulkan SDK. Use angle brackets.
+- Libraries in the source tree. Use double quotes. (TODO: Move these into 'dependencies/')
+- Header files from the current project. Use double quotes.
+Each section should be sorted alphabetically (In VS: highlight the includes, right-click -> #include directives -> sort).

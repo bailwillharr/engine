@@ -52,17 +52,17 @@ void MeshRenderSystem::BuildRenderList(RenderList& render_list, bool with_static
 
         if (renderable->visible == false) continue;
 
-        const gfx::Pipeline* pipeline = renderable->material->GetShader()->GetPipeline();
+        const gfx::Pipeline* pipeline = renderable->material->getShader()->GetPipeline();
 
         render_list.emplace_back(RenderListEntry{.pipeline = pipeline,
-                                                 .vertex_buffer = renderable->mesh->GetVB(),
-                                                 .index_buffer = renderable->mesh->GetIB(),
-                                                 .material_set = renderable->material->GetDescriptorSet(),
+                                                 .vertex_buffer = renderable->mesh->getVB(),
+                                                 .index_buffer = renderable->mesh->getIB(),
+                                                 .material_set = renderable->material->getDescriptorSet(),
                                                  .model_matrix = transform->world_matrix,
-                                                 .index_count = renderable->mesh->GetCount()});
+                                                 .index_count = renderable->mesh->getCount()});
 
         if (render_orders.contains(pipeline) == false) {
-            render_orders.emplace(pipeline, renderable->material->GetShader()->GetRenderOrder());
+            render_orders.emplace(pipeline, renderable->material->getShader()->GetRenderOrder());
         }
     }
 

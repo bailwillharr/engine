@@ -65,7 +65,7 @@ std::vector<uint32_t> engine::util::GenTangents(std::vector<engine::Vertex>& ver
     std::vector<Vertex> vertex_data_out(vertices.size()); // initialised to zeros
 
     const int new_vertex_count = WeldMesh(reinterpret_cast<int*>(remap_table.data()), reinterpret_cast<float*>(vertex_data_out.data()), reinterpret_cast<float*>(vertices.data()),
-                                          static_cast<int>(vertices.size()), Vertex::FloatsPerVertex());
+                                          static_cast<int>(vertices.size()), Vertex::floatsPerVertex());
     assert(new_vertex_count >= 0);
 
     // get new vertices into the vector.

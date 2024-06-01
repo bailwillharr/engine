@@ -585,7 +585,7 @@ bool    ImGui::BeginTableEx(const char* name, ImGuiID id, int columns_count, ImG
     return true;
 }
 
-// For reference, the average total _allocation count_ for a table is:
+// For reference, the average total _allocation m_count for a table is:
 // + 0 (for ImGuiTable instance, we are pooling allocations in g.Tables[])
 // + 1 (for table->RawData allocated below)
 // + 1 (for table->ColumnsNames, if names are used)

@@ -1,12 +1,11 @@
 #include "application.h"
 
-#include <cinttypes>
 #include <filesystem>
 #include <memory>
+#include <numeric>
 #include <stdexcept>
 #include <string>
 #include <thread>
-#include <numeric>
 
 #include <glm/mat4x4.hpp>
 
@@ -14,6 +13,8 @@
 #include "imgui/imgui_impl_sdl2.h"
 #include "imgui/imgui_impl_vulkan.h"
 
+#include "components/collider.h"
+#include "components/transform.h"
 #include "gfx.h"
 #include "gfx_device.h"
 #include "input_manager.h"
@@ -23,15 +24,13 @@
 #include "resources/mesh.h"
 #include "resources/shader.h"
 #include "resources/texture.h"
-#include "systems/mesh_render_system.h"
-#include "components/transform.h"
-#include "components/collider.h"
 #include "scene.h"
 #include "scene_manager.h"
-#include "window.h"
-#include "util/gltf_loader.h"
+#include "systems/collisions.h"
+#include "systems/mesh_render_system.h"
 #include "util/file_dialog.h"
-#include <systems/collisions.h>
+#include "util/gltf_loader.h"
+#include "window.h"
 
 static struct ImGuiThings {
     ImGuiContext* context;
@@ -145,9 +144,9 @@ Application::Application(const char* appName, const char* appVersion, gfx::Graph
     /* default materials */
     {
         auto defaultMaterial = std::make_unique<Material>(renderer(), GetResource<Shader>("builtin.fancy"));
-        defaultMaterial->SetAlbedoTexture(GetResource<Texture>("builtin.white"));
-        defaultMaterial->SetNormalTexture(GetResource<Texture>("builtin.normal"));
-        defaultMaterial->SetOcclusionRoughnessMetallicTexture(GetResource<Texture>("builtin.mr"));
+        defaultMaterial->setAlbedoTexture(GetResource<Texture>("builtin.white"));
+        defaultMaterial->setNormalTexture(GetResource<Texture>("builtin.normal"));
+        defaultMaterial->setOcclusionRoughnessMetallicTexture(GetResource<Texture>("builtin.mr"));
         GetResourceManager<Material>()->AddPersistent("builtin.default", std::move(defaultMaterial));
     }
 }

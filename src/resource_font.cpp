@@ -12,10 +12,10 @@ namespace engine {
 
 Font::Font(const std::string& path)
 {
-    font_buffer_ = util::ReadBinaryFile(path);
-    font_info_ = std::make_unique<stbtt_fontinfo>();
+    m_font_buffer = util::ReadBinaryFile(path);
+    m_font_info = std::make_unique<stbtt_fontinfo>();
 
-    if (stbtt_InitFont(font_info_.get(), font_buffer_->data(), 0) == 0) {
+    if (stbtt_InitFont(m_font_info.get(), m_font_buffer->data(), 0) == 0) {
         throw std::runtime_error("Failed to initialise font!");
     }
 
@@ -24,12 +24,12 @@ Font::Font(const std::string& path)
 
 Font::~Font() { LOG_DEBUG("Destroyed font"); }
 
-std::unique_ptr<std::vector<uint8_t>> Font::GetTextBitmap(const std::string& text, float height_px, int& width_out, int& height_out)
+std::unique_ptr<std::vector<uint8_t>> Font::getTextBitmap(const std::string& text, float height_px, int& width_out, int& height_out)
 {
-    const float sf = stbtt_ScaleForPixelHeight(font_info_.get(), height_px);
+    const float sf = stbtt_ScaleForPixelHeight(m_font_info.get(), height_px);
 
     int ascent, descent, line_gap;
-    stbtt_GetFontVMetrics(font_info_.get(), &ascent, &descent, &line_gap);
+    stbtt_GetFontVMetrics(m_font_info.get(), &ascent, &descent, &line_gap);
 
     struct CharacterRenderInfo {
         int advance; // bitmap advance
@@ -42,10 +42,10 @@ std::unique_ptr<std::vector<uint8_t>> Font::GetTextBitmap(const std::string& tex
 
     int width = 0;
     for (size_t i = 0; i < text.size(); i++) {
-        const int glyph_index = GetGlyphIndex(static_cast<int>(text.at(i)));
+        const int glyph_index = getGlyphIndex(static_cast<int>(text.at(i)));
 
         int advanceWidth, leftSideBearing;
-        stbtt_GetGlyphHMetrics(font_info_.get(), glyph_index, &advanceWidth, &leftSideBearing);
+        stbtt_GetGlyphHMetrics(m_font_info.get(), glyph_index, &advanceWidth, &leftSideBearing);
 
         if (i == 0 && leftSideBearing < 0) {
             // if the character extends before the current point
@@ -57,7 +57,7 @@ std::unique_ptr<std::vector<uint8_t>> Font::GetTextBitmap(const std::string& tex
 
         renderInfo.advance = static_cast<int>(static_cast<float>(advanceWidth) * sf);
 
-        if (stbtt_IsGlyphEmpty(font_info_.get(), glyph_index) == 0) {
+        if (stbtt_IsGlyphEmpty(m_font_info.get(), glyph_index) == 0) {
             renderInfo.isEmpty = false;
         }
         else {
@@ -66,7 +66,7 @@ std::unique_ptr<std::vector<uint8_t>> Font::GetTextBitmap(const std::string& tex
 
         if (!renderInfo.isEmpty) {
             renderInfo.bitmap =
-                stbtt_GetGlyphBitmap(font_info_.get(), sf, sf, glyph_index, &renderInfo.width, &renderInfo.height, &renderInfo.xoff, &renderInfo.yoff);
+                stbtt_GetGlyphBitmap(m_font_info.get(), sf, sf, glyph_index, &renderInfo.width, &renderInfo.height, &renderInfo.xoff, &renderInfo.yoff);
         }
 
         characterRenderInfos.push_back(renderInfo);
@@ -114,17 +114,17 @@ std::unique_ptr<std::vector<uint8_t>> Font::GetTextBitmap(const std::string& tex
     return bitmap;
 }
 
-int Font::GetGlyphIndex(int unicode_codepoint)
+int Font::getGlyphIndex(int unicode_codepoint)
 {
-    if (unicode_to_glyph_.contains(unicode_codepoint)) {
-        return unicode_to_glyph_.at(unicode_codepoint);
+    if (m_unicode_to_glyph.contains(unicode_codepoint)) {
+        return m_unicode_to_glyph.at(unicode_codepoint);
     }
     else {
-        const int glyph_index = stbtt_FindGlyphIndex(font_info_.get(), unicode_codepoint);
+        const int glyph_index = stbtt_FindGlyphIndex(m_font_info.get(), unicode_codepoint);
         if (glyph_index == 0) {
             throw std::runtime_error("Glyph not found in font!");
         }
-        unicode_to_glyph_.emplace(std::make_pair(unicode_codepoint, glyph_index));
+        m_unicode_to_glyph.emplace(std::make_pair(unicode_codepoint, glyph_index));
         return glyph_index;
     }
 }

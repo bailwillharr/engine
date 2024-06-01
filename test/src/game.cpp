@@ -139,8 +139,8 @@ void PlayGame(GameSettings settings)
         cube_ren->mesh = GenCuboidMesh(app.renderer()->GetDevice(), 1.0f, 1.0f, 1.0f);
         cube_ren->visible = true;
         auto cubeCustom = main_scene->AddComponent<engine::CustomComponent>(cube);
-        cubeCustom->onInit = [] {};
-        cubeCustom->onUpdate = [&main_scene, cube](float dt) {
+        cubeCustom->on_init = [] {};
+        cubeCustom->on_update = [&main_scene, cube](float dt) {
             static float yaw = 0.0f;
             yaw += dt;
             main_scene->GetRotation(cube) = glm::angleAxis(yaw, glm::vec3{0.0f, 0.0f, 1.0f});
