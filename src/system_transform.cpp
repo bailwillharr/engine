@@ -1,7 +1,7 @@
-#include "systems/transform.h"
+#include "system_transform.h"
 
 #include "scene.h"
-#include "components/transform.h"
+#include "component_transform.h"
 
 #include <typeinfo>
 

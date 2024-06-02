@@ -2,7 +2,7 @@
 
 #include <memory>
 
-#include "resources/mesh.h"
+#include "resource_mesh.h"
 
 std::unique_ptr<engine::Mesh> GenSphereMesh(engine::GFXDevice* gfx, float r, int detail, bool wind_inside = false, bool flip_normals = false);
 

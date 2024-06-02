@@ -6,8 +6,8 @@
 #include <glm/ext.hpp>
 #include <glm/trigonometric.hpp>
 
-#include "resources/mesh.h"
-#include "util/gen_tangents.h"
+#include "resource_mesh.h"
+#include "gen_tangents.h"
 
 std::unique_ptr<engine::Mesh> GenSphereMesh(engine::GFXDevice* gfx, float r, int detail, bool wind_inside, bool flip_normals)
 {

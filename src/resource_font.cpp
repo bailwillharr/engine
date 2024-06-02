@@ -1,4 +1,4 @@
-#include "resources/font.h"
+#include "resource_font.h"
 
 #include <string>
 #include <stdexcept>
@@ -6,13 +6,13 @@
 #include <stb_truetype.h>
 
 #include "log.h"
-#include "util/files.h"
+#include "files.h"
 
 namespace engine {
 
 Font::Font(const std::string& path)
 {
-    m_font_buffer = util::ReadBinaryFile(path);
+    m_font_buffer = ReadBinaryFile(path);
     m_font_info = std::make_unique<stbtt_fontinfo>();
 
     if (stbtt_InitFont(m_font_info.get(), m_font_buffer->data(), 0) == 0) {

@@ -1,16 +1,13 @@
 cmake_minimum_required(VERSION 3.24)
 
-project(stb LANGUAGES C)
+project(mikktspace LANGUAGES C)
 
 set(SRC_FILES
-	"src/stb_impl.c"
+	"src/mikktspace.c"
 )
 
 set(INCLUDE_FILES
-	"include/stb_image.h"
-	"include/stb_image_write.h"
-	"include/stb_rect_pack.h"
-	"include/stb_truetype.h"
+	"include/mikktspace.h"
 )
 
 add_library(${PROJECT_NAME} STATIC

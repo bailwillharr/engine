@@ -1,4 +1,4 @@
-#include "util/file_dialog.h"
+#include "file_dialog.h"
 
 #ifdef _WIN32
 #include <windows.h>

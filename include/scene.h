@@ -11,7 +11,7 @@
 
 #include "ecs.h"
 #include "event_system.h"
-#include "components/transform.h"
+#include "component_transform.h"
 
 namespace engine {
 

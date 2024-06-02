@@ -1,9 +1,9 @@
-#include "systems/mesh_render_system.h"
+#include "system_mesh_render.h"
 
 #include <algorithm>
 
-#include "components/transform.h"
-#include "components/mesh_renderable.h"
+#include "component_transform.h"
+#include "component_mesh.h"
 #include "log.h"
 
 namespace engine {

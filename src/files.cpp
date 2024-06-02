@@ -1,11 +1,11 @@
-#include "util/files.h"
+#include "files.h"
 
 #include <fstream>
 #include <cstring>
 
 #include "stb_image.h"
 
-namespace engine::util {
+namespace engine {
 
 std::unique_ptr<std::vector<char>> ReadTextFile(const std::string& path)
 {

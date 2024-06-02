@@ -4,8 +4,8 @@
 #include <string>
 #include <vector>
 
-#include "inputs/keyboard.h"
-#include "inputs/mouse.h"
+#include "input_keys.h"
+#include "input_mouse.h"
 #include "window.h"
 
 namespace engine {

@@ -1,16 +1,13 @@
 cmake_minimum_required(VERSION 3.24)
 
-project(stb LANGUAGES C)
+project(weldmesh LANGUAGES C)
 
 set(SRC_FILES
-	"src/stb_impl.c"
+	"src/weldmesh.c"
 )
 
 set(INCLUDE_FILES
-	"include/stb_image.h"
-	"include/stb_image_write.h"
-	"include/stb_rect_pack.h"
-	"include/stb_truetype.h"
+	"include/weldmesh.h"
 )
 
 add_library(${PROJECT_NAME} STATIC

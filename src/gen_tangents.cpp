@@ -1,11 +1,11 @@
-#include "util/gen_tangents.h"
+#include "gen_tangents.h"
 
 #include <stdexcept>
 
-#include "libs/mikktspace.h"
-#include "libs/weldmesh.h"
+#include <mikktspace.h>
+#include <weldmesh.h>
 
-#include "resources/mesh.h"
+#include "resource_mesh.h"
 
 namespace engine::util {
 

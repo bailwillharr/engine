@@ -1,15 +1,15 @@
-#include "util/gltf_loader.h"
+#include "gltf_loader.h"
 
 #include "log.h"
-#include "util/files.h"
+#include "files.h"
 
-#include "libs/mikktspace.h"
-#include "libs/weldmesh.h"
-#include "libs/tiny_gltf.h"
+#include <mikktspace.h>
+#include <weldmesh.h>
+#include <tiny_gltf.h>
 
-#include "components/mesh_renderable.h"
-#include "components/transform.h"
-#include "components/collider.h"
+#include "component_mesh.h"
+#include "component_transform.h"
+#include "component_collider.h"
 
 struct Color {
     uint8_t r, g, b, a;

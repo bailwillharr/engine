@@ -1,9 +1,9 @@
-#include "systems/custom_behaviour.h"
+#include "system_custom_behaviour.h"
 
 #include <typeinfo>
 
-#include "components/custom.h"
-#include "components/transform.h"
+#include "component_custom.h"
+#include "component_transform.h"
 #include "scene.h"
 
 namespace engine {

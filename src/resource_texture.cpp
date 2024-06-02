@@ -1,7 +1,7 @@
-#include "resources/texture.h"
+#include "resource_texture.h"
 
 #include "application.h"
-#include "util/files.h"
+#include "files.h"
 #include "log.h"
 
 #include <vector>
@@ -31,7 +31,7 @@ Texture::~Texture()
 std::unique_ptr<Texture> LoadTextureFromFile(const std::string& path, gfx::SamplerInfo samplerInfo, Renderer* renderer, bool srgb)
 {
     int width, height;
-    auto bitmap = util::ReadImageFile(path, width, height);
+    auto bitmap = ReadImageFile(path, width, height);
     return std::make_unique<Texture>(renderer, bitmap->data(), width, height, samplerInfo, srgb);
 }
 

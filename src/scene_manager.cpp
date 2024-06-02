@@ -1,7 +1,7 @@
 #include "scene_manager.h"
 
 #include "scene.h"
-#include "resources/texture.h"
+#include "resource_texture.h"
 
 #include <assert.h>
 

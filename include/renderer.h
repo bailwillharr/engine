@@ -8,7 +8,7 @@
 
 #include "application_component.h"
 #include "gfx_device.h"
-#include "systems/mesh_render_system.h"
+#include "system_mesh_render.h"
 
 namespace engine {
 

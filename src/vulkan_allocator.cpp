@@ -1,3 +1,5 @@
+#include "vulkan_allocator.h"
+
 #include <assert.h>
 
 #include <cstdio> // snprintf for vma
@@ -9,8 +11,6 @@
 #define VMA_VULKAN_VERSION 1003000
 #define VMA_IMPLEMENTATION
 #include <vk_mem_alloc.h>
-
-#include "gpu_allocator.h"
 
 namespace engine {
 

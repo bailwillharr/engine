@@ -1,7 +1,7 @@
-#include "systems/collisions.h"
+#include "system_collisions.h"
 
-#include "components/transform.h"
-#include "components/collider.h"
+#include "component_transform.h"
+#include "component_collider.h"
 #include "scene.h"
 
 #include "log.h"

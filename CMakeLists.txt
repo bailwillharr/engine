@@ -21,12 +21,6 @@ set(SRC_FILES
 	"src/ecs.cpp"
 	"src/gfx_device_vulkan.cpp"
 	"src/input_manager.cpp"
-	"src/libs/mikktspace.c"
-	"src/libs/mikktspace.h"
-	"src/libs/tiny_gltf.h"
-	"src/libs/tiny_gltf_impl.cpp"
-	"src/libs/weldmesh.c"
-	"src/libs/weldmesh.h"
 	"src/renderer.cpp"
 	"src/resource_font.cpp"
 	"src/resource_material.cpp"
@@ -168,10 +162,6 @@ else()
 	target_link_libraries(${PROJECT_NAME} PUBLIC shaderc_shared)
 endif()
 
-# stb
-add_subdirectory(vendor/stb)
-target_link_libraries(${PROJECT_NAME} PUBLIC stb)
-
 # SDL2:
 set(SDL2_DISABLE_INSTALL ON CACHE INTERNAL "" FORCE)
 set(SDL_SHARED ON CACHE INTERNAL "" FORCE)
@@ -187,6 +177,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC SDL2::SDL2main)
 set(BUILD_SHARED_LIBS OFF)
 add_subdirectory(vendor/glm)
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC vendor/glm)
+target_compile_definitions(${PROJECT_NAME} PUBLIC GLM_ENABLE_EXPERIMENTAL)
 
 # spdlog
 set(SPDLOG_BUILD_SHARED OFF CACHE INTERNAL "" FORCE)
@@ -195,10 +186,26 @@ set(BUILD_SHARED_LIBS OFF)
 add_subdirectory(vendor/spdlog) # automatically calls target_include_directories
 target_link_libraries(${PROJECT_NAME} PUBLIC spdlog)
 
-# imgui (depends on volk and SDL2)
+# stb
+add_subdirectory(vendor/stb)
+target_link_libraries(${PROJECT_NAME} PUBLIC stb)
+
+# imgui (depends on volk, SDL2, and stb)
 add_subdirectory(vendor/imgui)
 target_link_libraries(${PROJECT_NAME} PUBLIC imgui)
 
 # json
 add_subdirectory(vendor/json)
 target_link_libraries(${PROJECT_NAME} PUBLIC json)
+
+# tinygltf (depends on json and stb)
+add_subdirectory(vendor/tinygltf)
+target_link_libraries(${PROJECT_NAME} PUBLIC tinygltf)
+
+# mikktspace
+add_subdirectory(vendor/mikktspace)
+target_link_libraries(${PROJECT_NAME} PUBLIC mikktspace)
+
+# weldmesh
+add_subdirectory(vendor/weldmesh)
+target_link_libraries(${PROJECT_NAME} PUBLIC weldmesh)

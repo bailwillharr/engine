@@ -2,8 +2,8 @@
 
 #include <memory>
 
-#include "resources/shader.h"
-#include "resources/texture.h"
+#include "resource_shader.h"
+#include "resource_texture.h"
 
 // a material is just a shader with assigned textures/parameters
 

@@ -2,7 +2,7 @@
 
 #include <glm/vec3.hpp>
 
-#include "components/transform.h"
+#include "component_transform.h"
 #include "application.h"
 #include "ecs.h"
 

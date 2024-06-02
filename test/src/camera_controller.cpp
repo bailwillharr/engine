@@ -6,15 +6,15 @@
 #include <glm/trigonometric.hpp>
 
 #include "application.h"
-#include "components/transform.h"
+#include "component_transform.h"
 #include "ecs.h"
 #include "input_manager.h"
 #include "log.h"
 #include "scene.h"
 #include "scene_manager.h"
 #include "window.h"
-#include <systems/collisions.h>
-#include <components/mesh_renderable.h>
+#include "system_collisions.h"
+#include "component_mesh.h"
 
 CameraControllerSystem::CameraControllerSystem(engine::Scene* scene)
     : System(scene, {typeid(engine::TransformComponent).hash_code(), typeid(CameraControllerComponent).hash_code()})

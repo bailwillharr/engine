@@ -9,27 +9,27 @@
 
 #include <glm/mat4x4.hpp>
 
-#include "imgui/imgui.h"
-#include "imgui/imgui_impl_sdl2.h"
-#include "imgui/imgui_impl_vulkan.h"
+#include <imgui.h>
+#include <imgui_impl_sdl2.h>
+#include <imgui_impl_vulkan.h>
 
-#include "components/collider.h"
-#include "components/transform.h"
+#include "component_collider.h"
+#include "component_transform.h"
 #include "gfx.h"
 #include "gfx_device.h"
 #include "input_manager.h"
 #include "log.h"
-#include "resources/font.h"
-#include "resources/material.h"
-#include "resources/mesh.h"
-#include "resources/shader.h"
-#include "resources/texture.h"
+#include "resource_font.h"
+#include "resource_material.h"
+#include "resource_mesh.h"
+#include "resource_shader.h"
+#include "resource_texture.h"
 #include "scene.h"
 #include "scene_manager.h"
-#include "systems/collisions.h"
-#include "systems/mesh_render_system.h"
-#include "util/file_dialog.h"
-#include "util/gltf_loader.h"
+#include "system_collisions.h"
+#include "system_mesh_render.h"
+#include "file_dialog.h"
+#include "gltf_loader.h"
 #include "window.h"
 
 static struct ImGuiThings {

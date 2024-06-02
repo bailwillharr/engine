@@ -37,18 +37,18 @@
 
 #include <volk.h>
 
-#include "imgui/imgui.h"
-#include "imgui/imgui_impl_vulkan.h"
+#include "imgui.h"
+#include "imgui_impl_vulkan.h"
 
 #include "gfx_device.h"
-#include "vulkan/instance.h"
-#include "vulkan/device.h"
-#include "vulkan/gpu_allocator.h"
-#include "vulkan/swapchain.h"
+#include "vulkan_instance.h"
+#include "vulkan_device.h"
+#include "vulkan_allocator.h"
+#include "vulkan_swapchain.h"
 #include "util.h"
 #include "config.h"
 #include "log.h"
-#include "util/files.h"
+#include "files.h"
 
 static constexpr bool flip_viewport = false;
 
@@ -1275,11 +1275,11 @@ gfx::Pipeline* GFXDevice::CreatePipeline(const gfx::PipelineInfo& info)
     VkShaderModule fragShaderModule;
     // be careful with these .c_str() calls. It is OK here because 'info' exists for the duration of CreatePipeline()
     {
-        auto vertShaderCode = util::ReadTextFile(info.vert_shader_path.c_str());
+        auto vertShaderCode = ReadTextFile(info.vert_shader_path.c_str());
         vertShaderModule = compileShader(pimpl->device.device, shaderc_vertex_shader, vertShaderCode->data(), info.vert_shader_path.c_str());
     }
     {
-        auto fragShaderCode = util::ReadTextFile(info.frag_shader_path.c_str());
+        auto fragShaderCode = ReadTextFile(info.frag_shader_path.c_str());
         fragShaderModule = compileShader(pimpl->device.device, shaderc_fragment_shader, fragShaderCode->data(), info.frag_shader_path.c_str());
     }
 

@@ -1,3 +1,5 @@
+#include "vulkan_instance.h"
+
 #include <vector>
 #include <stdexcept>
 #include <string>
@@ -8,8 +10,6 @@
 #include "util.h"
 #include "config.h"
 #include "log.h"
-
-#include "instance.h"
 
 namespace engine {
 

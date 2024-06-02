@@ -1,3 +1,5 @@
+#include "vulkan_device.h"
+
 #include <stdexcept>
 #include <vector>
 #include <array>
@@ -6,8 +8,6 @@
 #include <assert.h>
 
 #include "log.h"
-
-#include "device.h"
 
 namespace engine {
 

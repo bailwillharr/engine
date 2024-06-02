@@ -1,4 +1,4 @@
-#include "resources/shader.h"
+#include "resource_shader.h"
 
 #include "application.h"
 #include "gfx_device.h"

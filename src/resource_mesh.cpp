@@ -1,4 +1,4 @@
-#include "resources/mesh.h"
+#include "resource_mesh.h"
 
 #include "log.h"
 #include "gfx_device.h"

@@ -1,15 +1,15 @@
+#include "vulkan_swapchain.h"
+
 #include <stdexcept>
 #include <vector>
 #include <array>
 #include <algorithm>
 #include <assert.h>
 
-#include <SDL2/SDL_vulkan.h>
+#include <SDL_vulkan.h>
+#include <SDL_syswm.h>
 
 #include "log.h"
-
-#include "swapchain.h"
-#include <SDL_syswm.h>
 
 namespace engine {
 

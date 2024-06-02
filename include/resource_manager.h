@@ -9,7 +9,7 @@
 
 #include "log.h"
 
-#include "resources/mesh.h"
+#include "resource_mesh.h"
 
 namespace engine {
 

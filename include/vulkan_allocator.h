@@ -1,7 +1,10 @@
 #pragma once
+
+#include <volk.h>
+
 #include <vk_mem_alloc.h>
 
-#include "device.h"
+#include "vulkan_device.h"
 
 namespace engine {
 

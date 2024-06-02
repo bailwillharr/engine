@@ -3,14 +3,14 @@
 #include <array>
 
 #include "application_component.h"
-#include "util/files.h"
+#include "files.h"
 #include "log.h"
 
 #include <glm/mat4x4.hpp>
 #include <glm/trigonometric.hpp>
 #include <glm/ext/matrix_clip_space.hpp>
 
-#include "imgui/imgui.h"
+#include <imgui.h>
 
 namespace engine {
 
@@ -97,7 +97,7 @@ Renderer::Renderer(Application& app, gfx::GraphicsSettings settings) : Applicati
 
         for (int face = 0; face < 6; ++face) {
             std::string path = std::string("engine/textures/skybox") + std::to_string(face) + std::string(".jpg");
-            face_unq_ptrs[face] = util::ReadImageFile(GetResourcePath(path), w, h);
+            face_unq_ptrs[face] = ReadImageFile(GetResourcePath(path), w, h);
             if (cubemap_w != w || cubemap_h != h) throw std::runtime_error("Skybox textures must be 512x512!");
             face_unsafe_ptrs[face] = face_unq_ptrs[face]->data();
         }

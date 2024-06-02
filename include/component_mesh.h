@@ -2,8 +2,8 @@
 
 #include <memory>
 
-#include "resources/material.h"
-#include "resources/mesh.h"
+#include "resource_material.h"
+#include "resource_mesh.h"
 
 namespace engine {
 

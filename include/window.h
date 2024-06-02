@@ -6,8 +6,8 @@
 #include <SDL.h>
 #include <glm/vec2.hpp>
 
-#include "inputs/keyboard.h"
-#include "inputs/mouse.h"
+#include "input_keys.h"
+#include "input_mouse.h"
 
 namespace engine {
 
