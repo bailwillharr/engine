@@ -20,24 +20,9 @@ set(SRC_FILES
 	"src/application_component.cpp"
 	"src/ecs.cpp"
 	"src/gfx_device_vulkan.cpp"
-	"src/imgui/imconfig.h"
-	"src/imgui/imgui.cpp"
-	"src/imgui/imgui.h"
-	"src/imgui/imgui_demo.cpp"
-	"src/imgui/imgui_draw.cpp"
-	"src/imgui/imgui_impl_sdl2.cpp"
-	"src/imgui/imgui_impl_sdl2.h"
-	"src/imgui/imgui_impl_vulkan.cpp"
-	"src/imgui/imgui_impl_vulkan.h"
-	"src/imgui/imgui_internal.h"
-	"src/imgui/imgui_tables.cpp"
-	"src/imgui/imgui_widgets.cpp"
-	"src/imgui/imstb_textedit.h"
 	"src/input_manager.cpp"
-	"src/libs/json.hpp"
 	"src/libs/mikktspace.c"
 	"src/libs/mikktspace.h"
-	"src/libs/stb_impl.cpp"
 	"src/libs/tiny_gltf.h"
 	"src/libs/tiny_gltf_impl.cpp"
 	"src/libs/weldmesh.c"
@@ -168,23 +153,24 @@ set(VOLK_HEADERS_ONLY OFF)
 if (WIN32)
 	set(VOLK_STATIC_DEFINES VK_USE_PLATFORM_WIN32_KHR)
 endif()
-add_subdirectory(dependencies/volk)
-target_link_libraries(${PROJECT_NAME} PRIVATE volk::volk)
+add_subdirectory(vendor/volk)
+target_link_libraries(${PROJECT_NAME} PUBLIC volk::volk)
+
 # Vulkan Memory Allocator
-target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE dependencies/VulkanMemoryAllocator/include)
+target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC vendor/VulkanMemoryAllocator/include)
+
 # shaderc
 if (MSVC)
 	include(FindVulkan)
 	find_package(Vulkan COMPONENTS shaderc_combined)
-	target_link_libraries(${PROJECT_NAME} PRIVATE Vulkan::shaderc_combined)
+	target_link_libraries(${PROJECT_NAME} PUBLIC Vulkan::shaderc_combined)
 else()
-	target_link_libraries(${PROJECT_NAME} PRIVATE shaderc_shared)
+	target_link_libraries(${PROJECT_NAME} PUBLIC shaderc_shared)
 endif()
 
 # stb
-target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC dependencies/stb)
-
-# public libraries:
+add_subdirectory(vendor/stb)
+target_link_libraries(${PROJECT_NAME} PUBLIC stb)
 
 # SDL2:
 set(SDL2_DISABLE_INSTALL ON CACHE INTERNAL "" FORCE)
@@ -192,19 +178,27 @@ set(SDL_SHARED ON CACHE INTERNAL "" FORCE)
 set(SDL_STATIC OFF CACHE INTERNAL "" FORCE)
 set(SDL_TEST OFF CACHE INTERNAL "" FORCE)
 set(BUILD_SHARED_LIBS ON)
-add_subdirectory(dependencies/SDL)
-target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC dependencies/SDL/include)
+add_subdirectory(vendor/SDL)
+target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC vendor/SDL/include) # TODO maybe delete this line?
 target_link_libraries(${PROJECT_NAME} PUBLIC SDL2::SDL2)
 target_link_libraries(${PROJECT_NAME} PUBLIC SDL2::SDL2main)
 
 # GLM:
 set(BUILD_SHARED_LIBS OFF)
-add_subdirectory(dependencies/glm)
-target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC dependencies/glm)
+add_subdirectory(vendor/glm)
+target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC vendor/glm)
 
 # spdlog
 set(SPDLOG_BUILD_SHARED OFF CACHE INTERNAL "" FORCE)
 set(SPDLOG_SYSTEM_INCLUDES ON CACHE INTERNAL "" FORCE)
 set(BUILD_SHARED_LIBS OFF)
-add_subdirectory(dependencies/spdlog) # automatically calls target_include_directories
+add_subdirectory(vendor/spdlog) # automatically calls target_include_directories
 target_link_libraries(${PROJECT_NAME} PUBLIC spdlog)
+
+# imgui (depends on volk and SDL2)
+add_subdirectory(vendor/imgui)
+target_link_libraries(${PROJECT_NAME} PUBLIC imgui)
+
+# json
+add_subdirectory(vendor/json)
+target_link_libraries(${PROJECT_NAME} PUBLIC json)

@@ -1,18 +1,15 @@
-[submodule "dependencies/SDL"]
-	path = dependencies/SDL
-	url = https://github.com/libsdl-org/SDL
-[submodule "dependencies/stb"]
-	path = dependencies/stb
-	url = https://github.com/nothings/stb
-[submodule "dependencies/glm"]
-	path = dependencies/glm
-	url = https://github.com/g-truc/glm
-[submodule "dependencies/spdlog"]
-	path = dependencies/spdlog
-	url = https://github.com/gabime/spdlog
-[submodule "dependencies/volk"]
-	path = dependencies/volk
-	url = https://github.com/zeux/volk
-[submodule "dependencies/VulkanMemoryAllocator"]
-	path = dependencies/VulkanMemoryAllocator
-	url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator
+[submodule "vendor/SDL"]
+	path = vendor/SDL
+	url = https://github.com/libsdl-org/SDL.git
+[submodule "vendor/VulkanMemoryAllocator"]
+	path = vendor/VulkanMemoryAllocator
+	url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git
+[submodule "vendor/glm"]
+	path = vendor/glm
+	url = https://github.com/g-truc/glm.git
+[submodule "vendor/spdlog"]
+	path = vendor/spdlog
+	url = https://github.com/gabime/spdlog.git
+[submodule "vendor/volk"]
+	path = vendor/volk
+	url = https://github.com/zeux/volk.git
