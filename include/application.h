@@ -14,84 +14,85 @@
 
 namespace engine {
 
-class Application {
-   public:
-    struct Configuration {
-        bool enable_frame_limiter;
-    };
+struct AppConfiguration {
+    bool enable_frame_limiter;
+};
 
+class Application {
+private:
+    std::unique_ptr<Window> m_window;
+    std::unique_ptr<InputManager> m_input_manager;
+    std::unique_ptr<Renderer> m_renderer;
+    std::unordered_map<size_t, std::unique_ptr<IResourceManager>> m_resource_managers{};
+    std::filesystem::path m_resources_path;
+    std::unique_ptr<SceneManager> m_scene_manager;
+    AppConfiguration m_configuration;
+public:
     const char* const app_name;
     const char* const app_version;
-
-    Application(const char* app_name, const char* app_version, gfx::GraphicsSettings graphics_settings, Configuration configuration);
-    ~Application();
-    Application(const Application&) = delete;
-    Application& operator=(const Application&) = delete;
-
-    /* resource stuff */
-
-    template <typename T>
-    void RegisterResourceManager()
-    {
-        size_t hash = typeid(T).hash_code();
-        assert(resource_managers_.contains(hash) == false && "Registering resource manager type more than once.");
-        resource_managers_.emplace(hash, std::make_unique<ResourceManager<T>>());
-    }
-
-    template <typename T>
-    std::shared_ptr<T> AddResource(const std::string& name, std::unique_ptr<T>&& resource)
-    {
-        auto resource_manager = GetResourceManager<T>();
-        return resource_manager->Add(name, std::move(resource));
-    }
-
-    template <typename T>
-    std::shared_ptr<T> GetResource(const std::string& name)
-    {
-        auto resource_manager = GetResourceManager<T>();
-        return resource_manager->Get(name);
-    }
-
-    /* methods */
-    void GameLoop();
-
-    void SetFrameLimiter(bool on) { configuration_.enable_frame_limiter = on; }
-
-    /* getters */
-    Window* window() { return window_.get(); }
-    InputManager* input_manager() { return input_manager_.get(); }
-    SceneManager* scene_manager() { return scene_manager_.get(); }
-    Renderer* renderer() { return renderer_.get(); }
-
-    std::string GetResourcePath(const std::string relative_path) const { return (resources_path_ / relative_path).string(); }
-
     std::vector<Line> debug_lines{};
 
-   private:
-    std::unique_ptr<Window> window_;
-    std::unique_ptr<InputManager> input_manager_;
-    std::unique_ptr<Renderer> renderer_;
-    std::unordered_map<size_t, std::unique_ptr<IResourceManager>> resource_managers_{};
-    std::filesystem::path resources_path_;
+public:
+    Application(const char* app_name, const char* app_version, gfx::GraphicsSettings graphics_settings, AppConfiguration configuration);
+    Application(const Application&) = delete;
 
-    // Most resources in the game are owned by component-lists found in scenes in this scene manager:
-    std::unique_ptr<SceneManager> scene_manager_;
+    ~Application();
 
-    Configuration configuration_;
+    Application& operator=(const Application&) = delete;
 
     template <typename T>
-    ResourceManager<T>* GetResourceManager()
-    {
-        size_t hash = typeid(T).hash_code();
-        auto it = resource_managers_.find(hash);
-        if (it == resource_managers_.end()) {
-            throw std::runtime_error("Cannot find resource manager.");
-        }
-        auto ptr = it->second.get();
-        auto casted_ptr = dynamic_cast<ResourceManager<T>*>(ptr);
-        assert(casted_ptr != nullptr);
-        return casted_ptr;
-    }
+    void registerResourceManager();
+    template <typename T>
+    std::shared_ptr<T> addResource(const std::string& name, std::unique_ptr<T>&& resource);
+    template <typename T>
+    std::shared_ptr<T> getResource(const std::string& name);
+    void gameLoop();
+    void setFrameLimiter(bool on) { m_configuration.enable_frame_limiter = on; }
+    Window* window() { return m_window.get(); }
+    InputManager* input_manager() { return m_input_manager.get(); }
+    SceneManager* scene_manager() { return m_scene_manager.get(); }
+    Renderer* renderer() { return m_renderer.get(); }
+    std::string getResourcePath(const std::string relative_path) const { return (m_resources_path / relative_path).string(); }
+
+private:
+    template <typename T>
+    ResourceManager<T>* getResourceManager();
 };
+
+template <typename T>
+void Application::registerResourceManager()
+{
+    size_t hash = typeid(T).hash_code();
+    assert(m_resource_managers.contains(hash) == false && "Registering resource manager type more than once.");
+    m_resource_managers.emplace(hash, std::make_unique<ResourceManager<T>>());
+}
+
+template <typename T>
+std::shared_ptr<T> Application::addResource(const std::string& name, std::unique_ptr<T>&& resource)
+{
+    auto resource_manager = getResourceManager<T>();
+    return resource_manager->Add(name, std::move(resource));
+}
+
+template <typename T>
+std::shared_ptr<T> Application::getResource(const std::string& name)
+{
+    auto resource_manager = getResourceManager<T>();
+    return resource_manager->Get(name);
+}
+
+template <typename T>
+ResourceManager<T>* Application::getResourceManager()
+{
+    size_t hash = typeid(T).hash_code();
+    auto it = m_resource_managers.find(hash);
+    if (it == m_resource_managers.end()) {
+        throw std::runtime_error("Cannot find resource manager.");
+    }
+    auto ptr = it->second.get();
+    auto casted_ptr = dynamic_cast<ResourceManager<T>*>(ptr);
+    assert(casted_ptr != nullptr);
+    return casted_ptr;
+}
 
 } // namespace engine

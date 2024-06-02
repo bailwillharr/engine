@@ -150,7 +150,7 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
     for (const tg::Texture& texture : model.textures) {
         // find the image first
         // use missing texture image by default
-        textures.emplace_back(scene.app()->GetResource<Texture>("builtin.white"));
+        textures.emplace_back(scene.app()->getResource<Texture>("builtin.white"));
 
         if (texture.source == -1) {
             LOG_ERROR("A gltf file specifies a texture with no source.");
@@ -245,10 +245,10 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
             }
         }
 
-        materials.emplace_back(std::make_shared<Material>(scene.app()->renderer(), scene.app()->GetResource<Shader>("builtin.fancy")));
+        materials.emplace_back(std::make_shared<Material>(scene.app()->renderer(), scene.app()->getResource<Shader>("builtin.fancy")));
 
         // base color
-        materials.back()->setAlbedoTexture(scene.app()->GetResource<Texture>("builtin.white"));
+        materials.back()->setAlbedoTexture(scene.app()->getResource<Texture>("builtin.white"));
         if (material.pbrMetallicRoughness.baseColorTexture.index != -1) {
             if (material.pbrMetallicRoughness.baseColorTexture.texCoord == 0) {
                 materials.back()->setAlbedoTexture(textures.at(material.pbrMetallicRoughness.baseColorTexture.index));
@@ -274,7 +274,7 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
 
         // occlusion roughness metallic
         materials.back()->setOcclusionRoughnessMetallicTexture(
-            scene.app()->GetResource<Texture>("builtin.white")); // default ao = 1.0, rough = 1.0, metal = 1.0
+            scene.app()->getResource<Texture>("builtin.white")); // default ao = 1.0, rough = 1.0, metal = 1.0
         if (material.pbrMetallicRoughness.metallicRoughnessTexture.index != -1) {
             if (material.pbrMetallicRoughness.metallicRoughnessTexture.texCoord == 0) {
                 LOG_DEBUG("Setting occlusion roughness metallic texture!");
@@ -316,7 +316,7 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
         }
 
         // normal map
-        materials.back()->setNormalTexture(scene.app()->GetResource<Texture>("builtin.normal"));
+        materials.back()->setNormalTexture(scene.app()->getResource<Texture>("builtin.normal"));
         if (material.normalTexture.index != -1) {
             if (material.normalTexture.texCoord == 0) {
                 materials.back()->setNormalTexture(textures.at(material.normalTexture.index));
@@ -558,7 +558,7 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
                     engine_material = materials.at(primitive.material);
                 }
                 else {
-                    engine_material = scene.app()->GetResource<Material>("builtin.default");
+                    engine_material = scene.app()->getResource<Material>("builtin.default");
                 }
 
                 // get AABB

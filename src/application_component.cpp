@@ -7,7 +7,7 @@
 
 namespace engine {
 
-std::string ApplicationComponent::GetResourcePath(const std::string& relative_path) const { return app_.GetResourcePath(relative_path); }
+std::string ApplicationComponent::GetResourcePath(const std::string& relative_path) const { return app_.getResourcePath(relative_path); }
 
 SDL_Window* ApplicationComponent::GetWindowHandle() const {
 	return app_.window()->GetHandle();

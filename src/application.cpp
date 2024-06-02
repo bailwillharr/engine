@@ -53,33 +53,33 @@ static std::filesystem::path getResourcesPath()
 
 static auto frametimeFromFPS(int fps) { return std::chrono::nanoseconds(1'000'000'000 / fps); }
 
-Application::Application(const char* appName, const char* appVersion, gfx::GraphicsSettings graphicsSettings, Configuration configuration)
-    : app_name(appName), app_version(appVersion), configuration_(configuration)
+Application::Application(const char* appName, const char* appVersion, gfx::GraphicsSettings graphicsSettings, AppConfiguration configuration)
+    : app_name(appName), app_version(appVersion), m_configuration(configuration)
 {
-    window_ = std::make_unique<Window>(appName, true, false);
-    input_manager_ = std::make_unique<InputManager>(window_.get());
-    scene_manager_ = std::make_unique<SceneManager>(this);
+    m_window = std::make_unique<Window>(appName, true, false);
+    m_input_manager = std::make_unique<InputManager>(m_window.get());
+    m_scene_manager = std::make_unique<SceneManager>(this);
 
     // get base path for resources
-    resources_path_ = getResourcesPath();
+    m_resources_path = getResourcesPath();
 
     // register resource managers
-    RegisterResourceManager<Mesh>();
-    RegisterResourceManager<Material>();
-    RegisterResourceManager<Texture>();
-    RegisterResourceManager<Shader>();
-    RegisterResourceManager<Font>();
+    registerResourceManager<Mesh>();
+    registerResourceManager<Material>();
+    registerResourceManager<Texture>();
+    registerResourceManager<Shader>();
+    registerResourceManager<Font>();
 
     im_gui_things.context = ImGui::CreateContext();
     // ImGuiIO& io = ImGui::GetIO()
-    ImGui_ImplSDL2_InitForVulkan(window_->GetHandle());
+    ImGui_ImplSDL2_InitForVulkan(m_window->GetHandle());
 
-    renderer_ = std::make_unique<Renderer>(*this, graphicsSettings);
+    m_renderer = std::make_unique<Renderer>(*this, graphicsSettings);
 
     /* default fonts */
     {
-        auto monoFont = std::make_unique<Font>(GetResourcePath("engine/fonts/mono.ttf"));
-        GetResourceManager<Font>()->AddPersistent("builtin.mono", std::move(monoFont));
+        auto monoFont = std::make_unique<Font>(getResourcePath("engine/fonts/mono.ttf"));
+        getResourceManager<Font>()->AddPersistent("builtin.mono", std::move(monoFont));
     }
 
     /* default shaders */
@@ -95,8 +95,8 @@ Application::Application(const char* appName, const char* appVersion, gfx::Graph
         shaderSettings.write_z = true;
         shaderSettings.render_order = 0;
         auto fancyShader =
-            std::make_unique<Shader>(renderer(), GetResourcePath("engine/shaders/fancy.vert"), GetResourcePath("engine/shaders/fancy.frag"), shaderSettings);
-        GetResourceManager<Shader>()->AddPersistent("builtin.fancy", std::move(fancyShader));
+            std::make_unique<Shader>(renderer(), getResourcePath("engine/shaders/fancy.vert"), getResourcePath("engine/shaders/fancy.frag"), shaderSettings);
+        getResourceManager<Shader>()->AddPersistent("builtin.fancy", std::move(fancyShader));
     }
 
     /* default textures */
@@ -108,7 +108,7 @@ Application::Application(const char* appName, const char* appVersion, gfx::Graph
         samplerInfo.mipmap = gfx::Filter::kNearest;
         samplerInfo.anisotropic_filtering = false;
         auto whiteTexture = std::make_unique<Texture>(renderer(), pixel, 1, 1, samplerInfo, true);
-        GetResourceManager<Texture>()->AddPersistent("builtin.white", std::move(whiteTexture));
+        getResourceManager<Texture>()->AddPersistent("builtin.white", std::move(whiteTexture));
     }
     {
         const uint8_t pixel[4] = {0, 0, 0, 255};
@@ -118,7 +118,7 @@ Application::Application(const char* appName, const char* appVersion, gfx::Graph
         samplerInfo.mipmap = gfx::Filter::kNearest;
         samplerInfo.anisotropic_filtering = false;
         auto blackTexture = std::make_unique<Texture>(renderer(), pixel, 1, 1, samplerInfo, true);
-        GetResourceManager<Texture>()->AddPersistent("builtin.black", std::move(blackTexture));
+        getResourceManager<Texture>()->AddPersistent("builtin.black", std::move(blackTexture));
     }
     {
         const uint8_t pixel[4] = {127, 127, 255, 255};
@@ -128,7 +128,7 @@ Application::Application(const char* appName, const char* appVersion, gfx::Graph
         samplerInfo.mipmap = gfx::Filter::kNearest;
         samplerInfo.anisotropic_filtering = false;
         auto normalTexture = std::make_unique<Texture>(renderer(), pixel, 1, 1, samplerInfo, false);
-        GetResourceManager<Texture>()->AddPersistent("builtin.normal", std::move(normalTexture));
+        getResourceManager<Texture>()->AddPersistent("builtin.normal", std::move(normalTexture));
     }
     {
         const uint8_t pixel[4] = {255, 127, 0, 255}; // AO, roughness, metallic
@@ -138,31 +138,31 @@ Application::Application(const char* appName, const char* appVersion, gfx::Graph
         samplerInfo.mipmap = gfx::Filter::kNearest;
         samplerInfo.anisotropic_filtering = false;
         auto mrTexture = std::make_unique<Texture>(renderer(), pixel, 1, 1, samplerInfo, false);
-        GetResourceManager<Texture>()->AddPersistent("builtin.mr", std::move(mrTexture));
+        getResourceManager<Texture>()->AddPersistent("builtin.mr", std::move(mrTexture));
     }
 
     /* default materials */
     {
-        auto defaultMaterial = std::make_unique<Material>(renderer(), GetResource<Shader>("builtin.fancy"));
-        defaultMaterial->setAlbedoTexture(GetResource<Texture>("builtin.white"));
-        defaultMaterial->setNormalTexture(GetResource<Texture>("builtin.normal"));
-        defaultMaterial->setOcclusionRoughnessMetallicTexture(GetResource<Texture>("builtin.mr"));
-        GetResourceManager<Material>()->AddPersistent("builtin.default", std::move(defaultMaterial));
+        auto defaultMaterial = std::make_unique<Material>(renderer(), getResource<Shader>("builtin.fancy"));
+        defaultMaterial->setAlbedoTexture(getResource<Texture>("builtin.white"));
+        defaultMaterial->setNormalTexture(getResource<Texture>("builtin.normal"));
+        defaultMaterial->setOcclusionRoughnessMetallicTexture(getResource<Texture>("builtin.mr"));
+        getResourceManager<Material>()->AddPersistent("builtin.default", std::move(defaultMaterial));
     }
 }
 
 Application::~Application()
 {
-    renderer_->GetDevice()->ShutdownImguiBackend();
+    m_renderer->GetDevice()->ShutdownImguiBackend();
     ImGui_ImplSDL2_Shutdown();
     ImGui::DestroyContext(im_gui_things.context);
 }
 
-void Application::GameLoop()
+void Application::gameLoop()
 {
     LOG_DEBUG("Begin game loop...");
 
-    auto lastTick = window_->GetNanos();
+    auto lastTick = m_window->GetNanos();
     std::array<float, 20> delta_times{};
 
     struct DebugMenuState {
@@ -174,8 +174,8 @@ void Application::GameLoop()
         bool vsync = false;
         bool show_info_window = false;
     } debug_menu_state;
-    debug_menu_state.enable_frame_limiter = configuration_.enable_frame_limiter;
-    switch (renderer_->GetDevice()->GetPresentMode()) {
+    debug_menu_state.enable_frame_limiter = m_configuration.enable_frame_limiter;
+    switch (m_renderer->GetDevice()->GetPresentMode()) {
         case gfx::PresentMode::kDoubleBufferedNoVsync:
             debug_menu_state.triple_buffering = false;
             debug_menu_state.vsync = false;
@@ -194,32 +194,32 @@ void Application::GameLoop()
     auto endFrame = beginFrame + frametimeFromFPS(fps_limit);
 
     // single-threaded game loop
-    while (window_->IsRunning()) {
+    while (m_window->IsRunning()) {
         /* logic */
 
         const float avg_fps = static_cast<float>(delta_times.size()) / std::accumulate(delta_times.begin(), delta_times.end(), 0.0f);
 
-        Scene* scene = scene_manager_->UpdateActiveScene(window_->dt());
+        Scene* scene = m_scene_manager->UpdateActiveScene(m_window->dt());
 
-        uint64_t now = window_->GetNanos();
+        uint64_t now = m_window->GetNanos();
         if (now - lastTick >= 1000000000LL * 5LL) [[unlikely]] {
             lastTick = now;
             LOG_DEBUG("fps: {}", std::lroundf(avg_fps));
             renderer()->GetDevice()->LogPerformanceInfo();
-            window_->ResetAvgFPS();
+            m_window->ResetAvgFPS();
         }
 
-        if (window_->GetKeyPress(inputs::Key::K_F5)) {
-            bool show_window = window_->MouseCaptured();
+        if (m_window->GetKeyPress(inputs::Key::K_F5)) {
+            bool show_window = m_window->MouseCaptured();
             debug_menu_state.menu_active = show_window;
-            window_->SetRelativeMouseMode(!show_window);
+            m_window->SetRelativeMouseMode(!show_window);
         }
 
-        if (window_->GetKeyPress(inputs::Key::K_F6)) {
+        if (m_window->GetKeyPress(inputs::Key::K_F6)) {
             debug_menu_state.show_info_window = !debug_menu_state.show_info_window;
         }
 
-        if (window_->GetKeyPress(inputs::Key::K_L)) {
+        if (m_window->GetKeyPress(inputs::Key::K_L)) {
             debug_menu_state.enable_frame_limiter ^= true;
         }
 
@@ -230,7 +230,7 @@ void Application::GameLoop()
         //ImGui::ShowDemoWindow();
 
         // Stop mouse from moving the camera when the settings menu is open
-        input_manager_->SetDeviceActive(InputDevice::kMouse, !debug_menu_state.menu_active);
+        m_input_manager->SetDeviceActive(InputDevice::kMouse, !debug_menu_state.menu_active);
 
         if (debug_menu_state.menu_active) {
             if (ImGui::Begin("Settings", 0)) {
@@ -244,10 +244,10 @@ void Application::GameLoop()
                 }
                 if (ImGui::Checkbox("Enable vsync", &debug_menu_state.vsync)) {
                     if (debug_menu_state.vsync) {
-                        renderer_->GetDevice()->ChangePresentMode(gfx::PresentMode::kDoubleBufferedVsync);
+                        m_renderer->GetDevice()->ChangePresentMode(gfx::PresentMode::kDoubleBufferedVsync);
                     }
                     else {
-                        renderer_->GetDevice()->ChangePresentMode(gfx::PresentMode::kDoubleBufferedNoVsync);
+                        m_renderer->GetDevice()->ChangePresentMode(gfx::PresentMode::kDoubleBufferedNoVsync);
                     }
                 }
                 if (debug_menu_state.triple_buffering) {
@@ -256,14 +256,14 @@ void Application::GameLoop()
                 if (ImGui::Checkbox("Triple buffering", &debug_menu_state.triple_buffering)) {
                     if (debug_menu_state.triple_buffering) {
                         debug_menu_state.vsync = false;
-                        renderer_->GetDevice()->ChangePresentMode(gfx::PresentMode::kTripleBuffered);
+                        m_renderer->GetDevice()->ChangePresentMode(gfx::PresentMode::kTripleBuffered);
                     }
                     else {
                         if (debug_menu_state.vsync) {
-                            renderer_->GetDevice()->ChangePresentMode(gfx::PresentMode::kDoubleBufferedVsync);
+                            m_renderer->GetDevice()->ChangePresentMode(gfx::PresentMode::kDoubleBufferedVsync);
                         }
                         else {
-                            renderer_->GetDevice()->ChangePresentMode(gfx::PresentMode::kDoubleBufferedNoVsync);
+                            m_renderer->GetDevice()->ChangePresentMode(gfx::PresentMode::kDoubleBufferedNoVsync);
                         }
                     }
                 }
@@ -506,33 +506,33 @@ void Application::GameLoop()
             static_list = mesh_render_system->GetStaticRenderList();
             dynamic_list = mesh_render_system->GetDynamicRenderList();
         }
-        renderer_->Render(window()->GetWindowResized(), camera_transform, static_list, dynamic_list, debug_lines);
+        m_renderer->Render(window()->GetWindowResized(), camera_transform, static_list, dynamic_list, debug_lines);
         debug_lines.clear(); // gets remade every frame :0
 
         /* poll events */
-        window_->GetInputAndEvents();
+        m_window->GetInputAndEvents();
 
         /* fps limiter */
-        if (configuration_.enable_frame_limiter != debug_menu_state.enable_frame_limiter) {
+        if (m_configuration.enable_frame_limiter != debug_menu_state.enable_frame_limiter) {
             if (debug_menu_state.enable_frame_limiter) {
-                configuration_.enable_frame_limiter = true;
+                m_configuration.enable_frame_limiter = true;
                 // reset beginFrame and endFrame so the limiter doesn't hang for ages
                 beginFrame = std::chrono::steady_clock::now();
                 endFrame = beginFrame;
             }
             else {
-                configuration_.enable_frame_limiter = false;
+                m_configuration.enable_frame_limiter = false;
             }
         }
-        if (configuration_.enable_frame_limiter) {
+        if (m_configuration.enable_frame_limiter) {
             std::this_thread::sleep_until(endFrame);
         }
         beginFrame = endFrame;
         endFrame = beginFrame + frametimeFromFPS(fps_limit);
-        delta_times[window_->GetFrameCount() % delta_times.size()] = window_->dt();
+        delta_times[m_window->GetFrameCount() % delta_times.size()] = m_window->dt();
     }
 
-    renderer_->GetDevice()->WaitIdle();
+    m_renderer->GetDevice()->WaitIdle();
 }
 
 } // namespace engine
