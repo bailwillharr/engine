@@ -24,6 +24,8 @@
 #include "resource_mesh.h"
 #include "resource_shader.h"
 #include "resource_texture.h"
+#include "renderer.h"
+#include "debug_line.h"
 #include "scene.h"
 #include "scene_manager.h"
 #include "system_collisions.h"
@@ -95,7 +97,7 @@ Application::Application(const char* appName, const char* appVersion, gfx::Graph
         shaderSettings.write_z = true;
         shaderSettings.render_order = 0;
         auto fancyShader =
-            std::make_unique<Shader>(renderer(), getResourcePath("engine/shaders/fancy.vert"), getResourcePath("engine/shaders/fancy.frag"), shaderSettings);
+            std::make_unique<Shader>(getRenderer(), getResourcePath("engine/shaders/fancy.vert"), getResourcePath("engine/shaders/fancy.frag"), shaderSettings);
         getResourceManager<Shader>()->AddPersistent("builtin.fancy", std::move(fancyShader));
     }
 
@@ -107,7 +109,7 @@ Application::Application(const char* appName, const char* appVersion, gfx::Graph
         samplerInfo.magnify = gfx::Filter::kNearest;
         samplerInfo.mipmap = gfx::Filter::kNearest;
         samplerInfo.anisotropic_filtering = false;
-        auto whiteTexture = std::make_unique<Texture>(renderer(), pixel, 1, 1, samplerInfo, true);
+        auto whiteTexture = std::make_unique<Texture>(getRenderer(), pixel, 1, 1, samplerInfo, true);
         getResourceManager<Texture>()->AddPersistent("builtin.white", std::move(whiteTexture));
     }
     {
@@ -117,7 +119,7 @@ Application::Application(const char* appName, const char* appVersion, gfx::Graph
         samplerInfo.magnify = gfx::Filter::kNearest;
         samplerInfo.mipmap = gfx::Filter::kNearest;
         samplerInfo.anisotropic_filtering = false;
-        auto blackTexture = std::make_unique<Texture>(renderer(), pixel, 1, 1, samplerInfo, true);
+        auto blackTexture = std::make_unique<Texture>(getRenderer(), pixel, 1, 1, samplerInfo, true);
         getResourceManager<Texture>()->AddPersistent("builtin.black", std::move(blackTexture));
     }
     {
@@ -127,7 +129,7 @@ Application::Application(const char* appName, const char* appVersion, gfx::Graph
         samplerInfo.magnify = gfx::Filter::kNearest;
         samplerInfo.mipmap = gfx::Filter::kNearest;
         samplerInfo.anisotropic_filtering = false;
-        auto normalTexture = std::make_unique<Texture>(renderer(), pixel, 1, 1, samplerInfo, false);
+        auto normalTexture = std::make_unique<Texture>(getRenderer(), pixel, 1, 1, samplerInfo, false);
         getResourceManager<Texture>()->AddPersistent("builtin.normal", std::move(normalTexture));
     }
     {
@@ -137,13 +139,13 @@ Application::Application(const char* appName, const char* appVersion, gfx::Graph
         samplerInfo.magnify = gfx::Filter::kNearest;
         samplerInfo.mipmap = gfx::Filter::kNearest;
         samplerInfo.anisotropic_filtering = false;
-        auto mrTexture = std::make_unique<Texture>(renderer(), pixel, 1, 1, samplerInfo, false);
+        auto mrTexture = std::make_unique<Texture>(getRenderer(), pixel, 1, 1, samplerInfo, false);
         getResourceManager<Texture>()->AddPersistent("builtin.mr", std::move(mrTexture));
     }
 
     /* default materials */
     {
-        auto defaultMaterial = std::make_unique<Material>(renderer(), getResource<Shader>("builtin.fancy"));
+        auto defaultMaterial = std::make_unique<Material>(getRenderer(), getResource<Shader>("builtin.fancy"));
         defaultMaterial->setAlbedoTexture(getResource<Texture>("builtin.white"));
         defaultMaterial->setNormalTexture(getResource<Texture>("builtin.normal"));
         defaultMaterial->setOcclusionRoughnessMetallicTexture(getResource<Texture>("builtin.mr"));
@@ -205,7 +207,7 @@ void Application::gameLoop()
         if (now - lastTick >= 1000000000LL * 5LL) [[unlikely]] {
             lastTick = now;
             LOG_DEBUG("fps: {}", std::lroundf(avg_fps));
-            renderer()->GetDevice()->LogPerformanceInfo();
+            getRenderer()->GetDevice()->LogPerformanceInfo();
             m_window->ResetAvgFPS();
         }
 
@@ -227,7 +229,7 @@ void Application::gameLoop()
         ImGui_ImplSDL2_NewFrame();
         ImGui::NewFrame();
 
-        //ImGui::ShowDemoWindow();
+        // ImGui::ShowDemoWindow();
 
         // Stop mouse from moving the camera when the settings menu is open
         m_input_manager->SetDeviceActive(InputDevice::kMouse, !debug_menu_state.menu_active);
@@ -274,7 +276,7 @@ void Application::gameLoop()
                 if (!scene) ImGui::BeginDisabled();
                 // load gltf file dialog
                 if (ImGui::Button("Load glTF")) {
-                    std::filesystem::path path = util::OpenFileDialog({ "glb" });
+                    std::filesystem::path path = util::OpenFileDialog({"glb"});
                     if (path.empty() == false) {
                         util::LoadGLTF(*scene, path.string(), false);
                     }
@@ -327,85 +329,85 @@ void Application::gameLoop()
                         if (node.type1 == CollisionSystem::BiTreeNode::Type::Entity) {
                             const glm::vec3 col =
                                 (node.type1 == CollisionSystem::BiTreeNode::Type::BoundingVolume) ? glm::vec3{1.0f, 0.0f, 0.0f} : glm::vec3{0.0f, 1.0f, 0.0f};
-                            Line line1{glm::vec3{node.box1.min.x, node.box1.min.y, node.box1.min.z},
-                                       glm::vec3{node.box1.max.x, node.box1.min.y, node.box1.min.z}, col};
+                            DebugLine line1{glm::vec3{node.box1.min.x, node.box1.min.y, node.box1.min.z},
+                                            glm::vec3{node.box1.max.x, node.box1.min.y, node.box1.min.z}, col};
                             debug_lines.push_back(line1);
-                            Line line2{glm::vec3{node.box1.min.x, node.box1.min.y, node.box1.min.z},
-                                       glm::vec3{node.box1.min.x, node.box1.max.y, node.box1.min.z}, col};
+                            DebugLine line2{glm::vec3{node.box1.min.x, node.box1.min.y, node.box1.min.z},
+                                            glm::vec3{node.box1.min.x, node.box1.max.y, node.box1.min.z}, col};
                             debug_lines.push_back(line2);
-                            Line line3{glm::vec3{node.box1.max.x, node.box1.max.y, node.box1.min.z},
-                                       glm::vec3{node.box1.max.x, node.box1.min.y, node.box1.min.z}, col};
+                            DebugLine line3{glm::vec3{node.box1.max.x, node.box1.max.y, node.box1.min.z},
+                                            glm::vec3{node.box1.max.x, node.box1.min.y, node.box1.min.z}, col};
                             debug_lines.push_back(line3);
-                            Line line4{glm::vec3{node.box1.max.x, node.box1.max.y, node.box1.min.z},
-                                       glm::vec3{node.box1.min.x, node.box1.max.y, node.box1.min.z}, col};
+                            DebugLine line4{glm::vec3{node.box1.max.x, node.box1.max.y, node.box1.min.z},
+                                            glm::vec3{node.box1.min.x, node.box1.max.y, node.box1.min.z}, col};
                             debug_lines.push_back(line4);
 
-                            Line line5{glm::vec3{node.box1.min.x, node.box1.min.y, node.box1.min.z},
-                                       glm::vec3{node.box1.min.x, node.box1.min.y, node.box1.max.z}, col};
+                            DebugLine line5{glm::vec3{node.box1.min.x, node.box1.min.y, node.box1.min.z},
+                                            glm::vec3{node.box1.min.x, node.box1.min.y, node.box1.max.z}, col};
                             debug_lines.push_back(line5);
-                            Line line6{glm::vec3{node.box1.min.x, node.box1.max.y, node.box1.min.z},
-                                       glm::vec3{node.box1.min.x, node.box1.max.y, node.box1.max.z}, col};
+                            DebugLine line6{glm::vec3{node.box1.min.x, node.box1.max.y, node.box1.min.z},
+                                            glm::vec3{node.box1.min.x, node.box1.max.y, node.box1.max.z}, col};
                             debug_lines.push_back(line6);
-                            Line line7{glm::vec3{node.box1.max.x, node.box1.min.y, node.box1.min.z},
-                                       glm::vec3{node.box1.max.x, node.box1.min.y, node.box1.max.z}, col};
+                            DebugLine line7{glm::vec3{node.box1.max.x, node.box1.min.y, node.box1.min.z},
+                                            glm::vec3{node.box1.max.x, node.box1.min.y, node.box1.max.z}, col};
                             debug_lines.push_back(line7);
-                            Line line8{glm::vec3{node.box1.max.x, node.box1.max.y, node.box1.min.z},
-                                       glm::vec3{node.box1.max.x, node.box1.max.y, node.box1.max.z}, col};
+                            DebugLine line8{glm::vec3{node.box1.max.x, node.box1.max.y, node.box1.min.z},
+                                            glm::vec3{node.box1.max.x, node.box1.max.y, node.box1.max.z}, col};
                             debug_lines.push_back(line8);
 
-                            Line line9{glm::vec3{node.box1.min.x, node.box1.min.y, node.box1.max.z},
-                                       glm::vec3{node.box1.max.x, node.box1.min.y, node.box1.max.z}, col};
+                            DebugLine line9{glm::vec3{node.box1.min.x, node.box1.min.y, node.box1.max.z},
+                                            glm::vec3{node.box1.max.x, node.box1.min.y, node.box1.max.z}, col};
                             debug_lines.push_back(line9);
-                            Line line10{glm::vec3{node.box1.min.x, node.box1.min.y, node.box1.max.z},
-                                        glm::vec3{node.box1.min.x, node.box1.max.y, node.box1.max.z}, col};
+                            DebugLine line10{glm::vec3{node.box1.min.x, node.box1.min.y, node.box1.max.z},
+                                             glm::vec3{node.box1.min.x, node.box1.max.y, node.box1.max.z}, col};
                             debug_lines.push_back(line10);
-                            Line line11{glm::vec3{node.box1.max.x, node.box1.max.y, node.box1.max.z},
-                                        glm::vec3{node.box1.max.x, node.box1.min.y, node.box1.max.z}, col};
+                            DebugLine line11{glm::vec3{node.box1.max.x, node.box1.max.y, node.box1.max.z},
+                                             glm::vec3{node.box1.max.x, node.box1.min.y, node.box1.max.z}, col};
                             debug_lines.push_back(line11);
-                            Line line12{glm::vec3{node.box1.max.x, node.box1.max.y, node.box1.max.z},
-                                        glm::vec3{node.box1.min.x, node.box1.max.y, node.box1.max.z}, col};
+                            DebugLine line12{glm::vec3{node.box1.max.x, node.box1.max.y, node.box1.max.z},
+                                             glm::vec3{node.box1.min.x, node.box1.max.y, node.box1.max.z}, col};
                             debug_lines.push_back(line12);
                         }
                         if (node.type2 == CollisionSystem::BiTreeNode::Type::Entity) {
                             const glm::vec3 col =
                                 (node.type2 == CollisionSystem::BiTreeNode::Type::BoundingVolume) ? glm::vec3{1.0f, 0.0f, 0.0f} : glm::vec3{0.0f, 1.0f, 0.0f};
-                            Line line1{glm::vec3{node.box2.min.x, node.box2.min.y, node.box2.min.z},
-                                       glm::vec3{node.box2.max.x, node.box2.min.y, node.box2.min.z}, col};
+                            DebugLine line1{glm::vec3{node.box2.min.x, node.box2.min.y, node.box2.min.z},
+                                            glm::vec3{node.box2.max.x, node.box2.min.y, node.box2.min.z}, col};
                             debug_lines.push_back(line1);
-                            Line line2{glm::vec3{node.box2.min.x, node.box2.min.y, node.box2.min.z},
-                                       glm::vec3{node.box2.min.x, node.box2.max.y, node.box2.min.z}, col};
+                            DebugLine line2{glm::vec3{node.box2.min.x, node.box2.min.y, node.box2.min.z},
+                                            glm::vec3{node.box2.min.x, node.box2.max.y, node.box2.min.z}, col};
                             debug_lines.push_back(line2);
-                            Line line3{glm::vec3{node.box2.max.x, node.box2.max.y, node.box2.min.z},
-                                       glm::vec3{node.box2.max.x, node.box2.min.y, node.box2.min.z}, col};
+                            DebugLine line3{glm::vec3{node.box2.max.x, node.box2.max.y, node.box2.min.z},
+                                            glm::vec3{node.box2.max.x, node.box2.min.y, node.box2.min.z}, col};
                             debug_lines.push_back(line3);
-                            Line line4{glm::vec3{node.box2.max.x, node.box2.max.y, node.box2.min.z},
-                                       glm::vec3{node.box2.min.x, node.box2.max.y, node.box2.min.z}, col};
+                            DebugLine line4{glm::vec3{node.box2.max.x, node.box2.max.y, node.box2.min.z},
+                                            glm::vec3{node.box2.min.x, node.box2.max.y, node.box2.min.z}, col};
                             debug_lines.push_back(line4);
 
-                            Line line5{glm::vec3{node.box2.min.x, node.box2.min.y, node.box2.min.z},
-                                       glm::vec3{node.box2.min.x, node.box2.min.y, node.box2.max.z}, col};
+                            DebugLine line5{glm::vec3{node.box2.min.x, node.box2.min.y, node.box2.min.z},
+                                            glm::vec3{node.box2.min.x, node.box2.min.y, node.box2.max.z}, col};
                             debug_lines.push_back(line5);
-                            Line line6{glm::vec3{node.box2.min.x, node.box2.max.y, node.box2.min.z},
-                                       glm::vec3{node.box2.min.x, node.box2.max.y, node.box2.max.z}, col};
+                            DebugLine line6{glm::vec3{node.box2.min.x, node.box2.max.y, node.box2.min.z},
+                                            glm::vec3{node.box2.min.x, node.box2.max.y, node.box2.max.z}, col};
                             debug_lines.push_back(line6);
-                            Line line7{glm::vec3{node.box2.max.x, node.box2.min.y, node.box2.min.z},
-                                       glm::vec3{node.box2.max.x, node.box2.min.y, node.box2.max.z}, col};
+                            DebugLine line7{glm::vec3{node.box2.max.x, node.box2.min.y, node.box2.min.z},
+                                            glm::vec3{node.box2.max.x, node.box2.min.y, node.box2.max.z}, col};
                             debug_lines.push_back(line7);
-                            Line line8{glm::vec3{node.box2.max.x, node.box2.max.y, node.box2.min.z},
-                                       glm::vec3{node.box2.max.x, node.box2.max.y, node.box2.max.z}, col};
+                            DebugLine line8{glm::vec3{node.box2.max.x, node.box2.max.y, node.box2.min.z},
+                                            glm::vec3{node.box2.max.x, node.box2.max.y, node.box2.max.z}, col};
                             debug_lines.push_back(line8);
 
-                            Line line9{glm::vec3{node.box2.min.x, node.box2.min.y, node.box2.max.z},
-                                       glm::vec3{node.box2.max.x, node.box2.min.y, node.box2.max.z}, col};
+                            DebugLine line9{glm::vec3{node.box2.min.x, node.box2.min.y, node.box2.max.z},
+                                            glm::vec3{node.box2.max.x, node.box2.min.y, node.box2.max.z}, col};
                             debug_lines.push_back(line9);
-                            Line line10{glm::vec3{node.box2.min.x, node.box2.min.y, node.box2.max.z},
-                                        glm::vec3{node.box2.min.x, node.box2.max.y, node.box2.max.z}, col};
+                            DebugLine line10{glm::vec3{node.box2.min.x, node.box2.min.y, node.box2.max.z},
+                                             glm::vec3{node.box2.min.x, node.box2.max.y, node.box2.max.z}, col};
                             debug_lines.push_back(line10);
-                            Line line11{glm::vec3{node.box2.max.x, node.box2.max.y, node.box2.max.z},
-                                        glm::vec3{node.box2.max.x, node.box2.min.y, node.box2.max.z}, col};
+                            DebugLine line11{glm::vec3{node.box2.max.x, node.box2.max.y, node.box2.max.z},
+                                             glm::vec3{node.box2.max.x, node.box2.min.y, node.box2.max.z}, col};
                             debug_lines.push_back(line11);
-                            Line line12{glm::vec3{node.box2.max.x, node.box2.max.y, node.box2.max.z},
-                                        glm::vec3{node.box2.min.x, node.box2.max.y, node.box2.max.z}, col};
+                            DebugLine line12{glm::vec3{node.box2.max.x, node.box2.max.y, node.box2.max.z},
+                                             glm::vec3{node.box2.min.x, node.box2.max.y, node.box2.max.z}, col};
                             debug_lines.push_back(line12);
                         }
                     }
@@ -417,85 +419,85 @@ void Application::gameLoop()
                         if (node.type1 == CollisionSystem::BiTreeNode::Type::BoundingVolume) {
                             const glm::vec3 col =
                                 (node.type1 == CollisionSystem::BiTreeNode::Type::BoundingVolume) ? glm::vec3{1.0f, 0.0f, 0.0f} : glm::vec3{0.0f, 1.0f, 0.0f};
-                            Line line1{glm::vec3{node.box1.min.x, node.box1.min.y, node.box1.min.z},
-                                       glm::vec3{node.box1.max.x, node.box1.min.y, node.box1.min.z}, col};
+                            DebugLine line1{glm::vec3{node.box1.min.x, node.box1.min.y, node.box1.min.z},
+                                            glm::vec3{node.box1.max.x, node.box1.min.y, node.box1.min.z}, col};
                             debug_lines.push_back(line1);
-                            Line line2{glm::vec3{node.box1.min.x, node.box1.min.y, node.box1.min.z},
-                                       glm::vec3{node.box1.min.x, node.box1.max.y, node.box1.min.z}, col};
+                            DebugLine line2{glm::vec3{node.box1.min.x, node.box1.min.y, node.box1.min.z},
+                                            glm::vec3{node.box1.min.x, node.box1.max.y, node.box1.min.z}, col};
                             debug_lines.push_back(line2);
-                            Line line3{glm::vec3{node.box1.max.x, node.box1.max.y, node.box1.min.z},
-                                       glm::vec3{node.box1.max.x, node.box1.min.y, node.box1.min.z}, col};
+                            DebugLine line3{glm::vec3{node.box1.max.x, node.box1.max.y, node.box1.min.z},
+                                            glm::vec3{node.box1.max.x, node.box1.min.y, node.box1.min.z}, col};
                             debug_lines.push_back(line3);
-                            Line line4{glm::vec3{node.box1.max.x, node.box1.max.y, node.box1.min.z},
-                                       glm::vec3{node.box1.min.x, node.box1.max.y, node.box1.min.z}, col};
+                            DebugLine line4{glm::vec3{node.box1.max.x, node.box1.max.y, node.box1.min.z},
+                                            glm::vec3{node.box1.min.x, node.box1.max.y, node.box1.min.z}, col};
                             debug_lines.push_back(line4);
 
-                            Line line5{glm::vec3{node.box1.min.x, node.box1.min.y, node.box1.min.z},
-                                       glm::vec3{node.box1.min.x, node.box1.min.y, node.box1.max.z}, col};
+                            DebugLine line5{glm::vec3{node.box1.min.x, node.box1.min.y, node.box1.min.z},
+                                            glm::vec3{node.box1.min.x, node.box1.min.y, node.box1.max.z}, col};
                             debug_lines.push_back(line5);
-                            Line line6{glm::vec3{node.box1.min.x, node.box1.max.y, node.box1.min.z},
-                                       glm::vec3{node.box1.min.x, node.box1.max.y, node.box1.max.z}, col};
+                            DebugLine line6{glm::vec3{node.box1.min.x, node.box1.max.y, node.box1.min.z},
+                                            glm::vec3{node.box1.min.x, node.box1.max.y, node.box1.max.z}, col};
                             debug_lines.push_back(line6);
-                            Line line7{glm::vec3{node.box1.max.x, node.box1.min.y, node.box1.min.z},
-                                       glm::vec3{node.box1.max.x, node.box1.min.y, node.box1.max.z}, col};
+                            DebugLine line7{glm::vec3{node.box1.max.x, node.box1.min.y, node.box1.min.z},
+                                            glm::vec3{node.box1.max.x, node.box1.min.y, node.box1.max.z}, col};
                             debug_lines.push_back(line7);
-                            Line line8{glm::vec3{node.box1.max.x, node.box1.max.y, node.box1.min.z},
-                                       glm::vec3{node.box1.max.x, node.box1.max.y, node.box1.max.z}, col};
+                            DebugLine line8{glm::vec3{node.box1.max.x, node.box1.max.y, node.box1.min.z},
+                                            glm::vec3{node.box1.max.x, node.box1.max.y, node.box1.max.z}, col};
                             debug_lines.push_back(line8);
 
-                            Line line9{glm::vec3{node.box1.min.x, node.box1.min.y, node.box1.max.z},
-                                       glm::vec3{node.box1.max.x, node.box1.min.y, node.box1.max.z}, col};
+                            DebugLine line9{glm::vec3{node.box1.min.x, node.box1.min.y, node.box1.max.z},
+                                            glm::vec3{node.box1.max.x, node.box1.min.y, node.box1.max.z}, col};
                             debug_lines.push_back(line9);
-                            Line line10{glm::vec3{node.box1.min.x, node.box1.min.y, node.box1.max.z},
-                                        glm::vec3{node.box1.min.x, node.box1.max.y, node.box1.max.z}, col};
+                            DebugLine line10{glm::vec3{node.box1.min.x, node.box1.min.y, node.box1.max.z},
+                                             glm::vec3{node.box1.min.x, node.box1.max.y, node.box1.max.z}, col};
                             debug_lines.push_back(line10);
-                            Line line11{glm::vec3{node.box1.max.x, node.box1.max.y, node.box1.max.z},
-                                        glm::vec3{node.box1.max.x, node.box1.min.y, node.box1.max.z}, col};
+                            DebugLine line11{glm::vec3{node.box1.max.x, node.box1.max.y, node.box1.max.z},
+                                             glm::vec3{node.box1.max.x, node.box1.min.y, node.box1.max.z}, col};
                             debug_lines.push_back(line11);
-                            Line line12{glm::vec3{node.box1.max.x, node.box1.max.y, node.box1.max.z},
-                                        glm::vec3{node.box1.min.x, node.box1.max.y, node.box1.max.z}, col};
+                            DebugLine line12{glm::vec3{node.box1.max.x, node.box1.max.y, node.box1.max.z},
+                                             glm::vec3{node.box1.min.x, node.box1.max.y, node.box1.max.z}, col};
                             debug_lines.push_back(line12);
                         }
                         if (node.type2 == CollisionSystem::BiTreeNode::Type::BoundingVolume) {
                             const glm::vec3 col =
                                 (node.type2 == CollisionSystem::BiTreeNode::Type::BoundingVolume) ? glm::vec3{1.0f, 0.0f, 0.0f} : glm::vec3{0.0f, 1.0f, 0.0f};
-                            Line line1{glm::vec3{node.box2.min.x, node.box2.min.y, node.box2.min.z},
-                                       glm::vec3{node.box2.max.x, node.box2.min.y, node.box2.min.z}, col};
+                            DebugLine line1{glm::vec3{node.box2.min.x, node.box2.min.y, node.box2.min.z},
+                                            glm::vec3{node.box2.max.x, node.box2.min.y, node.box2.min.z}, col};
                             debug_lines.push_back(line1);
-                            Line line2{glm::vec3{node.box2.min.x, node.box2.min.y, node.box2.min.z},
-                                       glm::vec3{node.box2.min.x, node.box2.max.y, node.box2.min.z}, col};
+                            DebugLine line2{glm::vec3{node.box2.min.x, node.box2.min.y, node.box2.min.z},
+                                            glm::vec3{node.box2.min.x, node.box2.max.y, node.box2.min.z}, col};
                             debug_lines.push_back(line2);
-                            Line line3{glm::vec3{node.box2.max.x, node.box2.max.y, node.box2.min.z},
-                                       glm::vec3{node.box2.max.x, node.box2.min.y, node.box2.min.z}, col};
+                            DebugLine line3{glm::vec3{node.box2.max.x, node.box2.max.y, node.box2.min.z},
+                                            glm::vec3{node.box2.max.x, node.box2.min.y, node.box2.min.z}, col};
                             debug_lines.push_back(line3);
-                            Line line4{glm::vec3{node.box2.max.x, node.box2.max.y, node.box2.min.z},
-                                       glm::vec3{node.box2.min.x, node.box2.max.y, node.box2.min.z}, col};
+                            DebugLine line4{glm::vec3{node.box2.max.x, node.box2.max.y, node.box2.min.z},
+                                            glm::vec3{node.box2.min.x, node.box2.max.y, node.box2.min.z}, col};
                             debug_lines.push_back(line4);
 
-                            Line line5{glm::vec3{node.box2.min.x, node.box2.min.y, node.box2.min.z},
-                                       glm::vec3{node.box2.min.x, node.box2.min.y, node.box2.max.z}, col};
+                            DebugLine line5{glm::vec3{node.box2.min.x, node.box2.min.y, node.box2.min.z},
+                                            glm::vec3{node.box2.min.x, node.box2.min.y, node.box2.max.z}, col};
                             debug_lines.push_back(line5);
-                            Line line6{glm::vec3{node.box2.min.x, node.box2.max.y, node.box2.min.z},
-                                       glm::vec3{node.box2.min.x, node.box2.max.y, node.box2.max.z}, col};
+                            DebugLine line6{glm::vec3{node.box2.min.x, node.box2.max.y, node.box2.min.z},
+                                            glm::vec3{node.box2.min.x, node.box2.max.y, node.box2.max.z}, col};
                             debug_lines.push_back(line6);
-                            Line line7{glm::vec3{node.box2.max.x, node.box2.min.y, node.box2.min.z},
-                                       glm::vec3{node.box2.max.x, node.box2.min.y, node.box2.max.z}, col};
+                            DebugLine line7{glm::vec3{node.box2.max.x, node.box2.min.y, node.box2.min.z},
+                                            glm::vec3{node.box2.max.x, node.box2.min.y, node.box2.max.z}, col};
                             debug_lines.push_back(line7);
-                            Line line8{glm::vec3{node.box2.max.x, node.box2.max.y, node.box2.min.z},
-                                       glm::vec3{node.box2.max.x, node.box2.max.y, node.box2.max.z}, col};
+                            DebugLine line8{glm::vec3{node.box2.max.x, node.box2.max.y, node.box2.min.z},
+                                            glm::vec3{node.box2.max.x, node.box2.max.y, node.box2.max.z}, col};
                             debug_lines.push_back(line8);
 
-                            Line line9{glm::vec3{node.box2.min.x, node.box2.min.y, node.box2.max.z},
-                                       glm::vec3{node.box2.max.x, node.box2.min.y, node.box2.max.z}, col};
+                            DebugLine line9{glm::vec3{node.box2.min.x, node.box2.min.y, node.box2.max.z},
+                                            glm::vec3{node.box2.max.x, node.box2.min.y, node.box2.max.z}, col};
                             debug_lines.push_back(line9);
-                            Line line10{glm::vec3{node.box2.min.x, node.box2.min.y, node.box2.max.z},
-                                        glm::vec3{node.box2.min.x, node.box2.max.y, node.box2.max.z}, col};
+                            DebugLine line10{glm::vec3{node.box2.min.x, node.box2.min.y, node.box2.max.z},
+                                             glm::vec3{node.box2.min.x, node.box2.max.y, node.box2.max.z}, col};
                             debug_lines.push_back(line10);
-                            Line line11{glm::vec3{node.box2.max.x, node.box2.max.y, node.box2.max.z},
-                                        glm::vec3{node.box2.max.x, node.box2.min.y, node.box2.max.z}, col};
+                            DebugLine line11{glm::vec3{node.box2.max.x, node.box2.max.y, node.box2.max.z},
+                                             glm::vec3{node.box2.max.x, node.box2.min.y, node.box2.max.z}, col};
                             debug_lines.push_back(line11);
-                            Line line12{glm::vec3{node.box2.max.x, node.box2.max.y, node.box2.max.z},
-                                        glm::vec3{node.box2.min.x, node.box2.max.y, node.box2.max.z}, col};
+                            DebugLine line12{glm::vec3{node.box2.max.x, node.box2.max.y, node.box2.max.z},
+                                             glm::vec3{node.box2.min.x, node.box2.max.y, node.box2.max.z}, col};
                             debug_lines.push_back(line12);
                         }
                     }
@@ -506,7 +508,7 @@ void Application::gameLoop()
             static_list = mesh_render_system->GetStaticRenderList();
             dynamic_list = mesh_render_system->GetDynamicRenderList();
         }
-        m_renderer->Render(window()->GetWindowResized(), camera_transform, static_list, dynamic_list, debug_lines);
+        m_renderer->Render(getWindow()->GetWindowResized(), camera_transform, static_list, dynamic_list, debug_lines);
         debug_lines.clear(); // gets remade every frame :0
 
         /* poll events */

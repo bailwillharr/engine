@@ -8,23 +8,26 @@ namespace engine {
 
 class Application; // forward-dec
 
+// a class that extends many classes in the engine to expose 'global' functionality
 class ApplicationComponent {
-    // a class that extends many classes in the engine to expose 'global' functionality to lower-tier classes
+private:
+    Application& m_app;
 
-    // if multithreading is ever implemented, this class must do synchronization as its instantiations may run concurrently
-   private:
-    Application& app_;
-
-   protected:
-    ApplicationComponent(Application& app) : app_(app) {}
-
-    std::string GetResourcePath(const std::string& relative_path) const;
-    SDL_Window* GetWindowHandle() const;
-    const char* GetAppName() const;
-    const char* GetAppVersion() const;
-
-   public:
+public:
     ApplicationComponent() = delete;
+    ApplicationComponent(const ApplicationComponent&) = delete;
+
+    ~ApplicationComponent() = default;
+
+    ApplicationComponent& operator=(const ApplicationComponent&) = delete;
+
+protected:
+    ApplicationComponent(Application& app) : m_app(app) {}
+
+    std::string getResourcePath(const std::string& relative_path) const;
+    SDL_Window* getWindowHandle() const;
+    const char* getAppName() const;
+    const char* getAppVersion() const;
 };
 
 } // namespace engine

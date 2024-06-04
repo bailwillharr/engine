@@ -5,7 +5,7 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 # options
 option(ENGINE_BUILD_TEST "Compile the test program" ON)
 
-SET(CMAKE_CONFIGURATION_TYPES "Debug;Release;RelWithDebInfo")
+set(CMAKE_CONFIGURATION_TYPES "Debug;Release;RelWithDebInfo")
 
 # enable link time code generation for all targets in the solution
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE)
@@ -19,7 +19,11 @@ set(SRC_FILES
 	"src/application.cpp"
 	"src/application_component.cpp"
 	"src/ecs.cpp"
+	"src/file_dialog.cpp"
+	"src/files.cpp"
+	"src/gen_tangents.cpp"
 	"src/gfx_device_vulkan.cpp"
+	"src/gltf_loader.cpp"
 	"src/input_manager.cpp"
 	"src/renderer.cpp"
 	"src/resource_font.cpp"
@@ -33,15 +37,11 @@ set(SRC_FILES
 	"src/system_custom_behaviour.cpp"
 	"src/system_mesh_render.cpp"
 	"src/system_transform.cpp"
-	"src/files.cpp"
-	"src/gen_tangents.cpp"
-	"src/gltf_loader.cpp"
-	"src/vulkan_device.cpp"
 	"src/vulkan_allocator.cpp"
+	"src/vulkan_device.cpp"
 	"src/vulkan_instance.cpp"
 	"src/vulkan_swapchain.cpp"
 	"src/window.cpp"
-	"src/file_dialog.cpp"
 )
 
 set(INCLUDE_FILES
@@ -51,22 +51,24 @@ set(INCLUDE_FILES
 	"include/component_custom.h"
 	"include/component_mesh.h"
 	"include/component_transform.h"
+	"include/debug_line.h"
 	"include/ecs.h"
-	"include/vulkan_allocator.h"
-	"include/vulkan_device.h"
-	"include/vulkan_instance.h"
-	"include/vulkan_swapchain.h"
+	"include/entity.h"
 	"include/event_system.h"
+	"include/file_dialog.h"
+	"include/files.h"
+	"include/gen_tangents.h"
 	"include/gfx.h"
 	"include/gfx_device.h"
-	"include/input_manager.h"
+	"include/gltf_loader.h"
 	"include/input_keys.h"
+	"include/input_manager.h"
 	"include/input_mouse.h"
 	"include/log.h"
 	"include/logger.h"
 	"include/renderer.h"
-	"include/resource_manager.h"
 	"include/resource_font.h"
+	"include/resource_manager.h"
 	"include/resource_material.h"
 	"include/resource_mesh.h"
 	"include/resource_shader.h"
@@ -78,15 +80,12 @@ set(INCLUDE_FILES
 	"include/system_mesh_render.h"
 	"include/system_transform.h"
 	"include/util.h"
-	"include/files.h"
-	"include/gen_tangents.h"
-	"include/gltf_loader.h"
+	"include/vulkan_allocator.h"
+	"include/vulkan_device.h"
+	"include/vulkan_instance.h"
+	"include/vulkan_swapchain.h"
 	"include/window.h"
-	"include/file_dialog.h"
 )
-
-
-file(GLOB_RECURSE RES_FILES RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/res/engine/*")
 
 add_library(${PROJECT_NAME} STATIC
 	${SRC_FILES}
@@ -94,20 +93,21 @@ add_library(${PROJECT_NAME} STATIC
 	${RES_FILES}
 )
 
+# show game engine resources in VS generated solution explorer
+file(GLOB_RECURSE RES_FILES RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/res/engine/*")
+
+# Organise files in VS generated solution explorer
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src" PREFIX "Source" FILES ${SRC_FILES})
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/include" PREFIX "Include" FILES ${INCLUDE_FILES})
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/res/engine" PREFIX "Resources" FILES ${RES_FILES})
 
 # compiling options:
 
-target_compile_definitions(${PROJECT_NAME} PRIVATE DEFINITIONS "ENGINE_EXPORTS")
-
 if (WIN32)
 	target_compile_definitions(${PROJECT_NAME} PRIVATE DEFINITIONS "NOMINMAX") # stop windows.h conflicting with 'std::max'
 endif()
 
-set_property(TARGET ${PROJECT_NAME} PROPERTY WINDOWS_EXPORT_ALL_SYMBOLS ON)
-
+# This project uses C++20 and C11
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_EXTENSIONS OFF)
@@ -133,7 +133,9 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 # Build the test
 if (ENGINE_BUILD_TEST)
 	add_subdirectory(test)
+	# Copy DLLs to the enginetest.exe folder (I think that's what this does?)
 	set(CMAKE_RUNTIME_OUTPUT_DIRECTORY $<TARGET_FILE_DIR:enginetest>)
+	# Set enginetest.exe as the default startup project in VS
 	set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT enginetest)
 endif()
 
@@ -151,7 +153,8 @@ add_subdirectory(vendor/volk)
 target_link_libraries(${PROJECT_NAME} PUBLIC volk::volk)
 
 # Vulkan Memory Allocator
-target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC vendor/VulkanMemoryAllocator/include)
+add_subdirectory(vendor/VulkanMemoryAllocator)
+target_link_libraries(${PROJECT_NAME} PUBLIC VulkanMemoryAllocator)
 
 # shaderc
 if (MSVC)
@@ -169,22 +172,20 @@ set(SDL_STATIC OFF CACHE INTERNAL "" FORCE)
 set(SDL_TEST OFF CACHE INTERNAL "" FORCE)
 set(BUILD_SHARED_LIBS ON)
 add_subdirectory(vendor/SDL)
-target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC vendor/SDL/include) # TODO maybe delete this line?
 target_link_libraries(${PROJECT_NAME} PUBLIC SDL2::SDL2)
 target_link_libraries(${PROJECT_NAME} PUBLIC SDL2::SDL2main)
 
 # GLM:
 set(BUILD_SHARED_LIBS OFF)
 add_subdirectory(vendor/glm)
-target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC vendor/glm)
-target_compile_definitions(${PROJECT_NAME} PUBLIC GLM_ENABLE_EXPERIMENTAL)
+target_link_libraries(${PROJECT_NAME} PUBLIC glm::glm)
 
 # spdlog
-set(SPDLOG_BUILD_SHARED OFF CACHE INTERNAL "" FORCE)
-set(SPDLOG_SYSTEM_INCLUDES ON CACHE INTERNAL "" FORCE)
+set(SPDLOG_BUILD_SHARED OFF)
+set(SPDLOG_SYSTEM_INCLUDES ON)
 set(BUILD_SHARED_LIBS OFF)
-add_subdirectory(vendor/spdlog) # automatically calls target_include_directories
-target_link_libraries(${PROJECT_NAME} PUBLIC spdlog)
+add_subdirectory(vendor/spdlog)
+target_link_libraries(${PROJECT_NAME} PUBLIC spdlog::spdlog)
 
 # stb
 add_subdirectory(vendor/stb)

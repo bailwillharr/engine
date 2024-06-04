@@ -9,6 +9,7 @@
 #include "application_component.h"
 #include "gfx_device.h"
 #include "system_mesh_render.h"
+#include "debug_line.h"
 
 namespace engine {
 
@@ -23,12 +24,6 @@ struct UniformDescriptor {
     gfx::UniformBuffer* uniform_buffer;
 };
 
-struct Line {
-    glm::vec3 pos1;
-    glm::vec3 pos2;
-    glm::vec3 color;
-};
-
 class Renderer : private ApplicationComponent {
    public:
     Renderer(Application& app, gfx::GraphicsSettings settings);
@@ -36,7 +31,7 @@ class Renderer : private ApplicationComponent {
     ~Renderer();
 
     // staticList can be nullptr to render nothing
-    void Render(bool window_is_resized, glm::mat4 camera_transform, const RenderList* static_list, const RenderList* dynamic_list, const std::vector<Line>& debug_lines);
+    void Render(bool window_is_resized, glm::mat4 camera_transform, const RenderList* static_list, const RenderList* dynamic_list, const std::vector<DebugLine>& debug_lines);
 
     // getters
 

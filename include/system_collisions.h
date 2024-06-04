@@ -29,9 +29,9 @@ class CollisionSystem : public System {
    public:
     CollisionSystem(Scene* scene);
 
-    void OnComponentInsert(Entity entity) override;
+    void onComponentInsert(Entity entity) override;
 
-    void OnUpdate(float ts) override;
+    void onUpdate(float ts) override;
 
     Raycast GetRaycast(Ray ray);
 

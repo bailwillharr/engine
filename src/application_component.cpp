@@ -7,17 +7,17 @@
 
 namespace engine {
 
-std::string ApplicationComponent::GetResourcePath(const std::string& relative_path) const { return app_.getResourcePath(relative_path); }
+std::string ApplicationComponent::getResourcePath(const std::string& relative_path) const { return m_app.getResourcePath(relative_path); }
 
-SDL_Window* ApplicationComponent::GetWindowHandle() const {
-	return app_.window()->GetHandle();
+SDL_Window* ApplicationComponent::getWindowHandle() const {
+	return m_app.getWindow()->GetHandle();
 }
 
-const char* ApplicationComponent::GetAppName() const {
-	return app_.app_name;
+const char* ApplicationComponent::getAppName() const {
+	return m_app.app_name;
 }
-const char* ApplicationComponent::GetAppVersion() const {
-	return app_.app_version;
+const char* ApplicationComponent::getAppVersion() const {
+	return m_app.app_version;
 }
 
 } // namespace engine

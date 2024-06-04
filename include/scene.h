@@ -48,7 +48,7 @@ class Scene {
 
         size_t signature_position = next_signature_position_;
         ++next_signature_position_;
-        assert(signature_position < kMaxComponents && "Registering too many components!");
+        assert(signature_position < MAX_COMPONENTS && "Registering too many components!");
         assert(component_signature_positions_.contains(hash) == false);
         component_signature_positions_.emplace(hash, signature_position);
     }
@@ -65,7 +65,7 @@ class Scene {
         }
 
         auto array = GetComponentArray<T>();
-        return array->GetData(entity);
+        return array->getData(entity);
     }
 
     // because GetComponent<Transformzzzzzz takes too long
@@ -83,7 +83,7 @@ class Scene {
         size_t hash = typeid(T).hash_code();
 
         auto array = GetComponentArray<T>();
-        array->InsertData(entity, comp); // errors if entity already exists in array
+        array->insertData(entity, comp); // errors if entity already exists in array
 
         // set the component bit for this entity
         size_t signature_position = component_signature_positions_.at(hash);
@@ -91,14 +91,14 @@ class Scene {
         signature_ref.set(signature_position);
 
         for (auto& [system_hash, system] : ecs_systems_) {
-            if (system->entities_.contains(entity)) continue;
-            if ((system->signature_ & signature_ref) == system->signature_) {
-                system->entities_.insert(entity);
-                system->OnComponentInsert(entity);
+            if (system->m_entities.contains(entity)) continue;
+            if ((system->m_signature & signature_ref) == system->m_signature) {
+                system->m_entities.insert(entity);
+                system->onComponentInsert(entity);
             }
         }
 
-        return array->GetData(entity);
+        return array->getData(entity);
     }
 
     template <typename T>
@@ -148,7 +148,7 @@ class Scene {
     // maps component hashes to signature positions
     std::unordered_map<size_t, size_t> component_signature_positions_{};
     // maps entity ids to their signatures
-    std::unordered_map<Entity, std::bitset<kMaxComponents>> signatures_{};
+    std::unordered_map<Entity, std::bitset<MAX_COMPONENTS>> signatures_{};
     // maps component hashes to their arrays
     std::unordered_map<size_t, std::unique_ptr<IComponentArray>> component_arrays_{};
 

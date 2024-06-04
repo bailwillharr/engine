@@ -9,7 +9,7 @@ class TransformSystem : public System {
    public:
     TransformSystem(Scene* scene);
 
-    void OnUpdate(float ts) override;
+    void onUpdate(float ts) override;
 
     /*
      * Linear-searches for an entity that matches the arguments' criteria.

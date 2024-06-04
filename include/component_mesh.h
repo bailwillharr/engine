@@ -2,10 +2,10 @@
 
 #include <memory>
 
-#include "resource_material.h"
-#include "resource_mesh.h"
-
 namespace engine {
+
+class Mesh;     // forward-dec
+class Material; // forward-dec
 
 struct MeshRenderableComponent {
     std::shared_ptr<Mesh> mesh;

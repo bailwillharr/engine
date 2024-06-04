@@ -1,32 +1,34 @@
 #include "camera_controller.hpp"
 
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtc/constants.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/rotate_vector.hpp>
 #include <glm/trigonometric.hpp>
 
 #include "application.h"
+#include "component_mesh.h"
 #include "component_transform.h"
 #include "ecs.h"
 #include "input_manager.h"
 #include "log.h"
 #include "scene.h"
 #include "scene_manager.h"
-#include "window.h"
 #include "system_collisions.h"
-#include "component_mesh.h"
+#include "system_mesh_render.h"
+#include "window.h"
 
 CameraControllerSystem::CameraControllerSystem(engine::Scene* scene)
     : System(scene, {typeid(engine::TransformComponent).hash_code(), typeid(CameraControllerComponent).hash_code()})
 {
 }
 
-void CameraControllerSystem::OnUpdate(float ts)
+void CameraControllerSystem::onUpdate(float ts)
 {
     if (t == nullptr || c == nullptr) {
-        for (engine::Entity entity : entities_) {
-            t = scene_->GetComponent<engine::TransformComponent>(entity);
-            c = scene_->GetComponent<CameraControllerComponent>(entity);
+        for (engine::Entity entity : m_entities) {
+            t = m_scene->GetComponent<engine::TransformComponent>(entity);
+            c = m_scene->GetComponent<CameraControllerComponent>(entity);
             break;
         }
         if (t == nullptr) return;
@@ -35,21 +37,21 @@ void CameraControllerSystem::OnUpdate(float ts)
 
     const float dt = ts;
 
-    float dx = scene_->app()->input_manager()->GetAxis("movex") * CameraControllerComponent::kSpeedStrafe;
-    float dy = scene_->app()->input_manager()->GetAxis("movey") * CameraControllerComponent::kSpeedForwardBack;
+    float dx = m_scene->app()->getInputManager()->GetAxis("movex") * CameraControllerComponent::kSpeedStrafe;
+    float dy = m_scene->app()->getInputManager()->GetAxis("movey") * CameraControllerComponent::kSpeedForwardBack;
 
-    if (scene_->app()->input_manager()->GetButton("sprint")) {
+    if (m_scene->app()->getInputManager()->GetButton("sprint")) {
         dy *= CameraControllerComponent::kSprintMultiplier;
     }
 
     // calculate new pitch and yaw
 
-    float d_pitch = scene_->app()->input_manager()->GetAxis("looky") * -1.0f * CameraControllerComponent::kCameraSensitivity;
+    float d_pitch = m_scene->app()->getInputManager()->GetAxis("looky") * -1.0f * CameraControllerComponent::kCameraSensitivity;
     c->pitch += d_pitch;
     if (c->pitch <= CameraControllerComponent::kMinPitch || c->pitch >= CameraControllerComponent::kMaxPitch) {
         c->pitch -= d_pitch;
     }
-    c->yaw += scene_->app()->input_manager()->GetAxis("lookx") * -1.0f * CameraControllerComponent::kCameraSensitivity;
+    c->yaw += m_scene->app()->getInputManager()->GetAxis("lookx") * -1.0f * CameraControllerComponent::kCameraSensitivity;
 
     // update position relative to camera direction in xz plane
     const glm::vec3 d2x_rotated = glm::rotateZ(glm::vec3{dx, 0.0f, 0.0f}, c->yaw);
@@ -63,7 +65,7 @@ void CameraControllerSystem::OnUpdate(float ts)
     c->vel.z += CameraControllerComponent::kGravAccel * dt;
 
     // jumping
-    if (scene_->app()->input_manager()->GetButtonPress("jump") && (c->grounded || c->noclip)) {
+    if (m_scene->app()->getInputManager()->GetButtonPress("jump") && (c->grounded || c->noclip)) {
         c->vel.z += CameraControllerComponent::kJumpVelocity; // m/s
     }
 
@@ -86,7 +88,7 @@ void CameraControllerSystem::OnUpdate(float ts)
             ray.direction.x = c->vel.x;
             ray.direction.y = c->vel.y; // this is normalized by GetRayCast()
             ray.direction.z = 0.0f;
-            raycasts[i] = scene_->GetSystem<engine::CollisionSystem>()->GetRaycast(ray);
+            raycasts[i] = m_scene->GetSystem<engine::CollisionSystem>()->GetRaycast(ray);
 
             if (raycasts[i].hit && raycasts[i].distance < smallest_distance) {
                 smallest_distance = raycasts[i].distance;
@@ -119,7 +121,7 @@ void CameraControllerSystem::OnUpdate(float ts)
             fall_ray.origin = t->position;
             fall_ray.origin.z += CameraControllerComponent::kMaxStairHeight - CameraControllerComponent::kPlayerHeight;
             fall_ray.direction = { 0.0f, 0.0f, -1.0f }; // down
-            const engine::Raycast fall_raycast = scene_->GetSystem<engine::CollisionSystem>()->GetRaycast(fall_ray);
+            const engine::Raycast fall_raycast = m_scene->GetSystem<engine::CollisionSystem>()->GetRaycast(fall_ray);
             if (fall_raycast.hit) {                   // there is ground below player
                 // find how far the player will move (downwards) if velocity is applied without collision
                 const float mag_dz = fabsf(c->vel.z * dt);
@@ -144,7 +146,7 @@ void CameraControllerSystem::OnUpdate(float ts)
             engine::Ray jump_ray{};
             jump_ray.origin = t->position;
             jump_ray.direction = { 0.0f, 0.0f, 1.0f };
-            const engine::Raycast jump_raycast = scene_->GetSystem<engine::CollisionSystem>()->GetRaycast(jump_ray);
+            const engine::Raycast jump_raycast = m_scene->GetSystem<engine::CollisionSystem>()->GetRaycast(jump_ray);
             if (jump_raycast.hit) {
                 // find how far the player will move (upwards) if velocity is applied without collision
                 const float mag_dz = fabsf(c->vel.z * dt);
@@ -183,47 +185,47 @@ void CameraControllerSystem::OnUpdate(float ts)
 
     /* user interface inputs */
 
-    if (scene_->app()->window()->GetKeyPress(engine::inputs::Key::K_R) || glm::length(t->position) > CameraControllerComponent::kMaxDistanceFromOrigin) {
+    if (m_scene->app()->getWindow()->GetKeyPress(engine::inputs::Key::K_R) || glm::length(t->position) > CameraControllerComponent::kMaxDistanceFromOrigin) {
         t->position = {0.0f, 0.0f, 10.0f};
         c->vel = {0.0f, 0.0f, 0.0f};
         c->pitch = glm::half_pi<float>();
         c->yaw = 0.0f;
     }
 
-    if (scene_->app()->input_manager()->GetButtonPress("fullscreen")) {
-        scene_->app()->window()->ToggleFullscreen();
+    if (m_scene->app()->getInputManager()->GetButtonPress("fullscreen")) {
+        m_scene->app()->getWindow()->ToggleFullscreen();
     }
 
-    if (scene_->app()->input_manager()->GetButtonPress("exit")) {
-        scene_->app()->window()->SetCloseFlag();
+    if (m_scene->app()->getInputManager()->GetButtonPress("exit")) {
+        m_scene->app()->getWindow()->SetCloseFlag();
     }
 
-    if (scene_->app()->window()->GetKeyPress(engine::inputs::Key::K_F)) {
-        scene_->app()->scene_manager()->SetActiveScene(next_scene_);
+    if (m_scene->app()->getWindow()->GetKeyPress(engine::inputs::Key::K_F)) {
+        m_scene->app()->getSceneManager()->SetActiveScene(next_scene_);
     }
 
-    if (scene_->app()->window()->GetKeyPress(engine::inputs::Key::K_Q)) {
+    if (m_scene->app()->getWindow()->GetKeyPress(engine::inputs::Key::K_Q)) {
         c->noclip ^= true;
     }
 
-    if (scene_->app()->window()->GetButtonPress(engine::inputs::MouseButton::M_LEFT)) {
+    if (m_scene->app()->getWindow()->GetButtonPress(engine::inputs::MouseButton::M_LEFT)) {
         engine::Ray ray{};
         ray.origin = t->position;
         ray.direction = glm::vec3(glm::mat4_cast(t->rotation) * glm::vec4{0.0f, 0.0f, -1.0f, 1.0f});
-        engine::Raycast cast = scene_->GetSystem<engine::CollisionSystem>()->GetRaycast(ray);
+        engine::Raycast cast = m_scene->GetSystem<engine::CollisionSystem>()->GetRaycast(ray);
 
         if (cast.hit) {
             LOG_TRACE("Distance: {} m", cast.distance);
             LOG_TRACE("Location: {} {} {}", cast.location.x, cast.location.y, cast.location.z);
             LOG_TRACE("Normal: {} {} {}", cast.normal.x, cast.normal.y, cast.normal.z);
             LOG_TRACE("Ray direction: {} {} {}", ray.direction.x, ray.direction.y, ray.direction.z);
-            LOG_TRACE("Hit Entity: {}", scene_->GetComponent<engine::TransformComponent>(cast.hit_entity)->tag);
+            LOG_TRACE("Hit Entity: {}", m_scene->GetComponent<engine::TransformComponent>(cast.hit_entity)->tag);
             c->perm_lines.clear();
             c->perm_lines.emplace_back(ray.origin, cast.location, glm::vec3{0.0f, 0.0f, 1.0f});
-            scene_->GetComponent<engine::MeshRenderableComponent>(cast.hit_entity)->visible ^= true;
-            scene_->GetSystem<engine::MeshRenderSystem>()->RebuildStaticRenderList();
+            m_scene->GetComponent<engine::MeshRenderableComponent>(cast.hit_entity)->visible ^= true;
+            m_scene->GetSystem<engine::MeshRenderSystem>()->RebuildStaticRenderList();
         }
     }
 
-    scene_->app()->debug_lines.insert(scene_->app()->debug_lines.end(), c->perm_lines.begin(), c->perm_lines.end());
+    m_scene->app()->debug_lines.insert(m_scene->app()->debug_lines.end(), c->perm_lines.begin(), c->perm_lines.end());
 }

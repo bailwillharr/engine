@@ -16,7 +16,7 @@ namespace engine {
 
 Renderer::Renderer(Application& app, gfx::GraphicsSettings settings) : ApplicationComponent(app)
 {
-    device_ = std::make_unique<GFXDevice>(GetAppName(), GetAppVersion(), GetWindowHandle(), settings);
+    device_ = std::make_unique<GFXDevice>(getAppName(), getAppVersion(), getWindowHandle(), settings);
 
     // sort out descriptor set layouts:
     std::vector<gfx::DescriptorSetLayoutBinding> globalSetBindings;
@@ -75,8 +75,8 @@ Renderer::Renderer(Application& app, gfx::GraphicsSettings settings) : Applicati
 
     {
         gfx::PipelineInfo debug_pipeline_info{};
-        debug_pipeline_info.vert_shader_path = GetResourcePath("engine/shaders/debug.vert");
-        debug_pipeline_info.frag_shader_path = GetResourcePath("engine/shaders/debug.frag");
+        debug_pipeline_info.vert_shader_path = getResourcePath("engine/shaders/debug.vert");
+        debug_pipeline_info.frag_shader_path = getResourcePath("engine/shaders/debug.frag");
         debug_pipeline_info.vertex_format = debug_vertex_format;
         debug_pipeline_info.alpha_blending = false;
         debug_pipeline_info.face_cull_mode = gfx::CullMode::kCullNone; // probably ignored for line rendering
@@ -97,7 +97,7 @@ Renderer::Renderer(Application& app, gfx::GraphicsSettings settings) : Applicati
 
         for (int face = 0; face < 6; ++face) {
             std::string path = std::string("engine/textures/skybox") + std::to_string(face) + std::string(".jpg");
-            face_unq_ptrs[face] = ReadImageFile(GetResourcePath(path), w, h);
+            face_unq_ptrs[face] = ReadImageFile(getResourcePath(path), w, h);
             if (cubemap_w != w || cubemap_h != h) throw std::runtime_error("Skybox textures must be 512x512!");
             face_unsafe_ptrs[face] = face_unq_ptrs[face]->data();
         }
@@ -119,12 +119,12 @@ Renderer::Renderer(Application& app, gfx::GraphicsSettings settings) : Applicati
     // create skybox shader
     {
         gfx::VertexFormat vertex_format{};
-        vertex_format.attribute_descriptions.emplace_back(0, gfx::VertexAttribFormat::kFloat3, 0);
+        vertex_format.attribute_descriptions.emplace_back(0u, gfx::VertexAttribFormat::kFloat3, 0u);
         vertex_format.stride = 3 * sizeof(float);
 
         gfx::PipelineInfo pipeline_info{};
-        pipeline_info.vert_shader_path = GetResourcePath("engine/shaders/skybox.vert");
-        pipeline_info.frag_shader_path = GetResourcePath("engine/shaders/skybox.frag");
+        pipeline_info.vert_shader_path = getResourcePath("engine/shaders/skybox.vert");
+        pipeline_info.frag_shader_path = getResourcePath("engine/shaders/skybox.frag");
         pipeline_info.vertex_format = vertex_format;
         pipeline_info.alpha_blending = false;
         pipeline_info.face_cull_mode = gfx::CullMode::kCullBack;
@@ -195,11 +195,11 @@ Renderer::Renderer(Application& app, gfx::GraphicsSettings settings) : Applicati
     // shadow map pipeline
     gfx::VertexFormat shadowVertexFormat{};
     shadowVertexFormat.stride = sizeof(float) * 12;                                                 // using the full meshes so a lot of data is skipped
-    shadowVertexFormat.attribute_descriptions.emplace_back(0, gfx::VertexAttribFormat::kFloat3, 0); // position
-    shadowVertexFormat.attribute_descriptions.emplace_back(1, gfx::VertexAttribFormat::kFloat2, sizeof(float) * 10); // uv
+    shadowVertexFormat.attribute_descriptions.emplace_back(0u, gfx::VertexAttribFormat::kFloat3, 0u); // position
+    shadowVertexFormat.attribute_descriptions.emplace_back(1u, gfx::VertexAttribFormat::kFloat2, static_cast<uint32_t>(sizeof(float)) * 10u); // uv
     gfx::PipelineInfo shadowPipelineInfo{};
-    shadowPipelineInfo.vert_shader_path = GetResourcePath("engine/shaders/shadow.vert");
-    shadowPipelineInfo.frag_shader_path = GetResourcePath("engine/shaders/shadow.frag");
+    shadowPipelineInfo.vert_shader_path = getResourcePath("engine/shaders/shadow.vert");
+    shadowPipelineInfo.frag_shader_path = getResourcePath("engine/shaders/shadow.frag");
     shadowPipelineInfo.vertex_format = shadowVertexFormat;
     shadowPipelineInfo.face_cull_mode = gfx::CullMode::kCullFront; // shadows care about back faces
     shadowPipelineInfo.alpha_blending = false;
@@ -250,7 +250,7 @@ Renderer::~Renderer()
     device_->DestroyDescriptorSetLayout(global_uniform.layout);
 }
 
-void Renderer::Render(bool window_is_resized, glm::mat4 camera_transform, const RenderList* static_list, const RenderList* dynamic_list, const std::vector<Line>& debug_lines)
+void Renderer::Render(bool window_is_resized, glm::mat4 camera_transform, const RenderList* static_list, const RenderList* dynamic_list, const std::vector<DebugLine>& debug_lines)
 {
 
     if (window_is_resized) {
@@ -321,7 +321,7 @@ void Renderer::Render(bool window_is_resized, glm::mat4 camera_transform, const 
     // draw debug shit here
     device_->CmdBindPipeline(draw_buffer, debug_rendering_things_.pipeline);
     DebugPush push{};
-    for (const Line& l : debug_lines) {
+    for (const DebugLine& l : debug_lines) {
         push.pos1 = global_uniform.uniform_buffer_data.data.proj * frame_uniform.uniform_buffer_data.data * glm::vec4(l.pos1, 1.0f);
         push.pos2 = global_uniform.uniform_buffer_data.data.proj * frame_uniform.uniform_buffer_data.data * glm::vec4(l.pos2, 1.0f);
         push.color = l.color;

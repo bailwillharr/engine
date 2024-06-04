@@ -28,8 +28,8 @@ class MeshRenderSystem : public System {
     const RenderList* GetStaticRenderList() const { return &static_render_list_; }
     const RenderList* GetDynamicRenderList() const { return &dynamic_render_list_; }
 
-    void OnComponentInsert(Entity entity) override;
-    void OnUpdate(float ts) override;
+    void onComponentInsert(Entity entity) override;
+    void onUpdate(float ts) override;
 
    private:
     RenderList static_render_list_;

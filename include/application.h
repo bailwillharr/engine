@@ -5,14 +5,16 @@
 #include <string>
 #include <unordered_map>
 
+#include "debug_line.h"
 #include "gfx.h"
-#include "input_manager.h"
-#include "renderer.h"
 #include "resource_manager.h"
-#include "scene_manager.h"
-#include "window.h"
 
 namespace engine {
+
+class Window;       // forward-dec
+class InputManager; // forward-dec
+class Renderer;     // forward-dec
+class SceneManager; // forward-dec
 
 struct AppConfiguration {
     bool enable_frame_limiter;
@@ -23,14 +25,15 @@ private:
     std::unique_ptr<Window> m_window;
     std::unique_ptr<InputManager> m_input_manager;
     std::unique_ptr<Renderer> m_renderer;
+    std::unique_ptr<SceneManager> m_scene_manager;
     std::unordered_map<size_t, std::unique_ptr<IResourceManager>> m_resource_managers{};
     std::filesystem::path m_resources_path;
-    std::unique_ptr<SceneManager> m_scene_manager;
     AppConfiguration m_configuration;
+
 public:
     const char* const app_name;
     const char* const app_version;
-    std::vector<Line> debug_lines{};
+    std::vector<DebugLine> debug_lines{};
 
 public:
     Application(const char* app_name, const char* app_version, gfx::GraphicsSettings graphics_settings, AppConfiguration configuration);
@@ -48,10 +51,10 @@ public:
     std::shared_ptr<T> getResource(const std::string& name);
     void gameLoop();
     void setFrameLimiter(bool on) { m_configuration.enable_frame_limiter = on; }
-    Window* window() { return m_window.get(); }
-    InputManager* input_manager() { return m_input_manager.get(); }
-    SceneManager* scene_manager() { return m_scene_manager.get(); }
-    Renderer* renderer() { return m_renderer.get(); }
+    Window* getWindow() { return m_window.get(); }
+    InputManager* getInputManager() { return m_input_manager.get(); }
+    SceneManager* getSceneManager() { return m_scene_manager.get(); }
+    Renderer* getRenderer() { return m_renderer.get(); }
     std::string getResourcePath(const std::string relative_path) const { return (m_resources_path / relative_path).string(); }
 
 private:

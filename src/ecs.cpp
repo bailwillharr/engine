@@ -5,11 +5,11 @@
 namespace engine {
 
 	System::System(Scene* scene, std::set<size_t> requiredComponentHashes)
-		: scene_(scene)
+		: m_scene(scene)
 	{
 		for (size_t componentHash : requiredComponentHashes) {
-			size_t componentSignaturePosition = scene_->GetComponentSignaturePosition(componentHash);
-			signature_.set(componentSignaturePosition);
+			size_t componentSignaturePosition = m_scene->GetComponentSignaturePosition(componentHash);
+			m_signature.set(componentSignaturePosition);
 		}
 	}
 

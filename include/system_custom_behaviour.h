@@ -14,8 +14,8 @@ class CustomBehaviourSystem : public System {
     CustomBehaviourSystem(Scene* scene);
     ~CustomBehaviourSystem();
 
-    void OnUpdate(float ts) override;
-    void OnComponentInsert(Entity entity) override;
+    void onUpdate(float ts) override;
+    void onComponentInsert(Entity entity) override;
 
    private:
     std::unordered_map<Entity, bool> entity_is_initialised_{};

@@ -1,15 +1,17 @@
 #include "gltf_loader.h"
 
-#include "log.h"
-#include "files.h"
-
 #include <mikktspace.h>
-#include <weldmesh.h>
 #include <tiny_gltf.h>
+#include <weldmesh.h>
 
+#include "component_collider.h"
 #include "component_mesh.h"
 #include "component_transform.h"
-#include "component_collider.h"
+#include "files.h"
+#include "log.h"
+#include "renderer.h"
+#include "resource_material.h"
+#include "resource_texture.h"
 
 struct Color {
     uint8_t r, g, b, a;
@@ -203,7 +205,7 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
         const tg::Image& image = model.images.at(texture.source);
         if (image.as_is == false && image.bits == 8 && image.component == 4 && image.pixel_type == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE) {
             // create texture on GPU
-            textures.back() = std::make_shared<Texture>(scene.app()->renderer(), image.image.data(), image.width, image.height, samplerInfo,
+            textures.back() = std::make_shared<Texture>(scene.app()->getRenderer(), image.image.data(), image.width, image.height, samplerInfo,
                                                         tex_index_is_base_color[texture_idx]);
         }
         else {
@@ -245,7 +247,7 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
             }
         }
 
-        materials.emplace_back(std::make_shared<Material>(scene.app()->renderer(), scene.app()->getResource<Shader>("builtin.fancy")));
+        materials.emplace_back(std::make_shared<Material>(scene.app()->getRenderer(), scene.app()->getResource<Shader>("builtin.fancy")));
 
         // base color
         materials.back()->setAlbedoTexture(scene.app()->getResource<Texture>("builtin.white"));
@@ -267,7 +269,7 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
                 samplerInfo.magnify = gfx::Filter::kNearest;
                 samplerInfo.mipmap = gfx::Filter::kNearest;
                 samplerInfo.anisotropic_filtering = false;
-                colour_textures.emplace(std::make_pair(c, std::make_shared<Texture>(scene.app()->renderer(), pixel, 1, 1, samplerInfo, true)));
+                colour_textures.emplace(std::make_pair(c, std::make_shared<Texture>(scene.app()->getRenderer(), pixel, 1, 1, samplerInfo, true)));
             }
             materials.back()->setAlbedoTexture(colour_textures.at(c));
         }
@@ -296,7 +298,7 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
                 samplerInfo.magnify = gfx::Filter::kNearest;
                 samplerInfo.mipmap = gfx::Filter::kNearest;
                 samplerInfo.anisotropic_filtering = false;
-                metal_rough_textures.emplace(std::make_pair(mr, std::make_shared<Texture>(scene.app()->renderer(), pixel, 1, 1, samplerInfo, false)));
+                metal_rough_textures.emplace(std::make_pair(mr, std::make_shared<Texture>(scene.app()->getRenderer(), pixel, 1, 1, samplerInfo, false)));
             }
             materials.back()->setOcclusionRoughnessMetallicTexture(metal_rough_textures.at(mr));
         }
@@ -550,7 +552,7 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
                 }
 
                 // generate mesh on GPU
-                std::shared_ptr<Mesh> engine_mesh = std::make_shared<Mesh>(scene.app()->renderer()->GetDevice(), vertices, indices);
+                std::shared_ptr<Mesh> engine_mesh = std::make_shared<Mesh>(scene.app()->getRenderer()->GetDevice(), vertices, indices);
 
                 // get material
                 std::shared_ptr<Material> engine_material = nullptr;

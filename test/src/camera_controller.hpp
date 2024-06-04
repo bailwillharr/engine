@@ -2,8 +2,9 @@
 
 #include <glm/vec3.hpp>
 
-#include "component_transform.h"
 #include "application.h"
+#include "component_transform.h"
+#include "debug_line.h"
 #include "ecs.h"
 
 struct CameraControllerComponent {
@@ -36,7 +37,7 @@ struct CameraControllerComponent {
     glm::vec3 vel{0.0f, 0.0f, 0.0f};
     bool grounded = false;
 
-    std::vector<engine::Line> perm_lines{}; // raycasting lines
+    std::vector<engine::DebugLine> perm_lines{}; // raycasting lines
 };
 
 class CameraControllerSystem : public engine::System {
@@ -44,7 +45,7 @@ class CameraControllerSystem : public engine::System {
     CameraControllerSystem(engine::Scene* scene);
 
     // engine::System overrides
-    void OnUpdate(float ts) override;
+    void onUpdate(float ts) override;
 
     engine::TransformComponent* t = nullptr;
     CameraControllerComponent* c = nullptr;

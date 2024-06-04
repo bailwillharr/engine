@@ -2,9 +2,10 @@
 
 #include <algorithm>
 
-#include "component_transform.h"
 #include "component_mesh.h"
+#include "component_transform.h"
 #include "log.h"
+#include "resource_material.h"
 
 namespace engine {
 
@@ -18,13 +19,13 @@ void MeshRenderSystem::RebuildStaticRenderList()
     list_needs_rebuild_ = false;
 }
 
-void MeshRenderSystem::OnComponentInsert(Entity entity)
+void MeshRenderSystem::onComponentInsert(Entity entity)
 {
     (void)entity;
     list_needs_rebuild_ = true;
 }
 
-void MeshRenderSystem::OnUpdate(float ts)
+void MeshRenderSystem::onUpdate(float ts)
 {
     // do stuff
     (void)ts;
@@ -39,16 +40,16 @@ void MeshRenderSystem::OnUpdate(float ts)
 void MeshRenderSystem::BuildRenderList(RenderList& render_list, bool with_static_entities)
 {
     render_list.clear();
-    render_list.reserve(entities_.size());
+    render_list.reserve(m_entities.size());
 
     std::unordered_map<const gfx::Pipeline*, int> render_orders;
 
-    for (Entity entity : entities_) {
-        auto transform = scene_->GetComponent<engine::TransformComponent>(entity);
+    for (Entity entity : m_entities) {
+        auto transform = m_scene->GetComponent<engine::TransformComponent>(entity);
 
         if (transform->is_static != with_static_entities) continue;
 
-        auto renderable = scene_->GetComponent<engine::MeshRenderableComponent>(entity);
+        auto renderable = m_scene->GetComponent<engine::MeshRenderableComponent>(entity);
 
         if (renderable->visible == false) continue;
 

@@ -3,6 +3,7 @@
 #include "application.h"
 #include "files.h"
 #include "log.h"
+#include "renderer.h"
 
 #include <vector>
 

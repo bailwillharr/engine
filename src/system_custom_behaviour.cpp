@@ -16,9 +16,9 @@ CustomBehaviourSystem::CustomBehaviourSystem(Scene* scene)
 
 CustomBehaviourSystem::~CustomBehaviourSystem() {}
 
-void CustomBehaviourSystem::OnUpdate(float ts) {
-  for (Entity entity : entities_) {
-    auto c = scene_->GetComponent<CustomComponent>(entity);
+void CustomBehaviourSystem::onUpdate(float ts) {
+  for (Entity entity : m_entities) {
+    auto c = m_scene->GetComponent<CustomComponent>(entity);
     assert(c != nullptr);
     bool& entity_initialised = entity_is_initialised_.at(entity);
     if (entity_initialised == false) {
@@ -31,7 +31,7 @@ void CustomBehaviourSystem::OnUpdate(float ts) {
   }
 }
 
-void CustomBehaviourSystem::OnComponentInsert(Entity entity)
+void CustomBehaviourSystem::onComponentInsert(Entity entity)
 {
   entity_is_initialised_.emplace(entity, false);
 }

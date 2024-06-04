@@ -3,6 +3,7 @@
 #include "application.h"
 #include "gfx_device.h"
 #include "log.h"
+#include "renderer.h"
 
 #include <glm/mat4x4.hpp>
 

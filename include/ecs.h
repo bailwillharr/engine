@@ -1,71 +1,71 @@
 #pragma once
 
-#include <bitset>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+
+#include <bitset>
 #include <map>
-#include <vector>
 #include <set>
+#include <vector>
+
+#include "entity.h"
 
 namespace engine {
 
-class Scene;
+class Scene; // forward-dec
 
-using Entity = uint32_t; // ECS entity
-
-constexpr size_t kMaxComponents = 10;
+constexpr size_t MAX_COMPONENTS = 10;
 
 class IComponentArray {
-   public:
+public:
     virtual ~IComponentArray() = default;
 };
 
 template <typename T>
 class ComponentArray : public IComponentArray {
-   public:
-    void InsertData(Entity entity, const T& component)
+private:
+    std::vector<T> m_component_array{};
+
+public:
+    void insertData(Entity entity, const T& component)
     {
-        if (component_array_.size() < entity + 1) {
-            component_array_.resize(entity + 1);
+        if (m_component_array.size() < entity + 1) {
+            m_component_array.resize(entity + 1);
         }
         // bounds checking here as not performance critical
-        component_array_.at(entity) = component;
+        m_component_array.at(entity) = component;
     }
 
-    void DeleteData(Entity entity)
+    void removeData(Entity entity)
     {
         (void)entity; // TODO
     }
 
-    T* GetData(Entity entity)
+    T* getData(Entity entity)
     {
-        assert(entity < component_array_.size());
-        return &component_array_[entity];
+        assert(entity < m_component_array.size());
+        return &m_component_array[entity];
     }
-
-   private:
-    std::vector<T> component_array_{};
 };
 
 class System {
-   public:
+public:
+    Scene* const m_scene;
+    std::bitset<MAX_COMPONENTS> m_signature;
+    std::set<Entity> m_entities{}; // entities that contain the needed components
+
+public:
     System(Scene* scene, std::set<size_t> required_component_hashes);
-    virtual ~System() {}
     System(const System&) = delete;
+
+    virtual ~System() {};
+
     System& operator=(const System&) = delete;
 
-    virtual void OnUpdate(float ts) = 0;
-
-    virtual void OnComponentInsert(Entity) {}
-    virtual void OnComponentRemove(Entity) {}
-
-    Scene* const scene_;
-
-    std::bitset<kMaxComponents> signature_;
-
-    // entities that contain the needed components
-    std::set<Entity> entities_{};
+    virtual void onUpdate(float ts) = 0;
+    virtual void onComponentInsert(Entity) {}
+    virtual void onComponentRemove(Entity) {}
 };
 
 } // namespace engine

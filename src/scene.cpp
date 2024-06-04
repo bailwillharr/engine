@@ -36,7 +36,7 @@ Entity Scene::CreateEntity(const std::string& tag, Entity parent,
                            const glm::vec3& scl) {
   Entity id = next_entity_id_++;
 
-  signatures_.emplace(id, std::bitset<kMaxComponents>{});
+  signatures_.emplace(id, std::bitset<MAX_COMPONENTS>{});
 
   auto t = AddComponent<TransformComponent>(id);
 
@@ -61,7 +61,7 @@ size_t Scene::GetComponentSignaturePosition(size_t hash) {
 
 void Scene::Update(float ts) {
   for (auto& [name, system] : ecs_systems_) {
-    system->OnUpdate(ts);
+    system->onUpdate(ts);
   }
 
   event_system_->DespatchEvents();  // clears event queue

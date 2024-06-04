@@ -74,19 +74,19 @@ static std::pair<bool, float> RayBoxIntersection(const Ray& ray, const AABB& box
 
 CollisionSystem::CollisionSystem(Scene* scene) : System(scene, {typeid(TransformComponent).hash_code(), typeid(ColliderComponent).hash_code()}) {}
 
-void CollisionSystem::OnComponentInsert(Entity entity) { ++colliders_size_now_; }
+void CollisionSystem::onComponentInsert(Entity entity) { ++colliders_size_now_; }
 
-void CollisionSystem::OnUpdate(float ts)
+void CollisionSystem::onUpdate(float ts)
 {
     (void)ts;
 
     if (colliders_size_last_update_ != colliders_size_now_) {
 
         std::vector<PrimitiveInfo> prims{};
-        prims.reserve(entities_.size());
-        for (Entity entity : entities_) {
-            const auto t = scene_->GetComponent<TransformComponent>(entity);
-            const auto c = scene_->GetComponent<ColliderComponent>(entity);
+        prims.reserve(m_entities.size());
+        for (Entity entity : m_entities) {
+            const auto t = m_scene->GetComponent<TransformComponent>(entity);
+            const auto c = m_scene->GetComponent<ColliderComponent>(entity);
 
             AABB transformed_box{};
             transformed_box.min = t->world_matrix * glm::vec4(c->aabb.min, 1.0f);
@@ -107,7 +107,7 @@ void CollisionSystem::OnUpdate(float ts)
         }
 
         bvh_.clear();
-        bvh_.reserve(entities_.size() * 3 / 2); // from testing, bvh is usually 20% larger than number of objects
+        bvh_.reserve(m_entities.size() * 3 / 2); // from testing, bvh is usually 20% larger than number of objects
         BuildNode(prims, bvh_);
 
         // check AABB mins and maxes are the correct order
@@ -297,7 +297,7 @@ int CollisionSystem::BuildNode(std::vector<PrimitiveInfo>& prims, std::vector<Bi
                         box2.max.z = box2_main_max;
                         break;
                 }
-                const float combined_surface_area = (GetBoxArea(box1) * (i + 1)) + (GetBoxArea(box2) * (prims.size() - (i + 1)));
+                const float combined_surface_area = (GetBoxArea(box1) * (i + 1)) + (GetBoxArea(box2) * (static_cast<int>(prims.size()) - (i + 1)));
                 if (combined_surface_area < sah) {
                     sah = combined_surface_area;
                     optimal_box1 = box1;

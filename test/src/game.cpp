@@ -6,8 +6,11 @@
 #include "component_custom.h"
 #include "component_mesh.h"
 #include "component_transform.h"
+#include "gltf_loader.h"
 #include "input_manager.h"
+#include "log.h"
 #include "meshgen.hpp"
+#include "renderer.h"
 #include "resource_font.h"
 #include "resource_material.h"
 #include "resource_texture.h"
@@ -15,8 +18,6 @@
 #include "scene_manager.h"
 #include "system_mesh_render.h"
 #include "system_transform.h"
-#include "gltf_loader.h"
-#include "log.h"
 #include "window.h"
 
 #include "config.h"
@@ -54,10 +55,10 @@ void PlayGame(GameSettings settings)
     configuration.enable_frame_limiter = settings.enable_frame_limiter;
 
     engine::Application app(PROJECT_NAME, PROJECT_VERSION, graphics_settings, configuration);
-    app.window()->SetRelativeMouseMode(true);
-    ConfigureInputs(*app.input_manager());
+    app.getWindow()->SetRelativeMouseMode(true);
+    ConfigureInputs(*app.getInputManager());
 
-    engine::Scene* start_scene = app.scene_manager()->CreateEmptyScene();
+    engine::Scene* start_scene = app.getSceneManager()->CreateEmptyScene();
     {
         /* create camera */
         engine::Entity camera = start_scene->CreateEntity("camera");
@@ -73,7 +74,7 @@ void PlayGame(GameSettings settings)
         start_scene->GetPosition(camera).z += 10.0f;
     }
 
-    engine::Scene* main_scene = app.scene_manager()->CreateEmptyScene();
+    engine::Scene* main_scene = app.getSceneManager()->CreateEmptyScene();
     {
         /* create camera */
         engine::Entity camera = main_scene->CreateEntity("camera");
@@ -82,7 +83,7 @@ void PlayGame(GameSettings settings)
         main_scene->GetTransform(camera_child)->is_static = false;
         auto camren = main_scene->AddComponent<engine::MeshRenderableComponent>(camera_child);
         camren->visible = false;
-        camren->mesh = GenSphereMesh(app.renderer()->GetDevice(), 1.0f, /*16*/32);
+        camren->mesh = GenSphereMesh(app.getRenderer()->GetDevice(), 1.0f, /*16*/32);
         camren->material = app.getResource<engine::Material>("builtin.default");
 
         /* as of right now, the entity with tag 'camera' is used to build the view
@@ -136,7 +137,7 @@ void PlayGame(GameSettings settings)
         main_scene->GetTransform(cube)->is_static = false;
         auto cube_ren = main_scene->AddComponent<engine::MeshRenderableComponent>(cube);
         cube_ren->material = app.getResource<engine::Material>("builtin.default");
-        cube_ren->mesh = GenCuboidMesh(app.renderer()->GetDevice(), 1.0f, 1.0f, 1.0f);
+        cube_ren->mesh = GenCuboidMesh(app.getRenderer()->GetDevice(), 1.0f, 1.0f, 1.0f);
         cube_ren->visible = true;
         auto cubeCustom = main_scene->AddComponent<engine::CustomComponent>(cube);
         cubeCustom->on_init = [] {};
@@ -166,6 +167,6 @@ void PlayGame(GameSettings settings)
     start_scene->GetSystem<CameraControllerSystem>()->next_scene_ = main_scene;
     main_scene->GetSystem<CameraControllerSystem>()->next_scene_ = start_scene;
 
-    app.scene_manager()->SetActiveScene(main_scene);
+    app.getSceneManager()->SetActiveScene(main_scene);
     app.gameLoop();
 }

@@ -1,5 +1,6 @@
 #include "resource_material.h"
 
+#include "renderer.h"
 #include "resource_shader.h"
 
 namespace engine {
