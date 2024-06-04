@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+
 #include <functional>
 #include <string>
 #include <type_traits>
@@ -22,17 +23,17 @@ struct Image;
 struct Sampler;
 
 enum class MSAALevel {
-    kOff,
-    k2X,
-    k4X,
-    k8X,
-    k16X,
+    MSAA_OFF,
+    MSAA_2X,
+    MSAA_4X,
+    MSAA_8X,
+    MSAA_16X,
 };
 
 enum class PresentMode {
-    kDoubleBufferedNoVsync,
-    kDoubleBufferedVsync,
-    kTripleBuffered,
+    DOUBLE_BUFFERED_NO_VSYNC,
+    DOUBLE_BUFFERED_VSYNC,
+    TRIPLE_BUFFERED,
 };
 
 struct GraphicsSettings {
@@ -40,8 +41,8 @@ struct GraphicsSettings {
     {
         // sane defaults
         enable_validation = false;
-        present_mode = PresentMode::kDoubleBufferedVsync;
-        msaa_level = MSAALevel::kOff;
+        present_mode = PresentMode::DOUBLE_BUFFERED_VSYNC;
+        msaa_level = MSAALevel::MSAA_OFF;
         enable_anisotropy = false; // anisotropic filtering can severely affect performance on intel iGPUs
     }
 
@@ -52,60 +53,59 @@ struct GraphicsSettings {
 };
 
 enum class ImageFormat {
-    kLinear,
-    kSRGB,
+    LINEAR,
+    SRGB,
 };
 
 enum class ShaderType {
-    kVertex,
-    kFragment,
+    VERTEX,
+    FRAGMENT,
 };
 
 enum class BufferType {
-    kVertex,
-    kIndex,
-    kUniform,
+    VERTEX,
+    INDEX,
+    UNIFORM,
 };
 
 enum class Primitive {
-    kPoints,
-    kLines,
-    kLineStrip,
-    kTriangles,
-    kTriangleStrip,
+    POINTS,
+    LINES,
+    LINE_STRIP,
+    TRIANGLES,
+    TRIANGLE_STRIP,
 };
 
-enum class CullMode { kCullNone, kCullFront, kCullBack, kCullFrontAndBack };
+enum class CullMode { CULL_NONE, CULL_FRONT, CULL_BACK, CULL_FRONT_AND_BACK };
 
-enum class VertexAttribFormat { kFloat2, kFloat3, kFloat4 };
+enum class VertexAttribFormat { FLOAT2, FLOAT3, FLOAT4 };
 
 enum class Filter : int {
-    kLinear,
-    kNearest,
+    LINEAR,
+    NEAREST,
 };
 
 enum class WrapMode : int {
-    kRepeat,
-    kMirroredRepeat,
-    kClampToEdge,
-    kClampToBorder,
+    REPEAT,
+    MIRRORED_REPEAT,
+    CLAMP_TO_EDGE,
+    CLAMP_TO_BORDER,
 };
 
 enum class DescriptorType {
-    kUniformBuffer,
-    kCombinedImageSampler,
+    UNIFORM_BUFFER,
+    COMBINED_IMAGE_SAMPLER,
 };
 
 namespace ShaderStageFlags {
 enum Bits : uint32_t {
-    kVertex = 1 << 0,
-    kFragment = 1 << 1,
+    VERTEX = 1 << 0,
+    FRAGMENT = 1 << 1,
 };
 typedef std::underlying_type<Bits>::type Flags;
 } // namespace ShaderStageFlags
 
 struct VertexAttribDescription {
-    VertexAttribDescription(uint32_t location, VertexAttribFormat format, uint32_t offset) : location(location), format(format), offset(offset) {}
     uint32_t location; // the index to use in the shader
     VertexAttribFormat format;
     uint32_t offset;
@@ -129,17 +129,17 @@ struct PipelineInfo {
 };
 
 struct DescriptorSetLayoutBinding {
-    DescriptorType descriptor_type = DescriptorType::kUniformBuffer;
+    DescriptorType descriptor_type = DescriptorType::UNIFORM_BUFFER;
     ShaderStageFlags::Flags stage_flags = 0;
 };
 
 struct SamplerInfo {
-    Filter minify = gfx::Filter::kLinear;
-    Filter magnify = gfx::Filter::kLinear;
-    Filter mipmap = gfx::Filter::kLinear;
-    WrapMode wrap_u = gfx::WrapMode::kRepeat;
-    WrapMode wrap_v = gfx::WrapMode::kRepeat;
-    WrapMode wrap_w = gfx::WrapMode::kRepeat; // only useful for cubemaps AFAIK
+    Filter minify = gfx::Filter::LINEAR;
+    Filter magnify = gfx::Filter::LINEAR;
+    Filter mipmap = gfx::Filter::LINEAR;
+    WrapMode wrap_u = gfx::WrapMode::REPEAT;
+    WrapMode wrap_v = gfx::WrapMode::REPEAT;
+    WrapMode wrap_w = gfx::WrapMode::REPEAT; // only useful for cubemaps AFAIK
     bool anisotropic_filtering = true;        // this can be force disabled by a global setting
 
     bool operator==(const SamplerInfo&) const = default;
@@ -148,6 +148,7 @@ struct SamplerInfo {
 } // namespace gfx
 } // namespace engine
 
+// there has to be another way...
 namespace std {
 template <>
 struct hash<engine::gfx::SamplerInfo> {

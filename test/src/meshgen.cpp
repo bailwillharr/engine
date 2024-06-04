@@ -73,7 +73,7 @@ std::unique_ptr<engine::Mesh> GenSphereMesh(engine::GFXDevice* gfx, float r, int
         }
     }
 
-    std::vector<uint32_t> indices = engine::util::GenTangents(vertices);
+    std::vector<uint32_t> indices = engine::genTangents(vertices);
 
     return std::make_unique<engine::Mesh>(gfx, vertices, indices);
 }
@@ -137,7 +137,7 @@ std::unique_ptr<engine::Mesh> GenCuboidMesh(engine::GFXDevice* gfx, float x, flo
         }
     }
 
-    std::vector<uint32_t> indices = engine::util::GenTangents(vertices);
+    std::vector<uint32_t> indices = engine::genTangents(vertices);
 
     return std::make_unique<engine::Mesh>(gfx, vertices, indices);
 }

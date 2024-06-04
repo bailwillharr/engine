@@ -38,7 +38,7 @@ struct std::hash<Color> {
 
 namespace tg = tinygltf;
 
-namespace engine::util {
+namespace engine {
 
 template <typename T>
 struct Attribute {
@@ -88,7 +88,17 @@ static glm::mat4 MatFromDoubleArray(const std::vector<double>& arr)
     return mat;
 }
 
-engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
+/*
+ * Loads the default scene found in a glTF file into 'scene'.
+ * 'isStatic' will mark every transform as static to aid rendering optimisation.
+ * Returns the top-level glTF node as an engine entity.
+ *
+ * Loader limitations:
+ *  - Can only load .glb files
+ *  - glTF files must contain all textures
+ *  - No extension support
+ */
+engine::Entity loadGLTF(Scene& scene, const std::string& path, bool isStatic)
 {
 
     LOG_INFO("Loading gltf file: {}", path);
@@ -161,46 +171,46 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
 
         gfx::SamplerInfo samplerInfo{};
         // default to trilinear filtering even if mipmaps are not specified
-        samplerInfo.minify = gfx::Filter::kLinear;
-        samplerInfo.magnify = gfx::Filter::kLinear;
-        samplerInfo.mipmap = gfx::Filter::kLinear;
+        samplerInfo.minify = gfx::Filter::LINEAR;
+        samplerInfo.magnify = gfx::Filter::LINEAR;
+        samplerInfo.mipmap = gfx::Filter::LINEAR;
         if (texture.sampler != -1) {
             const tg::Sampler& sampler = model.samplers.at(texture.sampler);
             switch (sampler.minFilter) {
                 case TINYGLTF_TEXTURE_FILTER_NEAREST:
                 case TINYGLTF_TEXTURE_FILTER_NEAREST_MIPMAP_LINEAR:
-                    samplerInfo.minify = gfx::Filter::kNearest;
-                    samplerInfo.mipmap = gfx::Filter::kLinear;
+                    samplerInfo.minify = gfx::Filter::NEAREST;
+                    samplerInfo.mipmap = gfx::Filter::LINEAR;
                     break;
                 case TINYGLTF_TEXTURE_FILTER_NEAREST_MIPMAP_NEAREST:
-                    samplerInfo.minify = gfx::Filter::kNearest;
-                    samplerInfo.mipmap = gfx::Filter::kNearest;
+                    samplerInfo.minify = gfx::Filter::NEAREST;
+                    samplerInfo.mipmap = gfx::Filter::NEAREST;
                     break;
                 case TINYGLTF_TEXTURE_FILTER_LINEAR:
                 case TINYGLTF_TEXTURE_FILTER_LINEAR_MIPMAP_LINEAR:
-                    samplerInfo.minify = gfx::Filter::kLinear;
-                    samplerInfo.mipmap = gfx::Filter::kLinear;
+                    samplerInfo.minify = gfx::Filter::LINEAR;
+                    samplerInfo.mipmap = gfx::Filter::LINEAR;
                     break;
                 case TINYGLTF_TEXTURE_FILTER_LINEAR_MIPMAP_NEAREST:
-                    samplerInfo.minify = gfx::Filter::kLinear;
-                    samplerInfo.mipmap = gfx::Filter::kNearest;
+                    samplerInfo.minify = gfx::Filter::LINEAR;
+                    samplerInfo.mipmap = gfx::Filter::NEAREST;
                     break;
                 default:
                     break;
             }
             switch (sampler.magFilter) {
                 case TINYGLTF_TEXTURE_FILTER_NEAREST:
-                    samplerInfo.magnify = gfx::Filter::kNearest;
+                    samplerInfo.magnify = gfx::Filter::NEAREST;
                     break;
                 case TINYGLTF_TEXTURE_FILTER_LINEAR:
-                    samplerInfo.magnify = gfx::Filter::kLinear;
+                    samplerInfo.magnify = gfx::Filter::LINEAR;
                     break;
                 default:
                     break;
             }
         }
         // use aniso if min filter is LINEAR_MIPMAP_LINEAR
-        samplerInfo.anisotropic_filtering = (samplerInfo.minify == gfx::Filter::kLinear && samplerInfo.mipmap == gfx::Filter::kLinear);
+        samplerInfo.anisotropic_filtering = (samplerInfo.minify == gfx::Filter::LINEAR && samplerInfo.mipmap == gfx::Filter::LINEAR);
 
         const tg::Image& image = model.images.at(texture.source);
         if (image.as_is == false && image.bits == 8 && image.component == 4 && image.pixel_type == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE) {
@@ -265,9 +275,9 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
             if (colour_textures.contains(c) == false) {
                 const uint8_t pixel[4] = {c.r, c.g, c.b, c.a};
                 gfx::SamplerInfo samplerInfo{};
-                samplerInfo.minify = gfx::Filter::kNearest;
-                samplerInfo.magnify = gfx::Filter::kNearest;
-                samplerInfo.mipmap = gfx::Filter::kNearest;
+                samplerInfo.minify = gfx::Filter::NEAREST;
+                samplerInfo.magnify = gfx::Filter::NEAREST;
+                samplerInfo.mipmap = gfx::Filter::NEAREST;
                 samplerInfo.anisotropic_filtering = false;
                 colour_textures.emplace(std::make_pair(c, std::make_shared<Texture>(scene.app()->getRenderer(), pixel, 1, 1, samplerInfo, true)));
             }
@@ -294,9 +304,9 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
             if (metal_rough_textures.contains(mr) == false) {
                 const uint8_t pixel[4] = {mr.r, mr.g, mr.b, mr.a};
                 gfx::SamplerInfo samplerInfo{};
-                samplerInfo.minify = gfx::Filter::kNearest;
-                samplerInfo.magnify = gfx::Filter::kNearest;
-                samplerInfo.mipmap = gfx::Filter::kNearest;
+                samplerInfo.minify = gfx::Filter::NEAREST;
+                samplerInfo.magnify = gfx::Filter::NEAREST;
+                samplerInfo.mipmap = gfx::Filter::NEAREST;
                 samplerInfo.anisotropic_filtering = false;
                 metal_rough_textures.emplace(std::make_pair(mr, std::make_shared<Texture>(scene.app()->getRenderer(), pixel, 1, 1, samplerInfo, false)));
             }
@@ -672,4 +682,4 @@ engine::Entity LoadGLTF(Scene& scene, const std::string& path, bool isStatic)
     return parent;
 }
 
-} // namespace engine::util
+} // namespace engine

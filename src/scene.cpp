@@ -64,7 +64,7 @@ void Scene::Update(float ts) {
     system->onUpdate(ts);
   }
 
-  event_system_->DespatchEvents();  // clears event queue
+  event_system_->despatchEvents();  // clears event queue
 }
 
 }  // namespace engine

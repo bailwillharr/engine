@@ -11,9 +11,9 @@
 
 #include "log.h"
 
-namespace engine::util {
+namespace engine {
 
-std::filesystem::path OpenFileDialog(const std::vector<std::string>& extensions)
+std::filesystem::path openFileDialog(const std::vector<std::string>& extensions)
 {
 #ifdef _WIN32
 
@@ -55,4 +55,4 @@ std::filesystem::path OpenFileDialog(const std::vector<std::string>& extensions)
 #endif
 }
 
-} // namespace engine::util
+} // namespace engine

@@ -62,7 +62,7 @@ void CameraControllerSystem::onUpdate(float ts)
     // keep vel.z as gravity can increase it every frame
 
     // gravity stuff here:
-    c->vel.z += CameraControllerComponent::kGravAccel * dt;
+    c->vel.z += c->grav_accel * dt;
 
     // jumping
     if (m_scene->app()->getInputManager()->GetButtonPress("jump") && (c->grounded || c->noclip)) {
@@ -206,6 +206,15 @@ void CameraControllerSystem::onUpdate(float ts)
 
     if (m_scene->app()->getWindow()->GetKeyPress(engine::inputs::Key::K_Q)) {
         c->noclip ^= true;
+    }
+
+    if (m_scene->app()->getWindow()->GetKeyPress(engine::inputs::Key::K_T)) {
+        if (c->grav_accel != 0.0f) {
+            c->grav_accel = 0.0f;
+        }
+        else {
+            c->grav_accel = -9.81f;
+        }
     }
 
     if (m_scene->app()->getWindow()->GetButtonPress(engine::inputs::MouseButton::M_LEFT)) {

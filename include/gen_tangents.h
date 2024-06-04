@@ -1,14 +1,12 @@
 #pragma once
 
-#include <cstdint> // uint32_t
+#include <cstdint>
 
 #include <vector>
 
 namespace engine {
-struct Vertex; // resources/mesh.h
-}
 
-namespace engine::util {
+struct Vertex; // forward-dec
 
 /*
  * Generate tangents for a given list of vertices.
@@ -18,6 +16,6 @@ namespace engine::util {
  * Returns:
  *     index list for the provided vertices
  */
-std::vector<uint32_t> GenTangents(std::vector<engine::Vertex>& vertices);
+std::vector<uint32_t> genTangents(std::vector<engine::Vertex>& vertices);
 
-} // namespace engine::util
+} // namespace engine

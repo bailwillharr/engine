@@ -4,8 +4,8 @@
 #include <string>
 #include <vector>
 
-namespace engine::util {
+namespace engine {
 
-std::filesystem::path OpenFileDialog(const std::vector<std::string>& extensions);
+std::filesystem::path openFileDialog(const std::vector<std::string>& extensions);
 
-} // namespace engine::util
+} // namespace engine

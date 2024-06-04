@@ -7,7 +7,7 @@
 
 namespace engine {
 
-std::unique_ptr<std::vector<char>> ReadTextFile(const std::string& path)
+std::unique_ptr<std::vector<char>> readTextFile(const std::string& path)
 {
     std::ifstream file(path, std::ios::ate);
     if (file.is_open() == false) {
@@ -39,7 +39,7 @@ std::unique_ptr<std::vector<char>> ReadTextFile(const std::string& path)
     return buffer;
 }
 
-std::unique_ptr<std::vector<uint8_t>> ReadBinaryFile(const std::string& path)
+std::unique_ptr<std::vector<uint8_t>> readBinaryFile(const std::string& path)
 {
     std::ifstream file(path, std::ios::ate | std::ios::binary);
     if (file.is_open() == false) {
@@ -55,7 +55,7 @@ std::unique_ptr<std::vector<uint8_t>> ReadBinaryFile(const std::string& path)
     return buffer;
 }
 
-std::unique_ptr<std::vector<uint8_t>> ReadImageFile(const std::string& path, int& width, int& height)
+std::unique_ptr<std::vector<uint8_t>> readImageFile(const std::string& path, int& width, int& height)
 {
     int x, y, n;
     unsigned char* data = stbi_load(path.c_str(), &x, &y, &n, STBI_rgb_alpha); // Image is 4 bpp

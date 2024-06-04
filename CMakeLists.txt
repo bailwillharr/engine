@@ -22,7 +22,7 @@ set(SRC_FILES
 	"src/file_dialog.cpp"
 	"src/files.cpp"
 	"src/gen_tangents.cpp"
-	"src/gfx_device_vulkan.cpp"
+	"src/gfx_device.cpp"
 	"src/gltf_loader.cpp"
 	"src/input_manager.cpp"
 	"src/renderer.cpp"

@@ -9,21 +9,21 @@
 namespace engine {
 
 enum class EventSubscriberKind {
-    kEntity,
+    ENTITY,
 };
 
 // Event handler base-class
 template <typename T>
 class EventHandler {
    public:
-    virtual void OnEvent(T data) = 0;
+    virtual void onEvent(T data) = 0;
 };
 
 // Event queue interface to allow for different type queues to be in the map
 class IEventQueue {
    public:
     virtual ~IEventQueue() {}
-    virtual void DespatchEvents() = 0;
+    virtual void despatchEvents() = 0;
 };
 
 template <typename T>
@@ -31,42 +31,40 @@ class EventQueue : public IEventQueue {
     // holds events of type T and subscribers to those events
 
    public:
-    void Subscribe(EventSubscriberKind kind, uint32_t id, EventHandler<T>* handler)
+    void subscribe(EventSubscriberKind kind, uint32_t id, EventHandler<T>* handler)
     {
         // For the time being, ignore kind (TODO)
         (void)kind;
-        assert(subscribers_.contains(id) == false && "subscribing to an event with ID that's already in use!");
-        subscribers_.emplace(id, handler);
+        assert(m_subscribers.contains(id) == false && "subscribing to an event with ID that's already in use!");
+        m_subscribers.emplace(id, handler);
     }
 
-    void QueueEvent(EventSubscriberKind kind, uint32_t id, T event)
+    void queueEvent(EventSubscriberKind kind, uint32_t id, T event)
     {
         // For the time being, ignore kind (TODO)
         (void)kind;
-        assert(subscribers_.contains(id) && "Attempt to submit event to non-existing subscriber!");
-        EventHandler<T>* handler = subscribers_.at(id);
-        event_queue_.emplace(handler, event);
+        assert(m_subscribers.contains(id) && "Attempt to submit event to non-existing subscriber!");
+        EventHandler<T>* handler = m_subscribers.at(id);
+        m_event_queue.emplace(handler, event);
     }
 
-    void DespatchEvents() override
+    void despatchEvents() override
     {
-        while (event_queue_.empty() == false) {
-            auto [handler, event] = event_queue_.front();
-            handler->OnEvent(event);
-            event_queue_.pop();
+        while (m_event_queue.empty() == false) {
+            auto [handler, event] = m_event_queue.front();
+            handler->onEvent(event);
+            m_event_queue.pop();
         }
     }
 
    private:
-    std::unordered_map<uint32_t, EventHandler<T>*> subscribers_;
+    std::unordered_map<uint32_t, EventHandler<T>*> m_subscribers;
 
     struct QueuedEvent {
-        QueuedEvent(EventHandler<T>* handler, T event) : handler(handler), event(event) {}
-
         EventHandler<T>* handler;
         T event;
     };
-    std::queue<QueuedEvent> event_queue_{};
+    std::queue<QueuedEvent> m_event_queue{};
 };
 
 class EventSystem {
@@ -77,42 +75,42 @@ class EventSystem {
     ~EventSystem() {}
 
     template <typename T>
-    void RegisterEventType()
+    void registerEventType()
     {
         size_t hash = typeid(T).hash_code();
-        assert(event_queues_.contains(hash) == false && "Registering an event queue more than once!");
-        event_queues_.emplace(hash, std::make_unique<EventQueue<T>>());
+        assert(m_event_queues.contains(hash) == false && "Registering an event queue more than once!");
+        m_event_queues.emplace(hash, std::make_unique<EventQueue<T>>());
     }
 
     template <typename T>
-    void SubscribeToEventType(EventSubscriberKind kind, uint32_t id, EventHandler<T>* handler)
+    void subscribeToEventType(EventSubscriberKind kind, uint32_t id, EventHandler<T>* handler)
     {
         size_t hash = typeid(T).hash_code();
-        assert(event_queues_.contains(hash) && "Subscribing to event type that isn't registered!");
-        EventQueue<T>* queue = dynamic_cast<EventQueue<T>*>(event_queues_.at(hash).get());
+        assert(m_event_queues.contains(hash) && "Subscribing to event type that isn't registered!");
+        EventQueue<T>* queue = dynamic_cast<EventQueue<T>*>(m_event_queues.at(hash).get());
         assert(queue != nullptr && "This cast should work?!! wot");
-        queue->Subscribe(kind, id, handler);
+        queue->subscribe(kind, id, handler);
     }
 
     template <typename T>
-    void QueueEvent(EventSubscriberKind kind, uint32_t subscriber_id, T event)
+    void queueEvent(EventSubscriberKind kind, uint32_t subscriber_id, T event)
     {
         size_t hash = typeid(T).hash_code();
-        assert(event_queues_.contains(hash) && "Subscribing to event type that isn't registered!");
-        EventQueue<T>* queue = dynamic_cast<EventQueue<T>*>(event_queues_.at(hash).get());
+        assert(m_event_queues.contains(hash) && "Subscribing to event type that isn't registered!");
+        EventQueue<T>* queue = dynamic_cast<EventQueue<T>*>(m_event_queues.at(hash).get());
         assert(queue != nullptr && "This cast should work?!! wot");
-        queue->QueueEvent(kind, subscriber_id, event);
+        queue->queueEvent(kind, subscriber_id, event);
     }
 
-    void DespatchEvents()
+    void despatchEvents()
     {
-        for (auto& [hash, queue] : event_queues_) {
-            queue->DespatchEvents();
+        for (auto& [hash, queue] : m_event_queues) {
+            queue->despatchEvents();
         }
     }
 
    private:
-    std::unordered_map<size_t, std::unique_ptr<IEventQueue>> event_queues_{};
+    std::unordered_map<size_t, std::unique_ptr<IEventQueue>> m_event_queues{};
 };
 
 } // namespace engine

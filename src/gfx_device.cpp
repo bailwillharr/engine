@@ -140,11 +140,11 @@ namespace converters {
 static VkFormat getVertexAttribFormat(gfx::VertexAttribFormat fmt)
 {
     switch (fmt) {
-        case gfx::VertexAttribFormat::kFloat2:
+        case gfx::VertexAttribFormat::FLOAT2:
             return VK_FORMAT_R32G32_SFLOAT;
-        case gfx::VertexAttribFormat::kFloat3:
+        case gfx::VertexAttribFormat::FLOAT3:
             return VK_FORMAT_R32G32B32_SFLOAT;
-        case gfx::VertexAttribFormat::kFloat4:
+        case gfx::VertexAttribFormat::FLOAT4:
             return VK_FORMAT_R32G32B32A32_SFLOAT;
     }
     throw std::runtime_error("Unknown vertex attribute format");
@@ -153,11 +153,11 @@ static VkFormat getVertexAttribFormat(gfx::VertexAttribFormat fmt)
 static VkBufferUsageFlagBits getBufferUsageFlag(gfx::BufferType type)
 {
     switch (type) {
-        case gfx::BufferType::kVertex:
+        case gfx::BufferType::VERTEX:
             return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-        case gfx::BufferType::kIndex:
+        case gfx::BufferType::INDEX:
             return VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-        case gfx::BufferType::kUniform:
+        case gfx::BufferType::UNIFORM:
             return VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
         default:
             throw std::runtime_error("This buffer type does not have usage bits");
@@ -167,9 +167,9 @@ static VkBufferUsageFlagBits getBufferUsageFlag(gfx::BufferType type)
 [[maybe_unused]] static VkFilter getFilter(gfx::Filter filter)
 {
     switch (filter) {
-        case gfx::Filter::kLinear:
+        case gfx::Filter::LINEAR:
             return VK_FILTER_LINEAR;
-        case gfx::Filter::kNearest:
+        case gfx::Filter::NEAREST:
             return VK_FILTER_NEAREST;
     }
     throw std::runtime_error("Unknown filter");
@@ -178,13 +178,13 @@ static VkBufferUsageFlagBits getBufferUsageFlag(gfx::BufferType type)
 [[maybe_unused]] static VkSamplerAddressMode getSamplerAddressMode(gfx::WrapMode mode)
 {
     switch (mode) {
-        case gfx::WrapMode::kRepeat:
+        case gfx::WrapMode::REPEAT:
             return VK_SAMPLER_ADDRESS_MODE_REPEAT;
-        case gfx::WrapMode::kMirroredRepeat:
+        case gfx::WrapMode::MIRRORED_REPEAT:
             return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
-        case gfx::WrapMode::kClampToEdge:
+        case gfx::WrapMode::CLAMP_TO_EDGE:
             return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-        case gfx::WrapMode::kClampToBorder:
+        case gfx::WrapMode::CLAMP_TO_BORDER:
             return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
     }
     throw std::runtime_error("Unknown wrap mode");
@@ -193,9 +193,9 @@ static VkBufferUsageFlagBits getBufferUsageFlag(gfx::BufferType type)
 [[maybe_unused]] static VkSamplerMipmapMode getSamplerMipmapMode(gfx::Filter filter)
 {
     switch (filter) {
-        case gfx::Filter::kLinear:
+        case gfx::Filter::LINEAR:
             return VK_SAMPLER_MIPMAP_MODE_LINEAR;
-        case gfx::Filter::kNearest:
+        case gfx::Filter::NEAREST:
             return VK_SAMPLER_MIPMAP_MODE_NEAREST;
     }
     throw std::runtime_error("Unknown filter");
@@ -204,15 +204,15 @@ static VkBufferUsageFlagBits getBufferUsageFlag(gfx::BufferType type)
 [[maybe_unused]] static VkSampleCountFlagBits getSampleCountFlags(gfx::MSAALevel level)
 {
     switch (level) {
-        case gfx::MSAALevel::kOff:
+        case gfx::MSAALevel::MSAA_OFF:
             return VK_SAMPLE_COUNT_1_BIT;
-        case gfx::MSAALevel::k2X:
+        case gfx::MSAALevel::MSAA_2X:
             return VK_SAMPLE_COUNT_2_BIT;
-        case gfx::MSAALevel::k4X:
+        case gfx::MSAALevel::MSAA_4X:
             return VK_SAMPLE_COUNT_4_BIT;
-        case gfx::MSAALevel::k8X:
+        case gfx::MSAALevel::MSAA_8X:
             return VK_SAMPLE_COUNT_8_BIT;
-        case gfx::MSAALevel::k16X:
+        case gfx::MSAALevel::MSAA_16X:
             return VK_SAMPLE_COUNT_16_BIT;
         default:
             throw std::runtime_error("Unknown MSAA level");
@@ -222,9 +222,9 @@ static VkBufferUsageFlagBits getBufferUsageFlag(gfx::BufferType type)
 static VkDescriptorType getDescriptorType(gfx::DescriptorType type)
 {
     switch (type) {
-        case gfx::DescriptorType::kUniformBuffer:
+        case gfx::DescriptorType::UNIFORM_BUFFER:
             return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        case gfx::DescriptorType::kCombinedImageSampler:
+        case gfx::DescriptorType::COMBINED_IMAGE_SAMPLER:
             return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         default:
             throw std::runtime_error("Unknown descriptor type");
@@ -234,21 +234,21 @@ static VkDescriptorType getDescriptorType(gfx::DescriptorType type)
 static VkShaderStageFlags getShaderStageFlags(gfx::ShaderStageFlags::Flags flags)
 {
     VkShaderStageFlags out = 0;
-    if (flags & gfx::ShaderStageFlags::kVertex) out |= VK_SHADER_STAGE_VERTEX_BIT;
-    if (flags & gfx::ShaderStageFlags::kFragment) out |= VK_SHADER_STAGE_FRAGMENT_BIT;
+    if (flags & gfx::ShaderStageFlags::VERTEX) out |= VK_SHADER_STAGE_VERTEX_BIT;
+    if (flags & gfx::ShaderStageFlags::FRAGMENT) out |= VK_SHADER_STAGE_FRAGMENT_BIT;
     return out;
 }
 
 static VkCullModeFlags getCullModeFlags(gfx::CullMode mode)
 {
     switch (mode) {
-        case gfx::CullMode::kCullNone:
+        case gfx::CullMode::CULL_NONE:
             return VK_CULL_MODE_NONE;
-        case gfx::CullMode::kCullFront:
+        case gfx::CullMode::CULL_FRONT:
             return VK_CULL_MODE_FRONT_BIT;
-        case gfx::CullMode::kCullBack:
+        case gfx::CullMode::CULL_BACK:
             return VK_CULL_MODE_BACK_BIT;
-        case gfx::CullMode::kCullFrontAndBack:
+        case gfx::CullMode::CULL_FRONT_AND_BACK:
             return VK_CULL_MODE_FRONT_AND_BACK;
         default:
             throw std::runtime_error("Unknown cull mode");
@@ -258,9 +258,9 @@ static VkCullModeFlags getCullModeFlags(gfx::CullMode mode)
 static VkFormat getImageFormat(gfx::ImageFormat format)
 {
     switch (format) {
-        case gfx::ImageFormat::kLinear:
+        case gfx::ImageFormat::LINEAR:
             return VK_FORMAT_R8G8B8A8_UNORM;
-        case gfx::ImageFormat::kSRGB:
+        case gfx::ImageFormat::SRGB:
             return VK_FORMAT_R8G8B8A8_SRGB;
         default:
             throw std::runtime_error("Unknown image format");
@@ -562,7 +562,7 @@ GFXDevice::~GFXDevice()
     destroyVulkanInstance(pimpl->instance);
 }
 
-void GFXDevice::GetViewportSize(uint32_t* w, uint32_t* h)
+void GFXDevice::getViewportSize(uint32_t* w, uint32_t* h)
 {
     int width, height;
     SDL_Vulkan_GetDrawableSize(pimpl->window, &width, &height);
@@ -576,28 +576,28 @@ void GFXDevice::GetViewportSize(uint32_t* w, uint32_t* h)
     }
 }
 
-void GFXDevice::ChangePresentMode(gfx::PresentMode mode)
+void GFXDevice::changePresentMode(gfx::PresentMode mode)
 {
     pimpl->swapchainInfo.requested_present_mode = mode;
     // need to recreate swapchain to apply changes
     pimpl->swapchainIsOutOfDate = true;
 }
 
-gfx::PresentMode GFXDevice::GetPresentMode()
+gfx::PresentMode GFXDevice::getPresentMode()
 {
     switch (pimpl->swapchain.presentMode) {
         case VK_PRESENT_MODE_FIFO_KHR:
-            return gfx::PresentMode::kDoubleBufferedVsync;
+            return gfx::PresentMode::DOUBLE_BUFFERED_VSYNC;
         case VK_PRESENT_MODE_IMMEDIATE_KHR:
-            return gfx::PresentMode::kDoubleBufferedNoVsync;
+            return gfx::PresentMode::DOUBLE_BUFFERED_NO_VSYNC;
         case VK_PRESENT_MODE_MAILBOX_KHR:
-            return gfx::PresentMode::kTripleBuffered;
+            return gfx::PresentMode::TRIPLE_BUFFERED;
         default:
             throw std::runtime_error("Unknown present mode");
     }
 }
 
-void GFXDevice::SetupImguiBackend()
+void GFXDevice::setupImguiBackend()
 {
     auto loaderFunc = [](const char* function_name, void* user_data) -> PFN_vkVoidFunction {
         return vkGetInstanceProcAddr(*reinterpret_cast<VkInstance*>(user_data), function_name);
@@ -630,18 +630,18 @@ void GFXDevice::SetupImguiBackend()
     ImGui_ImplVulkan_CreateFontsTexture();
 }
 
-void GFXDevice::ShutdownImguiBackend()
+void GFXDevice::shutdownImguiBackend()
 {
     ImGui_ImplVulkan_DestroyFontsTexture();
     ImGui_ImplVulkan_Shutdown();
 }
 
-void GFXDevice::CmdRenderImguiDrawData(gfx::DrawBuffer* draw_buffer, ImDrawData* draw_data)
+void GFXDevice::cmdRenderImguiDrawData(gfx::DrawBuffer* draw_buffer, ImDrawData* draw_data)
 {
     ImGui_ImplVulkan_RenderDrawData(draw_data, draw_buffer->frameData.drawBuf);
 }
 
-gfx::DrawBuffer* GFXDevice::BeginRender(bool window_resized)
+gfx::DrawBuffer* GFXDevice::beginRender(bool window_resized)
 {
     VkResult res;
 
@@ -899,7 +899,7 @@ gfx::DrawBuffer* GFXDevice::BeginRender(bool window_resized)
     return drawBuffer;
 }
 
-void GFXDevice::FinishRender(gfx::DrawBuffer* drawBuffer)
+void GFXDevice::finishRender(gfx::DrawBuffer* drawBuffer)
 {
     assert(drawBuffer != nullptr);
 
@@ -1009,7 +1009,7 @@ void GFXDevice::FinishRender(gfx::DrawBuffer* drawBuffer)
     delete drawBuffer;
 }
 
-gfx::Image* GFXDevice::CreateShadowmapImage()
+gfx::Image* GFXDevice::createImageShadowmap()
 {
     if (pimpl->FRAMECOUNT != 0) abort();
 
@@ -1054,7 +1054,7 @@ gfx::Image* GFXDevice::CreateShadowmapImage()
     return out;
 }
 
-gfx::DrawBuffer* GFXDevice::BeginShadowmapRender(gfx::Image* image)
+gfx::DrawBuffer* GFXDevice::beginShadowmapRender(gfx::Image* image)
 {
     assert(image != nullptr);
     if (pimpl->FRAMECOUNT != 0) throw std::runtime_error("Can only create shadowmap before proper rendering begins.");
@@ -1152,7 +1152,7 @@ gfx::DrawBuffer* GFXDevice::BeginShadowmapRender(gfx::Image* image)
     return drawBuffer;
 }
 
-void GFXDevice::FinishShadowmapRender(gfx::DrawBuffer* draw_buffer, gfx::Image* image)
+void GFXDevice::finishShadowmapRender(gfx::DrawBuffer* draw_buffer, gfx::Image* image)
 {
     assert(draw_buffer != nullptr);
 
@@ -1211,44 +1211,44 @@ void GFXDevice::FinishShadowmapRender(gfx::DrawBuffer* draw_buffer, gfx::Image* 
     delete draw_buffer;
 }
 
-void GFXDevice::CmdBindPipeline(gfx::DrawBuffer* drawBuffer, const gfx::Pipeline* pipeline)
+void GFXDevice::cmdBindPipeline(gfx::DrawBuffer* drawBuffer, const gfx::Pipeline* pipeline)
 {
     assert(drawBuffer != nullptr);
     assert(pipeline != nullptr);
     vkCmdBindPipeline(drawBuffer->frameData.drawBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->handle);
 }
 
-void GFXDevice::CmdBindVertexBuffer(gfx::DrawBuffer* drawBuffer, uint32_t binding, const gfx::Buffer* buffer)
+void GFXDevice::cmdBindVertexBuffer(gfx::DrawBuffer* drawBuffer, uint32_t binding, const gfx::Buffer* buffer)
 {
     assert(drawBuffer != nullptr);
     assert(buffer != nullptr);
-    assert(buffer->type == gfx::BufferType::kVertex);
+    assert(buffer->type == gfx::BufferType::VERTEX);
     const VkDeviceSize offset = 0;
     vkCmdBindVertexBuffers(drawBuffer->frameData.drawBuf, binding, 1, &buffer->buffer, &offset);
 }
 
-void GFXDevice::CmdBindIndexBuffer(gfx::DrawBuffer* drawBuffer, const gfx::Buffer* buffer)
+void GFXDevice::cmdBindIndexBuffer(gfx::DrawBuffer* drawBuffer, const gfx::Buffer* buffer)
 {
     assert(drawBuffer != nullptr);
     assert(buffer != nullptr);
-    assert(buffer->type == gfx::BufferType::kIndex);
+    assert(buffer->type == gfx::BufferType::INDEX);
     vkCmdBindIndexBuffer(drawBuffer->frameData.drawBuf, buffer->buffer, 0, INDEX_TYPE);
 }
 
-void GFXDevice::CmdDrawIndexed(gfx::DrawBuffer* drawBuffer, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset,
+void GFXDevice::cmdDrawIndexed(gfx::DrawBuffer* drawBuffer, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset,
                                uint32_t firstInstance)
 {
     assert(drawBuffer != nullptr);
     vkCmdDrawIndexed(drawBuffer->frameData.drawBuf, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
 }
 
-void GFXDevice::CmdDraw(gfx::DrawBuffer* drawBuffer, uint32_t vertex_count, uint32_t instance_count, uint32_t first_vertex, uint32_t first_instance)
+void GFXDevice::cmdDraw(gfx::DrawBuffer* drawBuffer, uint32_t vertex_count, uint32_t instance_count, uint32_t first_vertex, uint32_t first_instance)
 {
     assert(drawBuffer != nullptr);
     vkCmdDraw(drawBuffer->frameData.drawBuf, vertex_count, instance_count, first_vertex, first_instance);
 }
 
-void GFXDevice::CmdPushConstants(gfx::DrawBuffer* drawBuffer, const gfx::Pipeline* pipeline, uint32_t offset, uint32_t size, const void* data)
+void GFXDevice::cmdPushConstants(gfx::DrawBuffer* drawBuffer, const gfx::Pipeline* pipeline, uint32_t offset, uint32_t size, const void* data)
 {
     assert(drawBuffer != nullptr);
     assert(pipeline != nullptr);
@@ -1256,7 +1256,7 @@ void GFXDevice::CmdPushConstants(gfx::DrawBuffer* drawBuffer, const gfx::Pipelin
     vkCmdPushConstants(drawBuffer->frameData.drawBuf, pipeline->layout, VK_SHADER_STAGE_VERTEX_BIT, offset, size, data);
 }
 
-void GFXDevice::CmdBindDescriptorSet(gfx::DrawBuffer* drawBuffer, const gfx::Pipeline* pipeline, const gfx::DescriptorSet* set, uint32_t setNumber)
+void GFXDevice::cmdBindDescriptorSet(gfx::DrawBuffer* drawBuffer, const gfx::Pipeline* pipeline, const gfx::DescriptorSet* set, uint32_t setNumber)
 {
     assert(drawBuffer != nullptr);
     assert(pipeline != nullptr);
@@ -1265,7 +1265,7 @@ void GFXDevice::CmdBindDescriptorSet(gfx::DrawBuffer* drawBuffer, const gfx::Pip
                             &set->sets[drawBuffer->currentFrameIndex], 0, nullptr);
 }
 
-gfx::Pipeline* GFXDevice::CreatePipeline(const gfx::PipelineInfo& info)
+gfx::Pipeline* GFXDevice::createPipeline(const gfx::PipelineInfo& info)
 {
     [[maybe_unused]] VkResult res;
 
@@ -1273,13 +1273,13 @@ gfx::Pipeline* GFXDevice::CreatePipeline(const gfx::PipelineInfo& info)
 
     VkShaderModule vertShaderModule;
     VkShaderModule fragShaderModule;
-    // be careful with these .c_str() calls. It is OK here because 'info' exists for the duration of CreatePipeline()
+    // be careful with these .c_str() calls. It is OK here because 'info' exists for the duration of createPipeline()
     {
-        auto vertShaderCode = ReadTextFile(info.vert_shader_path.c_str());
+        auto vertShaderCode = readTextFile(info.vert_shader_path.c_str());
         vertShaderModule = compileShader(pimpl->device.device, shaderc_vertex_shader, vertShaderCode->data(), info.vert_shader_path.c_str());
     }
     {
-        auto fragShaderCode = ReadTextFile(info.frag_shader_path.c_str());
+        auto fragShaderCode = readTextFile(info.frag_shader_path.c_str());
         fragShaderModule = compileShader(pimpl->device.device, shaderc_fragment_shader, fragShaderCode->data(), info.frag_shader_path.c_str());
     }
 
@@ -1497,7 +1497,7 @@ gfx::Pipeline* GFXDevice::CreatePipeline(const gfx::PipelineInfo& info)
     return pipeline;
 }
 
-void GFXDevice::DestroyPipeline(const gfx::Pipeline* pipeline)
+void GFXDevice::destroyPipeline(const gfx::Pipeline* pipeline)
 {
     assert(pipeline != nullptr);
     vkDestroyPipeline(pimpl->device.device, pipeline->handle, nullptr);
@@ -1505,7 +1505,7 @@ void GFXDevice::DestroyPipeline(const gfx::Pipeline* pipeline)
     delete pipeline;
 }
 
-gfx::DescriptorSetLayout* GFXDevice::CreateDescriptorSetLayout(const std::vector<gfx::DescriptorSetLayoutBinding>& bindings)
+gfx::DescriptorSetLayout* GFXDevice::createDescriptorSetLayout(const std::vector<gfx::DescriptorSetLayoutBinding>& bindings)
 {
     gfx::DescriptorSetLayout* out = new gfx::DescriptorSetLayout{};
 
@@ -1532,13 +1532,13 @@ gfx::DescriptorSetLayout* GFXDevice::CreateDescriptorSetLayout(const std::vector
     return out;
 }
 
-void GFXDevice::DestroyDescriptorSetLayout(const gfx::DescriptorSetLayout* layout)
+void GFXDevice::destroyDescriptorSetLayout(const gfx::DescriptorSetLayout* layout)
 {
     vkDestroyDescriptorSetLayout(pimpl->device.device, layout->layout, nullptr);
     delete layout;
 }
 
-gfx::DescriptorSet* GFXDevice::AllocateDescriptorSet(const gfx::DescriptorSetLayout* layout)
+gfx::DescriptorSet* GFXDevice::allocateDescriptorSet(const gfx::DescriptorSetLayout* layout)
 {
     assert(layout != nullptr);
 
@@ -1560,13 +1560,13 @@ gfx::DescriptorSet* GFXDevice::AllocateDescriptorSet(const gfx::DescriptorSetLay
     return set;
 }
 
-void GFXDevice::FreeDescriptorSet(const gfx::DescriptorSet* set)
+void GFXDevice::freeDescriptorSet(const gfx::DescriptorSet* set)
 {
     assert(set != nullptr);
     VKCHECK(vkFreeDescriptorSets(pimpl->device.device, pimpl->descriptorPool, static_cast<uint32_t>(set->sets.size()), set->sets.data()));
 }
 
-void GFXDevice::UpdateDescriptorUniformBuffer(const gfx::DescriptorSet* set, uint32_t binding, const gfx::UniformBuffer* buffer, size_t offset, size_t range)
+void GFXDevice::updateDescriptorUniformBuffer(const gfx::DescriptorSet* set, uint32_t binding, const gfx::UniformBuffer* buffer, size_t offset, size_t range)
 {
     assert(set != nullptr);
     assert(buffer != nullptr);
@@ -1589,7 +1589,7 @@ void GFXDevice::UpdateDescriptorUniformBuffer(const gfx::DescriptorSet* set, uin
     }
 }
 
-void GFXDevice::UpdateDescriptorCombinedImageSampler(const gfx::DescriptorSet* set, uint32_t binding, const gfx::Image* image, const gfx::Sampler* sampler)
+void GFXDevice::updateDescriptorCombinedImageSampler(const gfx::DescriptorSet* set, uint32_t binding, const gfx::Image* image, const gfx::Sampler* sampler)
 {
     assert(set != nullptr);
     assert(image != nullptr);
@@ -1617,7 +1617,7 @@ void GFXDevice::UpdateDescriptorCombinedImageSampler(const gfx::DescriptorSet* s
     }
 }
 
-gfx::UniformBuffer* GFXDevice::CreateUniformBuffer(uint64_t size, const void* initialData)
+gfx::UniformBuffer* GFXDevice::createUniformBuffer(uint64_t size, const void* initialData)
 {
     assert(initialData != nullptr);
 
@@ -1627,7 +1627,7 @@ gfx::UniformBuffer* GFXDevice::CreateUniformBuffer(uint64_t size, const void* in
 
     /* first make staging buffer */
     out->stagingBuffer.size = size;
-    out->stagingBuffer.type = gfx::BufferType::kUniform;
+    out->stagingBuffer.type = gfx::BufferType::UNIFORM;
     {
         VkBufferCreateInfo stagingBufferInfo{};
         stagingBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -1653,7 +1653,7 @@ gfx::UniformBuffer* GFXDevice::CreateUniformBuffer(uint64_t size, const void* in
     /* create the device-local set of buffers */
     for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
         out->gpuBuffers[i].size = out->stagingBuffer.size;
-        out->gpuBuffers[i].type = gfx::BufferType::kUniform;
+        out->gpuBuffers[i].type = gfx::BufferType::UNIFORM;
 
         VkBufferCreateInfo gpuBufferInfo{};
         gpuBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -1677,7 +1677,7 @@ gfx::UniformBuffer* GFXDevice::CreateUniformBuffer(uint64_t size, const void* in
     return out;
 }
 
-void GFXDevice::DestroyUniformBuffer(const gfx::UniformBuffer* uniformBuffer)
+void GFXDevice::destroyUniformBuffer(const gfx::UniformBuffer* uniformBuffer)
 {
     assert(uniformBuffer != nullptr);
 
@@ -1690,7 +1690,7 @@ void GFXDevice::DestroyUniformBuffer(const gfx::UniformBuffer* uniformBuffer)
     delete uniformBuffer;
 }
 
-void GFXDevice::WriteUniformBuffer(gfx::UniformBuffer* buffer, uint64_t offset, uint64_t size, const void* data)
+void GFXDevice::writeUniformBuffer(gfx::UniformBuffer* buffer, uint64_t offset, uint64_t size, const void* data)
 {
     assert(buffer != nullptr);
     assert(data != nullptr);
@@ -1710,7 +1710,7 @@ void GFXDevice::WriteUniformBuffer(gfx::UniformBuffer* buffer, uint64_t offset, 
     }
 }
 
-gfx::Buffer* GFXDevice::CreateBuffer(gfx::BufferType type, uint64_t size, const void* data)
+gfx::Buffer* GFXDevice::createBuffer(gfx::BufferType type, uint64_t size, const void* data)
 {
     assert(data != nullptr);
 
@@ -1769,7 +1769,7 @@ gfx::Buffer* GFXDevice::CreateBuffer(gfx::BufferType type, uint64_t size, const 
     return out;
 }
 
-void GFXDevice::DestroyBuffer(const gfx::Buffer* buffer)
+void GFXDevice::destroyBuffer(const gfx::Buffer* buffer)
 {
     assert(buffer != nullptr);
     vmaDestroyBuffer(pimpl->allocator, buffer->buffer, buffer->allocation);
@@ -1777,7 +1777,7 @@ void GFXDevice::DestroyBuffer(const gfx::Buffer* buffer)
 }
 
 // imageData must have pixel format R8G8B8A8
-gfx::Image* GFXDevice::CreateImage(uint32_t w, uint32_t h, gfx::ImageFormat input_format, const void* imageData)
+gfx::Image* GFXDevice::createImage(uint32_t w, uint32_t h, gfx::ImageFormat input_format, const void* imageData)
 {
     assert(imageData != nullptr);
 
@@ -2032,7 +2032,7 @@ gfx::Image* GFXDevice::CreateImage(uint32_t w, uint32_t h, gfx::ImageFormat inpu
     return out;
 }
 
-gfx::Image* GFXDevice::CreateImageCubemap(uint32_t w, uint32_t h, gfx::ImageFormat input_format, const std::array<const void*, 6>& image_data)
+gfx::Image* GFXDevice::createImageCubemap(uint32_t w, uint32_t h, gfx::ImageFormat input_format, const std::array<const void*, 6>& image_data)
 {
     assert(image_data[0] != nullptr);
     assert(image_data[1] != nullptr);
@@ -2291,7 +2291,7 @@ gfx::Image* GFXDevice::CreateImageCubemap(uint32_t w, uint32_t h, gfx::ImageForm
     return out;
 }
 
-void GFXDevice::DestroyImage(const gfx::Image* image)
+void GFXDevice::destroyImage(const gfx::Image* image)
 {
     assert(image != nullptr);
     vkDestroyImageView(pimpl->device.device, image->view, nullptr);
@@ -2299,7 +2299,7 @@ void GFXDevice::DestroyImage(const gfx::Image* image)
     delete image;
 }
 
-const gfx::Sampler* GFXDevice::CreateSampler(const gfx::SamplerInfo& info)
+const gfx::Sampler* GFXDevice::createSampler(const gfx::SamplerInfo& info)
 {
     gfx::Sampler* out = new gfx::Sampler{};
 
@@ -2323,14 +2323,14 @@ const gfx::Sampler* GFXDevice::CreateSampler(const gfx::SamplerInfo& info)
     return out;
 }
 
-void GFXDevice::DestroySampler(const gfx::Sampler* sampler)
+void GFXDevice::destroySampler(const gfx::Sampler* sampler)
 {
     assert(sampler != nullptr);
     vkDestroySampler(pimpl->device.device, sampler->sampler, nullptr);
     delete sampler;
 }
 
-void GFXDevice::LogPerformanceInfo()
+void GFXDevice::logPerformanceInfo()
 {
     VmaTotalStatistics pStats{};
     vmaCalculateStatistics(pimpl->allocator, &pStats);
@@ -2354,8 +2354,9 @@ void GFXDevice::LogPerformanceInfo()
     }
 }
 
-uint64_t GFXDevice::GetFrameCount() { return pimpl->FRAMECOUNT; }
+uint64_t GFXDevice::getFrameCount() { return pimpl->FRAMECOUNT; }
 
-void GFXDevice::WaitIdle() { vkDeviceWaitIdle(pimpl->device.device); }
+/* Waits until all the active GPU queues have finished working */
+void GFXDevice::waitIdle() { vkDeviceWaitIdle(pimpl->device.device); }
 
 } // namespace engine

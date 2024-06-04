@@ -7,9 +7,9 @@
 
 #include "resource_mesh.h"
 
-namespace engine::util {
+namespace engine {
 
-std::vector<uint32_t> engine::util::GenTangents(std::vector<engine::Vertex>& vertices)
+std::vector<uint32_t> genTangents(std::vector<engine::Vertex>& vertices)
 {
 
     using VertList = std::vector<Vertex>;
@@ -64,8 +64,8 @@ std::vector<uint32_t> engine::util::GenTangents(std::vector<engine::Vertex>& ver
     std::vector<uint32_t> remap_table(vertices.size());   // initialised to zeros
     std::vector<Vertex> vertex_data_out(vertices.size()); // initialised to zeros
 
-    const int new_vertex_count = WeldMesh(reinterpret_cast<int*>(remap_table.data()), reinterpret_cast<float*>(vertex_data_out.data()), reinterpret_cast<float*>(vertices.data()),
-                                          static_cast<int>(vertices.size()), Vertex::floatsPerVertex());
+    const int new_vertex_count = WeldMesh(reinterpret_cast<int*>(remap_table.data()), reinterpret_cast<float*>(vertex_data_out.data()),
+                                          reinterpret_cast<float*>(vertices.data()), static_cast<int>(vertices.size()), Vertex::floatsPerVertex());
     assert(new_vertex_count >= 0);
 
     // get new vertices into the vector.
@@ -78,4 +78,4 @@ std::vector<uint32_t> engine::util::GenTangents(std::vector<engine::Vertex>& ver
     return remap_table;
 }
 
-} // namespace engine::util
+} // namespace engine

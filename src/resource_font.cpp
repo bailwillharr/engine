@@ -12,7 +12,7 @@ namespace engine {
 
 Font::Font(const std::string& path)
 {
-    m_font_buffer = ReadBinaryFile(path);
+    m_font_buffer = readBinaryFile(path);
     m_font_info = std::make_unique<stbtt_fontinfo>();
 
     if (stbtt_InitFont(m_font_info.get(), m_font_buffer->data(), 0) == 0) {

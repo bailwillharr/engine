@@ -105,9 +105,9 @@ Application::Application(const char* appName, const char* appVersion, gfx::Graph
     {
         const uint8_t pixel[4] = {255, 255, 255, 255};
         gfx::SamplerInfo samplerInfo{};
-        samplerInfo.minify = gfx::Filter::kNearest;
-        samplerInfo.magnify = gfx::Filter::kNearest;
-        samplerInfo.mipmap = gfx::Filter::kNearest;
+        samplerInfo.minify = gfx::Filter::NEAREST;
+        samplerInfo.magnify = gfx::Filter::NEAREST;
+        samplerInfo.mipmap = gfx::Filter::NEAREST;
         samplerInfo.anisotropic_filtering = false;
         auto whiteTexture = std::make_unique<Texture>(getRenderer(), pixel, 1, 1, samplerInfo, true);
         getResourceManager<Texture>()->AddPersistent("builtin.white", std::move(whiteTexture));
@@ -115,9 +115,9 @@ Application::Application(const char* appName, const char* appVersion, gfx::Graph
     {
         const uint8_t pixel[4] = {0, 0, 0, 255};
         gfx::SamplerInfo samplerInfo{};
-        samplerInfo.minify = gfx::Filter::kNearest;
-        samplerInfo.magnify = gfx::Filter::kNearest;
-        samplerInfo.mipmap = gfx::Filter::kNearest;
+        samplerInfo.minify = gfx::Filter::NEAREST;
+        samplerInfo.magnify = gfx::Filter::NEAREST;
+        samplerInfo.mipmap = gfx::Filter::NEAREST;
         samplerInfo.anisotropic_filtering = false;
         auto blackTexture = std::make_unique<Texture>(getRenderer(), pixel, 1, 1, samplerInfo, true);
         getResourceManager<Texture>()->AddPersistent("builtin.black", std::move(blackTexture));
@@ -125,9 +125,9 @@ Application::Application(const char* appName, const char* appVersion, gfx::Graph
     {
         const uint8_t pixel[4] = {127, 127, 255, 255};
         gfx::SamplerInfo samplerInfo{};
-        samplerInfo.minify = gfx::Filter::kNearest;
-        samplerInfo.magnify = gfx::Filter::kNearest;
-        samplerInfo.mipmap = gfx::Filter::kNearest;
+        samplerInfo.minify = gfx::Filter::NEAREST;
+        samplerInfo.magnify = gfx::Filter::NEAREST;
+        samplerInfo.mipmap = gfx::Filter::NEAREST;
         samplerInfo.anisotropic_filtering = false;
         auto normalTexture = std::make_unique<Texture>(getRenderer(), pixel, 1, 1, samplerInfo, false);
         getResourceManager<Texture>()->AddPersistent("builtin.normal", std::move(normalTexture));
@@ -135,9 +135,9 @@ Application::Application(const char* appName, const char* appVersion, gfx::Graph
     {
         const uint8_t pixel[4] = {255, 127, 0, 255}; // AO, roughness, metallic
         gfx::SamplerInfo samplerInfo{};
-        samplerInfo.minify = gfx::Filter::kNearest;
-        samplerInfo.magnify = gfx::Filter::kNearest;
-        samplerInfo.mipmap = gfx::Filter::kNearest;
+        samplerInfo.minify = gfx::Filter::NEAREST;
+        samplerInfo.magnify = gfx::Filter::NEAREST;
+        samplerInfo.mipmap = gfx::Filter::NEAREST;
         samplerInfo.anisotropic_filtering = false;
         auto mrTexture = std::make_unique<Texture>(getRenderer(), pixel, 1, 1, samplerInfo, false);
         getResourceManager<Texture>()->AddPersistent("builtin.mr", std::move(mrTexture));
@@ -155,7 +155,7 @@ Application::Application(const char* appName, const char* appVersion, gfx::Graph
 
 Application::~Application()
 {
-    m_renderer->GetDevice()->ShutdownImguiBackend();
+    m_renderer->GetDevice()->shutdownImguiBackend();
     ImGui_ImplSDL2_Shutdown();
     ImGui::DestroyContext(im_gui_things.context);
 }
@@ -177,16 +177,16 @@ void Application::gameLoop()
         bool show_info_window = false;
     } debug_menu_state;
     debug_menu_state.enable_frame_limiter = m_configuration.enable_frame_limiter;
-    switch (m_renderer->GetDevice()->GetPresentMode()) {
-        case gfx::PresentMode::kDoubleBufferedNoVsync:
+    switch (m_renderer->GetDevice()->getPresentMode()) {
+        case gfx::PresentMode::DOUBLE_BUFFERED_NO_VSYNC:
             debug_menu_state.triple_buffering = false;
             debug_menu_state.vsync = false;
             break;
-        case gfx::PresentMode::kDoubleBufferedVsync:
+        case gfx::PresentMode::DOUBLE_BUFFERED_VSYNC:
             debug_menu_state.triple_buffering = false;
             debug_menu_state.vsync = true;
             break;
-        case gfx::PresentMode::kTripleBuffered:
+        case gfx::PresentMode::TRIPLE_BUFFERED:
             debug_menu_state.triple_buffering = true;
             debug_menu_state.vsync = false;
     }
@@ -207,7 +207,7 @@ void Application::gameLoop()
         if (now - lastTick >= 1000000000LL * 5LL) [[unlikely]] {
             lastTick = now;
             LOG_DEBUG("fps: {}", std::lroundf(avg_fps));
-            getRenderer()->GetDevice()->LogPerformanceInfo();
+            getRenderer()->GetDevice()->logPerformanceInfo();
             m_window->ResetAvgFPS();
         }
 
@@ -246,10 +246,10 @@ void Application::gameLoop()
                 }
                 if (ImGui::Checkbox("Enable vsync", &debug_menu_state.vsync)) {
                     if (debug_menu_state.vsync) {
-                        m_renderer->GetDevice()->ChangePresentMode(gfx::PresentMode::kDoubleBufferedVsync);
+                        m_renderer->GetDevice()->changePresentMode(gfx::PresentMode::DOUBLE_BUFFERED_VSYNC);
                     }
                     else {
-                        m_renderer->GetDevice()->ChangePresentMode(gfx::PresentMode::kDoubleBufferedNoVsync);
+                        m_renderer->GetDevice()->changePresentMode(gfx::PresentMode::DOUBLE_BUFFERED_NO_VSYNC);
                     }
                 }
                 if (debug_menu_state.triple_buffering) {
@@ -258,14 +258,14 @@ void Application::gameLoop()
                 if (ImGui::Checkbox("Triple buffering", &debug_menu_state.triple_buffering)) {
                     if (debug_menu_state.triple_buffering) {
                         debug_menu_state.vsync = false;
-                        m_renderer->GetDevice()->ChangePresentMode(gfx::PresentMode::kTripleBuffered);
+                        m_renderer->GetDevice()->changePresentMode(gfx::PresentMode::TRIPLE_BUFFERED);
                     }
                     else {
                         if (debug_menu_state.vsync) {
-                            m_renderer->GetDevice()->ChangePresentMode(gfx::PresentMode::kDoubleBufferedVsync);
+                            m_renderer->GetDevice()->changePresentMode(gfx::PresentMode::DOUBLE_BUFFERED_VSYNC);
                         }
                         else {
-                            m_renderer->GetDevice()->ChangePresentMode(gfx::PresentMode::kDoubleBufferedNoVsync);
+                            m_renderer->GetDevice()->changePresentMode(gfx::PresentMode::DOUBLE_BUFFERED_NO_VSYNC);
                         }
                     }
                 }
@@ -276,9 +276,9 @@ void Application::gameLoop()
                 if (!scene) ImGui::BeginDisabled();
                 // load gltf file dialog
                 if (ImGui::Button("Load glTF")) {
-                    std::filesystem::path path = util::OpenFileDialog({"glb"});
+                    std::filesystem::path path = openFileDialog({"glb"});
                     if (path.empty() == false) {
-                        util::LoadGLTF(*scene, path.string(), false);
+                        loadGLTF(*scene, path.string(), false);
                     }
                 }
                 if (!scene) ImGui::EndDisabled();
@@ -534,7 +534,7 @@ void Application::gameLoop()
         delta_times[m_window->GetFrameCount() % delta_times.size()] = m_window->dt();
     }
 
-    m_renderer->GetDevice()->WaitIdle();
+    m_renderer->GetDevice()->waitIdle();
 }
 
 } // namespace engine

@@ -19,27 +19,27 @@ Shader::Shader(Renderer* renderer, const std::string& vertPath, const std::strin
   gfx::VertexFormat vertFormat{};
 
   vertFormat.attribute_descriptions.emplace_back(
-      index++, gfx::VertexAttribFormat::kFloat3, stride);
+      index++, gfx::VertexAttribFormat::FLOAT3, stride);
   stride += 3 * sizeof(float);
 
   if (settings.vertexParams.has_normal) {
     vertFormat.attribute_descriptions.emplace_back(
-        index++, gfx::VertexAttribFormat::kFloat3, stride);
+        index++, gfx::VertexAttribFormat::FLOAT3, stride);
     stride += 3 * sizeof(float);
   }
   if (settings.vertexParams.has_tangent) {
     vertFormat.attribute_descriptions.emplace_back(
-        index++, gfx::VertexAttribFormat::kFloat4, stride);
+        index++, gfx::VertexAttribFormat::FLOAT4, stride);
     stride += 4 * sizeof(float);
   }
   if (settings.vertexParams.has_color) {
     vertFormat.attribute_descriptions.emplace_back(
-        index++, gfx::VertexAttribFormat::kFloat4, stride);
+        index++, gfx::VertexAttribFormat::FLOAT4, stride);
     stride += 4 * sizeof(float);
   }
   if (settings.vertexParams.has_uv0) {
     vertFormat.attribute_descriptions.emplace_back(
-        index++, gfx::VertexAttribFormat::kFloat2, stride);
+        index++, gfx::VertexAttribFormat::FLOAT2, stride);
     stride += 2 * sizeof(float);
   }
   vertFormat.stride = stride;
@@ -49,21 +49,21 @@ Shader::Shader(Renderer* renderer, const std::string& vertPath, const std::strin
   info.frag_shader_path = fragPath;
   info.vertex_format = vertFormat;
   info.alpha_blending = settings.alpha_blending;
-  info.face_cull_mode = settings.cull_backface ? gfx::CullMode::kCullBack : gfx::CullMode::kCullNone;
+  info.face_cull_mode = settings.cull_backface ? gfx::CullMode::CULL_BACK : gfx::CullMode::CULL_NONE;
   info.write_z = settings.write_z;
   info.line_primitives = false;
   info.descriptor_set_layouts.push_back(renderer->GetGlobalSetLayout());
   info.descriptor_set_layouts.push_back(renderer->GetFrameSetLayout());
   info.descriptor_set_layouts.push_back(renderer->GetMaterialSetLayout());
 
-  pipeline_ = gfx_->CreatePipeline(info);
+  pipeline_ = gfx_->createPipeline(info);
 
   LOG_DEBUG("Created shader: {}, pipeline: {}", vertPath,
            static_cast<const void*>(pipeline_));
 }
 
 Shader::~Shader() {
-  gfx_->DestroyPipeline(pipeline_);
+  gfx_->destroyPipeline(pipeline_);
   LOG_DEBUG("Destroyed shader, pipeline: {}", static_cast<const void*>(pipeline_));
 }
 

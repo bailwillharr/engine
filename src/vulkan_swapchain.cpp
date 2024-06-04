@@ -55,13 +55,13 @@ namespace engine {
 
 		VkPresentModeKHR present_mode_requested;
 		switch (info.requested_present_mode) {
-		case gfx::PresentMode::kDoubleBufferedNoVsync:
+		case gfx::PresentMode::DOUBLE_BUFFERED_NO_VSYNC:
 			present_mode_requested = VK_PRESENT_MODE_IMMEDIATE_KHR;
 			break;
-		case gfx::PresentMode::kDoubleBufferedVsync:
+		case gfx::PresentMode::DOUBLE_BUFFERED_VSYNC:
 			present_mode_requested = VK_PRESENT_MODE_FIFO_KHR;
 			break;
-		case gfx::PresentMode::kTripleBuffered:
+		case gfx::PresentMode::TRIPLE_BUFFERED:
 			present_mode_requested = VK_PRESENT_MODE_MAILBOX_KHR;
 		}
 		sc->presentMode = VK_PRESENT_MODE_FIFO_KHR; // This mode is always available

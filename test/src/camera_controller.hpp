@@ -25,14 +25,14 @@ struct CameraControllerComponent {
     static constexpr float kMaxStairHeight = 0.2f;
     static constexpr size_t kNumHorizontalRays = 20;
 
-    static constexpr float kGravAccel = -9.81f;
-    //    static constexpr float kGravAccel = -1.625f; // moon gravity
+    float grav_accel = -9.81f;
+    // grav_accel = -1.625f; // moon gravity
     static constexpr float kMaxDistanceFromOrigin = 200.0f;
 
     bool noclip = false;
 
     float yaw = 0.0f;
-    //float pitch = glm::half_pi<float>();
+    // float pitch = glm::half_pi<float>();
     float pitch = 0.0f;
     glm::vec3 vel{0.0f, 0.0f, 0.0f};
     bool grounded = false;
@@ -41,7 +41,7 @@ struct CameraControllerComponent {
 };
 
 class CameraControllerSystem : public engine::System {
-   public:
+public:
     CameraControllerSystem(engine::Scene* scene);
 
     // engine::System overrides
