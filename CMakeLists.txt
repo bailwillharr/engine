@@ -7,6 +7,8 @@ option(ENGINE_BUILD_TEST "Compile the test program" ON)
 if (MSVC)
 	option(ENGINE_HOT_RELOAD "Enable VS hot reload" OFF)
 endif()
+option(ENGINE_PHYSX_INCLUDE_DIR "Path to the PhysX SDK include directory" "")
+option(ENGINE_PHYSX_LIBRARY_DIR "PhysX library location (often different per build configuration)" "")
 
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release;RelWithDebInfo")
 
@@ -219,3 +221,14 @@ target_link_libraries(${PROJECT_NAME} PUBLIC mikktspace)
 # weldmesh
 add_subdirectory(vendor/weldmesh)
 target_link_libraries(${PROJECT_NAME} PUBLIC weldmesh)
+
+# PhysX 5
+target_include_directories(${PROJECT_NAME} PUBLIC ${ENGINE_PHYSX_INCLUDE_DIR})
+target_link_directories(${PROJECT_NAME} PUBLIC ${ENGINE_PHYSX_LIBRARY_DIR})
+target_link_libraries(${PROJECT_NAME} PUBLIC
+	PhysXCooking_64
+	PVDRuntime_64
+	PhysX_64
+	PhysXCommon_64
+	PhysXFoundation_64
+)

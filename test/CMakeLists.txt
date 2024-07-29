@@ -63,3 +63,9 @@ add_custom_command(
 	TARGET ${PROJECT_NAME} POST_BUILD
 	COMMAND ${CMAKE_COMMAND} -E create_symlink
 	${ENGINE_SOURCE_DIR}/res/engine $<TARGET_FILE_DIR:enginetest>/res/engine)
+
+# copy dlls
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy -t $<TARGET_FILE_DIR:enginetest> $<TARGET_RUNTIME_DLLS:enginetest>
+  COMMAND_EXPAND_LISTS
+)
