@@ -13,6 +13,3 @@
 [submodule "vendor/volk"]
 	path = vendor/volk
 	url = https://github.com/zeux/volk.git
-[submodule "vendor/PhysX"]
-	path = vendor/PhysX
-	url = https://github.com/NVIDIA-Omniverse/PhysX.git
