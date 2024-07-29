@@ -11,6 +11,35 @@
 
 namespace engine {
 
+static AABB transformBox(const AABB& box, const glm::mat4& matrix)
+{
+    const std::array<glm::vec3, 8> points{glm::vec3{box.min.x, box.min.y, box.min.z}, glm::vec3{box.min.x, box.min.y, box.max.z},
+                                          glm::vec3{box.min.x, box.max.y, box.min.z}, glm::vec3{box.min.x, box.max.y, box.max.z},
+                                          glm::vec3{box.max.x, box.min.y, box.min.z}, glm::vec3{box.max.x, box.min.y, box.max.z},
+                                          glm::vec3{box.max.x, box.max.y, box.min.z}, glm::vec3{box.max.x, box.max.y, box.max.z}};
+
+    AABB new_box{};
+    new_box.min.x = std::numeric_limits<float>::infinity();
+    new_box.min.y = new_box.min.x;
+    new_box.min.z = new_box.min.x;
+    new_box.max.x = -std::numeric_limits<float>::infinity();
+    new_box.max.y = new_box.max.x;
+    new_box.max.z = new_box.max.x;
+
+    // transform points of AABB to new positions and adjust min and max accordingly
+    for (glm::vec3 point : points) {
+        point = matrix * glm::vec4(point, 1.0f);
+        new_box.min.x = fminf(new_box.min.x, point.x);
+        new_box.min.y = fminf(new_box.min.y, point.y);
+        new_box.min.z = fminf(new_box.min.z, point.z);
+        new_box.max.x = fmaxf(new_box.max.x, point.x);
+        new_box.max.y = fmaxf(new_box.max.y, point.y);
+        new_box.max.z = fmaxf(new_box.max.z, point.z);
+    }
+
+    return new_box;
+}
+
 static glm::vec3 GetBoxCentroid(const AABB& box)
 {
     glm::vec3 v{};
@@ -80,6 +109,8 @@ void CollisionSystem::onUpdate(float ts)
 {
     (void)ts;
 
+    // TODO: the bvh will not update if an equal number of colliders are removed and added.
+    // This is not a problem yet, as entitites cannot be removed from the scene.
     if (colliders_size_last_update_ != colliders_size_now_) {
 
         std::vector<PrimitiveInfo> prims{};
@@ -88,20 +119,7 @@ void CollisionSystem::onUpdate(float ts)
             const auto t = m_scene->GetComponent<TransformComponent>(entity);
             const auto c = m_scene->GetComponent<ColliderComponent>(entity);
 
-            AABB transformed_box{};
-            transformed_box.min = t->world_matrix * glm::vec4(c->aabb.min, 1.0f);
-            transformed_box.max = t->world_matrix * glm::vec4(c->aabb.max, 1.0f);
-            // if a mesh is not rotated a multiple of 90 degrees, the box will not fit the mesh
-            // TODO fix it
-
-            // correct min and max
-            AABB box{};
-            box.min.x = fminf(transformed_box.min.x, transformed_box.max.x);
-            box.min.y = fminf(transformed_box.min.y, transformed_box.max.y);
-            box.min.z = fminf(transformed_box.min.z, transformed_box.max.z);
-            box.max.x = fmaxf(transformed_box.min.x, transformed_box.max.x);
-            box.max.y = fmaxf(transformed_box.min.y, transformed_box.max.y);
-            box.max.z = fmaxf(transformed_box.min.z, transformed_box.max.z);
+            const AABB box = transformBox(c->aabb, t->world_matrix);
 
             prims.emplace_back(box, entity);
         }
@@ -110,6 +128,7 @@ void CollisionSystem::onUpdate(float ts)
         bvh_.reserve(m_entities.size() * 3 / 2); // from testing, bvh is usually 20% larger than number of objects
         BuildNode(prims, bvh_);
 
+#ifndef NDEBUG
         // check AABB mins and maxes are the correct order
         for (const auto& node : bvh_) {
             if (node.type1 != BiTreeNode::Type::Empty) {
@@ -123,6 +142,7 @@ void CollisionSystem::onUpdate(float ts)
                 if (node.box2.max.z < node.box2.min.z) abort();
             }
         }
+#endif
 
         LOG_DEBUG("BUILT BVH!");
 
