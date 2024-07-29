@@ -10,15 +10,16 @@
 namespace engine {
 
 class CustomBehaviourSystem : public System {
-   public:
+private:
+    std::unordered_map<Entity, bool> m_entity_is_initialised{};
+
+public:
     CustomBehaviourSystem(Scene* scene);
+
     ~CustomBehaviourSystem();
 
     void onUpdate(float ts) override;
     void onComponentInsert(Entity entity) override;
-
-   private:
-    std::unordered_map<Entity, bool> entity_is_initialised_{};
 };
 
 } // namespace engine

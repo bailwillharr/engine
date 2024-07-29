@@ -21,7 +21,7 @@
     {
       "name": "x64-debug",
       "displayName": "x64 Debug",
-      "description": "Target Windows (64-bit) with the Visual Studio development environment. (Debug)",
+      "description": "No optimisation, hot reloading enabled, generate debug symbols",
       "inherits": "windows-base",
       "architecture": {
         "value": "x64",
@@ -29,17 +29,30 @@
       },
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "ENGINETEST_BUILD_WIN32_APP":  "OFF"
+        "ENGINETEST_BUILD_WIN32_APP": "OFF",
+        "ENGINE_HOT_RELOAD": "ON"
       }
     },
     {
       "name": "x64-release",
       "displayName": "x64 Release",
-      "description": "Target Windows (64-bit) with the Visual Studio development environment. (RelWithDebInfo)",
+      "description": "Optimisation on, hot reloading enabled, generate debug symbols",
+      "inherits": "x64-debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "ENGINETEST_BUILD_WIN32_APP": "OFF",
+        "ENGINE_HOT_RELOAD": "ON"
+      }
+    },
+    {
+      "name": "x64-dist",
+      "displayName": "x64 Distribution Build",
+      "description": "Optimisation on, hot reloading disabled, no symbols",
       "inherits": "x64-debug",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "ENGINETEST_BUILD_WIN32_APP":  "ON"
+        "ENGINETEST_BUILD_WIN32_APP": "ON",
+        "ENGINE_HOT_RELOAD": "OFF"
       }
     }
   ]

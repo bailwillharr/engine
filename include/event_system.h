@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+
 #include <memory>
 #include <queue>
 #include <unordered_map>
@@ -15,22 +16,31 @@ enum class EventSubscriberKind {
 // Event handler base-class
 template <typename T>
 class EventHandler {
-   public:
+public:
     virtual void onEvent(T data) = 0;
 };
 
 // Event queue interface to allow for different type queues to be in the map
 class IEventQueue {
-   public:
+public:
     virtual ~IEventQueue() {}
+
     virtual void despatchEvents() = 0;
 };
 
+// holds events of type T and subscribers to those events
 template <typename T>
 class EventQueue : public IEventQueue {
-    // holds events of type T and subscribers to those events
+private:
+    std::unordered_map<uint32_t, EventHandler<T>*> m_subscribers;
 
-   public:
+    struct QueuedEvent {
+        EventHandler<T>* handler;
+        T event;
+    };
+    std::queue<QueuedEvent> m_event_queue{};
+
+public:
     void subscribe(EventSubscriberKind kind, uint32_t id, EventHandler<T>* handler)
     {
         // For the time being, ignore kind (TODO)
@@ -56,23 +66,19 @@ class EventQueue : public IEventQueue {
             m_event_queue.pop();
         }
     }
-
-   private:
-    std::unordered_map<uint32_t, EventHandler<T>*> m_subscribers;
-
-    struct QueuedEvent {
-        EventHandler<T>* handler;
-        T event;
-    };
-    std::queue<QueuedEvent> m_event_queue{};
 };
 
 class EventSystem {
-   public:
+private:
+    std::unordered_map<size_t, std::unique_ptr<IEventQueue>> m_event_queues{};
+
+public:
     EventSystem() {}
     EventSystem(const EventSystem&) = delete;
-    EventSystem& operator=(const EventSystem&) = delete;
+
     ~EventSystem() {}
+
+    EventSystem& operator=(const EventSystem&) = delete;
 
     template <typename T>
     void registerEventType()
@@ -108,9 +114,6 @@ class EventSystem {
             queue->despatchEvents();
         }
     }
-
-   private:
-    std::unordered_map<size_t, std::unique_ptr<IEventQueue>> m_event_queues{};
 };
 
 } // namespace engine

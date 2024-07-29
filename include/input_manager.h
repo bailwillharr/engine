@@ -17,9 +17,8 @@ class InputManager {
    public:
     /* The Window object here is stored for the duration of the InputManager.
      * 'win' must point to a valid Window object. */
-    InputManager(const Window* win) : win_(win)
+    InputManager(const Window& win) : m_win(win)
     {
-        assert(win != nullptr);
         enabled_devices_.fill(true);
     }
     InputManager(const InputManager&) = delete;
@@ -86,7 +85,7 @@ class InputManager {
         int low;
     };
 
-    const Window* win_;
+    const Window& m_win;
 
     std::vector<struct ButtonEntry> button_entries_;
     std::vector<struct AxisEntry> axis_entries_;

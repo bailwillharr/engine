@@ -142,14 +142,20 @@ void PlayGame(GameSettings settings)
         cube_ren->mesh = GenCuboidMesh(app.getRenderer()->GetDevice(), 1.0f, 1.0f, 1.0f);
         cube_ren->visible = true;
         auto cubeCustom = main_scene->AddComponent<engine::CustomComponent>(cube);
-        cubeCustom->on_init = [] {};
-        cubeCustom->on_update = [&main_scene, cube](float dt) {
-            static float yaw = 0.0f;
-            yaw += dt;
-            main_scene->GetRotation(cube) = glm::angleAxis(yaw, glm::vec3{0.0f, 0.0f, 1.0f});
-            main_scene->GetRotation(cube) *= glm::angleAxis(glm::half_pi<float>(), glm::vec3{ 1.0f, 0.0f, 0.0f });
-        };
+        class Spinner : public engine::ComponentCustomImpl {
+        private:
+            float yaw = 0.0f;
+        public:
+            void init() override {
 
+            }
+            void update(float dt) override {
+                yaw += dt;
+                m_scene->GetRotation(m_entity) = glm::angleAxis(yaw, glm::vec3{0.0f, 0.0f, 1.0f});
+                m_scene->GetRotation(m_entity) *= glm::angleAxis(glm::half_pi<float>(), glm::vec3{1.0f, 0.0f, 0.0f});
+            }
+        };
+        cubeCustom->impl = std::make_unique<Spinner>();
 
         engine::Entity teapot = engine::loadGLTF(*main_scene, app.getResourcePath("models/teapot.glb"), true);
         main_scene->GetPosition(teapot).y += 5.0f;

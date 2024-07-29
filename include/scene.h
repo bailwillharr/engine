@@ -78,12 +78,12 @@ class Scene {
     glm::vec3& GetScale(Entity entity) { return GetTransform(entity)->scale; }
 
     template <typename T>
-    T* AddComponent(Entity entity, const T& comp = T{})
+    T* AddComponent(Entity entity, T&& comp = T{})
     {
         size_t hash = typeid(T).hash_code();
 
         auto array = GetComponentArray<T>();
-        array->insertData(entity, comp); // errors if entity already exists in array
+        array->insertData(entity, std::move(comp)); // errors if entity already exists in array
 
         // set the component bit for this entity
         size_t signature_position = component_signature_positions_.at(hash);

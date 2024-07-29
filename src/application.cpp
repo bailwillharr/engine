@@ -59,7 +59,7 @@ Application::Application(const char* appName, const char* appVersion, gfx::Graph
     : app_name(appName), app_version(appVersion), m_configuration(configuration)
 {
     m_window = std::make_unique<Window>(appName, true, false);
-    m_input_manager = std::make_unique<InputManager>(m_window.get());
+    m_input_manager = std::make_unique<InputManager>(*m_window);
     m_scene_manager = std::make_unique<SceneManager>(this);
 
     // get base path for resources
@@ -235,7 +235,7 @@ void Application::gameLoop()
         m_input_manager->SetDeviceActive(InputDevice::kMouse, !debug_menu_state.menu_active);
 
         if (debug_menu_state.menu_active) {
-            if (ImGui::Begin("Settings", 0)) {
+            if (ImGui::Begin("Settings Deez! lol", 0)) {
                 ImGui::Text("FPS: %.3f", std::roundf(avg_fps));
                 ImGui::Checkbox("Enable FPS limiter", &debug_menu_state.enable_frame_limiter);
                 if (debug_menu_state.enable_frame_limiter) {

@@ -4,6 +4,9 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 # options
 option(ENGINE_BUILD_TEST "Compile the test program" ON)
+if (MSVC)
+	option(ENGINE_HOT_RELOAD "Enable VS hot reload" OFF)
+endif()
 
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release;RelWithDebInfo")
 
@@ -115,12 +118,18 @@ set_property(TARGET ${PROJECT_NAME} PROPERTY C_STANDARD 11)
 set_property(TARGET ${PROJECT_NAME} PROPERTY C_STANDARD_REQUIRED ON)
 set_property(TARGET ${PROJECT_NAME} PROPERTY C_EXTENSIONS OFF)
 
+# compiler warnings
 if (MSVC)
 	target_compile_options(${PROJECT_NAME} PRIVATE /W3)
 	target_compile_options(${PROJECT_NAME} PRIVATE /MP)
 	target_compile_definitions(${PROJECT_NAME} PRIVATE _CRT_SECURE_NO_WARNINGS)
 else()
 	target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -pedantic)
+endif()
+
+if (MSVC AND ENGINE_HOT_RELOAD)
+	target_compile_options(${PROJECT_NAME} PRIVATE /ZI)
+	target_link_options(${PROJECT_NAME} PRIVATE /INCREMENTAL)
 endif()
 
 target_include_directories(${PROJECT_NAME} PUBLIC include)

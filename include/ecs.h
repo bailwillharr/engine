@@ -28,13 +28,13 @@ private:
     std::vector<T> m_component_array{};
 
 public:
-    void insertData(Entity entity, const T& component)
+    void insertData(Entity entity, T&& component)
     {
         if (m_component_array.size() < entity + 1) {
             m_component_array.resize(entity + 1);
         }
         // bounds checking here as not performance critical
-        m_component_array.at(entity) = component;
+        m_component_array.at(entity) = std::move(component);
     }
 
     void removeData(Entity entity)
@@ -59,7 +59,7 @@ public:
     System(Scene* scene, std::set<size_t> required_component_hashes);
     System(const System&) = delete;
 
-    virtual ~System() {};
+    virtual ~System() {}
 
     System& operator=(const System&) = delete;
 
