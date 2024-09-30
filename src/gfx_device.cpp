@@ -1001,7 +1001,7 @@ void GFXDevice::finishRender(gfx::DrawBuffer* drawBuffer)
         // flag to re-create the swapchain next frame
         pimpl->swapchainIsOutOfDate = true;
     }
-    else if (res != VK_SUCCESS)
+    else if (res != VK_SUCCESS && res != VK_SUBOPTIMAL_KHR)
         throw std::runtime_error("Failed to queue present! Code: " + std::to_string(res));
 
     pimpl->FRAMECOUNT++;
