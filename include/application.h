@@ -14,6 +14,7 @@ namespace engine {
 class Window;       // forward-dec
 class InputManager; // forward-dec
 class Renderer;     // forward-dec
+class Physics;      // forward-dec
 class SceneManager; // forward-dec
 
 struct AppConfiguration {
@@ -25,6 +26,7 @@ private:
     std::unique_ptr<Window> m_window;
     std::unique_ptr<InputManager> m_input_manager;
     std::unique_ptr<Renderer> m_renderer;
+    std::unique_ptr<Physics> m_physics;
     std::unique_ptr<SceneManager> m_scene_manager;
     std::unordered_map<size_t, std::unique_ptr<IResourceManager>> m_resource_managers{};
     std::filesystem::path m_resources_path;
@@ -34,6 +36,7 @@ public:
     const char* const app_name;
     const char* const app_version;
     std::vector<DebugLine> debug_lines{};
+    std::function<void(void)> press_me_fn{};
 
 public:
     Application(const char* app_name, const char* app_version, gfx::GraphicsSettings graphics_settings, AppConfiguration configuration);

@@ -47,6 +47,7 @@ set(SRC_FILES
 	"src/vulkan_instance.cpp"
 	"src/vulkan_swapchain.cpp"
 	"src/window.cpp"
+	"src/physics.cpp"
 )
 
 set(INCLUDE_FILES
@@ -90,6 +91,7 @@ set(INCLUDE_FILES
 	"include/vulkan_instance.h"
 	"include/vulkan_swapchain.h"
 	"include/window.h"
+	"include/physics.h"
 )
 
 add_library(${PROJECT_NAME} STATIC
@@ -221,6 +223,10 @@ target_link_libraries(${PROJECT_NAME} PUBLIC mikktspace)
 # weldmesh
 add_subdirectory(vendor/weldmesh)
 target_link_libraries(${PROJECT_NAME} PUBLIC weldmesh)
+
+# PerlinNoise
+add_subdirectory(vendor/PerlinNoise)
+target_link_libraries(${PROJECT_NAME} PUBLIC PerlinNoise)
 
 # PhysX 5
 target_include_directories(${PROJECT_NAME} PUBLIC ${ENGINE_PHYSX_INCLUDE_DIR})

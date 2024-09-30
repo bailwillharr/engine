@@ -25,13 +25,14 @@ struct UniformDescriptor {
 };
 
 class Renderer : private ApplicationComponent {
-   public:
+public:
     Renderer(Application& app, gfx::GraphicsSettings settings);
 
     ~Renderer();
 
     // staticList can be nullptr to render nothing
-    void Render(bool window_is_resized, glm::mat4 camera_transform, const RenderList* static_list, const RenderList* dynamic_list, const std::vector<DebugLine>& debug_lines);
+    void Render(bool window_is_resized, glm::mat4 camera_transform, const RenderList* static_list, const RenderList* dynamic_list,
+                const std::vector<DebugLine>& debug_lines);
 
     // getters
 
@@ -45,7 +46,7 @@ class Renderer : private ApplicationComponent {
 
     std::unordered_map<gfx::SamplerInfo, const gfx::Sampler*> samplers;
 
-   private:
+private:
     std::unique_ptr<GFXDevice> device_;
 
     struct CameraSettings {

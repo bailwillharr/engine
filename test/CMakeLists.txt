@@ -14,7 +14,7 @@ set(GAME_SOURCES
   "src/main.cpp"
   "src/meshgen.cpp"
   "src/meshgen.hpp"
-)
+ "src/terrain.h" "src/terrain.cpp")
 
 file(GLOB_RECURSE GAME_RESOURCES RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/res/*")
 

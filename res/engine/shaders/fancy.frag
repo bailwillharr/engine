@@ -118,7 +118,7 @@ void main() {
 
 	lighting *= (1.0 - shadow);
 
-	const vec3 ambient_light = vec3(0.09082, 0.13281, 0.18164) * 2.4 * 0.1;
+	const vec3 ambient_light = vec3(0.09082, 0.13281, 0.18164) * 2.4 * 1.0;
 	//lighting += mix(ambient_light, texture(globalSetSkybox, R).rgb, metallic) * ao * diffuse_brdf; // this is NOT physically-based, it just looks cool
 	lighting += (ambient_light * ao * diffuse_brdf);
 
@@ -126,4 +126,5 @@ void main() {
 	const vec3 hdr_color = emission + lighting;
 	outColor = vec4(hdr_color / (hdr_color + 1.0), 1.0);
 	//outColor = vec4(vec3(1.0 - shadow), 1.0);
+	//outColor = vec4(vec3(L_dot_N * (1.0 - shadow)), 1.0);
 }

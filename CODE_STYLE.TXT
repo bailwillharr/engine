@@ -138,6 +138,8 @@ Inline methods are only used when doing so provides a tangible performance gain.
 Classes that should not be copied and/or moved should have their copy and/or move constructors
 and copy/move assignment operators explicitly deleted.
 
+Classes that do not use the default constructor should have it explicitly deleted.
+
 Ensure that constructors with a single argument are marked `explicit` unless implicit construction
 is intended.
 
@@ -155,7 +157,7 @@ Header files should be included in the following order:
 - Header corresponding to source file
 - C standard library includes (as, e.g., cstdint)
 - C++ STL includes
-- External libraries from, e.g., 'dependencies/' directory or Vulkan SDK. Use angle brackets.
-- Libraries in the source tree. Use double quotes. (TODO: Move these into 'dependencies/')
+- External libraries from, e.g., 'dependencies/' directory, PhysX, or Vulkan SDK. Use angle brackets.
+- Libraries in the source tree. Use double quotes.
 - Header files from the current project. Use double quotes.
 Each section should be sorted alphabetically (In VS: highlight the includes, right-click -> #include directives -> sort).

@@ -98,7 +98,7 @@ void CameraControllerSystem::onUpdate(float ts)
 
         if (chosen_cast != nullptr) {
             const glm::vec2 norm_xy = glm::normalize(glm::vec2{chosen_cast->normal.x, chosen_cast->normal.y}) * -1.0f; // make it point towards object
-            const glm::vec2 vel_xy = glm::vec2{ c->vel.x, c->vel.y };
+            const glm::vec2 vel_xy = glm::vec2{c->vel.x, c->vel.y};
             // find the extent of the player's velocity in the direction of the wall's normal vector
             const glm::vec2 partial_vel = norm_xy * glm::dot(norm_xy, vel_xy);
             const glm::vec2 partial_dX = partial_vel * dt;
@@ -120,7 +120,7 @@ void CameraControllerSystem::onUpdate(float ts)
             engine::Ray fall_ray{};
             fall_ray.origin = t->position;
             fall_ray.origin.z += CameraControllerComponent::kMaxStairHeight - CameraControllerComponent::kPlayerHeight;
-            fall_ray.direction = { 0.0f, 0.0f, -1.0f }; // down
+            fall_ray.direction = {0.0f, 0.0f, -1.0f}; // down
             const engine::Raycast fall_raycast = m_scene->GetSystem<engine::CollisionSystem>()->GetRaycast(fall_ray);
             if (fall_raycast.hit) {                   // there is ground below player
                 // find how far the player will move (downwards) if velocity is applied without collision
@@ -145,7 +145,7 @@ void CameraControllerSystem::onUpdate(float ts)
             // check if intersection with ceiling
             engine::Ray jump_ray{};
             jump_ray.origin = t->position;
-            jump_ray.direction = { 0.0f, 0.0f, 1.0f };
+            jump_ray.direction = {0.0f, 0.0f, 1.0f};
             const engine::Raycast jump_raycast = m_scene->GetSystem<engine::CollisionSystem>()->GetRaycast(jump_ray);
             if (jump_raycast.hit) {
                 // find how far the player will move (upwards) if velocity is applied without collision
@@ -185,8 +185,9 @@ void CameraControllerSystem::onUpdate(float ts)
 
     /* user interface inputs */
 
-    if (m_scene->app()->getWindow()->GetKeyPress(engine::inputs::Key::K_R) || glm::length(t->position) > CameraControllerComponent::kMaxDistanceFromOrigin) {
-        t->position = {0.0f, 0.0f, 10.0f};
+    if (m_scene->app()->getWindow()->GetKeyPress(engine::inputs::Key::K_R) /* ||
+        glm::length(t->position) > CameraControllerComponent::kMaxDistanceFromOrigin*/) {
+        t->position = {0.000001f, 0.000001f, 10.0f};
         c->vel = {0.0f, 0.0f, 0.0f};
         c->pitch = glm::half_pi<float>();
         c->yaw = 0.0f;

@@ -142,6 +142,8 @@ struct SamplerInfo {
     WrapMode wrap_w = gfx::WrapMode::REPEAT; // only useful for cubemaps AFAIK
     bool anisotropic_filtering = true;        // this can be force disabled by a global setting
 
+    SamplerInfo() = default;
+
     bool operator==(const SamplerInfo&) const = default;
 };
 

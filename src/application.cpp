@@ -15,23 +15,24 @@
 
 #include "component_collider.h"
 #include "component_transform.h"
+#include "debug_line.h"
+#include "file_dialog.h"
 #include "gfx.h"
 #include "gfx_device.h"
+#include "gltf_loader.h"
 #include "input_manager.h"
 #include "log.h"
+#include "physics.h"
+#include "renderer.h"
 #include "resource_font.h"
 #include "resource_material.h"
 #include "resource_mesh.h"
 #include "resource_shader.h"
 #include "resource_texture.h"
-#include "renderer.h"
-#include "debug_line.h"
 #include "scene.h"
 #include "scene_manager.h"
 #include "system_collisions.h"
 #include "system_mesh_render.h"
-#include "file_dialog.h"
-#include "gltf_loader.h"
 #include "window.h"
 
 static struct ImGuiThings {
@@ -58,7 +59,7 @@ static auto frametimeFromFPS(int fps) { return std::chrono::nanoseconds(1'000'00
 Application::Application(const char* appName, const char* appVersion, gfx::GraphicsSettings graphicsSettings, AppConfiguration configuration)
     : app_name(appName), app_version(appVersion), m_configuration(configuration)
 {
-    m_window = std::make_unique<Window>(appName, true, false);
+    m_window = std::make_unique<Window>(appName, true, true);
     m_input_manager = std::make_unique<InputManager>(*m_window);
     m_scene_manager = std::make_unique<SceneManager>(this);
 
@@ -77,6 +78,11 @@ Application::Application(const char* appName, const char* appVersion, gfx::Graph
     ImGui_ImplSDL2_InitForVulkan(m_window->GetHandle());
 
     m_renderer = std::make_unique<Renderer>(*this, graphicsSettings);
+
+    PhysicsInfo physics_info;
+    physics_info.default_length = 1.0f;
+    physics_info.default_speed = 9.8f;
+    m_physics = std::make_unique<Physics>(physics_info);
 
     /* default fonts */
     {
@@ -235,7 +241,7 @@ void Application::gameLoop()
         m_input_manager->SetDeviceActive(InputDevice::kMouse, !debug_menu_state.menu_active);
 
         if (debug_menu_state.menu_active) {
-            if (ImGui::Begin("Settings Deez! lol", 0)) {
+            if (ImGui::Begin("Settings", 0)) {
                 ImGui::Text("FPS: %.3f", std::roundf(avg_fps));
                 ImGui::Checkbox("Enable FPS limiter", &debug_menu_state.enable_frame_limiter);
                 if (debug_menu_state.enable_frame_limiter) {
@@ -282,6 +288,9 @@ void Application::gameLoop()
                     }
                 }
                 if (!scene) ImGui::EndDisabled();
+                if (ImGui::Button("Set me!")) {
+                    if (press_me_fn) press_me_fn();
+                }
             }
             ImGui::End();
         }

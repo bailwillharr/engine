@@ -32,8 +32,10 @@ void main() {
 	vec4 worldPosition = constants.model * vec4(inPosition, 1.0);
 	gl_Position = globalSetUniformBuffer.proj * frameSetUniformBuffer.view * worldPosition;
 	
-	vec3 T = normalize(vec3(constants.model * vec4(inTangent.xyz, 0.0)));
-	vec3 N = normalize(vec3(constants.model * vec4(inNorm, 0.0)));
+	mat3 normal_matrix = transpose(inverse(mat3(constants.model)));
+
+	vec3 T = normalize(normal_matrix * inTangent.xyz);
+	vec3 N = normalize(normal_matrix * inNorm);
 	vec3 B = cross(T, N) * inTangent.w;
 	mat3 worldToTangentSpace = transpose(mat3(T, B, N));
 	
