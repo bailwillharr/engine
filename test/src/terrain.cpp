@@ -41,9 +41,9 @@ static glm::vec3 getNormal(const std::vector<float>& heightmap, int x, int y)
 
 std::unique_ptr<engine::Mesh> genTerrainChunk(engine::GFXDevice* gfx, float x_offset, float y_offset, float uv_scale, unsigned int seed)
 {
-    static_assert(std::is_same<siv::PerlinNoise::seed_type, unsigned int>::value);
+    static_assert(sizeof(siv::PerlinNoise::seed_type) >= sizeof(unsigned int));
 
-    const siv::PerlinNoise perlin(seed);
+    const siv::PerlinNoise perlin(static_cast<siv::PerlinNoise::seed_type>(seed));
 
     std::vector<float> heightmap((RES + 2) * (RES + 2)); // need two more points per axis for normals
     std::vector<glm::vec3> normalmap(RES * RES);

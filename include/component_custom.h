@@ -24,7 +24,7 @@ public:
     virtual ~ComponentCustomImpl() = 0;
 
     virtual void init() {}
-    virtual void update(float dt) {}
+    virtual void update([[maybe_unused]] float dt) {}
 };
 
 inline ComponentCustomImpl::~ComponentCustomImpl() {}

@@ -66,7 +66,7 @@ void PlayGame(GameSettings settings)
         /* create camera */
         engine::Entity camera = start_scene->CreateEntity("camera");
 
-        const engine::Entity temple = engine::loadGLTF(*start_scene, "C:\\Games\\temple.glb", true);
+//        const engine::Entity temple = engine::loadGLTF(*start_scene, "C:\\Games\\temple.glb", true);
 
         /* as of right now, the entity with tag 'camera' is used to build the view
          * matrix */

@@ -7,8 +7,8 @@ option(ENGINE_BUILD_TEST "Compile the test program" ON)
 if (MSVC)
 	option(ENGINE_HOT_RELOAD "Enable VS hot reload" OFF)
 endif()
-option(ENGINE_PHYSX_INCLUDE_DIR "Path to the PhysX SDK include directory" "")
-option(ENGINE_PHYSX_LIBRARY_DIR "PhysX library location (often different per build configuration)" "")
+set(ENGINE_PHYSX_INCLUDE_DIR "" CACHE PATH "Path to the PhysX SDK include directory")
+set(ENGINE_PHYSX_LIBRARY_DIR "" CACHE PATH "PhysX library location (often different per build configuration)")
 
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release;RelWithDebInfo")
 
@@ -231,6 +231,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC PerlinNoise)
 # PhysX 5
 target_include_directories(${PROJECT_NAME} PUBLIC ${ENGINE_PHYSX_INCLUDE_DIR})
 target_link_directories(${PROJECT_NAME} PUBLIC ${ENGINE_PHYSX_LIBRARY_DIR})
+if (MSVC)
 target_link_libraries(${PROJECT_NAME} PUBLIC
 	PhysXCooking_64
 	PVDRuntime_64
@@ -238,3 +239,12 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
 	PhysXCommon_64
 	PhysXFoundation_64
 )
+else()
+target_link_libraries(${PROJECT_NAME} PUBLIC
+	PVDRuntime_64
+	PhysXCooking_static_64
+	PhysX_static_64
+	PhysXCommon_static_64
+	PhysXFoundation_static_64
+)
+endif()
