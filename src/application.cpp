@@ -57,7 +57,7 @@ static std::filesystem::path getResourcesPath()
 static auto frametimeFromFPS(int fps) { return std::chrono::nanoseconds(1'000'000'000 / fps); }
 
 Application::Application(const char* appName, const char* appVersion, gfx::GraphicsSettings graphicsSettings, AppConfiguration configuration)
-    : app_name(appName), app_version(appVersion), m_configuration(configuration)
+    : m_configuration(configuration), app_name(appName), app_version(appVersion)
 {
     m_window = std::make_unique<Window>(appName, true, true);
     m_input_manager = std::make_unique<InputManager>(*m_window);
@@ -79,10 +79,12 @@ Application::Application(const char* appName, const char* appVersion, gfx::Graph
 
     m_renderer = std::make_unique<Renderer>(*this, graphicsSettings);
 
+#ifndef ENGINE_DISABLE_PHYSICS
     PhysicsInfo physics_info;
     physics_info.default_length = 1.0f;
     physics_info.default_speed = 9.8f;
     m_physics = std::make_unique<Physics>(physics_info);
+#endif
 
     /* default fonts */
     {

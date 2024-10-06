@@ -1,5 +1,7 @@
 #pragma once
 
+#ifndef ENGINE_DISABLE_PHYSICS
+
 #include <memory>
 
 namespace engine {
@@ -8,13 +10,13 @@ struct PhysicsImpl;
 
 struct PhysicsInfo {
     float default_length; // typical object length (1 m)
-    float default_speed; // typical speed after one second of falling (9.8 m/s)
+    float default_speed;  // typical speed after one second of falling (9.8 m/s)
 };
 
-/* 
-* Owned by Physics class, reference is stored in each Scene SystemPhysics object.
-* This lets the Physics System access collision/physics info for its scene
-*/
+/*
+ * Owned by Physics class, reference is stored in each Scene SystemPhysics object.
+ * This lets the Physics System access collision/physics info for its scene
+ */
 class PhysicsSceneConnection {
     int m_test;
 
@@ -31,10 +33,10 @@ public:
 };
 
 /*
-* PhysX wrapper for the game engine.
-* Does not expose the PhysX API.
-* As an application-level class, this must support multiple scenes.
-*/
+ * PhysX wrapper for the game engine.
+ * Does not expose the PhysX API.
+ * As an application-level class, this must support multiple scenes.
+ */
 class Physics {
     static bool s_instanced;
     std::unique_ptr<PhysicsImpl> m_impl;
@@ -49,8 +51,8 @@ public:
 
     Physics& operator=(const Physics&) = delete;
     Physics& operator=(Physics&&) = delete;
-
-
 };
 
 } // namespace engine
+
+#endif

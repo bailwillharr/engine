@@ -50,6 +50,7 @@ std::filesystem::path openFileDialog(const std::vector<std::string>& extensions)
     }
 #else
     // only Windows dialogs supported at the moment
+    (void)extensions;
     LOG_ERROR("Open file dialog not supported on this platform");
     return "";
 #endif

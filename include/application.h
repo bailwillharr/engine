@@ -26,9 +26,11 @@ private:
     std::unique_ptr<Window> m_window;
     std::unique_ptr<InputManager> m_input_manager;
     std::unique_ptr<Renderer> m_renderer;
+#ifndef ENGINE_DISABLE_PHYSICS
     std::unique_ptr<Physics> m_physics;
+#endif
     std::unique_ptr<SceneManager> m_scene_manager;
-    std::unordered_map<size_t, std::unique_ptr<IResourceManager>> m_resource_managers{};
+    std::unordered_map<std::size_t, std::unique_ptr<IResourceManager>> m_resource_managers{};
     std::filesystem::path m_resources_path;
     AppConfiguration m_configuration;
 

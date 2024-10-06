@@ -229,22 +229,26 @@ add_subdirectory(vendor/PerlinNoise)
 target_link_libraries(${PROJECT_NAME} PUBLIC PerlinNoise)
 
 # PhysX 5
-target_include_directories(${PROJECT_NAME} PUBLIC ${ENGINE_PHYSX_INCLUDE_DIR})
-target_link_directories(${PROJECT_NAME} PUBLIC ${ENGINE_PHYSX_LIBRARY_DIR})
-if (MSVC)
-target_link_libraries(${PROJECT_NAME} PUBLIC
-	PhysXCooking_64
-	PVDRuntime_64
-	PhysX_64
-	PhysXCommon_64
-	PhysXFoundation_64
-)
-else()
-target_link_libraries(${PROJECT_NAME} PUBLIC
-	PVDRuntime_64
-	PhysXCooking_static_64
-	PhysX_static_64
-	PhysXCommon_static_64
-	PhysXFoundation_static_64
-)
-endif()
+target_compile_definitions(${PROJECT_NAME} PUBLIC ENGINE_DISABLE_PHYSICS)
+#target_include_directories(${PROJECT_NAME} PUBLIC ${ENGINE_PHYSX_INCLUDE_DIR})
+#target_link_directories(${PROJECT_NAME} PUBLIC ${ENGINE_PHYSX_LIBRARY_DIR})
+#if (MSVC)
+#target_link_libraries(${PROJECT_NAME} PUBLIC
+#	PhysXCooking_64
+#	PVDRuntime_64
+#	PhysX_64
+#	PhysXCommon_64
+#	PhysXFoundation_64
+#)
+#else()
+#target_link_libraries(${PROJECT_NAME} PUBLIC
+#PhysXExtensions_static_64
+#PhysX_static_64
+#PhysXPvdSDK_static_64
+#PhysXCommon_static_64
+#PhysXFoundation_static_64
+#PVDRuntime_64
+#pthread
+#dl
+#)
+#endif()

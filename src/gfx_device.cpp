@@ -67,9 +67,9 @@ static void check_vk_result(VkResult code) { checkVulkanError(code, -1); }
 
 namespace engine {
 
-static constexpr uint32_t FRAMES_IN_FLIGHT = 2;       // This improved FPS by 5x! (on Intel IGPU)
+static constexpr uint32_t FRAMES_IN_FLIGHT = 2; // This improved FPS by 5x! (on Intel IGPU)
 
-static constexpr size_t PUSH_CONSTANT_MAX_SIZE = 128; // bytes
+static constexpr std::size_t PUSH_CONSTANT_MAX_SIZE = 128; // bytes
 static constexpr VkIndexType INDEX_TYPE = VK_INDEX_TYPE_UINT32;
 
 static constexpr int kShadowmapSize = 4096;
@@ -967,7 +967,7 @@ void GFXDevice::finishRender(gfx::DrawBuffer* drawBuffer)
     std::vector<VkSemaphore> waitSemaphores{};
     std::vector<VkPipelineStageFlags> waitDstStageMasks{};
 
-    waitSemaphores.push_back(drawBuffer->frameData.presentSemaphore);  // wait for image from 2nd last frame to be presented so it can be rendered to again
+    waitSemaphores.push_back(drawBuffer->frameData.presentSemaphore); // wait for image from 2nd last frame to be presented so it can be rendered to again
     waitDstStageMasks.push_back(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
     waitSemaphores.push_back(drawBuffer->frameData.transferSemaphore); // wait for uniform buffer copies to complete
     waitDstStageMasks.push_back(VK_PIPELINE_STAGE_VERTEX_SHADER_BIT);
@@ -1380,7 +1380,7 @@ gfx::Pipeline* GFXDevice::createPipeline(const gfx::PipelineInfo& info)
         rasterizer.depthBiasEnable = VK_TRUE;
         rasterizer.depthBiasConstantFactor = 2.0f; // 1.25f;
         rasterizer.depthBiasClamp = 0.0f;
-        rasterizer.depthBiasSlopeFactor = 3.5f;    // 1.75f;
+        rasterizer.depthBiasSlopeFactor = 3.5f; // 1.75f;
     }
     else {
         rasterizer.depthBiasEnable = VK_FALSE;
@@ -1442,7 +1442,7 @@ gfx::Pipeline* GFXDevice::createPipeline(const gfx::PipelineInfo& info)
     pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
     std::vector<VkDescriptorSetLayout> descriptorSetLayouts(info.descriptor_set_layouts.size());
-    for (size_t i = 0; i < descriptorSetLayouts.size(); i++) {
+    for (std::size_t i = 0; i < descriptorSetLayouts.size(); i++) {
         descriptorSetLayouts[i] = info.descriptor_set_layouts[i]->layout;
     }
 
@@ -1513,7 +1513,7 @@ gfx::DescriptorSetLayout* GFXDevice::createDescriptorSetLayout(const std::vector
     uint32_t i = 0;
     for (const auto& binding : bindings) {
         auto& vulkanBinding = vulkanBindings.emplace_back();
-        vulkanBinding.binding = i;         // This should be as low as possible to avoid wasting memory
+        vulkanBinding.binding = i; // This should be as low as possible to avoid wasting memory
         vulkanBinding.descriptorType = converters::getDescriptorType(binding.descriptor_type);
         vulkanBinding.descriptorCount = 1; // if > 1, accessible as an array in the shader
         vulkanBinding.stageFlags = converters::getShaderStageFlags(binding.stage_flags);
@@ -2071,7 +2071,7 @@ gfx::Image* GFXDevice::createImageCubemap(uint32_t w, uint32_t h, gfx::ImageForm
 
         void* dataDest;
         VKCHECK(vmaMapMemory(pimpl->allocator, stagingAllocation, &dataDest));
-        for (size_t i = 0; i < 6; ++i) {
+        for (std::size_t i = 0; i < 6; ++i) {
             memcpy(reinterpret_cast<std::byte*>(dataDest) + stagingBufferSizePerSide * i, image_data[i], stagingBufferSizePerSide);
         }
         vmaUnmapMemory(pimpl->allocator, stagingAllocation);
@@ -2342,8 +2342,8 @@ void GFXDevice::logPerformanceInfo()
     LOG_DEBUG("GPU Memory Statistics:");
 
     for (uint32_t i = 0; i < memProps.memoryProperties.memoryHeapCount; i++) {
-        const VmaStatistics& statistics = pStats.memoryHeap[i].statistics;
-        VkMemoryHeap heap = memProps.memoryProperties.memoryHeaps[i];
+        [[maybe_unused]] const VmaStatistics& statistics = pStats.memoryHeap[i].statistics;
+        [[maybe_unused]] VkMemoryHeap heap = memProps.memoryProperties.memoryHeaps[i];
         LOG_DEBUG("Memory heap {}", i);
         if (heap.flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) {
             LOG_DEBUG("    DEVICE_LOCAL");

@@ -103,7 +103,11 @@ static std::pair<bool, float> RayBoxIntersection(const Ray& ray, const AABB& box
 
 CollisionSystem::CollisionSystem(Scene* scene) : System(scene, {typeid(TransformComponent).hash_code(), typeid(ColliderComponent).hash_code()}) {}
 
-void CollisionSystem::onComponentInsert(Entity entity) { ++colliders_size_now_; }
+void CollisionSystem::onComponentInsert(Entity entity)
+{
+    (void)entity;
+    ++colliders_size_now_;
+}
 
 void CollisionSystem::onUpdate(float ts)
 {
@@ -232,15 +236,15 @@ int CollisionSystem::BuildNode(std::vector<PrimitiveInfo>& prims, std::vector<Bi
             std::sort(prims.begin(), prims.end(), centroid_tests[axis]);
 
             // std::cout << "Sorting on axis " << axis << "...\n";
-            for (const auto& p : prims) {
-                // std::cout << p.centroid.x << "\t" << p.centroid.y << "\t" << p.centroid.z << "\n";
-            }
+            // for (const auto& p : prims) {
+            // std::cout << p.centroid.x << "\t" << p.centroid.y << "\t" << p.centroid.z << "\n";
+            //}
             // std::cout << "\n\n\n";
 
             // break;
 
             // split the boxes
-            for (int i = 0; i < prims.size() - 1; i++) {
+            for (std::size_t i = 0; i < prims.size() - 1; i++) {
 
                 float box1_main_min =
                     reinterpret_cast<const float*>(&(std::min_element(prims.begin(), prims.begin() + i + 1, box_min_tests[axis])->box.min))[axis];
@@ -507,6 +511,9 @@ CollisionSystem::RaycastTreeNodeResult CollisionSystem::RaycastTreeNode(const Ra
                 res.side = side1;
                 res.hit = true;
                 return res;
+            case Type::Empty:
+            default:
+                throw std::runtime_error("Invalid enum!");
         }
     }
     else if (is_hit2) {
@@ -520,6 +527,9 @@ CollisionSystem::RaycastTreeNodeResult CollisionSystem::RaycastTreeNode(const Ra
                 res.side = side2;
                 res.hit = true;
                 return res;
+            case Type::Empty:
+            default:
+                throw std::runtime_error("Invalid enum!");
         }
     }
 

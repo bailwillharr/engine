@@ -60,13 +60,13 @@ void PlayGame(GameSettings settings)
     engine::Application app(PROJECT_NAME, PROJECT_VERSION, graphics_settings, configuration);
     app.getWindow()->SetRelativeMouseMode(true);
     ConfigureInputs(*app.getInputManager());
-    
+
     engine::Scene* start_scene = app.getSceneManager()->CreateEmptyScene();
     {
         /* create camera */
         engine::Entity camera = start_scene->CreateEntity("camera");
 
-//        const engine::Entity temple = engine::loadGLTF(*start_scene, "C:\\Games\\temple.glb", true);
+        //        const engine::Entity temple = engine::loadGLTF(*start_scene, "C:\\Games\\temple.glb", true);
 
         /* as of right now, the entity with tag 'camera' is used to build the view
          * matrix */
@@ -183,6 +183,7 @@ void PlayGame(GameSettings settings)
         main_scene->GetRotation(box) = glm::angleAxis(glm::pi<float>() * 0.0f, glm::vec3{0.0f, 0.0f, 1.0f});
         main_scene->GetRotation(box) *= glm::angleAxis(glm::half_pi<float>(), glm::vec3{1.0f, 0.0f, 0.0f});
 
+#if 0
         const auto land_material = std::make_shared<engine::Material>(app.getRenderer(), app.getResource<engine::Shader>("builtin.fancy"));
         land_material->setAlbedoTexture(engine::LoadTextureFromFile(
             "C:\\storage dump 2\\intromax\\myproject\\sceneassets\\images\\grass1-bl\\grass1-albedo3.png", engine::gfx::SamplerInfo{}, app.getRenderer()));
@@ -192,13 +193,16 @@ void PlayGame(GameSettings settings)
         land_material->setOcclusionRoughnessMetallicTexture(
             engine::LoadTextureFromFile("C:\\storage dump 2\\intromax\\myproject\\sceneassets\\images\\grass1-bl\\combined_ar_rough_metal.png",
                                         engine::gfx::SamplerInfo{}, app.getRenderer(), false));
-
-        constexpr int LANDS_SIZE = 10;
+#else
+        const auto land_material = app.getResource<engine::Material>("builtin.default");
+#endif
+        constexpr int LANDS_SIZE = 4;
         constexpr float LANDS_XY_SCALE = 50.0f;
         constexpr float LANDS_HEIGHT = 5.0f;
         constexpr float LANDS_UV_SCALE = 40.0f;
         constexpr unsigned int LANDS_SEED = 69420;
         const engine::Entity lands_parent = main_scene->CreateEntity("lands_parent");
+        main_scene->GetTransform(lands_parent)->is_static = true;
         engine::Entity lands[LANDS_SIZE][LANDS_SIZE]{};
         for (int y = 0; y < LANDS_SIZE; ++y) {
             for (int x = 0; x < LANDS_SIZE; ++x) {

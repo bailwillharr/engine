@@ -1,4 +1,4 @@
-﻿{
+{
   "version": 3,
   "configurePresets": [
     {
@@ -19,7 +19,7 @@
       }
     },
     {
-      "name": "x64-debug",
+      "name": "x64-debug-windows",
       "displayName": "x64 Debug",
       "description": "No optimisation, hot reloading enabled, generate debug symbols",
       "inherits": "windows-base",
@@ -33,32 +33,103 @@
         "ENGINE_HOT_RELOAD": "ON",
         "ENGINE_PHYSX_LIBRARY_DIR": "C:/Users/Bailey/source/repos/bailwillharr/PhysX-106.0-physx-5.4.1/physx/bin/win.x86_64.vc143.mt/checked",
         "ENGINE_PHYSX_INCLUDE_DIR": "C:/Users/Bailey/source/repos/bailwillharr/PhysX-106.0-physx-5.4.1/physx/include"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
       }
     },
     {
-      "name": "x64-release",
+      "name": "x64-release-windows",
       "displayName": "x64 Release",
       "description": "Optimisation on, hot reloading enabled, generate debug symbols",
-      "inherits": "x64-debug",
+      "inherits": "x64-debug-windows",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "RelWithDebInfo",
         "ENGINETEST_BUILD_WIN32_APP": "OFF",
         "ENGINE_HOT_RELOAD": "ON",
         "ENGINE_PHYSX_LIBRARY_DIR": "C:/Users/Bailey/source/repos/bailwillharr/PhysX-106.0-physx-5.4.1/physx/bin/win.x86_64.vc143.mt/checked",
         "ENGINE_PHYSX_INCLUDE_DIR": "C:/Users/Bailey/source/repos/bailwillharr/PhysX-106.0-physx-5.4.1/physx/include"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
       }
     },
     {
-      "name": "x64-dist",
+      "name": "x64-dist-windows",
       "displayName": "x64 Distribution Build",
       "description": "Optimisation on, hot reloading disabled, no symbols",
-      "inherits": "x64-debug",
+      "inherits": "x64-debug-windows",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "ENGINETEST_BUILD_WIN32_APP": "ON",
         "ENGINE_HOT_RELOAD": "OFF",
         "ENGINE_PHYSX_LIBRARY_DIR": "C:/Users/Bailey/source/repos/bailwillharr/PhysX-106.0-physx-5.4.1/physx/bin/win.x86_64.vc143.mt/release",
         "ENGINE_PHYSX_INCLUDE_DIR": "C:/Users/Bailey/source/repos/bailwillharr/PhysX-106.0-physx-5.4.1/physx/include"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+
+    {
+      "name": "linux-base",
+      "description": "Target Linux with clang",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "installDir": "${sourceDir}/out/install/${presetName}",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "x64-debug-linux",
+      "displayName": "x64 Debug",
+      "description": "No optimisation, hot reloading enabled, generate debug symbols",
+      "inherits": "linux-base",
+      "architecture": {
+        "value": "x64",
+        "strategy": "external"
+      },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "ENGINE_HOT_RELOAD": "ON",
+        "ENGINE_PHYSX_LIBRARY_DIR": "/home/bailey/.local/src/physx/PhysX-106.1-physx-5.4.2/physx/install/linux/PhysX/bin/linux.clang/checked",
+        "ENGINE_PHYSX_INCLUDE_DIR": "/home/bailey/.local/src/physx/PhysX-106.1-physx-5.4.2/physx/install/linux/PhysX/include"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+        {
+      "name": "x64-release-linux",
+      "displayName": "x64 Release",
+      "description": "Optimisation on, hot reloading enabled, generate debug symbols",
+      "inherits": "x64-debug-linux",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "ENGINE_HOT_RELOAD": "ON",
+        "ENGINE_PHYSX_LIBRARY_DIR": "/home/bailey/.local/src/physx/PhysX-106.1-physx-5.4.2/physx/install/linux/PhysX/bin/linux.clang/checked",
+        "ENGINE_PHYSX_INCLUDE_DIR": "/home/bailey/.local/src/physx/PhysX-106.1-physx-5.4.2/physx/install/linux/PhysX/include"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
       }
     }
   ]

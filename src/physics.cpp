@@ -1,8 +1,12 @@
+#ifndef ENGINE_DISABLE_PHYSICS
+
 #include "physics.h"
 
 #include <stdexcept>
 
 #include <PxPhysicsAPI.h>
+
+#include <PxConfig.h>
 
 #include "log.h"
 
@@ -24,10 +28,7 @@ class AllocatorCallback : public physx::PxAllocatorCallback {
         }
         return ptr;
     }
-    void deallocate(void* ptr) override
-    {
-        free(ptr);
-    }
+    void deallocate(void* ptr) override { free(ptr); }
 };
 
 struct PhysicsImpl {
@@ -59,7 +60,8 @@ Physics::Physics(const PhysicsInfo& info) : m_impl(std::make_unique<PhysicsImpl>
         throw std::runtime_error("Failed to create PhysX foundation");
     }
 
-    m_impl->physics = PxCreatePhysics(PX_PHYSICS_VERSION, *m_impl->foundation, physx::PxTolerancesScale(info.default_length, info.default_speed));
+    m_impl->physics =
+        PxCreatePhysics(PX_PHYSICS_VERSION, *m_impl->foundation, physx::PxTolerancesScale(info.default_length, info.default_speed), false, nullptr, nullptr);
     if (!m_impl->physics) {
         throw std::runtime_error("Failed to create PhysX physics!");
     }
@@ -74,3 +76,5 @@ Physics::~Physics()
 }
 
 } // namespace engine
+
+#endif
