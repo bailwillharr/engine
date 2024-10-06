@@ -115,7 +115,7 @@
         "rhs": "Linux"
       }
     },
-        {
+    {
       "name": "x64-release-linux",
       "displayName": "x64 Release",
       "description": "Optimisation on, hot reloading enabled, generate debug symbols",
@@ -123,6 +123,23 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "RelWithDebInfo",
         "ENGINE_HOT_RELOAD": "ON",
+        "ENGINE_PHYSX_LIBRARY_DIR": "/home/bailey/.local/src/physx/PhysX-106.1-physx-5.4.2/physx/install/linux/PhysX/bin/linux.clang/checked",
+        "ENGINE_PHYSX_INCLUDE_DIR": "/home/bailey/.local/src/physx/PhysX-106.1-physx-5.4.2/physx/install/linux/PhysX/include"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "x64-dist-linux",
+      "displayName": "x64 Distribution",
+      "description": "Optimisation on, hot reloading disabled, no symbols",
+      "inherits": "x64-debug-linux",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "ENGINE_HOT_RELOAD": "OFF",
         "ENGINE_PHYSX_LIBRARY_DIR": "/home/bailey/.local/src/physx/PhysX-106.1-physx-5.4.2/physx/install/linux/PhysX/bin/linux.clang/checked",
         "ENGINE_PHYSX_INCLUDE_DIR": "/home/bailey/.local/src/physx/PhysX-106.1-physx-5.4.2/physx/install/linux/PhysX/include"
       },
