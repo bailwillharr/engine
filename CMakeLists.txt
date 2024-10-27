@@ -9,6 +9,7 @@ if (MSVC)
 endif()
 set(ENGINE_PHYSX_INCLUDE_DIR "" CACHE PATH "Path to the PhysX SDK include directory")
 set(ENGINE_PHYSX_LIBRARY_DIR "" CACHE PATH "PhysX library location (often different per build configuration)")
+option(ENGINE_LOG_TRACE_DEBUG "Log trace and debug messages" ON)
 
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release;RelWithDebInfo")
 
@@ -81,6 +82,7 @@ set(INCLUDE_FILES
 	"include/resource_texture.h"
 	"include/scene.h"
 	"include/scene_manager.h"
+  "include/si.h"
 	"include/system_collisions.h"
 	"include/system_custom_behaviour.h"
 	"include/system_mesh_render.h"
@@ -111,7 +113,14 @@ source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/res/engine" PREFIX "Resources" FI
 # compiling options:
 
 if (WIN32)
-	target_compile_definitions(${PROJECT_NAME} PRIVATE DEFINITIONS "NOMINMAX") # stop windows.h conflicting with 'std::max'
+	target_compile_definitions(${PROJECT_NAME} PRIVATE NOMINMAX) # stop windows.h conflicting with 'std::max'
+endif()
+
+# Control logging verbosity
+if (ENGINE_LOG_TRACE_DEBUG)
+	target_compile_definitions(${PROJECT_NAME} PRIVATE SPDLOG_ACTIVE_LEVEL=0)
+else()
+	target_compile_definitions(${PROJECT_NAME} PRIVATE SPDLOG_ACTIVE_LEVEL=2)
 endif()
 
 # This project uses C++20 and C11

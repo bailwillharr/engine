@@ -1,5 +1,7 @@
 #pragma once
 
+// spdlog also has stopwatch function
+
 #include <filesystem>
 #include <memory>
 
@@ -11,7 +13,7 @@
 namespace engine {
 
 // To be executed in the target application, NOT engine.dll
-void SetupLog(const char* appName)
+inline void SetupLog(const char* appName)
 {
     const std::string LOG_FILENAME{std::string(appName) + ".log"};
 
@@ -29,11 +31,11 @@ void SetupLog(const char* appName)
     sinks.back()->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] %v");
 
     sinks.emplace_back(std::make_shared<spdlog::sinks::stdout_color_sink_mt>());
-    sinks.back()->set_pattern("[%H:%M:%S.%e] [%l] %v");
+    sinks.back()->set_pattern("[%H:%M:%S.%e] [%^%l%$] [thread:%t] [%s:%#] %v");
 
     auto logger = std::make_shared<spdlog::logger>(appName, sinks.begin(), sinks.end());
 
-    // Logs below INFO are ignored through macros in release (see log.hpp)
+    // Logs below INFO are ignored through macros in release (see log.h)
     logger->set_level(spdlog::level::trace);
 
     spdlog::register_logger(logger);

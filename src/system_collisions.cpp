@@ -115,7 +115,10 @@ void CollisionSystem::onUpdate(float ts)
 
     // TODO: the bvh will not update if an equal number of colliders are removed and added.
     // This is not a problem yet, as entitites cannot be removed from the scene.
-    if (colliders_size_last_update_ != colliders_size_now_) {
+    //
+    // (a long time later), just use a bool flag like 'is_out_of_date' when component is inserted or removed, reset after rebuilding. EZPZ.
+    // if (colliders_size_last_update_ != colliders_size_now_) {
+    if (1 == 1) { // always rebuild
 
         std::vector<PrimitiveInfo> prims{};
         prims.reserve(m_entities.size());

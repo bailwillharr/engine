@@ -78,7 +78,7 @@ void CameraControllerSystem::onUpdate(float ts)
         engine::Raycast* chosen_cast = nullptr; // nullptr means no hit at all
 
         float smallest_distance = std::numeric_limits<float>::infinity();
-        for (size_t i = 0; i < raycasts.size(); ++i) {
+        for (std::size_t i = 0; i < raycasts.size(); ++i) {
 
             const float lerp_value = static_cast<float>(i) / (static_cast<float>(CameraControllerComponent::kNumHorizontalRays) - 1);
 
@@ -122,7 +122,7 @@ void CameraControllerSystem::onUpdate(float ts)
             fall_ray.origin.z += CameraControllerComponent::kMaxStairHeight - CameraControllerComponent::kPlayerHeight;
             fall_ray.direction = {0.0f, 0.0f, -1.0f}; // down
             const engine::Raycast fall_raycast = m_scene->GetSystem<engine::CollisionSystem>()->GetRaycast(fall_ray);
-            if (fall_raycast.hit) {                   // there is ground below player
+            if (fall_raycast.hit) { // there is ground below player
                 // find how far the player will move (downwards) if velocity is applied without collision
                 const float mag_dz = fabsf(c->vel.z * dt);
                 // check if the player will be less than 'height' units above the collided ground
@@ -185,8 +185,7 @@ void CameraControllerSystem::onUpdate(float ts)
 
     /* user interface inputs */
 
-    if (m_scene->app()->getWindow()->GetKeyPress(engine::inputs::Key::K_R) /* ||
-        glm::length(t->position) > CameraControllerComponent::kMaxDistanceFromOrigin*/) {
+    if (m_scene->app()->getWindow()->GetKeyPress(engine::inputs::Key::K_R) || glm::length(t->position) > CameraControllerComponent::kMaxDistanceFromOrigin) {
         t->position = {0.000001f, 0.000001f, 10.0f};
         c->vel = {0.0f, 0.0f, 0.0f};
         c->pitch = glm::half_pi<float>();

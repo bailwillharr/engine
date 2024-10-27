@@ -14,7 +14,7 @@ std::unique_ptr<std::vector<char>> readTextFile(const std::string& path)
         throw std::runtime_error("Unable to open file " + path);
     }
 
-    auto buffer = std::make_unique<std::vector<char>>(static_cast<size_t>(file.tellg()) + 1);
+    auto buffer = std::make_unique<std::vector<char>>(static_cast<std::size_t>(file.tellg()) + 1);
 
     file.seekg(0);
 
@@ -64,7 +64,7 @@ std::unique_ptr<std::vector<uint8_t>> readImageFile(const std::string& path, int
         throw std::runtime_error("Unable to open file " + path);
     }
 
-    const size_t size = (size_t)x * (size_t)y * 4;
+    const std::size_t size = (std::size_t)x * (std::size_t)y * 4;
 
     auto buffer = std::make_unique<std::vector<uint8_t>>(size);
     memcpy(buffer->data(), data, buffer->size());
@@ -77,4 +77,4 @@ std::unique_ptr<std::vector<uint8_t>> readImageFile(const std::string& path, int
     return buffer;
 }
 
-} // namespace engine::util
+} // namespace engine

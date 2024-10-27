@@ -1,10 +1,12 @@
 #pragma once
 
+#ifndef SPDLOG_ACTIVE_LEVEL
 #ifdef NDEBUG
 #define SPDLOG_ACTIVE_LEVEL 2 // info, warn, error, critical
 // #define SPDLOG_ACTIVE_LEVEL 0  // trace, debug, info, warn, error, critical
 #else
 #define SPDLOG_ACTIVE_LEVEL 0 // trace, debug, info, warn, error, critical
+#endif
 #endif
 
 #include <spdlog/spdlog.h>

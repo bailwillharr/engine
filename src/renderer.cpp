@@ -12,6 +12,8 @@
 
 #include <imgui.h>
 
+#include <spdlog/stopwatch.h>
+
 namespace engine {
 
 Renderer::Renderer(Application& app, gfx::GraphicsSettings settings) : ApplicationComponent(app)
@@ -270,6 +272,7 @@ void Renderer::Render(bool window_is_resized, glm::mat4 camera_transform, const 
     device_->writeUniformBuffer(frame_uniform.uniform_buffer, 0, sizeof(frame_uniform.uniform_buffer_data), &frame_uniform.uniform_buffer_data);
 
     if (rendering_started == false) {
+		spdlog::stopwatch s;
         // render to shadow map
         gfx::DrawBuffer* shadow_draw = device_->beginShadowmapRender(shadow_map);
         device_->cmdBindPipeline(shadow_draw, shadow_pipeline);
@@ -284,6 +287,7 @@ void Renderer::Render(bool window_is_resized, glm::mat4 camera_transform, const 
             }
         }
         device_->finishShadowmapRender(shadow_draw, shadow_map);
+		LOG_TRACE("Shadowmap took {}", s);
     }
     rendering_started = true;
 
@@ -332,7 +336,7 @@ void Renderer::Render(bool window_is_resized, glm::mat4 camera_transform, const 
     }
 
     // also make a lil crosshair
-    push.color = glm::vec3{1.0f, 1.0f, 1.0f};
+    push.color = glm::vec3{1.0f, 0.0f, 1.0f};
     push.pos1 = glm::vec4(-0.05f, 0.0f, 0.0f, 1.0f);
     push.pos2 = glm::vec4(0.05f, 0.0f, 0.0f, 1.0f);
     device_->cmdPushConstants(draw_buffer, debug_rendering_things_.pipeline, 0, sizeof(DebugPush), &push);

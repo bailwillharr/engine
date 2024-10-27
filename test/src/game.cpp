@@ -133,11 +133,6 @@ void PlayGame(GameSettings settings)
         main_scene->GetScale(toycar) *= 150.0f;
         main_scene->GetPosition(toycar).z -= 0.07f;
 
-        const engine::Entity stairs = engine::loadGLTF(*main_scene, app.getResourcePath("models/stairs.glb"), true);
-        main_scene->GetPosition(stairs) += glm::vec3{-8.0f, -5.0f, 0.1f};
-        main_scene->GetRotation(stairs) = glm::angleAxis(glm::half_pi<float>(), glm::vec3{0.0f, 0.0f, 1.0f});
-        main_scene->GetRotation(stairs) *= glm::angleAxis(glm::half_pi<float>(), glm::vec3{1.0f, 0.0f, 0.0f});
-
         const engine::Entity axes = engine::loadGLTF(*main_scene, app.getResourcePath("models/MY_AXES.glb"), true);
         main_scene->GetPosition(axes) += glm::vec3{-40.0f, -40.0f, 1.0f};
 
@@ -149,6 +144,9 @@ void PlayGame(GameSettings settings)
         // engine::Entity cube = engine::util::LoadGLTF(*main_scene, app.getResourcePath("models/cube.glb"), false);
         const engine::Entity cube = main_scene->CreateEntity("cube", 0, glm::vec3{4.0f, -17.0f, 0.0f});
         main_scene->GetTransform(cube)->is_static = false;
+        const auto cube_col = main_scene->AddComponent<engine::ColliderComponent>(cube);
+        cube_col->aabb.min = glm::vec3{0.0f, 0.0f, 0.0f};
+        cube_col->aabb.max = glm::vec3{1.0f, 1.0f, 1.0f};
         const auto cube_ren = main_scene->AddComponent<engine::MeshRenderableComponent>(cube);
         cube_ren->material = app.getResource<engine::Material>("builtin.default");
         cube_ren->mesh = GenCuboidMesh(app.getRenderer()->GetDevice(), 1.0f, 1.0f, 1.0f);
@@ -162,12 +160,18 @@ void PlayGame(GameSettings settings)
             void init() override {}
             void update(float dt) override
             {
-                yaw += dt;
+                yaw += dt * 0.1f;
                 m_scene->GetRotation(m_entity) = glm::angleAxis(yaw, glm::vec3{0.0f, 0.0f, 1.0f});
                 m_scene->GetRotation(m_entity) *= glm::angleAxis(glm::half_pi<float>(), glm::vec3{1.0f, 0.0f, 0.0f});
             }
         };
         cubeCustom->impl = std::make_unique<Spinner>();
+
+        const engine::Entity stairs = engine::loadGLTF(*main_scene, app.getResourcePath("models/stairs.glb"), false);
+        main_scene->GetPosition(stairs) += glm::vec3{-8.0f, -5.0f, 0.1f};
+        main_scene->GetRotation(stairs) = glm::angleAxis(glm::half_pi<float>(), glm::vec3{0.0f, 0.0f, 1.0f});
+        main_scene->GetRotation(stairs) *= glm::angleAxis(glm::half_pi<float>(), glm::vec3{1.0f, 0.0f, 0.0f});
+        main_scene->AddComponent<engine::CustomComponent>(stairs)->impl = std::make_unique<Spinner>();
 
         engine::Entity teapot = engine::loadGLTF(*main_scene, app.getResourcePath("models/teapot.glb"), true);
         main_scene->GetPosition(teapot).y += 5.0f;

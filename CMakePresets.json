@@ -32,7 +32,8 @@
         "ENGINETEST_BUILD_WIN32_APP": "OFF",
         "ENGINE_HOT_RELOAD": "ON",
         "ENGINE_PHYSX_LIBRARY_DIR": "C:/Users/Bailey/source/repos/bailwillharr/PhysX-106.0-physx-5.4.1/physx/bin/win.x86_64.vc143.mt/checked",
-        "ENGINE_PHYSX_INCLUDE_DIR": "C:/Users/Bailey/source/repos/bailwillharr/PhysX-106.0-physx-5.4.1/physx/include"
+        "ENGINE_PHYSX_INCLUDE_DIR": "C:/Users/Bailey/source/repos/bailwillharr/PhysX-106.0-physx-5.4.1/physx/include",
+		"ENGINE_LOG_TRACE_DEBUG": "ON"
       },
       "condition": {
         "type": "equals",
@@ -50,7 +51,8 @@
         "ENGINETEST_BUILD_WIN32_APP": "OFF",
         "ENGINE_HOT_RELOAD": "ON",
         "ENGINE_PHYSX_LIBRARY_DIR": "C:/Users/Bailey/source/repos/bailwillharr/PhysX-106.0-physx-5.4.1/physx/bin/win.x86_64.vc143.mt/checked",
-        "ENGINE_PHYSX_INCLUDE_DIR": "C:/Users/Bailey/source/repos/bailwillharr/PhysX-106.0-physx-5.4.1/physx/include"
+        "ENGINE_PHYSX_INCLUDE_DIR": "C:/Users/Bailey/source/repos/bailwillharr/PhysX-106.0-physx-5.4.1/physx/include",
+		"ENGINE_LOG_TRACE_DEBUG": "ON"
       },
       "condition": {
         "type": "equals",
@@ -68,7 +70,8 @@
         "ENGINETEST_BUILD_WIN32_APP": "ON",
         "ENGINE_HOT_RELOAD": "OFF",
         "ENGINE_PHYSX_LIBRARY_DIR": "C:/Users/Bailey/source/repos/bailwillharr/PhysX-106.0-physx-5.4.1/physx/bin/win.x86_64.vc143.mt/release",
-        "ENGINE_PHYSX_INCLUDE_DIR": "C:/Users/Bailey/source/repos/bailwillharr/PhysX-106.0-physx-5.4.1/physx/include"
+        "ENGINE_PHYSX_INCLUDE_DIR": "C:/Users/Bailey/source/repos/bailwillharr/PhysX-106.0-physx-5.4.1/physx/include",
+		"ENGINE_LOG_TRACE_DEBUG": "OFF"
       },
       "condition": {
         "type": "equals",
@@ -107,7 +110,8 @@
         "CMAKE_BUILD_TYPE": "Debug",
         "ENGINE_HOT_RELOAD": "ON",
         "ENGINE_PHYSX_LIBRARY_DIR": "/home/bailey/.local/src/physx/PhysX-106.1-physx-5.4.2/physx/install/linux/PhysX/bin/linux.clang/checked",
-        "ENGINE_PHYSX_INCLUDE_DIR": "/home/bailey/.local/src/physx/PhysX-106.1-physx-5.4.2/physx/install/linux/PhysX/include"
+        "ENGINE_PHYSX_INCLUDE_DIR": "/home/bailey/.local/src/physx/PhysX-106.1-physx-5.4.2/physx/install/linux/PhysX/include",
+		"ENGINE_LOG_TRACE_DEBUG": "ON"
       },
       "condition": {
         "type": "equals",
@@ -124,7 +128,8 @@
         "CMAKE_BUILD_TYPE": "RelWithDebInfo",
         "ENGINE_HOT_RELOAD": "ON",
         "ENGINE_PHYSX_LIBRARY_DIR": "/home/bailey/.local/src/physx/PhysX-106.1-physx-5.4.2/physx/install/linux/PhysX/bin/linux.clang/checked",
-        "ENGINE_PHYSX_INCLUDE_DIR": "/home/bailey/.local/src/physx/PhysX-106.1-physx-5.4.2/physx/install/linux/PhysX/include"
+        "ENGINE_PHYSX_INCLUDE_DIR": "/home/bailey/.local/src/physx/PhysX-106.1-physx-5.4.2/physx/install/linux/PhysX/include",
+		"ENGINE_LOG_TRACE_DEBUG": "ON"
       },
       "condition": {
         "type": "equals",
@@ -141,7 +146,8 @@
         "CMAKE_BUILD_TYPE": "Release",
         "ENGINE_HOT_RELOAD": "OFF",
         "ENGINE_PHYSX_LIBRARY_DIR": "/home/bailey/.local/src/physx/PhysX-106.1-physx-5.4.2/physx/install/linux/PhysX/bin/linux.clang/checked",
-        "ENGINE_PHYSX_INCLUDE_DIR": "/home/bailey/.local/src/physx/PhysX-106.1-physx-5.4.2/physx/install/linux/PhysX/include"
+        "ENGINE_PHYSX_INCLUDE_DIR": "/home/bailey/.local/src/physx/PhysX-106.1-physx-5.4.2/physx/install/linux/PhysX/include",
+		"ENGINE_LOG_TRACE_DEBUG": "OFF"
       },
       "condition": {
         "type": "equals",

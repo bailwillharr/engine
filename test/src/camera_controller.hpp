@@ -6,6 +6,7 @@
 #include "component_transform.h"
 #include "debug_line.h"
 #include "ecs.h"
+#include "si.h"
 
 struct CameraControllerComponent {
     // looking
@@ -20,14 +21,14 @@ struct CameraControllerComponent {
     static constexpr float kJumpVelocity = 4.4f * 2.0f;
 
     // collision
-    static constexpr float kPlayerHeight = 2.0f;          // 71.0f * 25.4f / 1000.0f;
+    static constexpr float kPlayerHeight = engine::inchesToMeters(71.0f);
     static constexpr float kPlayerCollisionRadius = 0.2f; // this should be greater than z_near
     static constexpr float kMaxStairHeight = 0.2f;
-    static constexpr size_t kNumHorizontalRays = 20;
+    static constexpr std::size_t kNumHorizontalRays = 20;
 
-    float grav_accel = -9.81f;
+    float grav_accel = -9.81f * 2.0f;
     // grav_accel = -1.625f; // moon gravity
-    static constexpr float kMaxDistanceFromOrigin = 200.0f;
+    static constexpr float kMaxDistanceFromOrigin = 1.0e6f;
 
     bool noclip = false;
 
