@@ -4,12 +4,8 @@ a random game engine thing. Now finally with ECS!
   
 # TO DO LIST
 
-## High priority (tomorrow)
-
 - Support dynamic shadow mapping (at least for shadows cast from the scene's sun)
-
-## Medium priority (next week)
-
+- 
 - UI generator exposed at the Application level (Scene UI Systems could use this to draw menus every frame)
 
 - Proper IBL with an irradiance map
@@ -17,8 +13,6 @@ a random game engine thing. Now finally with ECS!
 - Multiple lights (dynamic and static; do not need to be shadow casting)
 
 - More accurate raycast collision detection (Perhaps only sphere, capsule, OBB colliders. Mesh collision is probably unneccesary.)
-
-## Low priority (next month)
 
 - Explicit post processing pass exposed by the GFXDevice that can be used for bloom, AA, etc
 
