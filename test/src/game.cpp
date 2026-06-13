@@ -181,25 +181,22 @@ void PlayGame(GameSettings settings)
         const engine::Entity tree = engine::loadGLTF(*main_scene, app.getResourcePath("models/tree.glb"), true);
         main_scene->GetPosition(tree) = glm::vec3{-5.0f, -5.0f, 0.0f};
 
+        const engine::Entity chamber = engine::loadGLTF(*main_scene, app.getResourcePath("models/chamber.glb"), false);
+        main_scene->GetPosition(chamber) = glm::vec3{20.0f, 20.0f, 40.0f};
+
         const engine::Entity box = engine::loadGLTF(*main_scene, app.getResourcePath("models/box.glb"), true);
         main_scene->GetPosition(box) = glm::vec3{-5.0f, -17.0f, 0.1f};
         main_scene->GetScale(box) *= 10.0f;
         main_scene->GetRotation(box) = glm::angleAxis(glm::pi<float>() * 0.0f, glm::vec3{0.0f, 0.0f, 1.0f});
         main_scene->GetRotation(box) *= glm::angleAxis(glm::half_pi<float>(), glm::vec3{1.0f, 0.0f, 0.0f});
 
-#if 0
         const auto land_material = std::make_shared<engine::Material>(app.getRenderer(), app.getResource<engine::Shader>("builtin.fancy"));
-        land_material->setAlbedoTexture(engine::LoadTextureFromFile(
-            "C:\\storage dump 2\\intromax\\myproject\\sceneassets\\images\\grass1-bl\\grass1-albedo3.png", engine::gfx::SamplerInfo{}, app.getRenderer()));
+        land_material->setAlbedoTexture(
+            engine::LoadTextureFromFile(app.getResourcePath("textures/grass_albedo.png"), engine::gfx::SamplerInfo{}, app.getRenderer()));
         land_material->setNormalTexture(
-            engine::LoadTextureFromFile("C:\\storage dump 2\\intromax\\myproject\\sceneassets\\images\\grass1-bl\\grass1-normal1-ogl.png",
-                                        engine::gfx::SamplerInfo{}, app.getRenderer(), false));
+            engine::LoadTextureFromFile(app.getResourcePath("textures/grass_normal.png"), engine::gfx::SamplerInfo{}, app.getRenderer(), false));
         land_material->setOcclusionRoughnessMetallicTexture(
-            engine::LoadTextureFromFile("C:\\storage dump 2\\intromax\\myproject\\sceneassets\\images\\grass1-bl\\combined_ar_rough_metal.png",
-                                        engine::gfx::SamplerInfo{}, app.getRenderer(), false));
-#else
-        const auto land_material = app.getResource<engine::Material>("builtin.default");
-#endif
+            engine::LoadTextureFromFile(app.getResourcePath("textures/grass_mr.png"), engine::gfx::SamplerInfo{}, app.getRenderer(), false));
         constexpr int LANDS_SIZE = 4;
         constexpr float LANDS_XY_SCALE = 50.0f;
         constexpr float LANDS_HEIGHT = 5.0f;

@@ -124,7 +124,9 @@ void main() {
 
 	// tone mapping
 	const vec3 hdr_color = emission + lighting;
+
 	outColor = vec4(hdr_color / (hdr_color + 1.0), 1.0);
 	//outColor = vec4(vec3(1.0 - shadow), 1.0);
 	//outColor = vec4(vec3(L_dot_N * (1.0 - shadow)), 1.0);
+    outColor = vec4(fragPosTangentSpace, 1.0);
 }
